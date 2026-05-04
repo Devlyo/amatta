@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_TOOL_FILE_PATH\" | grep -qE '\\.tsx?$'; then EXPO_NO_TELEMETRY=1 npx eslint --fix \"$CLAUDE_TOOL_FILE_PATH\" 2>&1 | tail -n 5; fi"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "EXPO_NO_TELEMETRY=1 npx tsc --noEmit --incremental 2>&1 | tail -n 20 || true"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "EXPO_NO_TELEMETRY=1 npx expo-doctor 2>&1 | tail -n 1 || true"
+          }
+        ]
+      }
+    ]
+  }
+}

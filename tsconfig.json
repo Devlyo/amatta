@@ -1,0 +1,33 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    // exactOptionalPropertyTypes intentionally OMITTED.
+    // Reason: expo-router generated types (string | undefined for params)
+    //   are incompatible with exactOptionalPropertyTypes on SDK ~54.x.
+    //   Smoke-gate `tsc --noEmit` must return 0 on a fresh project — keeping
+    //   this flag would fail before any product code is written.
+    //   Re-evaluate if expo-router types stabilize in a future SDK.
+    "incremental": true,
+    "tsBuildInfoFile": "./.tsbuildinfo",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".expo",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ]
+}
