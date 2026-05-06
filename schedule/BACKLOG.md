@@ -18,13 +18,26 @@
 - [ ] [US-011] 일정에 위치/메모 선택 입력 — Phase 2
 - [ ] [US-012] 특정 날짜 일정 1회 취소 (cancel exception) — Phase 2
 - [ ] [US-014] 삭제 시 "이 회차만 / 전체" 선택 — Phase 4
+- [ ] [US-015] 일정 추가/수정 시트에서 준비물 N개 (label·reorder·complete toggle) — Phase 2 (ADR-002)
+- [ ] [US-016] 일정 알림 본문에 준비물 요약 자동 prepend (≤80자) — Phase 5 (ADR-002)
+- [ ] [SPEC-DB-3] Migration v2: ChecklistItem·Todo·SchedulePickupLog 테이블 + Schedule.needs_pickup 컬럼 추가 (총 7 tables), v1→v2 데이터 무손실 — Phase 1 (ADR-002)
 
 ### UI — Daily
 - [ ] [US-020] 메인 일간 그리드 (자녀×시간) 렌더 — Phase 3
 - [ ] [US-021] 좌우 스와이프 prev/next day — Phase 3
 - [ ] [US-022] 자녀 헤더 탭 → 주간 드릴다운 — Phase 3/4
 - [ ] [US-023] 빈 슬롯 탭 → 추가 시트 — Phase 3/4
+- [ ] [US-017] 일정 블록 내부에 준비물 inline 표시 (≥45px 높이일 때만) — Phase 3 (ADR-002)
+- [ ] [US-024] "오늘 챙길 것" 카드 (자녀별 묶음, 미완료만, 탭 시 블록 스크롤) — Phase 3 (ADR-002)
+- [ ] [US-060] 일정에 needsPickup 토글 → 블록 우상단 🚗 — Phase 3 (ADR-002)
+- [ ] [US-061] 회차별 픽업 완료 체크 → `schedule_pickup_log` INSERT/DELETE — Phase 4 (ADR-002)
+- [ ] [US-062] 시간 겹침 + needsPickup ≥2 → sub-bar `⚠ {hh:mm} 픽업 충돌` pill (블록·푸시 무영향) — Phase 3 (ADR-002)
 - [ ] [SPEC-PERF-1] 첫 페인트 < 1.5s (Android API 33 emu, 32-schedule seed) — Phase 3
+
+### Todos (ADR-002)
+- [ ] [US-050] Todo 추가/수정/완료/삭제 (반복 X) — Phase 2
+- [ ] [US-051] Todo dueAt - notify_minutes_before 시점 로컬 푸시 — Phase 5
+- [ ] [US-052] 일간 화면 상단 "오늘 할 일" 카드 (자녀 무관 to-do 포함) — Phase 3
 
 ### Notifications
 - [ ] [US-030] 일정 N분 전 로컬 푸시 — Phase 5

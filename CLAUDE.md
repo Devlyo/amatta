@@ -15,6 +15,10 @@
 - **그리드**: 06:00–23:00 / 30분 슬롯 / 자녀 최대 4명 / 6색 팔레트 / 일정 타입 4종 (school|academy|activity|other)
 - **TS**: strict + noUncheckedIndexedAccess (NO exactOptionalPropertyTypes)
 - **온라인 기능 일체 없음**: 회원가입·로그인·가족공유·클라우드동기화 모두 비목표
+- **Entities (ADR-002)**: Child / Schedule / ScheduleException / NotificationSetting + **ChecklistItem · Todo · SchedulePickupLog** (총 7 tables)
+- **Schedule extra (ADR-002)**: `needs_pickup` boolean. ScheduleException은 손대지 않음 (kind CHECK 제약 유지). 회차별 픽업 완료는 `schedule_pickup_log(schedule_id, occurrence_date, completed_at)` UNIQUE 제약으로 별도 기록.
+- **알림 정책 (ADR-002)**: 일정 알림 본문에 ChecklistItem 자동 prepend(≤80자). Todo는 dueAt 기반 단독 푸시. **그 외 새 푸시 surface 금지** (충돌 푸시 X).
+- **충돌 인디케이터 (ADR-002)**: 일간 그리드 sub-bar `⚠ {hh:mm} 픽업 충돌` pill 단일 위치. 블록 오버레이·푸시 둘 다 금지.
 
 ## Authoritative Documents
 | 무엇 | 어디 |
@@ -24,7 +28,7 @@
 | Architect/Critic 리뷰 | `.omc/plans/ralplan-schedul-app-v2.{architect,critic}-review.md` |
 | 보류된 결정 | `.omc/plans/open-questions.md` |
 | 제품 PRD·페르소나 | `docs/product/` |
-| 아키텍처·ADR | `docs/architecture/` |
+| 아키텍처·ADR | `docs/architecture/` (ADR-001 stack lock, **ADR-002 prep·todos·pickup**) |
 | UI/UX 가이드 | `docs/design/` |
 | 회의록 | `docs/meetings/` |
 | 로드맵·백로그·스프린트 | `schedule/` |
