@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>코알라 캘린더 — animal mascots v0</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  @font-face {
+    font-family: 'Paperlogy';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-3@1.0/Paperlogy-4Regular.woff2') format('woff2');
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Paperlogy';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-3@1.0/Paperlogy-5Medium.woff2') format('woff2');
+    font-weight: 500; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Paperlogy';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-3@1.0/Paperlogy-6SemiBold.woff2') format('woff2');
+    font-weight: 600; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Paperlogy';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-3@1.0/Paperlogy-7Bold.woff2') format('woff2');
+    font-weight: 700; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Paperlogy';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2');
+    font-weight: 800; font-style: normal; font-display: swap;
+  }
+
+  :root {
+    --cream: #f7f4ed;
+    --cream-soft: #fbf8f1;
+    --ink: #1c1c1c;
+    --ink-82: rgba(28,28,28,0.82);
+    --ink-40: rgba(28,28,28,0.4);
+    --ink-08: rgba(28,28,28,0.08);
+    --ink-04: rgba(28,28,28,0.04);
+    --border: #eceae4;
+
+    --c1-base: #ffe4ed; --c1-fg: #c4477e;   /* 민준 — pink — RABBIT */
+    --c2-base: #e2f0dd; --c2-fg: #1e7a2e;   /* 서윤 — green — PANDA */
+    --c3-base: #dce8f9; --c3-fg: #1e4abf;   /* 지호 — blue — PENGUIN */
+    --c4-base: #fff7c2; --c4-fg: #b18a00;   /* 서아 — yellow — BROWN BEAR */
+
+    --accent-orange: #FF9302;
+    --accent-mustard: #FBB008;
+
+    /* animal palette */
+    --koala-body: #9ea5a8;
+    --koala-shade: #7d8588;
+    --koala-ear-pink: #f0c8c8;
+    --rabbit-body: #ead4bd;
+    --rabbit-ear: #c89880;
+    --rabbit-nose: #a85a4d;
+    --panda-body: #fbf8f1;
+    --bear-body: #a87142;
+    --bear-muzzle: #d09a6a;
+    --paper-edge: rgba(28,28,28,0.22);
+  }
+
+  /* paper-cut edge — outer silhouette stroke for all animals */
+  svg [data-edge] {
+    stroke: var(--paper-edge);
+    stroke-width: 1.6;
+    stroke-linejoin: round;
+    paint-order: stroke fill;
+    vector-effect: non-scaling-stroke;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Paperlogy', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 56px 24px 96px;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container { max-width: 720px; margin: 0 auto; }
+
+  .stage-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--ink-40);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    margin-bottom: 10px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: var(--ink-82);
+    font-weight: 400;
+    line-height: 1.5;
+    margin-bottom: 48px;
+  }
+
+  section + section { margin-top: 56px; }
+
+  h2 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  h2 .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-40);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* ---------- brand hero ---------- */
+  .brand-hero {
+    text-align: center;
+    padding: 56px 24px 48px;
+    background: var(--ink-04);
+    border-radius: 16px;
+    margin-bottom: 56px;
+    border: 1px solid var(--border);
+  }
+  .brand-mascot {
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 20px;
+  }
+  .brand-name {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    margin-bottom: 6px;
+    line-height: 1;
+  }
+  .brand-tagline {
+    font-size: 12px;
+    color: var(--ink-40);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+
+  /* ---------- avatar grid 80px ---------- */
+  .avatars-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .avatar-card {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 6px 14px;
+    text-align: center;
+  }
+  .avatar-ring {
+    width: 76px;
+    height: 76px;
+    border-radius: 9999px;
+    margin: 0 auto 12px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .avatar-ring svg { width: 100%; height: 100%; display: block; }
+  .avatar-name {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 2px;
+  }
+  .avatar-meta {
+    font-size: 10px;
+    color: var(--ink-40);
+    font-weight: 500;
+  }
+  .avatar-animal {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8.5px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .ring-c1 { background: var(--c1-base); }
+  .ring-c2 { background: var(--c2-base); }
+  .ring-c3 { background: var(--c3-base); }
+  .ring-c4 { background: var(--c4-base); }
+
+  .avatar-card.c1 .avatar-animal { color: var(--c1-fg); }
+  .avatar-card.c2 .avatar-animal { color: var(--c2-fg); }
+  .avatar-card.c3 .avatar-animal { color: var(--c3-fg); }
+  .avatar-card.c4 .avatar-animal { color: var(--c4-fg); }
+
+  /* ---------- 32px scan row ---------- */
+  .scan-row {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    padding: 20px;
+    background: var(--ink-04);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .scan-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .small-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    padding: 4px;
+  }
+  .small-avatar svg { width: 100%; height: 100%; display: block; }
+  .scan-label {
+    font-size: 10px;
+    color: var(--ink-40);
+    font-weight: 500;
+  }
+
+  /* ---------- mini event preview ---------- */
+  .event-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px;
+    background: var(--ink-04);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .mini-event {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+  }
+  .mini-event .mini-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    padding: 2px;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.5);
+  }
+  .mini-event .mini-avatar svg { width: 100%; height: 100%; display: block; }
+  .mini-event .who {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  .mini-event .label {
+    font-size: 11.5px;
+    font-weight: 500;
+  }
+  .mini-event .time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-40);
+    margin-left: auto;
+    font-weight: 500;
+  }
+  .mini-event.c1 { background: var(--c1-base); color: var(--c1-fg); }
+  .mini-event.c2 { background: var(--c2-base); color: var(--c2-fg); }
+  .mini-event.c3 { background: var(--c3-base); color: var(--c3-fg); }
+  .mini-event.c4 { background: var(--c4-base); color: var(--c4-fg); }
+
+  /* ---------- footer ---------- */
+  footer {
+    margin-top: 72px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 11.5px;
+    color: var(--ink-40);
+    line-height: 1.7;
+  }
+  footer p + p { margin-top: 8px; }
+  footer strong { color: var(--ink-82); font-weight: 600; }
+  .chips {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-82);
+    font-weight: 500;
+  }
+  .chip i {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+  }
+
+  /* staggered reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: rise 0.55s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  @keyframes rise {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .d1 { animation-delay: 0s; }
+  .d2 { animation-delay: 80ms; }
+  .d3 { animation-delay: 160ms; }
+  .d4 { animation-delay: 240ms; }
+  .d5 { animation-delay: 320ms; }
+  .d6 { animation-delay: 400ms; }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="stage-meta reveal d1">PROTOTYPE / ANIMALS V0 — STATIC MOCK</div>
+    <h1 class="reveal d1">동물 마스코트 톤 검토</h1>
+    <p class="subtitle reveal d1">Lovable + Matisse paper-cutout — cream <code style="font-family:'JetBrains Mono',monospace;font-size:12px">#f7f4ed</code> 위에서 4종 차별화 + 코알라 부모 브랜드 마스코트.</p>
+
+    <!-- ============ BRAND HERO ============ -->
+    <div class="brand-hero reveal d2">
+      <div class="brand-mascot">
+        <!-- koala (brand mascot) -->
+        <svg viewBox="0 0 100 100" aria-label="코알라 마스코트">
+          <!-- ears -->
+          <circle cx="22" cy="34" r="17" fill="var(--koala-body)" data-edge/>
+          <circle cx="78" cy="34" r="17" fill="var(--koala-body)" data-edge/>
+          <circle cx="22" cy="34" r="10.5" fill="var(--koala-ear-pink)"/>
+          <circle cx="78" cy="34" r="10.5" fill="var(--koala-ear-pink)"/>
+          <!-- head -->
+          <ellipse cx="50" cy="58" rx="33" ry="30" fill="var(--koala-body)" data-edge/>
+          <!-- inner head subtle shading (no shadow, second flat tone) -->
+          <ellipse cx="50" cy="65" rx="22" ry="14" fill="var(--koala-shade)" opacity="0.18"/>
+          <!-- signature large nose -->
+          <ellipse cx="50" cy="64" rx="14" ry="9" fill="var(--ink)"/>
+          <!-- eyes -->
+          <circle cx="34" cy="52" r="3" fill="var(--ink)"/>
+          <circle cx="66" cy="52" r="3" fill="var(--ink)"/>
+          <!-- eye highlight -->
+          <circle cx="34.7" cy="51" r="0.9" fill="var(--cream-soft)"/>
+          <circle cx="66.7" cy="51" r="0.9" fill="var(--cream-soft)"/>
+        </svg>
+      </div>
+      <div class="brand-name">코알라 캘린더</div>
+      <div class="brand-tagline">부모와 자녀의 일정·준비물 리마인더</div>
+    </div>
+
+    <!-- ============ AVATAR GRID 80px ============ -->
+    <section class="reveal d3">
+      <h2>자녀 아바타 <span class="meta">76px / paper-cutout</span></h2>
+      <div class="avatars-grid">
+
+        <!-- 민준 RABBIT -->
+        <div class="avatar-card c1">
+          <div class="avatar-ring ring-c1">
+            <svg viewBox="0 0 100 100" aria-label="토끼">
+              <!-- long ears -->
+              <ellipse cx="36" cy="22" rx="7" ry="20" fill="var(--rabbit-body)" data-edge/>
+              <ellipse cx="64" cy="22" rx="7" ry="20" fill="var(--rabbit-body)" data-edge/>
+              <ellipse cx="36" cy="25" rx="3.4" ry="14" fill="var(--rabbit-ear)"/>
+              <ellipse cx="64" cy="25" rx="3.4" ry="14" fill="var(--rabbit-ear)"/>
+              <!-- head -->
+              <ellipse cx="50" cy="60" rx="28" ry="26" fill="var(--rabbit-body)" data-edge/>
+              <!-- cheeks -->
+              <ellipse cx="36" cy="66" rx="5" ry="3" fill="var(--rabbit-ear)" opacity="0.55"/>
+              <ellipse cx="64" cy="66" rx="5" ry="3" fill="var(--rabbit-ear)" opacity="0.55"/>
+              <!-- nose -->
+              <path d="M 50 62 L 46 65 Q 50 68 54 65 Z" fill="var(--rabbit-nose)"/>
+              <!-- eyes -->
+              <circle cx="38" cy="56" r="2.6" fill="var(--ink)"/>
+              <circle cx="62" cy="56" r="2.6" fill="var(--ink)"/>
+              <circle cx="38.6" cy="55.2" r="0.8" fill="var(--cream-soft)"/>
+              <circle cx="62.6" cy="55.2" r="0.8" fill="var(--cream-soft)"/>
+            </svg>
+          </div>
+          <div class="avatar-name">민준</div>
+          <div class="avatar-meta">초3 · 10세</div>
+          <div class="avatar-animal">RABBIT · 토끼</div>
+        </div>
+
+        <!-- 서윤 PANDA -->
+        <div class="avatar-card c2">
+          <div class="avatar-ring ring-c2">
+            <svg viewBox="0 0 100 100" aria-label="판다">
+              <!-- ears (charcoal) -->
+              <circle cx="26" cy="28" r="13" fill="var(--ink)"/>
+              <circle cx="74" cy="28" r="13" fill="var(--ink)"/>
+              <!-- head white -->
+              <ellipse cx="50" cy="57" rx="32" ry="30" fill="var(--panda-body)" data-edge/>
+              <!-- eye patches (tilted) -->
+              <ellipse cx="36" cy="55" rx="8" ry="11" fill="var(--ink)" transform="rotate(-22 36 55)"/>
+              <ellipse cx="64" cy="55" rx="8" ry="11" fill="var(--ink)" transform="rotate(22 64 55)"/>
+              <!-- eye dots within patches -->
+              <circle cx="37" cy="56" r="2.4" fill="var(--panda-body)"/>
+              <circle cx="63" cy="56" r="2.4" fill="var(--panda-body)"/>
+              <circle cx="37.4" cy="55.4" r="0.8" fill="var(--ink)"/>
+              <circle cx="63.4" cy="55.4" r="0.8" fill="var(--ink)"/>
+              <!-- nose -->
+              <ellipse cx="50" cy="68" rx="5" ry="3.5" fill="var(--ink)"/>
+              <!-- mouth -->
+              <path d="M 50 72 Q 47 75 44 73" stroke="var(--ink)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+              <path d="M 50 72 Q 53 75 56 73" stroke="var(--ink)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="avatar-name">서윤</div>
+          <div class="avatar-meta">초1 · 8세</div>
+          <div class="avatar-animal">PANDA · 판다</div>
+        </div>
+
+        <!-- 지호 PENGUIN -->
+        <div class="avatar-card c3">
+          <div class="avatar-ring ring-c3">
+            <svg viewBox="0 0 100 100" aria-label="펭귄 (머리)">
+              <!-- head (charcoal) -->
+              <ellipse cx="50" cy="55" rx="34" ry="34" fill="var(--ink)" data-edge/>
+              <!-- white face mask (lower portion) -->
+              <ellipse cx="50" cy="66" rx="20" ry="20" fill="var(--panda-body)"/>
+              <!-- eyes on charcoal cap -->
+              <circle cx="40" cy="46" r="3.8" fill="var(--panda-body)"/>
+              <circle cx="60" cy="46" r="3.8" fill="var(--panda-body)"/>
+              <circle cx="40.6" cy="46.3" r="1.9" fill="var(--ink)"/>
+              <circle cx="60.6" cy="46.3" r="1.9" fill="var(--ink)"/>
+              <!-- beak (mustard, on white face) -->
+              <path d="M 50 58 L 41 65 Q 50 71 59 65 Z" fill="var(--accent-mustard)"/>
+              <!-- cheek blush -->
+              <circle cx="30" cy="63" r="4" fill="var(--rabbit-ear)" opacity="0.45"/>
+              <circle cx="70" cy="63" r="4" fill="var(--rabbit-ear)" opacity="0.45"/>
+            </svg>
+          </div>
+          <div class="avatar-name">지호</div>
+          <div class="avatar-meta">유치원 · 5세</div>
+          <div class="avatar-animal">PENGUIN · 펭귄</div>
+        </div>
+
+        <!-- 서아 BROWN BEAR -->
+        <div class="avatar-card c4">
+          <div class="avatar-ring ring-c4">
+            <svg viewBox="0 0 100 100" aria-label="갈색곰">
+              <!-- ears -->
+              <circle cx="26" cy="28" r="12" fill="var(--bear-body)" data-edge/>
+              <circle cx="74" cy="28" r="12" fill="var(--bear-body)" data-edge/>
+              <circle cx="26" cy="28" r="6.5" fill="var(--bear-muzzle)"/>
+              <circle cx="74" cy="28" r="6.5" fill="var(--bear-muzzle)"/>
+              <!-- head -->
+              <ellipse cx="50" cy="57" rx="32" ry="29" fill="var(--bear-body)" data-edge/>
+              <!-- muzzle -->
+              <ellipse cx="50" cy="68" rx="17" ry="12" fill="var(--bear-muzzle)"/>
+              <!-- nose -->
+              <ellipse cx="50" cy="63" rx="5" ry="3.5" fill="var(--ink)"/>
+              <!-- mouth -->
+              <path d="M 50 68 Q 47 72 44 70" stroke="var(--ink)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+              <path d="M 50 68 Q 53 72 56 70" stroke="var(--ink)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+              <!-- eyes -->
+              <circle cx="38" cy="52" r="3" fill="var(--ink)"/>
+              <circle cx="62" cy="52" r="3" fill="var(--ink)"/>
+              <circle cx="38.6" cy="51.2" r="0.9" fill="var(--cream-soft)"/>
+              <circle cx="62.6" cy="51.2" r="0.9" fill="var(--cream-soft)"/>
+            </svg>
+          </div>
+          <div class="avatar-name">서아</div>
+          <div class="avatar-meta">초5 · 12세</div>
+          <div class="avatar-animal">BEAR · 갈색곰</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 32px scan test ============ -->
+    <section class="reveal d4">
+      <h2>32px 빠른 스캔 <span class="meta">픽업 충돌·자녀 헤더 컨텍스트</span></h2>
+      <div class="scan-row">
+        <div class="scan-item">
+          <div class="small-avatar ring-c1">
+            <svg viewBox="0 0 100 100"><ellipse cx="36" cy="22" rx="7" ry="20" fill="var(--rabbit-body)" data-edge/><ellipse cx="64" cy="22" rx="7" ry="20" fill="var(--rabbit-body)" data-edge/><ellipse cx="36" cy="25" rx="3.4" ry="14" fill="var(--rabbit-ear)"/><ellipse cx="64" cy="25" rx="3.4" ry="14" fill="var(--rabbit-ear)"/><ellipse cx="50" cy="60" rx="28" ry="26" fill="var(--rabbit-body)" data-edge/><circle cx="38" cy="56" r="3" fill="var(--ink)"/><circle cx="62" cy="56" r="3" fill="var(--ink)"/><path d="M 50 62 L 46 65 Q 50 68 54 65 Z" fill="var(--rabbit-nose)"/></svg>
+          </div>
+          <div class="scan-label">민준</div>
+        </div>
+        <div class="scan-item">
+          <div class="small-avatar ring-c2">
+            <svg viewBox="0 0 100 100"><circle cx="26" cy="28" r="13" fill="var(--ink)"/><circle cx="74" cy="28" r="13" fill="var(--ink)"/><ellipse cx="50" cy="57" rx="32" ry="30" fill="var(--panda-body)" data-edge/><ellipse cx="36" cy="55" rx="8" ry="11" fill="var(--ink)" transform="rotate(-22 36 55)"/><ellipse cx="64" cy="55" rx="8" ry="11" fill="var(--ink)" transform="rotate(22 64 55)"/><ellipse cx="50" cy="68" rx="5" ry="3.5" fill="var(--ink)"/></svg>
+          </div>
+          <div class="scan-label">서윤</div>
+        </div>
+        <div class="scan-item">
+          <div class="small-avatar ring-c3">
+            <svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="34" ry="34" fill="var(--ink)" data-edge/><ellipse cx="50" cy="66" rx="20" ry="20" fill="var(--panda-body)"/><circle cx="40" cy="46" r="3.8" fill="var(--panda-body)"/><circle cx="60" cy="46" r="3.8" fill="var(--panda-body)"/><circle cx="40.6" cy="46.3" r="1.9" fill="var(--ink)"/><circle cx="60.6" cy="46.3" r="1.9" fill="var(--ink)"/><path d="M 50 58 L 41 65 Q 50 71 59 65 Z" fill="var(--accent-mustard)"/></svg>
+          </div>
+          <div class="scan-label">지호</div>
+        </div>
+        <div class="scan-item">
+          <div class="small-avatar ring-c4">
+            <svg viewBox="0 0 100 100"><circle cx="26" cy="28" r="12" fill="var(--bear-body)" data-edge/><circle cx="74" cy="28" r="12" fill="var(--bear-body)" data-edge/><circle cx="26" cy="28" r="6.5" fill="var(--bear-muzzle)"/><circle cx="74" cy="28" r="6.5" fill="var(--bear-muzzle)"/><ellipse cx="50" cy="57" rx="32" ry="29" fill="var(--bear-body)" data-edge/><ellipse cx="50" cy="68" rx="17" ry="12" fill="var(--bear-muzzle)"/><ellipse cx="50" cy="63" rx="5" ry="3.5" fill="var(--ink)"/><circle cx="38" cy="52" r="3" fill="var(--ink)"/><circle cx="62" cy="52" r="3" fill="var(--ink)"/></svg>
+          </div>
+          <div class="scan-label">서아</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ event card preview ============ -->
+    <section class="reveal d5">
+      <h2>일정 카드 (22px) <span class="meta">일간뷰 컨텍스트 — 색 ring + 동물</span></h2>
+      <div class="event-preview">
+        <div class="mini-event c1">
+          <div class="mini-avatar">
+            <svg viewBox="0 0 100 100"><ellipse cx="36" cy="22" rx="7" ry="20" fill="var(--rabbit-body)" data-edge/><ellipse cx="64" cy="22" rx="7" ry="20" fill="var(--rabbit-body)" data-edge/><ellipse cx="50" cy="60" rx="28" ry="26" fill="var(--rabbit-body)" data-edge/><circle cx="38" cy="56" r="3" fill="var(--ink)"/><circle cx="62" cy="56" r="3" fill="var(--ink)"/></svg>
+          </div>
+          <span class="who">민준</span>
+          <span class="label">· 영어학원</span>
+          <span class="time">16:00–17:30</span>
+        </div>
+        <div class="mini-event c2">
+          <div class="mini-avatar">
+            <svg viewBox="0 0 100 100"><circle cx="26" cy="28" r="13" fill="var(--ink)"/><circle cx="74" cy="28" r="13" fill="var(--ink)"/><ellipse cx="50" cy="57" rx="32" ry="30" fill="var(--panda-body)" data-edge/><ellipse cx="36" cy="55" rx="8" ry="11" fill="var(--ink)" transform="rotate(-22 36 55)"/><ellipse cx="64" cy="55" rx="8" ry="11" fill="var(--ink)" transform="rotate(22 64 55)"/></svg>
+          </div>
+          <span class="who">서윤</span>
+          <span class="label">· 태권도</span>
+          <span class="time">17:00–18:00</span>
+        </div>
+        <div class="mini-event c3">
+          <div class="mini-avatar">
+            <svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="34" ry="34" fill="var(--ink)" data-edge/><ellipse cx="50" cy="66" rx="20" ry="20" fill="var(--panda-body)"/><path d="M 50 58 L 41 65 Q 50 71 59 65 Z" fill="var(--accent-mustard)"/></svg>
+          </div>
+          <span class="who">지호</span>
+          <span class="label">· 친구생일</span>
+          <span class="time">17:00–17:30</span>
+        </div>
+        <div class="mini-event c4">
+          <div class="mini-avatar">
+            <svg viewBox="0 0 100 100"><circle cx="26" cy="28" r="12" fill="var(--bear-body)" data-edge/><circle cx="74" cy="28" r="12" fill="var(--bear-body)" data-edge/><ellipse cx="50" cy="57" rx="32" ry="29" fill="var(--bear-body)" data-edge/><ellipse cx="50" cy="68" rx="17" ry="12" fill="var(--bear-muzzle)"/><ellipse cx="50" cy="63" rx="5" ry="3.5" fill="var(--ink)"/></svg>
+          </div>
+          <span class="who">서아</span>
+          <span class="label">· 수영</span>
+          <span class="time">18:30–19:30</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="reveal d6">
+      <p><strong>스타일.</strong> Matisse paper-cutout — flat fill, no gradient, no drop shadow. 모든 동물은 단일 hue + 보조 톤 1~2개로만. 눈 highlight는 cream 작은 점 하나로 paper-cutout 위에 살짝 생기 주는 정도.</p>
+      <p><strong>색 분산.</strong> 토끼=warm beige(+분홍 inner), 판다=흑백, 펭귄=흑백+mustard 부리, 갈색곰=warm brown. 판다·펭귄 모두 흑백이지만 판다=흰 얼굴+흑 귀+흑 패치, 펭귄=흑 정수리+흰 페이스마스크+노란 부리 → 32px에서도 한눈에 구분.</p>
+      <p><strong>Paper-cut edge.</strong> 모든 동물 outer silhouette에 charcoal opacity stroke (rgba(28,28,28,0.22), 1.6px) — 배경 ring(pink/green/blue/yellow) 위에서 종이 잘라 붙인 느낌으로 분리감 확보.</p>
+      <p><strong>V1.0 매핑.</strong> 자녀 4종 고정 — 등록 순서대로 토끼(c1)·판다(c2)·펭귄(c3)·갈색곰(c4). 코알라는 부모 앱 브랜드 마스코트로만 사용 (자녀 후보 ❌). V1.1+에서 자녀별 동물 선택 가능 여부 검토.</p>
+      <div class="chips">
+        <span class="chip"><i style="background:var(--accent-orange)"></i>#FF9302 primary</span>
+        <span class="chip"><i style="background:var(--accent-mustard)"></i>#FBB008 FAB · 부리</span>
+        <span class="chip"><i style="background:var(--c1-base)"></i>c1 토끼</span>
+        <span class="chip"><i style="background:var(--c2-base)"></i>c2 판다</span>
+        <span class="chip"><i style="background:var(--c3-base)"></i>c3 펭귄</span>
+        <span class="chip"><i style="background:var(--c4-base)"></i>c4 갈색곰</span>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>

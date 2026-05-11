@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>Kidcal — 주간 드릴다운 V0 (saeboman track)</title>
+<title>코알라 캘린더 — 주간 드릴다운 V0 (saeboman track)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
@@ -37,7 +37,7 @@
 }
 
 /* ========================================================================
-   Kidcal · daily-grid-saeboman-v0.html
+   코알라 캘린더 · daily-grid-saeboman-v0.html
    미학 방향: Lovable warm humanist + Matisse paper-cutout 보조 surface
    디자인 규율: opacity-driven gray, border-driven depth, 2-weight type system
    참고: docs/design/references/{lovable.DESIGN.md, ColorPalette.png, aesthetic-{1,2}.png}
@@ -76,10 +76,22 @@
   /* ── 자녀 4색 (ADR-001: 자녀 최대 4명, TBD ADR 락 예정) ─── */
   /* 사용자 채택 톤 (2026-05-08): bg는 명도 90%+ 매우 옅게,
      fg는 mid 톤(L≈55%)으로 같은 hue 명도 차이 ≈40% 관계 통일 */
-  --c1-base: #ffe4ed; --c1-fg: #c4477e;   /* 민준 — pink */
-  --c2-base: #e2f0dd; --c2-fg: #1e7a2e;   /* 서윤 — green */
-  --c3-base: #dce8f9; --c3-fg: #1e4abf;   /* 지호 — blue */
-  --c4-base: #fff7c2; --c4-fg: #b18a00;   /* 서아 — yellow */
+  --c1-base: #ffe4ed; --c1-fg: #c4477e;   /* 민준 — pink — RABBIT */
+  --c2-base: #e2f0dd; --c2-fg: #1e7a2e;   /* 서윤 — green — PANDA */
+  --c3-base: #dce8f9; --c3-fg: #1e4abf;   /* 지호 — blue — PENGUIN */
+  --c4-base: #fff7c2; --c4-fg: #b18a00;   /* 서아 — yellow — BROWN BEAR */
+
+  /* animal palette (V1.0 fixed: c1=rabbit, c2=panda, c3=penguin, c4=brown bear) */
+  --koala-body: #9ea5a8;
+  --koala-shade: #7d8588;
+  --koala-ear-pink: #f0c8c8;
+  --rabbit-body: #ead4bd;
+  --rabbit-ear: #c89880;
+  --rabbit-nose: #a85a4d;
+  --panda-body: #fbf8f1;
+  --bear-body: #a87142;
+  --bear-muzzle: #d09a6a;
+  --paper-edge: rgba(28,28,28,0.22);
 
   /* ── Geometry ────────────────────────────────────────────── */
   --slot-h: 22px;
@@ -114,6 +126,15 @@ html, body {
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* paper-cut edge for animal avatars — outer silhouette stroke */
+svg [data-edge] {
+  stroke: var(--paper-edge);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+  vector-effect: non-scaling-stroke;
 }
 body {
   /* Atmospheric warm wash — barely visible, not a generic gradient */
@@ -884,7 +905,7 @@ body {
 <body>
 
 <header class="stage-meta">
-  <h1>Kidcal — <em>주간 드릴다운</em></h1>
+  <h1>코알라 캘린더 — <em>주간 드릴다운</em></h1>
   <span class="tag">v0 · saeboman track · 2026-05-08</span>
 </header>
 <div class="stage-sub">
@@ -892,7 +913,7 @@ body {
   자녀 6색 hex는 <b>임시</b> — ADR 락 예정.
 </div>
 
-<main class="device" aria-label="Kidcal 일간뷰 프로토타입">
+<main class="device" aria-label="코알라 캘린더 일간뷰 프로토타입">
 
   <!-- Decorative Matisse cutout (subtle, behind topbar) -->
   <svg class="cutout-deco" viewBox="0 0 100 100" aria-hidden="true">
@@ -1208,31 +1229,77 @@ function renderChildDropdown() {
   });
 }
 
-/* 어린이 paper-cutout 아바타 — 성별 모호한 머리+어깨 면 요소 */
+/* V1.0: color → animal mapping (fixed). c1=토끼, c2=판다, c3=펭귄, c4=갈색곰. */
+const ANIMAL_BY_COLOR = { c1: 'rabbit', c2: 'panda', c3: 'penguin', c4: 'bear' };
+const ANIMAL_SHAPES = {
+  rabbit: [
+    ['ellipse', { cx: 36, cy: 22, rx: 7, ry: 20, fill: 'var(--rabbit-body)', 'data-edge': '' }],
+    ['ellipse', { cx: 64, cy: 22, rx: 7, ry: 20, fill: 'var(--rabbit-body)', 'data-edge': '' }],
+    ['ellipse', { cx: 36, cy: 25, rx: 3.4, ry: 14, fill: 'var(--rabbit-ear)' }],
+    ['ellipse', { cx: 64, cy: 25, rx: 3.4, ry: 14, fill: 'var(--rabbit-ear)' }],
+    ['ellipse', { cx: 50, cy: 60, rx: 28, ry: 26, fill: 'var(--rabbit-body)', 'data-edge': '' }],
+    ['ellipse', { cx: 36, cy: 66, rx: 5, ry: 3, fill: 'var(--rabbit-ear)', opacity: 0.55 }],
+    ['ellipse', { cx: 64, cy: 66, rx: 5, ry: 3, fill: 'var(--rabbit-ear)', opacity: 0.55 }],
+    ['path', { d: 'M 50 62 L 46 65 Q 50 68 54 65 Z', fill: 'var(--rabbit-nose)' }],
+    ['circle', { cx: 38, cy: 56, r: 2.6, fill: 'var(--ink)' }],
+    ['circle', { cx: 62, cy: 56, r: 2.6, fill: 'var(--ink)' }],
+    ['circle', { cx: 38.6, cy: 55.2, r: 0.8, fill: 'var(--cream-hi)' }],
+    ['circle', { cx: 62.6, cy: 55.2, r: 0.8, fill: 'var(--cream-hi)' }],
+  ],
+  panda: [
+    ['circle', { cx: 26, cy: 28, r: 13, fill: 'var(--ink)' }],
+    ['circle', { cx: 74, cy: 28, r: 13, fill: 'var(--ink)' }],
+    ['ellipse', { cx: 50, cy: 57, rx: 32, ry: 30, fill: 'var(--panda-body)', 'data-edge': '' }],
+    ['ellipse', { cx: 36, cy: 55, rx: 8, ry: 11, fill: 'var(--ink)', transform: 'rotate(-22 36 55)' }],
+    ['ellipse', { cx: 64, cy: 55, rx: 8, ry: 11, fill: 'var(--ink)', transform: 'rotate(22 64 55)' }],
+    ['circle', { cx: 37, cy: 56, r: 2.4, fill: 'var(--panda-body)' }],
+    ['circle', { cx: 63, cy: 56, r: 2.4, fill: 'var(--panda-body)' }],
+    ['circle', { cx: 37.4, cy: 55.4, r: 0.8, fill: 'var(--ink)' }],
+    ['circle', { cx: 63.4, cy: 55.4, r: 0.8, fill: 'var(--ink)' }],
+    ['ellipse', { cx: 50, cy: 68, rx: 5, ry: 3.5, fill: 'var(--ink)' }],
+    ['path', { d: 'M 50 72 Q 47 75 44 73', stroke: 'var(--ink)', 'stroke-width': 1.4, fill: 'none', 'stroke-linecap': 'round' }],
+    ['path', { d: 'M 50 72 Q 53 75 56 73', stroke: 'var(--ink)', 'stroke-width': 1.4, fill: 'none', 'stroke-linecap': 'round' }],
+  ],
+  penguin: [
+    ['ellipse', { cx: 50, cy: 55, rx: 34, ry: 34, fill: 'var(--ink)', 'data-edge': '' }],
+    ['ellipse', { cx: 50, cy: 66, rx: 20, ry: 20, fill: 'var(--panda-body)' }],
+    ['circle', { cx: 40, cy: 46, r: 3.8, fill: 'var(--panda-body)' }],
+    ['circle', { cx: 60, cy: 46, r: 3.8, fill: 'var(--panda-body)' }],
+    ['circle', { cx: 40.6, cy: 46.3, r: 1.9, fill: 'var(--ink)' }],
+    ['circle', { cx: 60.6, cy: 46.3, r: 1.9, fill: 'var(--ink)' }],
+    ['path', { d: 'M 50 58 L 41 65 Q 50 71 59 65 Z', fill: 'var(--mustard)' }],
+    ['circle', { cx: 30, cy: 63, r: 4, fill: 'var(--rabbit-ear)', opacity: 0.45 }],
+    ['circle', { cx: 70, cy: 63, r: 4, fill: 'var(--rabbit-ear)', opacity: 0.45 }],
+  ],
+  bear: [
+    ['circle', { cx: 26, cy: 28, r: 12, fill: 'var(--bear-body)', 'data-edge': '' }],
+    ['circle', { cx: 74, cy: 28, r: 12, fill: 'var(--bear-body)', 'data-edge': '' }],
+    ['circle', { cx: 26, cy: 28, r: 6.5, fill: 'var(--bear-muzzle)' }],
+    ['circle', { cx: 74, cy: 28, r: 6.5, fill: 'var(--bear-muzzle)' }],
+    ['ellipse', { cx: 50, cy: 57, rx: 32, ry: 29, fill: 'var(--bear-body)', 'data-edge': '' }],
+    ['ellipse', { cx: 50, cy: 68, rx: 17, ry: 12, fill: 'var(--bear-muzzle)' }],
+    ['ellipse', { cx: 50, cy: 63, rx: 5, ry: 3.5, fill: 'var(--ink)' }],
+    ['path', { d: 'M 50 68 Q 47 72 44 70', stroke: 'var(--ink)', 'stroke-width': 1.4, fill: 'none', 'stroke-linecap': 'round' }],
+    ['path', { d: 'M 50 68 Q 53 72 56 70', stroke: 'var(--ink)', 'stroke-width': 1.4, fill: 'none', 'stroke-linecap': 'round' }],
+    ['circle', { cx: 38, cy: 52, r: 3, fill: 'var(--ink)' }],
+    ['circle', { cx: 62, cy: 52, r: 3, fill: 'var(--ink)' }],
+    ['circle', { cx: 38.6, cy: 51.2, r: 0.9, fill: 'var(--cream-hi)' }],
+    ['circle', { cx: 62.6, cy: 51.2, r: 0.9, fill: 'var(--cream-hi)' }],
+  ],
+};
+
+/* 어린이 paper-cutout 아바타 — color → 동물 (V1.0 고정) */
 function matisseAvatar(childId) {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('viewBox', '0 0 100 100');
   svg.setAttribute('aria-hidden', 'true');
-  const fg = 'var(--' + childId + '-fg)';
-
-  function add(tag, attrs) {
+  const animal = ANIMAL_BY_COLOR[childId] || 'rabbit';
+  for (const [tag, attrs] of ANIMAL_SHAPES[animal]) {
     const node = document.createElementNS(ns, tag);
     for (const k in attrs) node.setAttribute(k, attrs[k]);
-    return node;
+    svg.appendChild(node);
   }
-
-  // 어깨 / 몸통 (paper-cut, 원형 프레임 아래쪽에서 잘림)
-  svg.appendChild(add('path', {
-    d: 'M 3 24 C 3 17.5, 7 14.5, 12 14.5 C 17 14.5, 21 17.5, 21 24 Z',
-    fill: fg, opacity: '0.88',
-  }));
-  // 머리 (둥근, 성별 모호)
-  svg.appendChild(add('circle', {
-    cx: '12', cy: '9', r: '4.5',
-    fill: fg, opacity: '0.88',
-  }));
-
   return svg;
 }
 

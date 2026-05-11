@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>Kidcal — 온보딩 V0 (saeboman track)</title>
+<title>코알라 캘린더 — 온보딩 V0 (saeboman track)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
@@ -37,6 +37,18 @@
   --c3-base: #dce8f9; --c3-fg: #1e4abf;
   --c4-base: #fff7c2; --c4-fg: #b18a00;
 
+  /* animal palette (V1.0 fixed: c1=rabbit, c2=panda, c3=penguin, c4=brown bear, brand=koala) */
+  --koala-body: #9ea5a8;
+  --koala-shade: #7d8588;
+  --koala-ear-pink: #f0c8c8;
+  --rabbit-body: #ead4bd;
+  --rabbit-ear: #c89880;
+  --rabbit-nose: #a85a4d;
+  --panda-body: #fbf8f1;
+  --bear-body: #a87142;
+  --bear-muzzle: #d09a6a;
+  --paper-edge: rgba(28,28,28,0.22);
+
   --display: 'Paperlogy', 'Pretendard', sans-serif;
   --body: 'Paperlogy', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -49,6 +61,15 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: #efeae0; font-family: var(--body); color: var(--ink); -webkit-font-smoothing: antialiased; }
+
+/* paper-cut edge for animal avatars — applied via [data-edge] on outer silhouette */
+svg [data-edge] {
+  stroke: var(--paper-edge);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+  vector-effect: non-scaling-stroke;
+}
 body {
   background-image:
     radial-gradient(circle at 14% 18%, rgba(251,176,8,0.07) 0%, transparent 38%),
@@ -120,13 +141,14 @@ body {
 }
 .welcome .logo-mark {
   display: inline-grid; place-items: center;
-  width: 84px; height: 84px;
-  border-radius: 24px;
-  background: var(--mustard);
-  margin: 0 auto 32px;
-  box-shadow: var(--inset-dark);
+  width: 124px; height: 124px;
+  border-radius: 50%;
+  background: var(--mint);
+  border: 1px solid var(--rule);
+  margin: 0 auto 28px;
+  padding: 10px;
 }
-.welcome .logo-mark svg { width: 44px; height: 44px; }
+.welcome .logo-mark svg { width: 100%; height: 100%; display: block; }
 .welcome h2 {
   font-family: var(--display);
   font-size: 36px; font-weight: 700;
@@ -391,7 +413,7 @@ body {
 <body>
 
 <header class="stage-meta">
-  <h1>Kidcal — <em>온보딩</em></h1>
+  <h1>코알라 캘린더 — <em>온보딩</em></h1>
   <span class="tag">v0 · saeboman · STATIC MOCK (no wiring)</span>
 </header>
 
@@ -404,14 +426,21 @@ body {
       <div class="welcome">
         <div class="hero">
           <div class="logo-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#1c1c1c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="5" width="18" height="16" rx="3"/>
-              <path d="M3 9h18"/>
-              <path d="M8 3v4"/>
-              <path d="M16 3v4"/>
+            <svg viewBox="0 0 100 100">
+              <circle cx="22" cy="34" r="17" fill="var(--koala-body)" data-edge/>
+              <circle cx="78" cy="34" r="17" fill="var(--koala-body)" data-edge/>
+              <circle cx="22" cy="34" r="10.5" fill="var(--koala-ear-pink)"/>
+              <circle cx="78" cy="34" r="10.5" fill="var(--koala-ear-pink)"/>
+              <ellipse cx="50" cy="58" rx="33" ry="30" fill="var(--koala-body)" data-edge/>
+              <ellipse cx="50" cy="65" rx="22" ry="14" fill="var(--koala-shade)" opacity="0.18"/>
+              <ellipse cx="50" cy="64" rx="14" ry="9" fill="var(--ink)"/>
+              <circle cx="34" cy="52" r="3" fill="var(--ink)"/>
+              <circle cx="66" cy="52" r="3" fill="var(--ink)"/>
+              <circle cx="34.7" cy="51" r="0.9" fill="var(--cream-hi)"/>
+              <circle cx="66.7" cy="51" r="0.9" fill="var(--cream-hi)"/>
             </svg>
           </div>
-          <h2><em>Kidcal</em>에<br/>오신 것을 환영해요</h2>
+          <h2><em>코알라 캘린더</em>에<br/>오신 것을 환영해요</h2>
           <p>여러 자녀의 학원·학교 일정과<br/>준비물을 한 화면에서.</p>
 
           <div class="features">
@@ -488,19 +517,19 @@ body {
             <div class="chip-group" id="color-chips">
               <button class="chip-btn" data-color="c1" data-active="true">
                 <span class="swatch" style="background: var(--c1-base); border: 1px solid var(--c1-fg);"></span>
-                <span>핑크</span>
+                <span>토끼</span>
               </button>
               <button class="chip-btn" data-color="c2" data-active="false">
                 <span class="swatch" style="background: var(--c2-base); border: 1px solid var(--c2-fg);"></span>
-                <span>초록</span>
+                <span>판다</span>
               </button>
               <button class="chip-btn" data-color="c3" data-active="false">
                 <span class="swatch" style="background: var(--c3-base); border: 1px solid var(--c3-fg);"></span>
-                <span>파랑</span>
+                <span>펭귄</span>
               </button>
               <button class="chip-btn" data-color="c4" data-active="false">
                 <span class="swatch" style="background: var(--c4-base); border: 1px solid var(--c4-fg);"></span>
-                <span>노랑</span>
+                <span>곰</span>
               </button>
             </div>
           </div>
@@ -572,23 +601,23 @@ body {
           </div>
 
           <div class="field">
-            <div class="field-label">색상 <span style="font-family: var(--body); font-size: 10px; color: var(--ink-40); text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 4px;">(사용 중인 색은 비활성)</span></div>
+            <div class="field-label">색상 <span style="font-family: var(--body); font-size: 10px; color: var(--ink-40); text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 4px;">(사용 중인 동물은 비활성)</span></div>
             <div class="chip-group" id="color-chips-2">
               <button class="chip-btn c1" data-color="c1" data-active="false" disabled style="opacity: 0.35; cursor: not-allowed;">
                 <span class="swatch" style="background: var(--c1-base); border: 1px solid var(--c1-fg);"></span>
-                <span>핑크</span>
+                <span>토끼</span>
               </button>
               <button class="chip-btn c2" data-color="c2" data-active="true">
                 <span class="swatch" style="background: var(--c2-base); border: 1px solid var(--c2-fg);"></span>
-                <span>초록</span>
+                <span>판다</span>
               </button>
               <button class="chip-btn c3" data-color="c3" data-active="false">
                 <span class="swatch" style="background: var(--c3-base); border: 1px solid var(--c3-fg);"></span>
-                <span>파랑</span>
+                <span>펭귄</span>
               </button>
               <button class="chip-btn c4" data-color="c4" data-active="false">
                 <span class="swatch" style="background: var(--c4-base); border: 1px solid var(--c4-fg);"></span>
-                <span>노랑</span>
+                <span>곰</span>
               </button>
             </div>
           </div>
@@ -609,19 +638,76 @@ body {
 </div>
 
 <script>
+/* V1.0: color → animal mapping (fixed). c1=토끼, c2=판다, c3=펭귄, c4=갈색곰. */
+const ANIMAL_BY_COLOR = { c1: 'rabbit', c2: 'panda', c3: 'penguin', c4: 'bear' };
+const ANIMAL_SHAPES = {
+  rabbit: [
+    ['ellipse', { cx: 36, cy: 22, rx: 7, ry: 20, fill: 'var(--rabbit-body)', 'data-edge': '' }],
+    ['ellipse', { cx: 64, cy: 22, rx: 7, ry: 20, fill: 'var(--rabbit-body)', 'data-edge': '' }],
+    ['ellipse', { cx: 36, cy: 25, rx: 3.4, ry: 14, fill: 'var(--rabbit-ear)' }],
+    ['ellipse', { cx: 64, cy: 25, rx: 3.4, ry: 14, fill: 'var(--rabbit-ear)' }],
+    ['ellipse', { cx: 50, cy: 60, rx: 28, ry: 26, fill: 'var(--rabbit-body)', 'data-edge': '' }],
+    ['ellipse', { cx: 36, cy: 66, rx: 5, ry: 3, fill: 'var(--rabbit-ear)', opacity: 0.55 }],
+    ['ellipse', { cx: 64, cy: 66, rx: 5, ry: 3, fill: 'var(--rabbit-ear)', opacity: 0.55 }],
+    ['path', { d: 'M 50 62 L 46 65 Q 50 68 54 65 Z', fill: 'var(--rabbit-nose)' }],
+    ['circle', { cx: 38, cy: 56, r: 2.6, fill: 'var(--ink)' }],
+    ['circle', { cx: 62, cy: 56, r: 2.6, fill: 'var(--ink)' }],
+    ['circle', { cx: 38.6, cy: 55.2, r: 0.8, fill: 'var(--cream-hi)' }],
+    ['circle', { cx: 62.6, cy: 55.2, r: 0.8, fill: 'var(--cream-hi)' }],
+  ],
+  panda: [
+    ['circle', { cx: 26, cy: 28, r: 13, fill: 'var(--ink)' }],
+    ['circle', { cx: 74, cy: 28, r: 13, fill: 'var(--ink)' }],
+    ['ellipse', { cx: 50, cy: 57, rx: 32, ry: 30, fill: 'var(--panda-body)', 'data-edge': '' }],
+    ['ellipse', { cx: 36, cy: 55, rx: 8, ry: 11, fill: 'var(--ink)', transform: 'rotate(-22 36 55)' }],
+    ['ellipse', { cx: 64, cy: 55, rx: 8, ry: 11, fill: 'var(--ink)', transform: 'rotate(22 64 55)' }],
+    ['circle', { cx: 37, cy: 56, r: 2.4, fill: 'var(--panda-body)' }],
+    ['circle', { cx: 63, cy: 56, r: 2.4, fill: 'var(--panda-body)' }],
+    ['circle', { cx: 37.4, cy: 55.4, r: 0.8, fill: 'var(--ink)' }],
+    ['circle', { cx: 63.4, cy: 55.4, r: 0.8, fill: 'var(--ink)' }],
+    ['ellipse', { cx: 50, cy: 68, rx: 5, ry: 3.5, fill: 'var(--ink)' }],
+    ['path', { d: 'M 50 72 Q 47 75 44 73', stroke: 'var(--ink)', 'stroke-width': 1.4, fill: 'none', 'stroke-linecap': 'round' }],
+    ['path', { d: 'M 50 72 Q 53 75 56 73', stroke: 'var(--ink)', 'stroke-width': 1.4, fill: 'none', 'stroke-linecap': 'round' }],
+  ],
+  penguin: [
+    ['ellipse', { cx: 50, cy: 55, rx: 34, ry: 34, fill: 'var(--ink)', 'data-edge': '' }],
+    ['ellipse', { cx: 50, cy: 66, rx: 20, ry: 20, fill: 'var(--panda-body)' }],
+    ['circle', { cx: 40, cy: 46, r: 3.8, fill: 'var(--panda-body)' }],
+    ['circle', { cx: 60, cy: 46, r: 3.8, fill: 'var(--panda-body)' }],
+    ['circle', { cx: 40.6, cy: 46.3, r: 1.9, fill: 'var(--ink)' }],
+    ['circle', { cx: 60.6, cy: 46.3, r: 1.9, fill: 'var(--ink)' }],
+    ['path', { d: 'M 50 58 L 41 65 Q 50 71 59 65 Z', fill: 'var(--mustard)' }],
+    ['circle', { cx: 30, cy: 63, r: 4, fill: 'var(--rabbit-ear)', opacity: 0.45 }],
+    ['circle', { cx: 70, cy: 63, r: 4, fill: 'var(--rabbit-ear)', opacity: 0.45 }],
+  ],
+  bear: [
+    ['circle', { cx: 26, cy: 28, r: 12, fill: 'var(--bear-body)', 'data-edge': '' }],
+    ['circle', { cx: 74, cy: 28, r: 12, fill: 'var(--bear-body)', 'data-edge': '' }],
+    ['circle', { cx: 26, cy: 28, r: 6.5, fill: 'var(--bear-muzzle)' }],
+    ['circle', { cx: 74, cy: 28, r: 6.5, fill: 'var(--bear-muzzle)' }],
+    ['ellipse', { cx: 50, cy: 57, rx: 32, ry: 29, fill: 'var(--bear-body)', 'data-edge': '' }],
+    ['ellipse', { cx: 50, cy: 68, rx: 17, ry: 12, fill: 'var(--bear-muzzle)' }],
+    ['ellipse', { cx: 50, cy: 63, rx: 5, ry: 3.5, fill: 'var(--ink)' }],
+    ['path', { d: 'M 50 68 Q 47 72 44 70', stroke: 'var(--ink)', 'stroke-width': 1.4, fill: 'none', 'stroke-linecap': 'round' }],
+    ['path', { d: 'M 50 68 Q 53 72 56 70', stroke: 'var(--ink)', 'stroke-width': 1.4, fill: 'none', 'stroke-linecap': 'round' }],
+    ['circle', { cx: 38, cy: 52, r: 3, fill: 'var(--ink)' }],
+    ['circle', { cx: 62, cy: 52, r: 3, fill: 'var(--ink)' }],
+    ['circle', { cx: 38.6, cy: 51.2, r: 0.9, fill: 'var(--cream-hi)' }],
+    ['circle', { cx: 62.6, cy: 51.2, r: 0.9, fill: 'var(--cream-hi)' }],
+  ],
+};
+
 function makeKidAvatar(color) {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('viewBox', '0 0 100 100');
   svg.setAttribute('aria-hidden', 'true');
-  const fg = 'var(--' + color + '-fg)';
-  function add(tag, attrs) {
-    const n = document.createElementNS(ns, tag);
-    for (const k in attrs) n.setAttribute(k, attrs[k]);
-    return n;
+  const animal = ANIMAL_BY_COLOR[color] || 'rabbit';
+  for (const [tag, attrs] of ANIMAL_SHAPES[animal]) {
+    const node = document.createElementNS(ns, tag);
+    for (const k in attrs) node.setAttribute(k, attrs[k]);
+    svg.appendChild(node);
   }
-  svg.appendChild(add('path', { d: 'M 3 24 C 3 17.5, 7 14.5, 12 14.5 C 17 14.5, 21 17.5, 21 24 Z', fill: fg, opacity: '0.88' }));
-  svg.appendChild(add('circle', { cx: '12', cy: '9', r: '4.5', fill: fg, opacity: '0.88' }));
   return svg;
 }
 
