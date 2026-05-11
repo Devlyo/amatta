@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Kidcal — 주간 드릴다운 V0 (saeboman track)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Paperlogy (페이퍼로지) — noonnu.cc / SIL OFL ───────── */
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-5Medium.woff2') format('woff2');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2') format('woff2');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2') format('woff2');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2');
+  font-weight: 800; font-style: normal; font-display: swap;
+}
+
+/* ========================================================================
+   Kidcal · daily-grid-saeboman-v0.html
+   미학 방향: Lovable warm humanist + Matisse paper-cutout 보조 surface
+   디자인 규율: opacity-driven gray, border-driven depth, 2-weight type system
+   참고: docs/design/references/{lovable.DESIGN.md, ColorPalette.png, aesthetic-{1,2}.png}
+   주의: 자녀 6색은 ADR 락 전 임시 hex (TBD)
+======================================================================== */
+:root {
+  /* ── Lovable base (single hue) ───────────────────────────── */
+  --cream: #f7f4ed;
+  --cream-hi: #fdfbf5;
+  --ink: #1c1c1c;
+  --ink-83: rgba(28, 28, 28, 0.83);
+  --ink-82: rgba(28, 28, 28, 0.82);
+  --ink-60: rgba(28, 28, 28, 0.60);
+  --ink-40: rgba(28, 28, 28, 0.40);
+  --ink-22: rgba(28, 28, 28, 0.22);
+  --ink-08: rgba(28, 28, 28, 0.08);
+  --ink-04: rgba(28, 28, 28, 0.04);
+  --ink-03: rgba(28, 28, 28, 0.03);
+  --bone: #fcfbf8;
+
+  /* ── Borders (border-driven depth) ───────────────────────── */
+  --rule: #eceae4;
+  --rule-soft: #f1ede4;
+
+  /* ── 4-color accent (사용자 채택) ────────────────────────── */
+  --orange: #FF9302;     /* primary action, today, now-line */
+  --mustard: #FBB008;    /* FAB, 강조 highlight */
+  --yellow: #FBE26E;     /* secondary tint, badge bg */
+  --mint: #E2EFEA;       /* surface variant */
+
+  /* Destructive — 충돌·경고 (디자인 시스템 시맨틱) */
+  --destructive:      #b73a14;
+  --destructive-soft: #fce5dc;
+  --destructive-glow: rgba(183, 58, 20, 0.45);
+
+  /* ── 자녀 4색 (ADR-001: 자녀 최대 4명, TBD ADR 락 예정) ─── */
+  /* 사용자 채택 톤 (2026-05-08): bg는 명도 90%+ 매우 옅게,
+     fg는 mid 톤(L≈55%)으로 같은 hue 명도 차이 ≈40% 관계 통일 */
+  --c1-base: #ffe4ed; --c1-fg: #c4477e;   /* 민준 — pink */
+  --c2-base: #e2f0dd; --c2-fg: #1e7a2e;   /* 서윤 — green */
+  --c3-base: #dce8f9; --c3-fg: #1e4abf;   /* 지호 — blue */
+  --c4-base: #fff7c2; --c4-fg: #b18a00;   /* 서아 — yellow */
+
+  /* ── Geometry ────────────────────────────────────────────── */
+  --slot-h: 22px;
+  --time-col: 36px;
+  --child-h: 56px;
+  --topbar-h: 88px;
+  --gnb-h: 70px;
+
+  /* ── Typography (Paperlogy 페이퍼로지 · SIL OFL) ─────────── */
+  --display: 'Paperlogy', 'Pretendard', sans-serif;
+  --body: 'Paperlogy', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ── Signature: Lovable inset shadow (dark button) ──────── */
+  --inset-dark:
+    rgba(255,255,255,0.20) 0px 0.5px 0px 0px inset,
+    rgba(0,0,0,0.20) 0px 0px 0px 0.5px inset,
+    rgba(0,0,0,0.05) 0px 1px 2px 0px;
+  --inset-warm:
+    rgba(255,255,255,0.30) 0px 0.5px 0px 0px inset,
+    rgba(0,0,0,0.16) 0px 0px 0px 0.5px inset,
+    rgba(120,60,0,0.10) 0px 2px 6px 0px;
+
+  --focus-shadow: rgba(0,0,0,0.10) 0px 4px 12px;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: #efeae0;
+  font-family: var(--body);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+body {
+  /* Atmospheric warm wash — barely visible, not a generic gradient */
+  background-image:
+    radial-gradient(circle at 14% 18%, rgba(251,176,8,0.07) 0%, transparent 38%),
+    radial-gradient(circle at 86% 82%, rgba(255,147,2,0.05) 0%, transparent 42%);
+  min-height: 100vh;
+  padding: 40px 16px 64px;
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Stage (meta header above the device)
+──────────────────────────────────────────────────────────── */
+.stage-meta {
+  width: 100%; max-width: 420px;
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 12px;
+  opacity: 0; animation: fade-rise .55s cubic-bezier(.2,.7,.2,1) .05s forwards;
+}
+.stage-meta h1 {
+  font-family: var(--display);
+  font-size: 30px; font-weight: 500;
+  letter-spacing: -0.9px; line-height: 1.0;
+  margin: 0;
+  font-feature-settings: "ss01";
+}
+.stage-meta h1 em {
+  font-style: normal; color: var(--orange); font-weight: 700;
+}
+.stage-meta .tag {
+  font-family: var(--mono);
+  font-size: 10px; color: var(--ink-60);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.stage-sub {
+  width: 100%; max-width: 420px; padding: 0 6px;
+  font-family: var(--mono);
+  font-size: 10.5px; color: var(--ink-60);
+  letter-spacing: 0.04em;
+  margin-top: -6px;
+  opacity: 0; animation: fade-rise .55s cubic-bezier(.2,.7,.2,1) .12s forwards;
+}
+.stage-sub b { color: var(--ink); font-weight: 600; }
+
+/* ────────────────────────────────────────────────────────────
+   Device frame
+──────────────────────────────────────────────────────────── */
+.device {
+  width: 390px; height: 844px;
+  background: var(--cream);
+  border-radius: 42px;
+  border: 1px solid #ddd6c2;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.85) inset,
+    0 24px 60px rgba(40, 28, 8, 0.18),
+    0 6px 16px rgba(40, 28, 8, 0.08);
+  overflow: hidden;
+  position: relative;
+  display: flex; flex-direction: column;
+  opacity: 0; transform: translateY(8px);
+  animation: fade-rise .65s cubic-bezier(.2,.7,.2,1) .2s forwards;
+}
+.device::before {
+  /* Dynamic island */
+  content: ""; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  width: 110px; height: 26px; border-radius: 13px; background: var(--ink);
+  z-index: 100;
+}
+
+/* Decorative Matisse-style cutout (top-right, behind topbar — barely visible) */
+.cutout-deco {
+  position: absolute; top: 60px; right: -22px;
+  width: 90px; height: 90px;
+  pointer-events: none; opacity: 0.20; z-index: 0;
+  transform: rotate(18deg);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Top bar
+──────────────────────────────────────────────────────────── */
+.topbar {
+  height: var(--topbar-h);
+  padding: 50px 18px 8px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0; position: relative; z-index: 2;
+  gap: 8px;
+}
+.date-group {
+  display: flex; align-items: center; gap: 4px;
+  flex: 1; justify-content: center;
+}
+.back-link {
+  display: flex; align-items: center; gap: 2px;
+  cursor: pointer;
+  color: var(--ink-82);
+  font-family: var(--body); font-size: 13px; font-weight: 500;
+  border: 0; background: transparent;
+  padding: 6px 8px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  letter-spacing: -0.005em;
+}
+.back-link:hover { background: var(--ink-04); color: var(--ink); }
+.date-arrow {
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  border: 0; background: transparent;
+  color: var(--ink-60);
+  cursor: pointer;
+  font-size: 16px; line-height: 1;
+  font-family: var(--body);
+  border-radius: 8px;
+  transition: background .12s, color .12s;
+}
+.date-arrow:hover { background: var(--ink-04); color: var(--ink); }
+.date-button {
+  display: flex; align-items: baseline; gap: 7px;
+  cursor: pointer; user-select: none;
+  background: none; border: 0; padding: 4px 6px;
+  border-radius: 8px;
+  font-family: var(--body);
+}
+.date-button:hover { background: var(--ink-04); }
+.date-button .day {
+  font-family: var(--display);
+  font-weight: 700; font-size: 22px;
+  letter-spacing: -0.6px; line-height: 1.0;
+  color: var(--ink);
+}
+.date-button .dow {
+  font-family: var(--mono);
+  font-size: 10px; color: var(--ink-60);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.date-button .chev {
+  font-size: 10px; color: var(--ink-60); margin-left: 2px;
+}
+.top-actions { display: flex; gap: 4px; }
+.iconbtn {
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  border-radius: 9px;
+  background: transparent;
+  border: 0;
+  color: var(--ink-82);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  font-size: 24px;
+  font-family: var(--body);
+  line-height: 1;
+}
+.iconbtn:hover { background: var(--ink-04); color: var(--ink); }
+.iconbtn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ────────────────────────────────────────────────────────────
+   Sub-bar — conflict pill
+──────────────────────────────────────────────────────────── */
+.sub-bar {
+  margin: 8px 16px 0; padding: 8px 12px 8px 10px;
+  background: var(--cream-hi);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px;
+  position: relative;
+  flex-shrink: 0;
+}
+.sub-bar .ctx-avatar {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--cur-base);
+  flex-shrink: 0;
+  overflow: hidden;
+  display: grid; place-items: center;
+}
+.sub-bar .ctx-avatar svg { width: 100%; height: 100%; display: block; }
+
+/* ── 자녀 변경 dropdown — sub-bar 전체 폭, sub-bar 클릭 시 토글 ── */
+.child-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--cream);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(40,28,8,0.18);
+  padding: 6px;
+  display: none;
+  z-index: 35;
+  cursor: default;
+}
+.child-dropdown[data-open="true"] { display: block; }
+.cd-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--body); font-size: 13px;
+  color: var(--ink);
+}
+.cd-item:hover { background: var(--ink-04); }
+.cd-item[data-active="true"] {
+  background: var(--ink);
+  color: var(--bone);
+}
+.cd-avatar {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: grid; place-items: center;
+}
+.cd-avatar svg { width: 100%; height: 100%; display: block; }
+.cd-item.c1 .cd-avatar { background: var(--c1-base); }
+.cd-item.c2 .cd-avatar { background: var(--c2-base); }
+.cd-item.c3 .cd-avatar { background: var(--c3-base); }
+.cd-item.c4 .cd-avatar { background: var(--c4-base); }
+.cd-item .cd-meta {
+  font-family: var(--mono); font-size: 9.5px;
+  color: var(--ink-60); letter-spacing: 0.04em;
+  margin-left: auto;
+}
+.cd-item[data-active="true"] .cd-meta { color: var(--ink-40); }
+.sub-bar .when {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  color: var(--ink); letter-spacing: 0.02em;
+}
+.sub-bar .what { color: var(--ink-82); flex: 1; }
+.sub-bar .cta {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--orange); font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  cursor: pointer;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Tab pills
+──────────────────────────────────────────────────────────── */
+.tabs {
+  margin: 12px 16px 0;
+  background: var(--ink-04);
+  padding: 4px;
+  border-radius: 9999px;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.tab {
+  padding: 9px 12px;
+  border-radius: 9999px;
+  font-size: 13px; font-weight: 600;
+  font-family: var(--body);
+  color: var(--ink-60);
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: background .18s, color .18s, box-shadow .18s;
+  border: 0; background: transparent;
+  letter-spacing: -0.005em;
+}
+.tab[data-active="true"] {
+  background: var(--ink);
+  color: var(--bone);
+  box-shadow: var(--inset-dark);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Tab content container
+──────────────────────────────────────────────────────────── */
+.tab-content {
+  flex: 1;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  margin-top: 12px;
+}
+.tab-pane { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+.tab-pane[data-active="true"] { display: flex; }
+
+/* ────────────────────────────────────────────────────────────
+   Children header
+──────────────────────────────────────────────────────────── */
+/* ── 요일 헤더 ── */
+.weekday-header {
+  display: grid;
+  grid-template-columns: var(--time-col) repeat(7, 1fr);
+  height: var(--child-h);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: var(--cream);
+  flex-shrink: 0;
+  margin-top: 18px;          /* 일간뷰 tabs 위치만큼 sub-bar와 gap */
+}
+.weekday-header .corner { border-right: 1px solid var(--rule); }
+.day-cell {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-right: 1px solid var(--rule-soft);
+  cursor: pointer; user-select: none;
+  padding: 6px 0;
+  gap: 2px;
+}
+.day-cell:last-child { border-right: none; }
+.day-cell:hover { background: var(--ink-03); }
+.day-cell .dow {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-60);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.day-cell.sun .dow { color: var(--destructive); }
+.day-cell.sat .dow { color: var(--ink-82); }
+.day-cell .num {
+  font-family: var(--display);
+  font-size: 17px; font-weight: 600;
+  color: var(--ink);
+  line-height: 1;
+}
+.day-cell.today .num {
+  background: var(--orange);
+  color: #fff;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Grid
+──────────────────────────────────────────────────────────── */
+.grid-wrap {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--cream);
+  position: relative;
+}
+.grid-wrap::-webkit-scrollbar { width: 0; }
+.grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--time-col) repeat(7, 1fr);
+  grid-auto-rows: var(--slot-h);
+}
+.slot.weekend { background: rgba(28,28,28,0.012); }
+.slot.today { background: var(--cur-base); opacity: 0.4; }
+.time-label {
+  grid-column: 1;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--ink-40);
+  padding: 1px 6px 0 0;
+  text-align: right;
+  border-top: 1px solid var(--rule-soft);
+  border-right: 1px solid var(--rule);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.time-label.hour { border-top: 1px solid var(--rule); color: var(--ink-60); }
+.slot { border-top: 1px dashed var(--rule-soft); }
+.slot.hour { border-top: 1px solid var(--rule); }
+
+.events-layer { position: absolute; inset: 0; pointer-events: none; }
+.event {
+  position: absolute;
+  border-radius: 6px;
+  padding: 3px 5px 4px;
+  pointer-events: auto;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1.2;
+  overflow: hidden;
+  background: var(--cur-base);
+  color: var(--cur-fg);
+  border: 1px solid transparent;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.event.cancelled {
+  opacity: 0.32;
+  text-decoration: line-through;
+  background: var(--cream-hi);
+}
+/* 주간뷰는 단일 자녀 컨텍스트 — CSS 변수로 색상 동적 */
+.device { --cur-base: var(--c1-base); --cur-fg: var(--c1-fg); }
+.event.modified::after {
+  content: "";
+  position: absolute;
+  top: 3px; right: 3px;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--orange);
+  border: 1px solid var(--cream);
+}
+.event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(40,28,8,0.12);
+}
+.event:active { transform: translateY(0); }
+.event .row1 {
+  display: flex; align-items: center; justify-content: space-between; gap: 5px;
+}
+.event .title {
+  font-weight: 600; font-size: 11.5px;
+  letter-spacing: -0.005em;
+}
+.event .pickup-ico,
+.event .prep .pin {
+  width: 13px; height: 13px;
+  stroke: currentColor; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.event .time {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--ink-82);
+  margin-top: 2px;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+.event .place {
+  font-size: 10px; color: var(--ink-82); margin-top: 1px;
+  opacity: 0.78;
+}
+.event .prep {
+  margin-top: 5px; padding-top: 4px;
+  border-top: 1px solid rgba(28,28,28,0.18);
+  font-size: 10px; line-height: 1.25;
+  display: flex; align-items: center; gap: 5px;
+  color: var(--ink-82);
+  opacity: 0.92;
+}
+
+.event.c1 { background: var(--c1-base); color: var(--c1-fg); }
+.event.c2 { background: var(--c2-base); color: var(--c2-fg); }
+.event.c3 { background: var(--c3-base); color: var(--c3-fg); }
+
+.event.short { padding: 3px 6px 4px; }
+.event.short .time, .event.short .place, .event.short .prep { display: none; }
+
+/* now line — 시간 라벨 컬럼 안에 박스(orange + white)로 시간 표시 */
+.now-line {
+  position: absolute; left: var(--time-col); right: 0;
+  height: 0; border-top: 2px solid var(--orange);
+  z-index: 4; pointer-events: none;
+}
+.now-line::before {
+  content: "09:42";
+  position: absolute;
+  right: 100%;       /* line의 시작점에 박스 right edge가 닿음 */
+  top: -10px;
+  font-family: var(--mono);
+  font-size: 9.5px; font-weight: 700;
+  color: #ffffff;
+  background: var(--orange);
+  padding: 3px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgba(255,147,2,0.25);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Reminders & todos pane
+──────────────────────────────────────────────────────────── */
+/* weekly: 준비물·할일 탭은 사양상 비포함 (README "일정만") — 관련 CSS 제거됨 */
+
+/* ────────────────────────────────────────────────────────────
+   Bottom GNB (3 items: Today / FAB+ / 설정)
+──────────────────────────────────────────────────────────── */
+.gnb {
+  height: var(--gnb-h);
+  padding: 8px 32px 16px;
+  border-top: 1px solid var(--rule);
+  background: var(--cream);
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  position: relative;
+  z-index: 5;
+  flex-shrink: 0;
+  box-shadow:
+    0 -2px 8px rgba(28, 28, 28, 0.05),
+    0 -10px 24px rgba(28, 28, 28, 0.03);
+}
+.gnb-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  cursor: pointer;
+  color: var(--ink-60);
+  font-size: 9.5px;
+  font-family: var(--mono);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border: 0;
+  background: transparent;
+}
+.gnb-item .ico { font-size: 24px; line-height: 1; display: grid; place-items: center; }
+.gnb-item .ico svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.gnb-item[data-active="true"] { color: var(--ink); }
+.gnb-item[data-active="true"] .ico { color: var(--orange); }
+
+.fab {
+  width: 56px; height: 56px;
+  border-radius: 9999px;
+  background: var(--mustard);
+  color: #ffffff;
+  font-size: 28px; font-weight: 400;
+  font-family: var(--display);
+  display: grid; place-items: center;
+  cursor: pointer;
+  margin-top: -22px;
+  box-shadow: 0 6px 18px rgba(225,140,0,0.30);
+  transition: transform .15s, box-shadow .15s, background .15s;
+  border: 0;
+  line-height: 1;
+}
+.fab:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(225,140,0,0.34); }
+.fab:active { transform: translateY(0); opacity: 0.92; }
+.fab .plus {
+  margin-top: -3px;
+  font-weight: 300;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Footer (off-device, designer notes)
+──────────────────────────────────────────────────────────── */
+.footnote {
+  width: 100%; max-width: 420px;
+  margin-top: 16px; padding: 0 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-60);
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  opacity: 0; animation: fade-rise .5s cubic-bezier(.2,.7,.2,1) .8s forwards;
+}
+.footnote .row {
+  display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.footnote .label-min {
+  font-size: 9px; letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-40);
+  margin-right: 2px;
+}
+.swatch {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 9.5px; color: var(--ink-82);
+}
+.swatch i {
+  width: 14px; height: 14px; border-radius: 4px;
+  border: 1px solid var(--ink-08);
+  display: inline-block;
+}
+
+.entities {
+  border-top: 1px dotted var(--rule);
+  margin-top: 8px; padding-top: 8px;
+  display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px;
+  font-size: 9.5px;
+}
+.entities b { color: var(--ink); font-weight: 600; }
+
+/* ────────────────────────────────────────────────────────────
+   Drawers (검색 / 날짜) — 위에서 슬라이드 다운
+──────────────────────────────────────────────────────────── */
+.drawer-shade {
+  position: absolute; inset: 0;
+  background: rgba(28, 28, 28, 0.20);
+  opacity: 0; pointer-events: none;
+  transition: opacity .22s ease;
+  z-index: 40;
+}
+.drawer-shade[data-open="true"] {
+  opacity: 1; pointer-events: auto;
+}
+.drawer {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  background: var(--cream);
+  border-radius: 0 0 22px 22px;
+  box-shadow: 0 12px 28px rgba(40, 28, 8, 0.18);
+  z-index: 50;
+  transform: translateY(-110%);
+  transition: transform .35s cubic-bezier(.2,.8,.2,1);
+  padding: 46px 16px 18px;
+  max-height: 70%;
+  overflow-y: auto;
+}
+.drawer[data-open="true"] { transform: translateY(0); }
+.drawer::-webkit-scrollbar { width: 0; }
+.drawer-handle {
+  width: 38px; height: 4px;
+  background: var(--ink-22);
+  border-radius: 2px;
+  margin: 0 auto 14px;
+}
+
+/* ── Search drawer ── */
+.search-row-top {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.search-row-top input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--cream-hi);
+  font-family: var(--body); font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.search-row-top input::placeholder { color: var(--ink-40); }
+.search-row-top input:focus {
+  border-color: var(--ink-40);
+  box-shadow: 0 4px 12px rgba(28,28,28,0.06);
+}
+.drawer-close {
+  border: 0; background: transparent;
+  font-family: var(--body); font-size: 13px;
+  color: var(--ink-82); font-weight: 600;
+  cursor: pointer; padding: 6px 4px;
+}
+
+.section-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-40);
+  margin: 12px 4px 6px;
+}
+.search-result {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.search-result:hover { background: var(--ink-04); }
+.search-result .res-avatar {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: grid; place-items: center;
+}
+.search-result.c1 .res-avatar { background: var(--c1-base); }
+.search-result.c2 .res-avatar { background: var(--c2-base); }
+.search-result.c3 .res-avatar { background: var(--c3-base); }
+.search-result .res-avatar svg { width: 100%; height: 100%; display: block; }
+.search-result .res-main {
+  flex: 1; display: flex; flex-direction: column; gap: 2px;
+  min-width: 0;
+}
+.search-result .res-name {
+  font-size: 14px; font-weight: 600; color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.search-result .res-meta {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--ink-60); letter-spacing: 0.04em;
+}
+.search-result .res-time {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--ink-60); letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.search-result mark {
+  background: var(--yellow);
+  color: var(--ink);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* ── Date drawer (mini calendar) ── */
+.cal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4px 10px;
+}
+.cal-head .month {
+  font-family: var(--display);
+  font-weight: 600; font-size: 18px;
+  letter-spacing: -0.4px;
+  color: var(--ink);
+}
+.cal-head .nav {
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border: 0; background: transparent;
+  border-radius: 8px;
+  color: var(--ink-60);
+  cursor: pointer;
+  font-size: 16px;
+}
+.cal-head .nav:hover { background: var(--ink-04); color: var(--ink); }
+
+.cal-dow {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--ink-60);
+  letter-spacing: 0.12em;
+  text-align: center;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--rule);
+}
+.cal-dow .sun { color: var(--destructive); }
+.cal-dow .sat { color: var(--ink-82); }
+
+.cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding-top: 6px;
+}
+.cal-cell {
+  aspect-ratio: 1 / 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: var(--display);
+  font-size: 13px; font-weight: 500;
+  color: var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  transition: background .12s;
+  min-height: 36px;
+}
+.cal-cell:hover { background: var(--ink-04); }
+.cal-cell.muted { color: var(--ink-40); }
+.cal-cell.today {
+  background: var(--orange);
+  color: #fff;
+  font-weight: 700;
+}
+.cal-cell.today:hover { background: var(--orange); }
+.cal-cell.selected:not(.today) {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+.cal-cell .dots {
+  display: flex; gap: 2px; margin-top: 1px;
+  height: 4px;
+}
+.cal-cell .dots i {
+  width: 4px; height: 4px; border-radius: 50%;
+  display: inline-block;
+}
+.cal-cell.today .dots i { background: rgba(255,255,255,0.85); }
+.cal-cell .dots i.c1 { background: var(--c1-fg); }
+.cal-cell .dots i.c2 { background: var(--c2-fg); }
+.cal-cell .dots i.c3 { background: var(--c3-fg); }
+
+/* ────────────────────────────────────────────────────────────
+   Animations
+──────────────────────────────────────────────────────────── */
+@keyframes fade-rise {
+  to { opacity: 1; transform: none; }
+}
+.tab-pane { animation: fade-in .25s ease; }
+@keyframes fade-in { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+
+<header class="stage-meta">
+  <h1>Kidcal — <em>주간 드릴다운</em></h1>
+  <span class="tag">v0 · saeboman track · 2026-05-08</span>
+</header>
+<div class="stage-sub">
+  Lovable cream · charcoal opacity grays · Matisse 보조 surface · 4-color accents.
+  자녀 6색 hex는 <b>임시</b> — ADR 락 예정.
+</div>
+
+<main class="device" aria-label="Kidcal 일간뷰 프로토타입">
+
+  <!-- Decorative Matisse cutout (subtle, behind topbar) -->
+  <svg class="cutout-deco" viewBox="0 0 100 100" aria-hidden="true">
+    <!-- organic leaf-like shape, hand-cut feel -->
+    <path d="M 18 70 C 12 55, 22 30, 48 22 C 70 16, 88 28, 86 50 C 84 72, 60 86, 38 82 C 28 80, 22 76, 18 70 Z"
+          fill="#FBE26E" opacity="0.9"/>
+    <path d="M 30 50 C 30 40, 38 32, 50 32 C 62 32, 70 40, 68 52"
+          stroke="#FF9302" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </svg>
+
+  <!-- ─────── TOP BAR ─────── -->
+  <div class="topbar">
+    <button class="back-link" id="back-btn" type="button" aria-label="일간뷰로 돌아가기">‹ 일간</button>
+    <div class="date-group">
+      <button class="date-arrow" type="button" aria-label="전주" id="prev-day">‹</button>
+      <button class="date-button" type="button" id="date-btn" aria-label="날짜 선택 drawer 열기">
+        <span class="day">5월 5일</span>
+        <span class="dow">화 · today</span>
+      </button>
+      <button class="date-arrow" type="button" aria-label="다음주" id="next-day">›</button>
+    </div>
+    <div class="top-actions">
+      <button class="iconbtn" type="button" aria-label="검색 drawer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ─────── SUB-BAR ─────── -->
+  <div class="sub-bar" role="button" id="sub-bar" tabindex="0" style="cursor: pointer;">
+    <div class="ctx-avatar" id="ctx-avatar" aria-hidden="true"></div>
+    <span class="when" id="ctx-name">민준</span>
+    <span class="what" id="ctx-meta">초3 · 10세 · 이번 주 일정 14건</span>
+    <span class="cta" id="cta-change">바꾸기 ▾</span>
+    <div class="child-dropdown" id="child-dropdown" data-open="false" role="listbox"></div>
+  </div>
+
+  <!-- ─────── 주간뷰: 단일 콘텐츠 (탭 없음, 일정만) ─────── -->
+  <div class="weekday-header" id="weekday-head"></div>
+  <div class="grid-wrap" id="grid-wrap">
+    <div class="grid" id="grid">
+      <div class="events-layer" id="events"></div>
+      <div class="now-line" id="nowline" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <!-- ─────── DRAWERS (검색 / 날짜) ─────── -->
+  <div class="drawer-shade" id="drawer-shade" data-open="false"></div>
+
+  <div class="drawer" id="search-drawer" data-open="false" role="dialog" aria-label="검색">
+    <div class="drawer-handle"></div>
+    <div class="search-row-top">
+      <input type="text" id="search-input" placeholder="자녀, 일정, 학원 검색" value="민준" />
+      <button class="drawer-close" data-close>취소</button>
+    </div>
+
+    <div class="section-label">자녀</div>
+    <div class="search-result c1">
+      <div class="res-avatar"></div>
+      <div class="res-main">
+        <span class="res-name"><mark>민준</mark></span>
+        <span class="res-meta">초3 · 10세 · 일정 3건</span>
+      </div>
+    </div>
+
+    <div class="section-label">오늘 일정</div>
+    <div class="search-result c1">
+      <div class="res-avatar"></div>
+      <div class="res-main">
+        <span class="res-name"><mark>민준</mark> · 영어학원</span>
+        <span class="res-meta">JLS어학원 · 준비물 2</span>
+      </div>
+      <span class="res-time">16:00–17:30</span>
+    </div>
+    <div class="search-result c1">
+      <div class="res-avatar"></div>
+      <div class="res-main">
+        <span class="res-name"><mark>민준</mark> · 피아노</span>
+        <span class="res-meta">음악교실</span>
+      </div>
+      <span class="res-time">19:00–20:00</span>
+    </div>
+    <div class="search-result c1">
+      <div class="res-avatar"></div>
+      <div class="res-main">
+        <span class="res-name"><mark>민준</mark> · 학교</span>
+        <span class="res-meta">교실</span>
+      </div>
+      <span class="res-time">08:30–14:30</span>
+    </div>
+  </div>
+
+  <div class="drawer" id="date-drawer" data-open="false" role="dialog" aria-label="날짜 선택">
+    <div class="drawer-handle"></div>
+    <div class="cal-head">
+      <button class="nav" type="button" aria-label="이전 달">‹</button>
+      <span class="month">2026년 5월</span>
+      <button class="nav" type="button" aria-label="다음 달">›</button>
+    </div>
+    <div class="cal-dow">
+      <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
+      <button class="drawer-close" data-close>닫기</button>
+    </div>
+  </div>
+
+  <!-- ─────── GNB ─────── -->
+  <nav class="gnb" aria-label="하단 네비게이션">
+    <button class="gnb-item" type="button" data-active="true" aria-label="Today">
+      <span class="ico">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 11.5L12 4l9 7.5"/>
+          <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/>
+        </svg>
+      </span>
+      <span>Today</span>
+    </button>
+    <button class="fab" type="button" aria-label="새 일정 추가">
+      <span class="plus">+</span>
+    </button>
+    <button class="gnb-item" type="button" data-active="false" aria-label="설정">
+      <span class="ico">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </span>
+      <span>Setting</span>
+    </button>
+  </nav>
+
+</main>
+
+<!-- ─────── FOOTNOTE ─────── -->
+<footer class="footnote">
+  <div class="row">
+    <span class="label-min">Accent</span>
+    <span class="swatch"><i style="background:#FF9302"></i> #FF9302 · primary</span>
+    <span class="swatch"><i style="background:#FBB008"></i> #FBB008 · FAB</span>
+    <span class="swatch"><i style="background:#FBE26E"></i> #FBE26E · tint</span>
+    <span class="swatch"><i style="background:#E2EFEA;border-color:#cfddd6"></i> #E2EFEA · surface</span>
+  </div>
+  <div class="row">
+    <span class="label-min">Tone</span>
+    <span>Lovable cream + charcoal opacity grays · Matisse paper-cutout 보조 surface · Paperlogy / Pretendard / JetBrains Mono</span>
+  </div>
+  <div class="entities">
+    <b>🚗 우상단</b>          <span><code>Schedule.needs_pickup = true</code></span>
+    <b>sub-bar pill</b>        <span>occurrence-단위 충돌 감지 · 푸시 X (시각만)</span>
+    <b>회차별 픽업 완료</b>    <span><code>schedule_pickup_log</code> · 일정 상세 모달에서 노출 (별도 prototype)</span>
+  </div>
+</footer>
+
+<script>
+/* ──────────────────────────────────────────────────────────
+   STATE & DATA  (innerHTML 사용 X — DOM API only)
+────────────────────────────────────────────────────────── */
+const SLOT_H = 28;
+const START_HOUR = 6;
+const END_HOUR = 24;
+const TOTAL_SLOTS = (END_HOUR - START_HOUR) * 2; // 36
+const TYPE_LABEL = { school: '학교', academy: '학원', activity: '활동', other: '기타' };
+
+/* 주간뷰: 자녀 1명(민준) × 7일. col 1=일, 2=월, ..., 7=토 */
+const days = [
+  { dow: 'SUN', num: '4',  weekend: true,  today: false },
+  { dow: 'MON', num: '5',  weekend: false, today: false },  /* 5/4 월 */
+  /* 잠깐 — 5/5 화 today 이므로 days 배열을 일~토 기준으로 다시:
+     5/3(일), 5/4(월), 5/5(화 TODAY), 5/6(수), 5/7(목), 5/8(금), 5/9(토) */
+];
+/* days 재구성 (일~토 기준 5/3-5/9) */
+const daysList = [
+  { dow: 'SUN', num: 3, weekend: true,  today: false, sun: true },
+  { dow: 'MON', num: 4, weekend: false, today: false },
+  { dow: 'TUE', num: 5, weekend: false, today: true  },
+  { dow: 'WED', num: 6, weekend: false, today: false },
+  { dow: 'THU', num: 7, weekend: false, today: false },
+  { dow: 'FRI', num: 8, weekend: false, today: false },
+  { dow: 'SAT', num: 9, weekend: true,  today: false, sat: true },
+];
+
+/* 일정 데이터: col 1=일, 2=월, 3=화 today, ... 7=토 */
+const events = [
+  /* 학교 매일 (월=2 ~ 금=6) */
+  { col:2, color:'c1', type:'school',  title:'학교',  start:'08:30', end:'14:30' },
+  { col:3, color:'c1', type:'school',  title:'학교',  start:'08:30', end:'14:30' },
+  { col:4, color:'c1', type:'school',  title:'학교',  start:'08:30', end:'14:30' },
+  { col:5, color:'c1', type:'school',  title:'학교',  start:'08:30', end:'14:30' },
+  { col:6, color:'c1', type:'school',  title:'학교',  start:'08:30', end:'14:30' },
+  /* 영어학원 월(2)·수(4)·금(6) 16:00-17:30, 5/8(금) 휴강 */
+  { col:2, color:'c1', type:'academy', title:'영어',  start:'16:00', end:'17:30' },
+  { col:4, color:'c1', type:'academy', title:'영어',  start:'16:00', end:'17:30' },
+  { col:6, color:'c1', type:'academy', title:'영어',  start:'16:00', end:'17:30', cancelled: true },
+  /* 피아노 화(3)·목(5), 5/7(목)은 18:30로 변경 */
+  { col:3, color:'c1', type:'activity', title:'피아노', start:'19:00', end:'20:00' },
+  { col:5, color:'c1', type:'activity', title:'피아노', start:'18:30', end:'19:30', modified: true },
+  /* 화(3) 추가: 수학과외 */
+  { col:3, color:'c1', type:'academy',  title:'수학', start:'17:00', end:'18:00' },
+  /* 토(7) 친구생일 */
+  { col:7, color:'c1', type:'other',    title:'생일', start:'14:00', end:'16:00' },
+  /* 일(1) 수영 */
+  { col:1, color:'c1', type:'activity', title:'수영', start:'10:00', end:'11:00' },
+];
+
+/* weekly: 준비물·할일 데이터·UI 미사용 (README "일정만") */
+
+/* ──────────────────────────────────────────────────────────
+   RENDER · helpers (textContent / DOM API only)
+────────────────────────────────────────────────────────── */
+function el(tag, attrs = {}, ...kids) {
+  const node = document.createElement(tag);
+  for (const k in attrs) {
+    if (k === 'class') node.className = attrs[k];
+    else if (k === 'style') node.setAttribute('style', attrs[k]);
+    else if (k.startsWith('data-')) node.setAttribute(k, attrs[k]);
+    else if (k.startsWith('aria-')) node.setAttribute(k, attrs[k]);
+    else node[k] = attrs[k];
+  }
+  for (const kid of kids) {
+    if (kid == null) continue;
+    if (typeof kid === 'string') node.appendChild(document.createTextNode(kid));
+    else node.appendChild(kid);
+  }
+  return node;
+}
+
+function toMin(hhmm) { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; }
+
+/* ──────────────────────────────────────────────────────────
+   RENDER · children header
+────────────────────────────────────────────────────────── */
+function renderDays() {
+  const head = document.getElementById('weekday-head');
+  head.appendChild(el('div', { class: 'corner' }));
+  daysList.forEach(d => {
+    const cell = el('div', {
+      class: 'day-cell' + (d.today ? ' today' : '') + (d.sun ? ' sun' : '') + (d.sat ? ' sat' : '')
+    });
+    cell.appendChild(el('div', { class: 'dow' }, d.dow));
+    cell.appendChild(el('div', { class: 'num' }, String(d.num)));
+    head.appendChild(cell);
+  });
+}
+
+/* ── 자녀 변경 dropdown ── */
+const childList = [
+  { id: 'c1', name: '민준', meta: '초3 · 10세', count: 14 },
+  { id: 'c2', name: '서윤', meta: '초1 · 8세',  count: 9 },
+  { id: 'c3', name: '지호', meta: '유치원 · 5세', count: 7 },
+  { id: 'c4', name: '서아', meta: '초5 · 12세', count: 12 },
+];
+let activeChildId = (new URLSearchParams(location.search).get('child')) || 'c1';
+
+function selectChild(id) {
+  const c = childList.find(x => x.id === id);
+  if (!c) return;
+  activeChildId = id;
+  /* CSS 변수 갱신 → 일정 블록·today·아바타 자동 반영 */
+  const dev = document.querySelector('.device');
+  dev.style.setProperty('--cur-base', 'var(--' + id + '-base)');
+  dev.style.setProperty('--cur-fg', 'var(--' + id + '-fg)');
+  /* sub-bar 텍스트 갱신 */
+  document.getElementById('ctx-name').textContent = c.name;
+  document.getElementById('ctx-meta').textContent = c.meta + ' · 이번 주 일정 ' + c.count + '건';
+  /* sub-bar 아바타 다시 그리기 */
+  const av = document.getElementById('ctx-avatar');
+  while (av.firstChild) av.removeChild(av.firstChild);
+  av.appendChild(matisseAvatar(id));
+  /* dropdown active 표시 */
+  document.querySelectorAll('.cd-item').forEach(it => {
+    it.setAttribute('data-active', String(it.getAttribute('data-child') === id));
+  });
+  /* dropdown 닫기 */
+  document.getElementById('child-dropdown').setAttribute('data-open', 'false');
+}
+
+function renderChildDropdown() {
+  const wrap = document.getElementById('child-dropdown');
+  childList.forEach(c => {
+    const item = el('div', {
+      class: 'cd-item ' + c.id,
+      'data-child': c.id,
+      'data-active': String(c.id === activeChildId),
+      role: 'option',
+    });
+    const av = el('div', { class: 'cd-avatar' });
+    av.appendChild(matisseAvatar(c.id));
+    item.appendChild(av);
+    item.appendChild(el('span', { class: 'cd-name' }, c.name));
+    item.appendChild(el('span', { class: 'cd-meta' }, c.meta));
+    item.addEventListener('click', e => {
+      e.stopPropagation();
+      selectChild(c.id);
+    });
+    wrap.appendChild(item);
+  });
+  /* 초기 자녀 적용 */
+  selectChild(activeChildId);
+  /* sub-bar 전체 클릭 시 dropdown 토글 */
+  document.getElementById('sub-bar').addEventListener('click', e => {
+    /* dropdown 내부 클릭은 sub-bar 토글로 이어지지 않도록 */
+    if (e.target.closest('.child-dropdown')) return;
+    e.stopPropagation();
+    const dd = document.getElementById('child-dropdown');
+    const open = dd.getAttribute('data-open') === 'true';
+    dd.setAttribute('data-open', String(!open));
+  });
+  /* 외부 클릭 시 닫기 */
+  document.addEventListener('click', () => {
+    document.getElementById('child-dropdown').setAttribute('data-open', 'false');
+  });
+}
+
+/* 어린이 paper-cutout 아바타 — 성별 모호한 머리+어깨 면 요소 */
+function matisseAvatar(childId) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  const fg = 'var(--' + childId + '-fg)';
+
+  function add(tag, attrs) {
+    const node = document.createElementNS(ns, tag);
+    for (const k in attrs) node.setAttribute(k, attrs[k]);
+    return node;
+  }
+
+  // 어깨 / 몸통 (paper-cut, 원형 프레임 아래쪽에서 잘림)
+  svg.appendChild(add('path', {
+    d: 'M 3 24 C 3 17.5, 7 14.5, 12 14.5 C 17 14.5, 21 17.5, 21 24 Z',
+    fill: fg, opacity: '0.88',
+  }));
+  // 머리 (둥근, 성별 모호)
+  svg.appendChild(add('circle', {
+    cx: '12', cy: '9', r: '4.5',
+    fill: fg, opacity: '0.88',
+  }));
+
+  return svg;
+}
+
+/* ──────────────────────────────────────────────────────────
+   RENDER · grid (time labels + slot guides)
+────────────────────────────────────────────────────────── */
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  for (let i = 0; i < TOTAL_SLOTS; i++) {
+    const isHour = i % 2 === 0;
+    const h = Math.floor(((START_HOUR * 60) + i * 30) / 60);
+    const m = (i % 2) === 0 ? '00' : '30';
+
+    const label = el('div', { class: 'time-label' + (isHour ? ' hour' : '') });
+    label.style.gridRow = String(i + 1);
+    label.textContent = isHour ? (String(h).padStart(2, '0') + ':00') : '';
+    grid.appendChild(label);
+
+    for (let col = 2; col <= 8; col++) {
+      const dayIdx = col - 2; // 0..6
+      const day = daysList[dayIdx];
+      let cls = 'slot';
+      if (isHour) cls += ' hour';
+      if (day && day.weekend) cls += ' weekend';
+      if (day && day.today) cls += ' today';
+      const slot = el('div', { class: cls });
+      slot.style.gridRow = String(i + 1);
+      slot.style.gridColumn = String(col);
+      grid.appendChild(slot);
+    }
+  }
+  const layer = document.getElementById('events');
+  layer.style.gridColumn = '1 / -1';
+  layer.style.gridRow = '1 / ' + (TOTAL_SLOTS + 1);
+}
+
+/* ──────────────────────────────────────────────────────────
+   RENDER · event cards
+────────────────────────────────────────────────────────── */
+function renderEvents() {
+  const layer = document.getElementById('events');
+  events.forEach(ev => {
+    const top = ((toMin(ev.start) - START_HOUR * 60) / 30) * SLOT_H;
+    const height = ((toMin(ev.end) - toMin(ev.start)) / 30) * SLOT_H - 2;
+
+    const colW = 'calc((100% - var(--time-col)) / 7)';
+    const left  = 'calc(var(--time-col) + (' + (ev.col - 1) + ') * ' + colW + ' + 2px)';
+    const width = 'calc(' + colW + ' - 4px)';
+
+    const card = el('div', {
+      class: 'event ' + ev.color + ' ' + ev.type
+        + (ev.short ? ' short' : '')
+        + (ev.cancelled ? ' cancelled' : '')
+        + (ev.modified ? ' modified' : ''),
+      role: 'button',
+      'aria-label': ev.title + ' ' + ev.start + '-' + ev.end,
+    });
+    card.style.top = (top + 1) + 'px';
+    card.style.height = Math.max(height, 22) + 'px';
+    card.style.left = left;
+    card.style.width = width;
+
+    /* 주간뷰: 일정만 (제목·시간 짧게). 준비물·픽업 생략 */
+    card.appendChild(el('div', { class: 'title' }, ev.title));
+    if (height >= 36) {
+      const t = el('div', { class: 'time' }, ev.start + '–' + ev.end);
+      card.appendChild(t);
+    }
+    layer.appendChild(card);
+  });
+}
+
+/* SVG icon helpers — Lovable stroke style, currentColor 따라감 */
+function carIcon() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('class', 'pickup-ico');
+  svg.setAttribute('aria-label', '픽업 필요');
+  function add(tag, attrs) {
+    const n = document.createElementNS(ns, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+  svg.appendChild(add('path', { d: 'M 4 16 L 4 12 L 6.5 7 L 17.5 7 L 20 12 L 20 16' }));
+  svg.appendChild(add('line', { x1: '3', y1: '12', x2: '21', y2: '12' }));
+  svg.appendChild(add('circle', { cx: '7.5', cy: '16', r: '1.7' }));
+  svg.appendChild(add('circle', { cx: '16.5', cy: '16', r: '1.7' }));
+  return svg;
+}
+function backpackIcon() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('class', 'pin');
+  svg.setAttribute('aria-label', '준비물');
+  function add(tag, attrs) {
+    const n = document.createElementNS(ns, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+  svg.appendChild(add('path', { d: 'M 9 5 C 9 3.5, 10 2.5, 12 2.5 C 14 2.5, 15 3.5, 15 5' }));
+  svg.appendChild(add('rect', { x: '5', y: '5', width: '14', height: '17', rx: '3' }));
+  svg.appendChild(add('line', { x1: '5', y1: '13', x2: '19', y2: '13' }));
+  return svg;
+}
+
+/* ──────────────────────────────────────────────────────────
+   RENDER · now line at 09:42
+────────────────────────────────────────────────────────── */
+function placeNowLine() {
+  const top = ((9 * 60 + 42) - START_HOUR * 60) / 30 * SLOT_H;
+  document.getElementById('nowline').style.top = top + 'px';
+  document.getElementById('grid-wrap').scrollTop = Math.max(0, top - 160);
+}
+
+/* GNB active toggle + Today / back routing */
+function bindGNB() {
+  document.querySelectorAll('.gnb-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.gnb-item').forEach(x => x.setAttribute('data-active', 'false'));
+      item.setAttribute('data-active', 'true');
+      if (item.getAttribute('aria-label') === 'Today') {
+        window.location.href = 'daily-grid-saeboman-v0.html';
+      }
+    });
+  });
+  /* 뒤로 — 일간뷰로 */
+  const back = document.getElementById('back-btn');
+  if (back) back.addEventListener('click', () => {
+    window.location.href = 'daily-grid-saeboman-v0.html';
+  });
+}
+
+/* ──────────────────────────────────────────────────────────
+   Drawers
+────────────────────────────────────────────────────────── */
+function openDrawer(name) {
+  closeDrawer();
+  const id = name === 'search' ? 'search-drawer' : 'date-drawer';
+  document.getElementById(id).setAttribute('data-open', 'true');
+  document.getElementById('drawer-shade').setAttribute('data-open', 'true');
+}
+function closeDrawer() {
+  document.getElementById('search-drawer').setAttribute('data-open', 'false');
+  document.getElementById('date-drawer').setAttribute('data-open', 'false');
+  document.getElementById('drawer-shade').setAttribute('data-open', 'false');
+}
+function bindDrawers() {
+  document.getElementById('date-btn').addEventListener('click', () => openDrawer('date'));
+  document.querySelector('.iconbtn[aria-label*="검색"]').addEventListener('click', () => openDrawer('search'));
+  document.getElementById('drawer-shade').addEventListener('click', closeDrawer);
+  document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', closeDrawer));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+  /* 검색 결과 아바타에 자녀별 paper-cutout 채우기 */
+  document.querySelectorAll('.search-result.c1 .res-avatar').forEach(a => a.appendChild(matisseAvatar('c1')));
+  document.querySelectorAll('.search-result.c2 .res-avatar').forEach(a => a.appendChild(matisseAvatar('c2')));
+  document.querySelectorAll('.search-result.c3 .res-avatar').forEach(a => a.appendChild(matisseAvatar('c3')));
+}
+
+/* 미니 캘린더 렌더 — 2026년 5월 (5/5 화 today) */
+function renderCalendar() {
+  const grid = document.getElementById('cal-grid');
+  /* 5/1은 금요일. 일요일 시작 grid: 4/26 ~ 5/30 (5주) */
+  const start = new Date(2026, 4, 1);          // May 1, 2026
+  const calStart = new Date(2026, 4, 1 - start.getDay());
+  for (let i = 0; i < 35; i++) {
+    const d = new Date(calStart);
+    d.setDate(calStart.getDate() + i);
+    const inMonth = d.getMonth() === 4;
+    const isToday = inMonth && d.getDate() === 5;
+    const cell = el('div', {
+      class: 'cal-cell' + (inMonth ? '' : ' muted') + (isToday ? ' today' : ''),
+    });
+    cell.appendChild(el('span', { class: 'num' }, String(d.getDate())));
+    /* 5/4–5/10에 자녀 dots 표시 */
+    if (inMonth && d.getDate() >= 4 && d.getDate() <= 10) {
+      const dots = el('div', { class: 'dots' });
+      dots.appendChild(el('i', { class: 'c1' }));
+      dots.appendChild(el('i', { class: 'c2' }));
+      dots.appendChild(el('i', { class: 'c3' }));
+      cell.appendChild(dots);
+    }
+    grid.appendChild(cell);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────
+   BOOT
+────────────────────────────────────────────────────────── */
+renderDays();
+renderGrid();
+renderEvents();
+placeNowLine();
+renderCalendar();
+renderChildDropdown();
+bindGNB();
+bindDrawers();
+</script>
+
+</body>
+</html>

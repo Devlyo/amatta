@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Kidcal — 온보딩 V0 (saeboman track)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+@font-face { font-family: 'Paperlogy'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperlogy'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-5Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperlogy'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperlogy'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperlogy'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2'); font-weight: 800; font-style: normal; font-display: swap; }
+
+:root {
+  --cream: #f7f4ed;
+  --cream-hi: #fdfbf5;
+  --ink: #1c1c1c;
+  --ink-82: rgba(28,28,28,0.82);
+  --ink-60: rgba(28,28,28,0.60);
+  --ink-40: rgba(28,28,28,0.40);
+  --ink-22: rgba(28,28,28,0.22);
+  --ink-08: rgba(28,28,28,0.08);
+  --ink-04: rgba(28,28,28,0.04);
+  --bone: #fcfbf8;
+  --rule: #eceae4;
+  --orange: #FF9302;
+  --mustard: #FBB008;
+  --yellow: #FBE26E;
+  --mint: #E2EFEA;
+
+  --c1-base: #ffe4ed; --c1-fg: #c4477e;
+  --c2-base: #e2f0dd; --c2-fg: #1e7a2e;
+  --c3-base: #dce8f9; --c3-fg: #1e4abf;
+  --c4-base: #fff7c2; --c4-fg: #b18a00;
+
+  --display: 'Paperlogy', 'Pretendard', sans-serif;
+  --body: 'Paperlogy', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --inset-dark:
+    rgba(255,255,255,0.20) 0px 0.5px 0px 0px inset,
+    rgba(0,0,0,0.20) 0px 0px 0px 0.5px inset,
+    rgba(0,0,0,0.05) 0px 1px 2px 0px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #efeae0; font-family: var(--body); color: var(--ink); -webkit-font-smoothing: antialiased; }
+body {
+  background-image:
+    radial-gradient(circle at 14% 18%, rgba(251,176,8,0.07) 0%, transparent 38%),
+    radial-gradient(circle at 86% 82%, rgba(255,147,2,0.05) 0%, transparent 42%);
+  min-height: 100vh;
+  padding: 40px 16px 64px;
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+}
+
+.stage-meta {
+  width: 100%; max-width: 420px;
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 0 6px 12px;
+  border-bottom: 1px solid var(--rule);
+}
+.stage-meta h1 {
+  font-family: var(--display);
+  font-size: 30px; font-weight: 700;
+  letter-spacing: -0.9px; line-height: 1.0;
+  margin: 0;
+}
+.stage-meta h1 em { color: var(--orange); font-style: normal; font-weight: 700; }
+.stage-meta .tag {
+  font-family: var(--mono);
+  font-size: 10px; color: var(--ink-60);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+.device-row { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+
+.device {
+  width: 390px; height: 844px;
+  background: var(--cream);
+  border-radius: 42px;
+  border: 1px solid #ddd6c2;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.85) inset,
+              0 24px 60px rgba(40,28,8,0.18),
+              0 6px 16px rgba(40,28,8,0.08);
+  overflow: hidden;
+  position: relative;
+  display: flex; flex-direction: column;
+}
+.device::before {
+  content: ""; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  width: 110px; height: 26px; border-radius: 13px; background: var(--ink);
+  z-index: 100;
+}
+.scene-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-60);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* ── Welcome screen ───────────────────────────── */
+.welcome {
+  flex: 1;
+  display: flex; flex-direction: column;
+  padding: 80px 28px 32px;
+  position: relative;
+}
+.welcome .hero {
+  flex: 1;
+  display: flex; flex-direction: column; justify-content: center;
+  text-align: center;
+}
+.welcome .logo-mark {
+  display: inline-grid; place-items: center;
+  width: 84px; height: 84px;
+  border-radius: 24px;
+  background: var(--mustard);
+  margin: 0 auto 32px;
+  box-shadow: var(--inset-dark);
+}
+.welcome .logo-mark svg { width: 44px; height: 44px; }
+.welcome h2 {
+  font-family: var(--display);
+  font-size: 36px; font-weight: 700;
+  letter-spacing: -1.2px; line-height: 1.05;
+  margin: 0 0 14px;
+}
+.welcome h2 em {
+  color: var(--orange); font-style: normal;
+}
+.welcome p {
+  font-size: 15px; line-height: 1.55;
+  color: var(--ink-82);
+  margin: 0 24px;
+}
+.welcome .features {
+  margin: 36px 0 0;
+  display: flex; flex-direction: column; gap: 14px;
+  text-align: left;
+}
+.welcome .feature {
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.welcome .feature .ft-ico {
+  width: 28px; height: 28px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--cream-hi);
+  border: 1px solid var(--rule);
+  display: grid; place-items: center;
+  color: var(--orange);
+  font-size: 14px;
+}
+.welcome .feature .ft-text { font-size: 13px; line-height: 1.45; color: var(--ink-82); }
+.welcome .feature .ft-text b { color: var(--ink); font-weight: 600; }
+
+.welcome .cta {
+  margin-top: 30px;
+  width: 100%;
+  padding: 16px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--ink); color: var(--bone);
+  font-family: var(--body); font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--inset-dark);
+  letter-spacing: -0.005em;
+}
+.welcome .cta:hover { opacity: 0.95; }
+.welcome .skip {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 12px; color: var(--ink-40);
+  font-family: var(--mono); letter-spacing: 0.04em;
+}
+
+/* ── Kid add screen ───────────────────────────── */
+.kid-add {
+  flex: 1;
+  display: flex; flex-direction: column;
+  padding: 56px 0 16px;
+}
+.kid-add .ka-head {
+  padding: 14px 18px 18px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.kid-add .ka-back {
+  border: 0; background: transparent;
+  cursor: pointer;
+  font-family: var(--body); font-size: 14px; font-weight: 500;
+  color: var(--ink-82);
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.kid-add .ka-step {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-40);
+}
+.kid-add .ka-skip {
+  border: 0; background: transparent;
+  cursor: pointer;
+  font-family: var(--body); font-size: 13px; font-weight: 500;
+  color: var(--ink-82);
+  padding: 6px 8px;
+}
+
+.kid-add .ka-title {
+  padding: 8px 24px 6px;
+  font-family: var(--display);
+  font-size: 26px; font-weight: 700;
+  letter-spacing: -0.7px; line-height: 1.1;
+}
+.kid-add .ka-sub {
+  padding: 0 24px 22px;
+  font-size: 13.5px; line-height: 1.55;
+  color: var(--ink-60);
+}
+
+.kid-add .ka-body {
+  flex: 1; padding: 0 24px;
+  overflow-y: auto;
+}
+.kid-add .ka-body::-webkit-scrollbar { width: 0; }
+
+.kid-add .preview {
+  display: flex; flex-direction: column; align-items: center;
+  margin-bottom: 28px;
+}
+.kid-add .preview .av {
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid; place-items: center;
+  background: var(--c1-base);
+  transition: background .25s;
+  margin-bottom: 8px;
+}
+.kid-add .preview .av svg { width: 100%; height: 100%; display: block; }
+.kid-add .preview .av-name {
+  font-family: var(--display);
+  font-size: 18px; font-weight: 600;
+  letter-spacing: -0.3px;
+  color: var(--ink);
+  min-height: 22px;
+}
+.kid-add .preview .av-name.empty { color: var(--ink-40); font-weight: 400; }
+
+.field { margin-bottom: 22px; }
+.field-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-60);
+  margin-bottom: 8px;
+}
+.field-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--cream-hi);
+  font-family: var(--body); font-size: 15px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s;
+}
+.field-input::placeholder { color: var(--ink-40); }
+.field-input:focus { border-color: var(--ink-40); }
+
+.chip-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 9999px;
+  background: var(--cream-hi);
+  font-family: var(--body); font-size: 13.5px;
+  cursor: pointer;
+  color: var(--ink-82);
+}
+.chip-btn[data-active="true"] {
+  background: var(--ink); color: var(--bone); border-color: var(--ink);
+}
+.chip-btn .swatch {
+  width: 18px; height: 18px; border-radius: 50%;
+}
+
+.kid-add .ka-foot {
+  padding: 14px 24px 24px;
+  border-top: 1px solid var(--rule);
+}
+.kid-add .ka-foot .next {
+  width: 100%;
+  padding: 16px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--ink); color: var(--bone);
+  font-family: var(--body); font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--inset-dark);
+  letter-spacing: -0.005em;
+  transition: opacity .15s;
+}
+.kid-add .ka-foot .next:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.kid-add .ka-foot .add-more {
+  margin-top: 10px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--rule);
+  background: var(--cream-hi);
+  color: var(--ink-82);
+  border-radius: 10px;
+  font-family: var(--body); font-size: 13px; font-weight: 500;
+  cursor: pointer;
+}
+
+/* ── Done / empty state demo ───────────────────────────── */
+.empty-grid {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 60px 32px 80px;
+  gap: 14px;
+}
+.empty-grid .ill {
+  display: inline-grid; place-items: center;
+  width: 80px; height: 80px;
+  border-radius: 9999px;
+  background: var(--ink-04);
+  margin-bottom: 8px;
+}
+.empty-grid h3 {
+  font-family: var(--display);
+  font-size: 22px; font-weight: 600;
+  letter-spacing: -0.4px;
+  margin: 0;
+}
+.empty-grid p {
+  font-size: 13.5px; color: var(--ink-60);
+  line-height: 1.5;
+  margin: 0;
+}
+.empty-grid .add-fab-hint {
+  margin-top: 18px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-40);
+  letter-spacing: 0.04em;
+}
+.empty-grid .add-fab-hint .arrow {
+  font-size: 14px;
+}
+
+/* footnote */
+.footnote {
+  width: 100%; max-width: 1300px;
+  margin-top: 16px; padding: 0 24px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-60);
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  text-align: center;
+}
+
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.stage-meta, .scene-label, .device { animation: rise .55s cubic-bezier(.2,.7,.2,1) backwards; }
+.scene-label { animation-delay: .05s; }
+.device:nth-of-type(1) { animation-delay: .1s; }
+.device:nth-of-type(2) { animation-delay: .2s; }
+.device:nth-of-type(3) { animation-delay: .3s; }
+</style>
+</head>
+<body>
+
+<header class="stage-meta">
+  <h1>Kidcal — <em>온보딩</em></h1>
+  <span class="tag">v0 · saeboman · STATIC MOCK (no wiring)</span>
+</header>
+
+<div class="device-row">
+
+  <!-- ─── Scene 1: Welcome ─── -->
+  <div>
+    <div class="scene-label">Scene 1 · welcome</div>
+    <div class="device">
+      <div class="welcome">
+        <div class="hero">
+          <div class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#1c1c1c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="5" width="18" height="16" rx="3"/>
+              <path d="M3 9h18"/>
+              <path d="M8 3v4"/>
+              <path d="M16 3v4"/>
+            </svg>
+          </div>
+          <h2><em>Kidcal</em>에<br/>오신 것을 환영해요</h2>
+          <p>여러 자녀의 학원·학교 일정과<br/>준비물을 한 화면에서.</p>
+
+          <div class="features">
+            <div class="feature">
+              <span class="ft-ico">▤</span>
+              <span class="ft-text"><b>자녀×시간 그리드</b>로 누가 어디 있는지 한눈에</span>
+            </div>
+            <div class="feature">
+              <span class="ft-ico">🎒</span>
+              <span class="ft-text"><b>준비물 알림</b>이 일정 전에 자동으로</span>
+            </div>
+            <div class="feature">
+              <span class="ft-ico">⚠</span>
+              <span class="ft-text">픽업이 겹치면 <b>충돌 안내</b></span>
+            </div>
+          </div>
+        </div>
+        <button class="cta" data-action="next-1">자녀 등록하고 시작하기</button>
+        <div class="skip">로그인 · 계정 · 클라우드 동기화 없음</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Scene 2: First child add ─── -->
+  <div>
+    <div class="scene-label">Scene 2 · 첫 자녀 등록</div>
+    <div class="device">
+      <div class="kid-add">
+        <div class="ka-head">
+          <button class="ka-back">‹</button>
+          <span class="ka-step"></span>
+          <span style="width: 60px;"></span>
+        </div>
+
+        <div class="ka-title">자녀를 알려주세요</div>
+        <div class="ka-sub">언제든 설정에서 추가 (최대 4명).</div>
+
+        <div class="ka-body">
+          <div class="preview">
+            <div class="av" id="preview-av"></div>
+            <div class="av-name" id="preview-name">민준</div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">이름</div>
+            <input class="field-input" type="text" id="name-input" value="민준" placeholder="자녀 이름" />
+          </div>
+
+          <div class="field">
+            <div class="field-label">학년 · 연령</div>
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px;">
+              <select class="field-input" id="grade-select">
+                <option value="">학년 선택</option>
+                <option value="kg">유치원</option>
+                <option value="e1">초1</option>
+                <option value="e2">초2</option>
+                <option value="e3" selected>초3</option>
+                <option value="e4">초4</option>
+                <option value="e5">초5</option>
+                <option value="e6">초6</option>
+                <option value="m1">중1</option>
+                <option value="m2">중2</option>
+                <option value="m3">중3</option>
+                <option value="h1">고1</option>
+                <option value="h2">고2</option>
+                <option value="h3">고3</option>
+              </select>
+              <input class="field-input" type="number" id="age-input" value="10" placeholder="나이" min="3" max="19" />
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">색상</div>
+            <div class="chip-group" id="color-chips">
+              <button class="chip-btn" data-color="c1" data-active="true">
+                <span class="swatch" style="background: var(--c1-base); border: 1px solid var(--c1-fg);"></span>
+                <span>핑크</span>
+              </button>
+              <button class="chip-btn" data-color="c2" data-active="false">
+                <span class="swatch" style="background: var(--c2-base); border: 1px solid var(--c2-fg);"></span>
+                <span>초록</span>
+              </button>
+              <button class="chip-btn" data-color="c3" data-active="false">
+                <span class="swatch" style="background: var(--c3-base); border: 1px solid var(--c3-fg);"></span>
+                <span>파랑</span>
+              </button>
+              <button class="chip-btn" data-color="c4" data-active="false">
+                <span class="swatch" style="background: var(--c4-base); border: 1px solid var(--c4-fg);"></span>
+                <span>노랑</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ka-foot">
+          <button class="next" id="next-btn">완료하고 시작하기</button>
+          <button class="add-more">+ 자녀 한 명 더 추가</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Scene 3: 자녀 한 명 더 추가 (반복 등록) ─── -->
+  <div>
+    <div class="scene-label">Scene 3 · 자녀 한 명 더 추가</div>
+    <div class="device">
+      <div class="kid-add">
+        <div class="ka-head">
+          <button class="ka-back">‹</button>
+          <span class="ka-step">2 / 최대 4</span>
+          <span style="width: 60px;"></span>
+        </div>
+
+        <div class="ka-title">둘째도 알려주세요</div>
+        <div class="ka-sub">건너뛰고 나중에 추가할 수 있어요.</div>
+
+        <!-- 등록된 자녀 chip 누적 -->
+        <div style="padding: 0 24px 14px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+          <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-60); margin-right: 4px;">등록 완료</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 6px; background: var(--c1-base); color: var(--c1-fg); border-radius: 9999px; font-size: 12px; font-weight: 600;">
+            <span style="width: 18px; height: 18px; border-radius: 50%; background: var(--c1-base); display: inline-grid; place-items: center; overflow: hidden;" id="chip-av-c1"></span>
+            <span>민준 · 초3</span>
+          </span>
+        </div>
+
+        <div class="ka-body">
+          <div class="preview">
+            <div class="av" id="preview-av-2" style="background: var(--c2-base);"></div>
+            <div class="av-name empty" id="preview-name-2">이름</div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">이름</div>
+            <input class="field-input" type="text" id="name-input-2" value="" placeholder="자녀 이름" />
+          </div>
+
+          <div class="field">
+            <div class="field-label">학년 · 연령</div>
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px;">
+              <select class="field-input" id="grade-select-2">
+                <option value="" selected>학년 선택</option>
+                <option value="kg">유치원</option>
+                <option value="e1">초1</option>
+                <option value="e2">초2</option>
+                <option value="e3">초3</option>
+                <option value="e4">초4</option>
+                <option value="e5">초5</option>
+                <option value="e6">초6</option>
+                <option value="m1">중1</option>
+                <option value="m2">중2</option>
+                <option value="m3">중3</option>
+                <option value="h1">고1</option>
+                <option value="h2">고2</option>
+                <option value="h3">고3</option>
+              </select>
+              <input class="field-input" type="number" id="age-input-2" value="" placeholder="나이" min="3" max="19" />
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">색상 <span style="font-family: var(--body); font-size: 10px; color: var(--ink-40); text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 4px;">(사용 중인 색은 비활성)</span></div>
+            <div class="chip-group" id="color-chips-2">
+              <button class="chip-btn c1" data-color="c1" data-active="false" disabled style="opacity: 0.35; cursor: not-allowed;">
+                <span class="swatch" style="background: var(--c1-base); border: 1px solid var(--c1-fg);"></span>
+                <span>핑크</span>
+              </button>
+              <button class="chip-btn c2" data-color="c2" data-active="true">
+                <span class="swatch" style="background: var(--c2-base); border: 1px solid var(--c2-fg);"></span>
+                <span>초록</span>
+              </button>
+              <button class="chip-btn c3" data-color="c3" data-active="false">
+                <span class="swatch" style="background: var(--c3-base); border: 1px solid var(--c3-fg);"></span>
+                <span>파랑</span>
+              </button>
+              <button class="chip-btn c4" data-color="c4" data-active="false">
+                <span class="swatch" style="background: var(--c4-base); border: 1px solid var(--c4-fg);"></span>
+                <span>노랑</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ka-foot">
+          <button class="next" id="next-btn-2" disabled>완료하고 시작하기</button>
+          <button class="add-more">+ 자녀 한 명 더 추가</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footnote">
+  3 scenes · welcome (1회성) · 첫 자녀 등록 (1명 필수) · 자녀 추가 반복 (최대 4명, 사용 중 색은 비활성)
+</div>
+
+<script>
+function makeKidAvatar(color) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  const fg = 'var(--' + color + '-fg)';
+  function add(tag, attrs) {
+    const n = document.createElementNS(ns, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+  svg.appendChild(add('path', { d: 'M 3 24 C 3 17.5, 7 14.5, 12 14.5 C 17 14.5, 21 17.5, 21 24 Z', fill: fg, opacity: '0.88' }));
+  svg.appendChild(add('circle', { cx: '12', cy: '9', r: '4.5', fill: fg, opacity: '0.88' }));
+  return svg;
+}
+
+const previewAv = document.getElementById('preview-av');
+const previewName = document.getElementById('preview-name');
+const nameInput = document.getElementById('name-input');
+
+function updatePreviewAvatar(color) {
+  while (previewAv.firstChild) previewAv.removeChild(previewAv.firstChild);
+  previewAv.style.background = 'var(--' + color + '-base)';
+  previewAv.appendChild(makeKidAvatar(color));
+}
+updatePreviewAvatar('c1');
+
+document.querySelectorAll('#color-chips .chip-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#color-chips .chip-btn').forEach(b => b.setAttribute('data-active', 'false'));
+    btn.setAttribute('data-active', 'true');
+    updatePreviewAvatar(btn.getAttribute('data-color'));
+  });
+});
+
+nameInput.addEventListener('input', () => {
+  const v = nameInput.value.trim();
+  previewName.textContent = v || '이름';
+  previewName.classList.toggle('empty', !v);
+  updateNextBtn();
+});
+
+/* 연령 → 학년 자동 매핑 (한국 표준) */
+const ageToGrade = {
+  3:'kg', 4:'kg', 5:'kg', 6:'kg',
+  7:'e1', 8:'e2', 9:'e3', 10:'e4', 11:'e5', 12:'e6',
+  13:'m1', 14:'m2', 15:'m3',
+  16:'h1', 17:'h2', 18:'h3', 19:'h3',
+};
+const ageInput   = document.getElementById('age-input');
+const gradeSelect = document.getElementById('grade-select');
+const nextBtn    = document.getElementById('next-btn');
+
+ageInput.addEventListener('input', () => {
+  const age = parseInt(ageInput.value, 10);
+  if (ageToGrade[age]) gradeSelect.value = ageToGrade[age];
+  updateNextBtn();
+});
+gradeSelect.addEventListener('change', updateNextBtn);
+
+function updateNextBtn() {
+  const ok = nameInput.value.trim() && ageInput.value && gradeSelect.value;
+  nextBtn.disabled = !ok;
+}
+updateNextBtn();
+
+/* Scene 3 — 자녀 한 명 더 추가 */
+const chipAvC1 = document.getElementById('chip-av-c1');
+if (chipAvC1) chipAvC1.appendChild(makeKidAvatar('c1'));
+
+const preview2Av = document.getElementById('preview-av-2');
+const preview2Name = document.getElementById('preview-name-2');
+const name2 = document.getElementById('name-input-2');
+const age2 = document.getElementById('age-input-2');
+const grade2 = document.getElementById('grade-select-2');
+const next2 = document.getElementById('next-btn-2');
+let activeColor2 = 'c2';
+
+function updatePreview2(color) {
+  while (preview2Av.firstChild) preview2Av.firstChild.remove();
+  preview2Av.style.background = 'var(--' + color + '-base)';
+  preview2Av.appendChild(makeKidAvatar(color));
+}
+updatePreview2('c2');
+
+document.querySelectorAll('#color-chips-2 .chip-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    document.querySelectorAll('#color-chips-2 .chip-btn').forEach(b => b.setAttribute('data-active', 'false'));
+    btn.setAttribute('data-active', 'true');
+    activeColor2 = btn.getAttribute('data-color');
+    updatePreview2(activeColor2);
+  });
+});
+
+name2.addEventListener('input', () => {
+  const v = name2.value.trim();
+  preview2Name.textContent = v || '이름';
+  preview2Name.classList.toggle('empty', !v);
+  updateNext2();
+});
+age2.addEventListener('input', () => {
+  const age = parseInt(age2.value, 10);
+  if (ageToGrade[age]) grade2.value = ageToGrade[age];
+  updateNext2();
+});
+grade2.addEventListener('change', updateNext2);
+
+function updateNext2() {
+  const ok = name2.value.trim() && age2.value && grade2.value;
+  next2.disabled = !ok;
+}
+updateNext2();
+</script>
+
+</body>
+</html>
