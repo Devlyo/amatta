@@ -1,0 +1,41 @@
+/* 아마따 — shared typography
+   Paperlogy (한글 디스플레이) · Pretendard (한글 본문 + 숫자) · Geist (영문) */
+
+/* ── Paperlogy ────────────────────────────────────────────── */
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 900; font-style: normal; font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-9Black.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 800; font-style: normal; font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-8ExtraBold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 700; font-style: normal; font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-7Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 600; font-style: normal; font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-6SemiBold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 500; font-style: normal; font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-5Medium.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 400; font-style: normal; font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-4Regular.woff2') format('woff2');
+}
+
+/* ── Type role tokens ────────────────────────────────────── */
+:root {
+  --font-display: 'Pretendard', -apple-system, system-ui, sans-serif;
+  --font-text:    'Pretendard', -apple-system, system-ui, sans-serif;
+  --font-en:      'Geist', 'Pretendard', -apple-system, system-ui, sans-serif;
+}

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>아마따 · 일간뷰</title>
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap"/>
+<link rel="stylesheet" href="fonts.css"/>
+
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #f0eee9; }
+  body { font-family: 'Pretendard', -apple-system, system-ui, 'Helvetica Neue', sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="app-tokens.jsx"></script>
+<script type="text/babel" src="icon-sets.jsx"></script>
+<script type="text/babel" src="color-themes.jsx"></script>
+<script type="text/babel" src="pickup-options.jsx"></script>
+<script type="text/babel" src="app-weekly.jsx"></script>
+<script type="text/babel" src="app-weekly-drawers.jsx"></script>
+<script type="text/babel" src="app-daily-b.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "primary": "#FF7144",
+    "showFrame": true,
+    "avatarSet": "face"
+  }/*EDITMODE-END*/;
+
+  function PhoneShell({ children, showFrame }) {
+    if (!showFrame) {
+      return (
+        <div style={{
+          width: 402, height: 874, borderRadius: 40,
+          background: '#fff', overflow: 'hidden',
+          boxShadow: '0 20px 50px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06)',
+          position: 'relative',
+        }}>{children}</div>
+      );
+    }
+    return <IOSDevice width={402} height={874}>{children}</IOSDevice>;
+  }
+
+  function VariantContainer({ Comp, k, defaultTab = 'schedule', primary }) {
+    const [tab, setTab] = React.useState(defaultTab);
+    return <Comp key={k} tab={tab} setTab={setTab} primary={primary}/>;
+  }
+
+  function App() {
+    const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+    const [, force] = React.useReducer(x => x + 1, 0);
+
+    // Daily View ONLY: swap avatar keys between animal & face PNGs
+    React.useEffect(() => {
+      const FACE_MAP = {
+        minjun: 'face-wink', seoyun: 'face-dizzy',
+        jiho: 'face-cool',   seoa: 'face-sleep'
+      };
+      const ANIMAL_MAP = {
+        minjun: 'rabbit', seoyun: 'panda',
+        jiho: 'cat',      seoa: 'deer'
+      };
+      const map = t.avatarSet === 'face' ? FACE_MAP : ANIMAL_MAP;
+      window.KIDS.forEach(k => { if (map[k.id]) k.avatar = map[k.id]; });
+      force();
+    }, [t.avatarSet]);
+
+    // Primary color override (mutates AMATTA in place)
+    React.useEffect(() => {
+      if (t.primary && window.AMATTA) {
+        window.AMATTA.primary = t.primary;
+        force();
+      }
+    }, [t.primary]);
+
+    return (
+      <React.Fragment>
+        <DesignCanvas>
+          <DCSection
+            id="amatta-daily-b"
+            title="아마따 · 일간뷰 (B)"
+            subtitle="자녀 3명 (민준 · 서윤 · 지호) · 5월 5일 화 · 좌: 일정 / 우: 준비물 & 할일"
+          >
+            <DCArtboard id="b-schedule" label="일정" width={420} height={920}>
+              <PhoneShell showFrame={t.showFrame}>
+                <VariantContainer Comp={DailyB} k="b-sch" defaultTab="schedule"/>
+              </PhoneShell>
+            </DCArtboard>
+            <DCArtboard id="b-todo" label="준비물 & 할일" width={420} height={920}>
+              <PhoneShell showFrame={t.showFrame}>
+                <VariantContainer Comp={DailyB} k="b-todo" defaultTab="todo"/>
+              </PhoneShell>
+            </DCArtboard>
+          </DCSection>
+        </DesignCanvas>
+
+        <TweaksPanel title="Tweaks">
+          <TweakSection label="브랜드">
+            <TweakColor
+              label="Primary"
+              value={t.primary}
+              options={['#FF7144','#F4912F','#FBB008','#128DC4','#3A7A4E']}
+              onChange={(v) => setTweak('primary', v)}
+            />
+          </TweakSection>
+          <TweakSection label="캐릭터">
+            <TweakRadio
+              label="아바타"
+              value={t.avatarSet}
+              options={['face','animal']}
+              onChange={(v) => setTweak('avatarSet', v)}
+            />
+          </TweakSection>
+          <TweakSection label="프레임">
+            <TweakToggle
+              label="iOS 디바이스 프레임"
+              value={t.showFrame}
+              onChange={(v) => setTweak('showFrame', v)}
+            />
+          </TweakSection>
+        </TweaksPanel>
+      </React.Fragment>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

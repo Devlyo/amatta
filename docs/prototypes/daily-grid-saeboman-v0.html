@@ -279,6 +279,173 @@ body {
 }
 .iconbtn:hover { background: var(--ink-04); color: var(--ink); }
 .iconbtn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.iconbtn[data-active="true"] {
+  background: var(--ink); color: var(--bone);
+  box-shadow: var(--inset-dark);
+}
+.iconbtn[data-active="true"]:hover { background: var(--ink); color: var(--bone); }
+
+/* ─── Week view mode: hide schedule (day) pane + sub-bar; keep tabs ─── */
+.device[data-view="week"] .tab-pane[data-tab="schedule"] { display: none !important; }
+.device[data-view="week"] #sub-bar { display: none !important; }
+.week-pane { display: none; flex-direction: column; flex: 1; min-height: 0; }
+/* JS controls visibility via .week-pane[data-active="true"] when view=week AND schedule tab */
+.week-pane[data-active="true"] { display: flex; }
+
+/* ─── Kids legend (week mode 상단, 자녀 정체성 안내) ─── */
+.kids-legend {
+  display: flex; gap: 6px;
+  padding: 6px 12px 8px;
+  border-bottom: 1px solid var(--rule);
+  flex-shrink: 0;
+  background: var(--cream);
+}
+.kids-legend .kid-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 9px 4px 4px;
+  border-radius: 9999px;
+  flex: 1; min-width: 0;
+  justify-content: flex-start;
+  cursor: pointer;
+  border: 0;
+  font-family: inherit;
+  transition: opacity .18s, transform .12s;
+}
+.kids-legend .kid-chip:active { transform: scale(0.96); }
+
+/* Multi-select focus — 칩 선택 표시는 배경색에서 채도/명도 낮춘 1px ring */
+.kids-legend .kid-chip[data-active="true"] { font-weight: 700; }
+.kids-legend .kid-chip.c1[data-active="true"] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c1-base), var(--c1-fg) 30%); }
+.kids-legend .kid-chip.c2[data-active="true"] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c2-base), var(--c2-fg) 30%); }
+.kids-legend .kid-chip.c3[data-active="true"] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c3-base), var(--c3-fg) 30%); }
+.kids-legend .kid-chip.c4[data-active="true"] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c4-base), var(--c4-fg) 30%); }
+
+/* 필터 active 시 비선택 자녀 블록은 흐리고 아이콘 숨김 */
+.week-pane[data-filter] .week-event { opacity: 0.18; transition: opacity .18s; }
+.week-pane[data-filter] .week-event .we-icon { visibility: hidden; }
+.week-pane[data-filter~="c1"] .week-event.c1,
+.week-pane[data-filter~="c2"] .week-event.c2,
+.week-pane[data-filter~="c3"] .week-event.c3,
+.week-pane[data-filter~="c4"] .week-event.c4 { opacity: 1; }
+.week-pane[data-filter~="c1"] .week-event.c1 .we-icon,
+.week-pane[data-filter~="c2"] .week-event.c2 .we-icon,
+.week-pane[data-filter~="c3"] .week-event.c3 .we-icon,
+.week-pane[data-filter~="c4"] .week-event.c4 .we-icon { visibility: visible; }
+.kids-legend .kid-chip.c1 { background: var(--c1-base); color: var(--c1-fg); }
+.kids-legend .kid-chip.c2 { background: var(--c2-base); color: var(--c2-fg); }
+.kids-legend .kid-chip.c3 { background: var(--c3-base); color: var(--c3-fg); }
+.kids-legend .kid-chip.c4 { background: var(--c4-base); color: var(--c4-fg); }
+.kids-legend .kid-chip .av {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  padding: 1.5px;
+  background: rgba(255,255,255,0.55);
+  flex-shrink: 0;
+  display: grid; place-items: center;
+}
+.kids-legend .kid-chip .av svg { width: 100%; height: 100%; display: block; }
+.kids-legend .kid-chip .nm {
+  font-family: var(--display);
+  font-size: 11.5px; font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ─── Week head (7 days) ─── */
+.week-head {
+  display: grid;
+  grid-template-columns: var(--time-col) repeat(7, 1fr);
+  border-bottom: 1px solid var(--rule);
+  background: var(--cream);
+  flex-shrink: 0;
+  padding: 8px 0 8px;
+}
+.week-head .corner {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-40);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: grid; place-items: center;
+}
+.week-head .wh-day {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--ink-60);
+  text-transform: uppercase;
+}
+.week-head .wh-day[data-today="true"] { color: var(--orange); font-weight: 600; }
+.week-head .wh-day .num {
+  display: block;
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  color: var(--ink);
+  margin-top: 2px;
+  text-transform: none;
+}
+.week-head .wh-day[data-today="true"] .num { color: var(--orange); }
+.week-head .wh-day.weekend.sun .num { color: var(--destructive); }
+
+/* ─── Week grid wrap + grid (time labels + day slot columns) ─── */
+.week-pane .grid-wrap { flex: 1; overflow-y: auto; position: relative; }
+.week-pane .grid-wrap::-webkit-scrollbar { width: 0; }
+.week-pane .grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--time-col) repeat(7, 1fr);
+  grid-auto-rows: var(--slot-h);
+  min-height: 100%;
+}
+.week-pane .grid .time-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--ink-40);
+  text-align: right;
+  padding: 2px 6px 0 0;
+  letter-spacing: 0.02em;
+}
+.week-pane .grid .slot {
+  border-top: 1px solid var(--rule-soft);
+  border-left: 1px solid var(--rule-soft);
+}
+.week-pane .grid .slot.hour { border-top-color: var(--rule); }
+
+/* ─── Week event block (compact, narrow lane support) ─── */
+.week-event {
+  position: absolute;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start;
+  padding: 4px 1px 0;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: opacity .15s, transform .12s;
+}
+.week-event:active { transform: scale(0.97); }
+.week-event.c1 { background: var(--c1-base); color: var(--c1-fg); }
+.week-event.c2 { background: var(--c2-base); color: var(--c2-fg); }
+.week-event.c3 { background: var(--c3-base); color: var(--c3-fg); }
+.week-event.c4 { background: var(--c4-base); color: var(--c4-fg); }
+.week-event.cancelled { opacity: 0.4; }
+
+.week-event .we-icon {
+  width: 14px; height: 14px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.week-event .we-icon svg {
+  width: 14px; height: 14px;
+  stroke: currentColor; fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 /* ────────────────────────────────────────────────────────────
    Sub-bar — conflict pill
@@ -293,11 +460,17 @@ body {
   position: relative;
   flex-shrink: 0;
 }
-.sub-bar .warn-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--orange);
+.sub-bar .pickup-icon {
+  width: 18px; height: 18px;
   flex-shrink: 0;
-  animation: pulse-warn 1.7s cubic-bezier(.4,0,.4,1) infinite;
+  color: var(--orange);
+  display: grid; place-items: center;
+}
+.sub-bar .pickup-icon svg {
+  width: 100%; height: 100%;
+  stroke: currentColor; fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
 }
 @keyframes pulse-warn {
   0%   { box-shadow: 0 0 0 0   rgba(255,147,2,0.45); }
@@ -525,8 +698,7 @@ body {
   height: 0; border-top: 2px solid var(--orange);
   z-index: 4; pointer-events: none;
 }
-.now-line::before {
-  content: "09:42";
+.now-line .now-time {
   position: absolute;
   right: 100%;       /* line의 시작점에 박스 right edge가 닿음 */
   top: -10px;
@@ -538,6 +710,7 @@ body {
   border-radius: 6px;
   letter-spacing: 0.02em;
   line-height: 1;
+  white-space: nowrap;
   box-shadow: 0 1px 4px rgba(255,147,2,0.25);
 }
 
@@ -1693,7 +1866,7 @@ body {
   자녀 6색 hex는 <b>임시</b> — ADR 락 예정.
 </div>
 
-<main class="device" aria-label="코알라 캘린더 일간뷰 프로토타입">
+<main class="device" data-view="day" aria-label="코알라 캘린더 일간뷰 프로토타입">
 
   <!-- Decorative Matisse cutout (subtle, behind topbar) -->
   <svg class="cutout-deco" viewBox="0 0 100 100" aria-hidden="true">
@@ -1715,6 +1888,14 @@ body {
       <button class="date-arrow" type="button" aria-label="다음날" id="next-day">›</button>
     </div>
     <div class="top-actions">
+      <button class="iconbtn" type="button" id="view-toggle" data-active="false" aria-label="주간 보기 토글" title="주간 보기">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+      </button>
       <button class="iconbtn" type="button" aria-label="검색 drawer">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
       </button>
@@ -1722,8 +1903,8 @@ body {
   </div>
 
   <!-- ─────── SUB-BAR ─────── -->
-  <div class="sub-bar" role="status" id="sub-bar">
-    <span class="warn-dot" aria-hidden="true"></span>
+  <div class="sub-bar" role="status" id="sub-bar" data-hidden="true">
+    <span class="pickup-icon" id="sb-icon" aria-hidden="true"></span>
     <span class="when" id="sb-when"></span>
     <span class="what" id="sb-what"></span>
     <span class="cta" id="sb-cta">보기</span>
@@ -1744,7 +1925,7 @@ body {
       <div class="grid-wrap" id="grid-wrap">
         <div class="grid" id="grid">
           <div class="events-layer" id="events"></div>
-          <div class="now-line" id="nowline" aria-hidden="true"></div>
+          <div class="now-line" id="nowline" aria-hidden="true"><span class="now-time" id="now-time">09:42</span></div>
         </div>
       </div>
     </section>
@@ -1755,6 +1936,18 @@ body {
     </section>
 
   </div>
+
+  <!-- ─────── WEEK PANE (toggle activated, sibling of tab-content) ─────── -->
+  <section class="week-pane" id="week-pane" aria-label="주간 보기">
+    <div class="kids-legend" id="kids-legend"></div>
+    <div class="week-head" id="week-head"></div>
+    <div class="grid-wrap">
+      <div class="grid" id="week-grid">
+        <div class="events-layer" id="week-events" style="position: absolute; inset: 0; pointer-events: none;"></div>
+        <div class="now-line" id="week-nowline" aria-hidden="true"><span class="now-time" id="week-now-time">09:42</span></div>
+      </div>
+    </div>
+  </section>
 
   <!-- ─────── DRAWERS (검색 / 날짜) ─────── -->
   <div class="drawer-shade" id="drawer-shade" data-open="false"></div>
@@ -1837,6 +2030,17 @@ body {
               <div class="setting-row" data-go-kids>
                 <span class="sr-label">자녀 관리</span>
                 <span class="sr-value" id="kid-count">4명</span>
+                <span class="sr-chev">›</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-section">
+            <div class="setting-section-label">표시</div>
+            <div class="setting-rows">
+              <div class="setting-row" id="time-format-row">
+                <span class="sr-label">시간 표시</span>
+                <span class="sr-value" id="time-format-value">오전·오후</span>
                 <span class="sr-chev">›</span>
               </div>
             </div>
@@ -2119,7 +2323,7 @@ body {
         <div class="chip-group" id="ad-type-chips">
           <button class="chip-btn" data-active="false">학교</button>
           <button class="chip-btn" data-active="true">학원</button>
-          <button class="chip-btn" data-active="false">활동</button>
+          <button class="chip-btn" data-active="false">운동</button>
           <button class="chip-btn" data-active="false">기타</button>
         </div>
       </div>
@@ -2252,7 +2456,7 @@ const SLOT_H = 28;
 const START_HOUR = 6;
 const END_HOUR = 24;
 const TOTAL_SLOTS = (END_HOUR - START_HOUR) * 2; // 36
-const TYPE_LABEL = { school: '학교', academy: '학원', activity: '활동', other: '기타' };
+const TYPE_LABEL = { school: '학교', academy: '학원', activity: '운동', other: '기타' };
 
 /* 자녀 수 동적 — ?children=3 또는 ?children=4 (default 4) */
 const N_KIDS = (() => {
@@ -2332,6 +2536,316 @@ function el(tag, attrs = {}, ...kids) {
 }
 
 function toMin(hhmm) { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; }
+
+/* ──────────────────────────────────────────────────────────
+   TIME FORMAT — 12h (default) / 24h, 친구 트랙과 동일 포맷
+────────────────────────────────────────────────────────── */
+let timeFormat = '12h';
+function formatTime(min, fmt) {
+  fmt = fmt || timeFormat;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  const mm = String(m).padStart(2, '0');
+  if (fmt === '24h') return String(h).padStart(2, '0') + ':' + mm;
+  const ampm = h < 12 ? '오전' : '오후';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return ampm + ' ' + h12 + ':' + mm;
+}
+function fmtHHMM(hhmm, fmt) { return formatTime(toMin(hhmm), fmt); }
+function reformatInText(text, fmt) {
+  return text.replace(/(\d{1,2}):(\d{2})/g, (_, h, m) => formatTime(parseInt(h, 10) * 60 + parseInt(m, 10), fmt));
+}
+/* 시간축은 좁아서 12h일 때 minutes 생략 */
+function formatTimeAxis(min, fmt) {
+  fmt = fmt || timeFormat;
+  const h = Math.floor(min / 60);
+  if (fmt === '24h') return String(h).padStart(2, '0') + ':00';
+  const ampm = h < 12 ? '오전' : '오후';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return ampm + ' ' + h12;
+}
+
+/* ──────────────────────────────────────────────────────────
+   WEEK VIEW · 7일 일정 데이터 + 카테고리 아이콘 + 렌더링
+────────────────────────────────────────────────────────── */
+/* col 1=일, 2=월, 3=화 today, 4=수, 5=목, 6=금, 7=토 */
+const weekDays = [
+  { dow:'SUN', num:3, today:false, sun:true,  weekend:true  },
+  { dow:'MON', num:4, today:false },
+  { dow:'TUE', num:5, today:true  },
+  { dow:'WED', num:6, today:false },
+  { dow:'THU', num:7, today:false },
+  { dow:'FRI', num:8, today:false },
+  { dow:'SAT', num:9, today:false, sat:true,  weekend:true  },
+];
+
+const weekEvents = [
+  /* 민준 c1 */
+  { child:'c1', day:1, type:'activity', title:'수영',   start:'10:00', end:'11:00' },
+  { child:'c1', day:2, type:'school',   title:'학교',   start:'08:30', end:'14:30' },
+  { child:'c1', day:2, type:'academy',  title:'영어',   start:'16:00', end:'17:30' },
+  { child:'c1', day:3, type:'school',   title:'학교',   start:'08:30', end:'14:30' },
+  { child:'c1', day:3, type:'academy',  title:'영어',   start:'16:00', end:'17:30' },
+  { child:'c1', day:3, type:'activity', title:'피아노', start:'19:00', end:'20:00' },
+  { child:'c1', day:4, type:'school',   title:'학교',   start:'08:30', end:'14:30' },
+  { child:'c1', day:4, type:'academy',  title:'영어',   start:'16:00', end:'17:30' },
+  { child:'c1', day:5, type:'school',   title:'학교',   start:'08:30', end:'14:30' },
+  { child:'c1', day:5, type:'activity', title:'피아노', start:'18:30', end:'19:30' },
+  { child:'c1', day:6, type:'school',   title:'학교',   start:'08:30', end:'14:30' },
+  { child:'c1', day:7, type:'other',    title:'생일',   start:'14:00', end:'16:00' },
+  /* 서윤 c2 */
+  { child:'c2', day:2, type:'school',   title:'학교',   start:'09:00', end:'13:00' },
+  { child:'c2', day:2, type:'activity', title:'미술',   start:'14:00', end:'15:30' },
+  { child:'c2', day:3, type:'school',   title:'학교',   start:'09:00', end:'13:00' },
+  { child:'c2', day:3, type:'activity', title:'미술',   start:'14:00', end:'15:30' },
+  { child:'c2', day:3, type:'activity', title:'태권도', start:'17:00', end:'18:00' },
+  { child:'c2', day:4, type:'school',   title:'학교',   start:'09:00', end:'13:00' },
+  { child:'c2', day:4, type:'activity', title:'미술',   start:'14:00', end:'15:30' },
+  { child:'c2', day:5, type:'school',   title:'학교',   start:'09:00', end:'13:00' },
+  { child:'c2', day:6, type:'school',   title:'학교',   start:'09:00', end:'13:00' },
+  { child:'c2', day:6, type:'activity', title:'태권도', start:'17:00', end:'18:00' },
+  /* 지호 c3 */
+  { child:'c3', day:2, type:'school',   title:'유치원', start:'09:00', end:'14:00' },
+  { child:'c3', day:2, type:'activity', title:'발레',   start:'15:30', end:'16:15' },
+  { child:'c3', day:3, type:'school',   title:'유치원', start:'09:00', end:'14:00' },
+  { child:'c3', day:3, type:'activity', title:'발레',   start:'15:30', end:'16:15' },
+  { child:'c3', day:3, type:'other',    title:'생일',   start:'17:00', end:'17:30' },
+  { child:'c3', day:4, type:'school',   title:'유치원', start:'09:00', end:'14:00' },
+  { child:'c3', day:4, type:'activity', title:'발레',   start:'15:30', end:'16:15' },
+  { child:'c3', day:5, type:'school',   title:'유치원', start:'09:00', end:'14:00' },
+  { child:'c3', day:6, type:'school',   title:'유치원', start:'09:00', end:'14:00' },
+  { child:'c3', day:6, type:'activity', title:'발레',   start:'15:30', end:'16:15' },
+  /* 서아 c4 */
+  { child:'c4', day:2, type:'school',   title:'학교',   start:'08:30', end:'15:00' },
+  { child:'c4', day:2, type:'academy',  title:'수학',   start:'16:30', end:'18:00' },
+  { child:'c4', day:3, type:'school',   title:'학교',   start:'08:30', end:'15:00' },
+  { child:'c4', day:3, type:'academy',  title:'수학',   start:'16:30', end:'18:00' },
+  { child:'c4', day:3, type:'activity', title:'농구',   start:'19:30', end:'20:30' },
+  { child:'c4', day:4, type:'school',   title:'학교',   start:'08:30', end:'15:00' },
+  { child:'c4', day:4, type:'academy',  title:'수학',   start:'16:30', end:'18:00' },
+  { child:'c4', day:5, type:'school',   title:'학교',   start:'08:30', end:'15:00' },
+  { child:'c4', day:6, type:'school',   title:'학교',   start:'08:30', end:'15:00' },
+  { child:'c4', day:7, type:'activity', title:'농구',   start:'10:00', end:'11:00' },
+];
+
+const CAT_LABEL = { school: '학교', academy: '학원', activity: '운동', other: '기타' };
+
+/* Lucide-style line icons for week-event blocks (4 categories) */
+function makeLucideCat(type) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  function path(d) { const p = document.createElementNS(ns, 'path'); p.setAttribute('d', d); return p; }
+  function circle(cx, cy, r) { const c = document.createElementNS(ns, 'circle'); c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r); return c; }
+  if (type === 'school') {
+    /* graduation cap (lucide) — 학교 */
+    svg.appendChild(path('M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z'));
+    svg.appendChild(path('M22 10v6'));
+    svg.appendChild(path('M6 12.5V16a6 3 0 0 0 12 0v-3.5'));
+  } else if (type === 'academy') {
+    /* book-open (lucide) — 학원 */
+    svg.appendChild(path('M12 7v14'));
+    svg.appendChild(path('M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z'));
+  } else if (type === 'activity') {
+    /* activity / heartbeat (lucide) — 운동 */
+    svg.appendChild(path('M22 12h-4l-3 9L9 3l-3 9H2'));
+  } else {
+    /* sparkles / more — 기타 */
+    svg.appendChild(circle(5, 12, 1.4));
+    svg.appendChild(circle(12, 12, 1.4));
+    svg.appendChild(circle(19, 12, 1.4));
+  }
+  return svg;
+}
+
+/* lane 계산: 같은 day에서 시간 overlap 그룹별로 lane 할당 (sweep line) */
+function computeWeekLanes(events) {
+  const byDay = {};
+  events.forEach(e => { (byDay[e.day] = byDay[e.day] || []).push(e); });
+  const placed = new Map(); // ev -> { lane, lanes }
+  Object.values(byDay).forEach(dayList => {
+    const sorted = [...dayList].sort((a, b) => toMin(a.start) - toMin(b.start));
+    /* 그룹화: overlap 묶음 만들기 */
+    const groups = [];
+    let group = null;
+    let groupMaxEnd = -1;
+    sorted.forEach(ev => {
+      const s = toMin(ev.start), en = toMin(ev.end);
+      if (!group || s >= groupMaxEnd) {
+        group = [ev]; groups.push(group); groupMaxEnd = en;
+      } else {
+        group.push(ev); groupMaxEnd = Math.max(groupMaxEnd, en);
+      }
+    });
+    /* 각 그룹 안에서 lane 할당 (가능한 가장 작은 lane idx) */
+    groups.forEach(grp => {
+      const laneEnd = []; // lane idx -> latest end time
+      grp.forEach(ev => {
+        const s = toMin(ev.start), en = toMin(ev.end);
+        let idx = laneEnd.findIndex(t => t <= s);
+        if (idx === -1) { idx = laneEnd.length; laneEnd.push(en); } else { laneEnd[idx] = en; }
+        placed.set(ev, { lane: idx, lanes: 0 /* fill after */ });
+      });
+      const total = laneEnd.length;
+      grp.forEach(ev => { const p = placed.get(ev); if (p) p.lanes = total; });
+    });
+  });
+  return placed;
+}
+
+function renderWeekHead() {
+  const head = document.getElementById('week-head');
+  while (head.firstChild) head.removeChild(head.firstChild);
+  head.appendChild(el('div', { class: 'corner' }, '5월'));
+  weekDays.forEach((d, idx) => {
+    const cell = el('div', {
+      class: 'wh-day' + (d.weekend ? ' weekend' : '') + (d.sun ? ' sun' : '') + (d.sat ? ' sat' : ''),
+      'data-day': String(idx + 1),
+      'data-today': d.today ? 'true' : 'false',
+    });
+    cell.appendChild(document.createTextNode(d.dow));
+    cell.appendChild(el('span', { class: 'num' }, String(d.num)));
+    head.appendChild(cell);
+  });
+}
+
+function renderWeekGrid() {
+  const grid = document.getElementById('week-grid');
+  /* clear only time-labels + slots (preserve events-layer + now-line) */
+  Array.from(grid.children).forEach(ch => {
+    if (ch.classList.contains('time-label') || ch.classList.contains('slot')) ch.remove();
+  });
+  for (let i = 0; i < TOTAL_SLOTS; i++) {
+    const isHour = i % 2 === 0;
+    const h = Math.floor(((START_HOUR * 60) + i * 30) / 60);
+    const label = el('div', { class: 'time-label' + (isHour ? ' hour' : '') });
+    label.style.gridRow = String(i + 1);
+    label.style.gridColumn = '1';
+    label.textContent = isHour ? formatTimeAxis(h * 60) : '';
+    grid.appendChild(label);
+    for (let col = 2; col <= 8; col++) {
+      const slot = el('div', { class: 'slot' + (isHour ? ' hour' : '') });
+      slot.style.gridRow = String(i + 1);
+      slot.style.gridColumn = String(col);
+      grid.appendChild(slot);
+    }
+  }
+  const layer = document.getElementById('week-events');
+  layer.style.gridColumn = '1 / -1';
+  layer.style.gridRow = '1 / ' + (TOTAL_SLOTS + 1);
+}
+
+function renderWeekEvents() {
+  const layer = document.getElementById('week-events');
+  while (layer.firstChild) layer.removeChild(layer.firstChild);
+  const lanes = computeWeekLanes(weekEvents);
+  weekEvents.forEach(ev => {
+    const lane = lanes.get(ev);
+    const laneIdx = lane ? lane.lane : 0;
+    const laneCount = lane ? lane.lanes : 1;
+
+    const top = ((toMin(ev.start) - START_HOUR * 60) / 30) * SLOT_H;
+    const height = ((toMin(ev.end) - toMin(ev.start)) / 30) * SLOT_H - 2;
+
+    /* horizontal: time col + (day-1)/7 of remaining + lane offset within day */
+    const startPct = ((ev.day - 1) + laneIdx / laneCount) / 7;
+    const widthPct = 1 / (7 * laneCount);
+    const left = 'calc(var(--time-col) + (100% - var(--time-col)) * ' + startPct + ' + 1px)';
+    const width = 'calc((100% - var(--time-col)) * ' + widthPct + ' - 2px)';
+
+    const block = el('div', {
+      class: 'week-event ' + ev.child + (ev.cancelled ? ' cancelled' : ''),
+      role: 'button',
+      'data-lanes': String(laneCount),
+      'data-short': height < 26 ? 'true' : 'false',
+      'aria-label': ev.title + ' ' + ev.start + '-' + ev.end + ' ' + CAT_LABEL[ev.type],
+      title: ev.title + ' · ' + ev.start + '–' + ev.end,
+    });
+    block.style.top = (top + 1) + 'px';
+    block.style.height = Math.max(height, 20) + 'px';
+    block.style.left = left;
+    block.style.width = width;
+
+    /* category icon (lucide-style) — 자녀 색은 블록 배경으로 식별, kids-legend로 매핑 안내 */
+    const icn = el('div', { class: 'we-icon ' + ev.type });
+    icn.appendChild(makeLucideCat(ev.type));
+    block.appendChild(icn);
+
+    layer.appendChild(block);
+  });
+  layer.style.pointerEvents = 'auto';
+}
+
+function renderKidsLegend() {
+  const wrap = document.getElementById('kids-legend');
+  while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
+  children.forEach(c => {
+    const chip = el('button', {
+      class: 'kid-chip ' + c.id,
+      type: 'button',
+      'data-child': c.id,
+      'aria-label': c.name + ' 포커스 토글',
+    });
+    const av = el('div', { class: 'av' });
+    av.appendChild(matisseAvatar(c.id));
+    chip.appendChild(av);
+    chip.appendChild(el('span', { class: 'nm' }, c.name));
+    chip.addEventListener('click', () => toggleKidFocus(c.id));
+    wrap.appendChild(chip);
+  });
+}
+
+const selectedChildren = new Set();
+function toggleKidFocus(childId) {
+  if (selectedChildren.has(childId)) selectedChildren.delete(childId);
+  else selectedChildren.add(childId);
+  applyKidFilter();
+}
+function applyKidFilter() {
+  const pane = document.getElementById('week-pane');
+  if (selectedChildren.size === 0) {
+    pane.removeAttribute('data-filter');
+  } else {
+    pane.setAttribute('data-filter', Array.from(selectedChildren).join(' '));
+  }
+  document.querySelectorAll('.kids-legend .kid-chip').forEach(chip => {
+    const id = chip.getAttribute('data-child');
+    chip.setAttribute('data-active', String(selectedChildren.has(id)));
+  });
+}
+
+/* week-pane는 view=week AND 일정 탭 active 시에만 표시 */
+function updateWeekPaneVisibility() {
+  const dev = document.querySelector('.device');
+  const isWeek = dev.getAttribute('data-view') === 'week';
+  const scheduleTab = document.querySelector('.tab[data-tab="schedule"]');
+  const isSchedule = scheduleTab && scheduleTab.getAttribute('data-active') === 'true';
+  const pane = document.getElementById('week-pane');
+  pane.setAttribute('data-active', String(isWeek && isSchedule));
+  /* tab-content는 (week + schedule) 일 때 flex 공간 차지하지 않도록 숨김 */
+  const tabContent = document.querySelector('.tab-content');
+  if (tabContent) tabContent.style.display = (isWeek && isSchedule) ? 'none' : '';
+}
+
+/* view toggle handler — day <-> week */
+function setViewMode(mode) {
+  const dev = document.querySelector('.device');
+  const btn = document.getElementById('view-toggle');
+  dev.setAttribute('data-view', mode);
+  btn.setAttribute('data-active', mode === 'week' ? 'true' : 'false');
+  btn.setAttribute('aria-label', mode === 'week' ? '일간 보기로 전환' : '주간 보기로 전환');
+  if (mode === 'week') {
+    renderKidsLegend();
+    renderWeekHead();
+    renderWeekGrid();
+    renderWeekEvents();
+    applyKidFilter();  /* restore filter state on re-render */
+  }
+  updateWeekPaneVisibility();
+  /* always re-place now-line (and scroll both views to current time) */
+  if (typeof placeNowLine === 'function') placeNowLine();
+}
 
 /* ──────────────────────────────────────────────────────────
    RENDER · children header
@@ -2445,7 +2959,7 @@ function renderGrid() {
 
     const label = el('div', { class: 'time-label' + (isHour ? ' hour' : '') });
     label.style.gridRow = String(i + 1);
-    label.textContent = isHour ? (String(h).padStart(2, '0') + ':00') : '';
+    label.textContent = isHour ? formatTimeAxis(h * 60) : '';
     grid.appendChild(label);
 
     for (let col = 2; col <= N_KIDS + 1; col++) {
@@ -2476,7 +2990,7 @@ function renderEvents() {
     const card = el('div', {
       class: 'event ' + ev.color + ' ' + ev.type + (ev.short ? ' short' : ''),
       role: 'button',
-      'aria-label': ev.title + ' ' + ev.start + '-' + ev.end,
+      'aria-label': ev.title + ' ' + formatTime(toMin(ev.start)) + '-' + formatTime(toMin(ev.end)),
     });
     card.style.top = (top + 1) + 'px';
     card.style.height = Math.max(height, 22) + 'px';
@@ -2489,7 +3003,7 @@ function renderEvents() {
     card.appendChild(row1);
 
     if (!ev.short) {
-      card.appendChild(el('div', { class: 'time' }, ev.start + '–' + ev.end));
+      card.appendChild(el('div', { class: 'time' }, formatTime(toMin(ev.start)) + '–' + formatTime(toMin(ev.end))));
       card.appendChild(el('div', { class: 'place' }, ev.place));
       if (ev.prep && ev.prep.length) {
         const prep = el('div', { class: 'prep' });
@@ -2593,40 +3107,86 @@ function resolveConflict(key, card) {
   }, 320);
 }
 
+/* prototype "현재 시각" (now-line 09:42과 동일) */
+const NOW_MIN = 9 * 60 + 42;
+
+function findNextPickup() {
+  return events
+    .filter(e => e.pickup === true && toMin(e.end) > NOW_MIN)
+    .sort((a, b) => toMin(a.end) - toMin(b.end))[0] || null;
+}
+
 function updateSubBar() {
-  const unresolved = detectConflicts().filter(c => !resolvedKeys.has(c.key));
   const sb = document.getElementById('sub-bar');
-  if (unresolved.length === 0) {
+  const next = findNextPickup();
+  if (!next) {
     sb.setAttribute('data-hidden', 'true');
     return;
   }
   sb.setAttribute('data-hidden', 'false');
-  const first = unresolved[0];
-  document.getElementById('sb-when').textContent = minToHHMM(first.time);
-  if (unresolved.length === 1) {
-    document.getElementById('sb-what').textContent =
-      '픽업 충돌 · ' + CHILD_NAME[first.a.color] + ' ' + first.a.title +
-      ' ↔ ' + CHILD_NAME[first.b.color] + ' ' + first.b.title;
-  } else {
-    document.getElementById('sb-what').textContent = '픽업 충돌 ' + unresolved.length + '건';
-  }
+  /* car icon */
+  const iconWrap = document.getElementById('sb-icon');
+  while (iconWrap.firstChild) iconWrap.removeChild(iconWrap.firstChild);
+  iconWrap.appendChild(carIcon());
+  /* time */
+  document.getElementById('sb-when').textContent = formatTime(toMin(next.end));
+  /* "다음 픽업 · 자녀명 일정명" */
+  document.getElementById('sb-what').textContent =
+    '다음 픽업 · ' + CHILD_NAME[next.color] + ' ' + next.title;
 }
 
-function bindConflictDrawer() {
-  document.getElementById('sb-cta').addEventListener('click', e => {
-    e.stopPropagation();
-    renderConflictDrawer();
-    document.getElementById('conflict-drawer').setAttribute('data-open', 'true');
+function bindSubBarClick() {
+  document.getElementById('sub-bar').addEventListener('click', () => {
+    const next = findNextPickup();
+    if (next) openEventPopover(next);
   });
-  document.querySelectorAll('[data-conflict-close]').forEach(b =>
-    b.addEventListener('click', () => {
-      document.getElementById('conflict-drawer').setAttribute('data-open', 'false');
-    })
-  );
+}
+
+/* 시간 표시 토글 — 모든 시간 디스플레이 재렌더 */
+function applyTimeFormat() {
+  /* day grid time-labels + slots → clear + 재렌더 */
+  const grid = document.getElementById('grid');
+  Array.from(grid.children).forEach(ch => {
+    if (ch.classList.contains('time-label') || ch.classList.contains('slot')) ch.remove();
+  });
+  renderGrid();
+  /* event cards 재렌더 */
+  const evLayer = document.getElementById('events');
+  while (evLayer.firstChild) evLayer.removeChild(evLayer.firstChild);
+  renderEvents();
+  /* week grid (생성된 경우) */
+  const wkGrid = document.getElementById('week-grid');
+  if (wkGrid) {
+    Array.from(wkGrid.children).forEach(ch => {
+      if (ch.classList.contains('time-label') || ch.classList.contains('slot')) ch.remove();
+    });
+    renderWeekGrid();
+    renderWeekEvents();
+    applyKidFilter();
+  }
+  /* sub-bar pickup time */
+  updateSubBar();
+  /* reminders context */
+  const rem = document.getElementById('reminders');
+  if (rem) { while (rem.firstChild) rem.removeChild(rem.firstChild); renderReminders(); }
+  /* now-line text + scroll */
+  placeNowLine();
+  /* settings label */
+  const lbl = document.getElementById('time-format-value');
+  if (lbl) lbl.textContent = (timeFormat === '12h') ? '오전·오후' : '24시간';
+}
+
+function bindTimeFormatToggle() {
+  const row = document.getElementById('time-format-row');
+  if (!row) return;
+  row.addEventListener('click', () => {
+    timeFormat = (timeFormat === '12h') ? '24h' : '12h';
+    applyTimeFormat();
+  });
 }
 
 /* Event detail drawer — 일정 클릭 시 풀페이지 */
-const TYPE_LABEL_KO = { school: '학교', academy: '학원', activity: '활동', other: '기타' };
+const TYPE_LABEL_KO = { school: '학교', academy: '학원', activity: '운동', other: '기타' };
 const CHILD_NAME = { c1: '민준', c2: '서윤', c3: '지호', c4: '서아' };
 
 function openEventPopover(ev) {
@@ -2634,7 +3194,7 @@ function openEventPopover(ev) {
   dd.setAttribute('data-c', ev.color);
   document.getElementById('dd-type').textContent = TYPE_LABEL_KO[ev.type] || ev.type;
   document.getElementById('dd-title').textContent = ev.title;
-  document.getElementById('dd-time').textContent = ev.start + ' – ' + ev.end;
+  document.getElementById('dd-time').textContent = formatTime(toMin(ev.start)) + ' – ' + formatTime(toMin(ev.end));
   document.getElementById('dd-place').textContent = ev.place || '—';
   document.getElementById('dd-child-name').textContent = CHILD_NAME[ev.color] || '';
   /* avatar */
@@ -2736,9 +3296,18 @@ function backpackIcon() {
    RENDER · now line at 09:42
 ────────────────────────────────────────────────────────── */
 function placeNowLine() {
-  const top = ((9 * 60 + 42) - START_HOUR * 60) / 30 * SLOT_H;
+  const top = (NOW_MIN - START_HOUR * 60) / 30 * SLOT_H;
+  /* day */
   document.getElementById('nowline').style.top = top + 'px';
+  document.getElementById('now-time').textContent = formatTime(NOW_MIN);
   document.getElementById('grid-wrap').scrollTop = Math.max(0, top - 160);
+  /* week */
+  const wnl = document.getElementById('week-nowline');
+  if (wnl) wnl.style.top = top + 'px';
+  const wnt = document.getElementById('week-now-time');
+  if (wnt) wnt.textContent = formatTime(NOW_MIN);
+  const wkWrap = document.querySelector('.week-pane .grid-wrap');
+  if (wkWrap) wkWrap.scrollTop = Math.max(0, top - 160);
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -2769,7 +3338,7 @@ function renderReminders() {
       content.appendChild(el('span', { class: 'check', 'aria-hidden': 'true' }));
       const wrap = el('div', { class: 'label-wrap' });
       wrap.appendChild(el('span', { class: 'label' }, it.label));
-      if (it.context) wrap.appendChild(el('span', { class: 'ctx' }, it.context));
+      if (it.context) wrap.appendChild(el('span', { class: 'ctx' }, reformatInText(it.context)));
       content.appendChild(wrap);
       content.appendChild(el('span', { class: 'badge' }, it.badge));
       row.appendChild(content);
@@ -2974,6 +3543,8 @@ function bindTabs() {
       panes.forEach(p => {
         p.setAttribute('data-active', String(p.getAttribute('data-tab') === target));
       });
+      /* week-pane은 schedule 탭 + week 모드 둘 다 만족할 때만 표시 */
+      if (typeof updateWeekPaneVisibility === 'function') updateWeekPaneVisibility();
     });
   });
 }
@@ -3075,6 +3646,13 @@ function closeDrawer() {
 function bindDrawers() {
   document.getElementById('date-btn').addEventListener('click', () => openDrawer('date'));
   document.querySelector('.iconbtn[aria-label*="검색"]').addEventListener('click', () => openDrawer('search'));
+
+  /* view toggle — day <-> week */
+  document.getElementById('view-toggle').addEventListener('click', () => {
+    const dev = document.querySelector('.device');
+    const cur = dev.getAttribute('data-view') || 'day';
+    setViewMode(cur === 'day' ? 'week' : 'day');
+  });
   document.getElementById('drawer-shade').addEventListener('click', closeDrawer);
   document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', closeDrawer));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
@@ -3168,8 +3746,9 @@ bindGNB();
 bindDrawers();
 bindAddDrawer();
 bindEventPopover();
-bindConflictDrawer();
+bindSubBarClick();
 bindSettings();
+bindTimeFormatToggle();
 updateSubBar();
 </script>
 

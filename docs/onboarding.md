@@ -25,6 +25,13 @@
 | `.omc/` | Claude 자동화 산출물 (specs/plans만 공유, 나머지 gitignore) |
 | `.claude/` | Claude 동작 설정 (hooks·agents·skills) |
 
+## 3.5. 디자인 시안 미리보기
+현재 시안은 `docs/design/amatta-v1/` (HTML + JSX 묶음). 로컬에서 돌려보려면:
+```bash
+cd docs/design/amatta-v1 && python3 -m http.server 8765
+```
+브라우저 `http://localhost:8765/` → `index.html`이 자동으로 온보딩 화면으로 라우팅. 토큰·팔레트·타입 같은 *결정된 디자인 시스템*은 `docs/design/README.md`.
+
 ## 4. 매일/매주 흐름
 - **할 일 잡기**: `schedule/BACKLOG.md` 보고 우선순위 P0/P1 끌어와서 `schedule/SPRINT.md` 에 옮김
 - **회의 후**: `docs/meetings/YYYY-MM-DD-주제.md` 메모 추가

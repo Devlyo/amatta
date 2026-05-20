@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>아마따 로고 시안 — KITSCH v0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gaegu:wght@400;700&family=Jua&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+@font-face { font-family: 'Paperlogy'; src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-3@1.0/Paperlogy-7Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperlogy'; src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2'); font-weight: 800; font-style: normal; font-display: swap; }
+
+:root {
+  --cream: #f7f4ed;
+  --cream-hi: #fdfbf5;
+  --shadow-cream: #d8d0bd;
+  --ink: #1c1c1c;
+  --ink-82: rgba(28,28,28,0.82);
+  --ink-60: rgba(28,28,28,0.60);
+  --ink-40: rgba(28,28,28,0.40);
+  --ink-04: rgba(28,28,28,0.04);
+  --rule: #eceae4;
+  --orange: #FF9302;
+  --mustard: #FBB008;
+  --yellow: #FBE26E;
+  --mint: #E2EFEA;
+  --pink: #ffe4ed;
+  --pink-deep: #c4477e;
+
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --display: 'Paperlogy', 'Pretendard', sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--cream); color: var(--ink); -webkit-font-smoothing: antialiased; }
+body {
+  background-image:
+    radial-gradient(circle at 14% 18%, rgba(251,176,8,0.07) 0%, transparent 38%),
+    radial-gradient(circle at 86% 82%, rgba(255,147,2,0.05) 0%, transparent 42%);
+  min-height: 100vh;
+  padding: 56px 32px 96px;
+  font-family: var(--display);
+}
+
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+header.stage {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 22px;
+  margin-bottom: 36px;
+}
+.stage .meta {
+  font-family: var(--mono);
+  font-size: 10.5px; letter-spacing: 0.10em;
+  color: var(--ink-40);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.stage h1 {
+  font-family: var(--display);
+  font-size: 36px; font-weight: 800;
+  letter-spacing: -1.2px; line-height: 1.05;
+  margin: 0 0 8px;
+}
+.stage h1 em { font-style: normal; color: var(--orange); }
+.stage .lede {
+  font-size: 14px; line-height: 1.55;
+  color: var(--ink-82);
+  max-width: 680px;
+}
+
+section.variant {
+  background: var(--cream-hi);
+  border: 1px solid var(--rule);
+  border-radius: 22px;
+  padding: 38px 32px 30px;
+  margin-bottom: 22px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+.variant-head {
+  display: flex; align-items: baseline; gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--rule);
+}
+.variant-head .id {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: 0.08em;
+  color: var(--ink-40);
+  text-transform: uppercase;
+}
+.variant-head .title {
+  font-family: var(--display);
+  font-size: 17px; font-weight: 700;
+  letter-spacing: -0.4px;
+}
+.variant-hero {
+  min-height: 260px;
+  background: var(--cream);
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+  display: grid; place-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.variant-app-row {
+  display: flex; gap: 18px; align-items: center; justify-content: center;
+  padding: 14px 0 4px;
+}
+.app-frame {
+  background: var(--cream);
+  border: 1px solid var(--rule);
+  border-radius: 20%;
+  display: grid; place-items: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(40,28,8,0.08);
+  flex-shrink: 0;
+}
+.app-frame.lg { width: 120px; height: 120px; border-radius: 26px; }
+.app-frame.md { width: 80px; height: 80px; border-radius: 18px; }
+.app-frame.sm { width: 48px; height: 48px; border-radius: 11px; }
+.variant-note {
+  font-size: 13px; line-height: 1.55;
+  color: var(--ink-82);
+  padding: 0 4px;
+}
+.variant-note b { color: var(--ink); font-weight: 700; }
+
+footer.foot {
+  margin-top: 48px;
+  padding-top: 22px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-40);
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+}
+footer.foot b { color: var(--ink-82); font-weight: 600; }
+footer.foot .row + .row { margin-top: 6px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 9999px;
+  background: var(--cream-hi); border: 1px solid var(--rule);
+  font-size: 10px; color: var(--ink-82); font-weight: 500;
+}
+.chip i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+
+/* ============================================================
+   K01 — STICKER (Gaegu 손글씨 + offset shadow + sparkle)
+============================================================ */
+.k01-mark {
+  position: relative;
+  font-family: 'Gaegu', sans-serif;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -2px;
+  white-space: nowrap;
+  transform: rotate(-3deg);
+}
+.k01-mark .shadow,
+.k01-mark .main {
+  display: block;
+  line-height: 1;
+  position: relative;
+}
+.k01-mark .shadow {
+  position: absolute; top: 0; left: 0;
+  transform: translate(5px, 5px);
+  color: var(--shadow-cream);
+  z-index: 1;
+}
+.k01-mark .main {
+  position: relative;
+  color: var(--ink);
+  z-index: 2;
+}
+.k01-mark .main .acc { color: var(--orange); }
+.k01-mark .main .bang { color: var(--orange); }
+
+.k01-hero .k01-mark { font-size: 132px; }
+.k01-sparkle {
+  position: absolute;
+  pointer-events: none;
+  line-height: 0;
+}
+.k01-sparkle svg { width: 100%; height: 100%; display: block; }
+.k01-hero .sp1 { top: 16%; left: 16%; width: 44px; height: 44px; transform: rotate(-14deg); color: var(--mustard); }
+.k01-hero .sp2 { top: 20%; right: 12%; width: 34px; height: 34px; transform: rotate(18deg); color: var(--orange); }
+.k01-hero .sp3 { bottom: 20%; left: 24%; width: 24px; height: 24px; transform: rotate(-6deg); color: var(--mustard); }
+
+/* app icon for K01 — "아!" 만 사용해 가독성 확보, 그림자는 큰 시안의 ~3.8% 비율 유지 */
+.k01-app .k01-mark { letter-spacing: -1px; transform: rotate(-3deg); }
+.k01-app.lg .k01-mark { font-size: 60px; }
+.k01-app.lg .k01-mark .shadow { transform: translate(2.3px, 2.3px); }
+.k01-app.md .k01-mark { font-size: 40px; letter-spacing: -0.6px; }
+.k01-app.md .k01-mark .shadow { transform: translate(1.5px, 1.5px); }
+.k01-app.sm .k01-mark { font-size: 24px; letter-spacing: -0.4px; }
+.k01-app.sm .k01-mark .shadow { transform: translate(1px, 1px); }
+
+/* ============================================================
+   K02 — CARTOON (Black Han Sans + mustard drop shadow + ! sticker)
+============================================================ */
+.k02-mark {
+  position: relative;
+  font-family: 'Black Han Sans', sans-serif;
+  line-height: 1;
+  letter-spacing: -3px;
+  white-space: nowrap;
+}
+.k02-mark .shadow,
+.k02-mark .main {
+  display: block; line-height: 1; position: relative;
+}
+.k02-mark .shadow {
+  position: absolute; top: 0; left: 0;
+  transform: translate(6px, 6px);
+  color: var(--mustard);
+  z-index: 1;
+}
+.k02-mark .main {
+  position: relative;
+  color: var(--ink);
+  z-index: 2;
+}
+.k02-mark .main .acc { color: var(--orange); }
+.k02-hero .k02-mark { font-size: 140px; }
+.k02-app.lg .k02-mark { font-size: 38px; letter-spacing: -1.5px; }
+.k02-app.md .k02-mark { font-size: 26px; letter-spacing: -1px; }
+.k02-app.sm .k02-mark { font-size: 15px; letter-spacing: -0.6px; }
+.k02-app .k02-mark .shadow { transform: translate(2px, 2px); }
+.k02-app.sm .k02-mark .shadow { transform: translate(1.5px, 1.5px); }
+
+/* Decoration dots */
+.k02-dots {
+  position: absolute;
+  pointer-events: none;
+}
+.k02-dots .dot {
+  position: absolute;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--orange);
+}
+.k02-hero .k02-dots .d1 { top: 22px; left: 60px; }
+.k02-hero .k02-dots .d2 { top: 14px; right: 80px; background: var(--mustard); width: 12px; height: 12px; }
+.k02-hero .k02-dots .d3 { bottom: 30px; left: 90px; background: var(--pink-deep); width: 6px; height: 6px; }
+
+/* ============================================================
+   K03 — SPEECH BUBBLE + KOALA
+============================================================ */
+.k03-stage {
+  position: relative;
+  width: 100%;
+  display: grid; place-items: center;
+}
+.k03-bubble {
+  position: relative;
+  display: inline-block;
+  filter: drop-shadow(4px 6px 0 rgba(28,28,28,0.92));
+}
+.k03-bubble svg.bb { display: block; }
+.k03-bubble .bb-text {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-family: 'Gaegu', sans-serif;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -2px;
+  line-height: 1;
+  transform: rotate(-2deg);
+}
+.k03-bubble .bb-text .acc { color: var(--orange); }
+.k03-bubble .bb-text .bang { color: var(--orange); }
+
+.k03-koala {
+  position: absolute;
+  bottom: -22px; right: -8px;
+  width: 130px; height: 130px;
+  transform: rotate(8deg);
+}
+.k03-koala svg { width: 100%; height: 100%; display: block; }
+
+.k03-hero .k03-bubble svg.bb { width: 460px; }
+.k03-hero .k03-bubble .bb-text { font-size: 86px; }
+
+/* app icon — K03 compact */
+.k03-app { position: relative; width: 100%; height: 100%; }
+.k03-app .k03-bubble svg.bb { display: block; }
+.k03-app.lg .k03-bubble svg.bb { width: 100px; }
+.k03-app.md .k03-bubble svg.bb { width: 64px; }
+.k03-app.sm .k03-bubble svg.bb { width: 40px; }
+.k03-app.lg .k03-bubble .bb-text { font-size: 22px; letter-spacing: -1px; }
+.k03-app.md .k03-bubble .bb-text { font-size: 14px; letter-spacing: -0.5px; }
+.k03-app.sm .k03-bubble .bb-text { font-size: 9px; letter-spacing: -0.3px; }
+.k03-app.lg .k03-koala { width: 42px; height: 42px; bottom: -2px; right: -2px; }
+.k03-app.md .k03-koala { width: 28px; height: 28px; bottom: -1px; right: -1px; }
+.k03-app.sm .k03-koala { display: none; }
+.k03-app .k03-bubble { filter: drop-shadow(2px 3px 0 rgba(28,28,28,0.92)); }
+
+/* fade-rise */
+.reveal { opacity: 0; transform: translateY(8px); animation: rise .6s cubic-bezier(.2,.7,.2,1) forwards; }
+@keyframes rise { to { opacity: 1; transform: none; } }
+.d1 { animation-delay: 0s; } .d2 { animation-delay: .1s; } .d3 { animation-delay: .2s; } .d4 { animation-delay: .3s; } .d5 { animation-delay: .4s; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="stage reveal d1">
+    <div class="meta">PROTOTYPE / LOGO V0 / 아마따 — KITSCH DIRECTION</div>
+    <h1>아마따 로고 시안 <em>— 키치</em></h1>
+    <p class="lede">P01·W01·W02 + 외부 reference 톤을 합쳐서 키치 방향으로 3가지. <b>아 맞다!</b> 순간의 감정을 손글씨·sticker·말풍선으로. cream <code style="font-family:var(--mono);font-size:12px">#f7f4ed</code> 위에 charcoal + 4-color 액센트.</p>
+  </header>
+
+  <!-- ============ K01 ============ -->
+  <section class="variant reveal d2">
+    <div class="variant-head">
+      <span class="id">K01</span>
+      <span class="title">Sticker — 손글씨 + offset shadow + sparkle</span>
+    </div>
+    <div class="variant-hero k01-hero">
+      <span class="k01-sparkle sp1"><svg viewBox="0 0 24 24"><path d="M 12 1 C 12.5 8.5, 14 10.5, 23 12 C 14 13.5, 12.5 15.5, 12 23 C 11.5 15.5, 10 13.5, 1 12 C 10 10.5, 11.5 8.5, 12 1 Z" fill="currentColor"/></svg></span>
+      <span class="k01-sparkle sp2"><svg viewBox="0 0 24 24"><path d="M 12 1 C 12.5 8.5, 14 10.5, 23 12 C 14 13.5, 12.5 15.5, 12 23 C 11.5 15.5, 10 13.5, 1 12 C 10 10.5, 11.5 8.5, 12 1 Z" fill="currentColor"/></svg></span>
+      <span class="k01-sparkle sp3"><svg viewBox="0 0 24 24"><path d="M 12 1 C 12.5 8.5, 14 10.5, 23 12 C 14 13.5, 12.5 15.5, 12 23 C 11.5 15.5, 10 13.5, 1 12 C 10 10.5, 11.5 8.5, 12 1 Z" fill="currentColor"/></svg></span>
+      <div class="k01-mark">
+        <span class="shadow">아마따!</span>
+        <span class="main"><span class="acc">아</span>마따<span class="bang">!</span></span>
+      </div>
+    </div>
+    <div class="variant-app-row">
+      <div class="app-frame lg"><div class="k01-app lg"><div class="k01-mark"><span class="shadow">아!</span><span class="main"><span class="acc">아</span><span class="bang">!</span></span></div></div></div>
+      <div class="app-frame md"><div class="k01-app md"><div class="k01-mark"><span class="shadow">아!</span><span class="main"><span class="acc">아</span><span class="bang">!</span></span></div></div></div>
+      <div class="app-frame sm"><div class="k01-app sm"><div class="k01-mark"><span class="shadow">아!</span><span class="main"><span class="acc">아</span><span class="bang">!</span></span></div></div></div>
+    </div>
+    <p class="variant-note"><b>W02 손글씨 베이스 + offset shadow + 4-point sparkle.</b> Gaegu Bold + cream offset shadow 5px + 회전 -3°. 스파클은 mustard·orange 면 처리. <b>앱 아이콘은 "아!" 만 사용</b> — 큰 시안의 그림자 비율(~3.8%) 유지해 작은 사이즈에서도 가독성 확보.</p>
+    <p class="variant-note" style="border-top:1px dashed var(--rule); padding-top:14px; color:var(--ink-60);">💡 <b>고민거리.</b> 글자 기반이라 48px 미만에선 여전히 빡빡할 수 있음. 완전한 이미지 마크가 필요하면 K01의 sparkle 또는 새로운 그래픽 심볼을 별도 시안으로 — 알려주세요.</p>
+  </section>
+
+  <!-- ============ K02 ============ -->
+  <section class="variant reveal d3">
+    <div class="variant-head">
+      <span class="id">K02</span>
+      <span class="title">Cartoon — 굵은 헤드라인 + mustard drop shadow</span>
+    </div>
+    <div class="variant-hero k02-hero">
+      <div class="k02-dots">
+        <span class="dot d1"></span>
+        <span class="dot d2"></span>
+        <span class="dot d3"></span>
+      </div>
+      <div class="k02-mark">
+        <span class="shadow">아마따!</span>
+        <span class="main"><span class="acc">아</span>마따<span class="acc">!</span></span>
+      </div>
+    </div>
+    <div class="variant-app-row">
+      <div class="app-frame lg"><div class="k02-app lg"><div class="k02-mark"><span class="shadow">아마따!</span><span class="main"><span class="acc">아</span>마따<span class="acc">!</span></span></div></div></div>
+      <div class="app-frame md"><div class="k02-app md"><div class="k02-mark"><span class="shadow">아마따!</span><span class="main"><span class="acc">아</span>마따<span class="acc">!</span></span></div></div></div>
+      <div class="app-frame sm"><div class="k02-app sm"><div class="k02-mark"><span class="shadow">아마따!</span><span class="main"><span class="acc">아</span>마따<span class="acc">!</span></span></div></div></div>
+    </div>
+    <p class="variant-note"><b>Black Han Sans 굵은 한글 + mustard offset shadow 6px.</b> 80–90년대 한국 만화·학습지 표지의 두꺼운 헤드라인 톤. 4-color decorative dot 흩뿌림으로 키치감 ↑. 무게감 있고 식별성 매우 강함.</p>
+  </section>
+
+  <!-- ============ K03 ============ -->
+  <section class="variant reveal d4">
+    <div class="variant-head">
+      <span class="id">K03</span>
+      <span class="title">Speech bubble + 코알라 마스코트 통합</span>
+    </div>
+    <div class="variant-hero k03-hero">
+      <div class="k03-stage">
+        <div class="k03-bubble">
+          <svg class="bb" viewBox="0 0 460 220" aria-hidden="true">
+            <!-- hand-drawn slightly wobbly speech bubble -->
+            <path d="M 36 110
+                     C 36 50, 80 30, 140 30
+                     L 320 28
+                     C 388 28, 426 60, 424 112
+                     C 422 158, 380 188, 320 188
+                     L 188 188
+                     L 152 218
+                     L 168 188
+                     L 140 188
+                     C 84 188, 36 168, 36 110 Z"
+                  fill="var(--yellow)"
+                  stroke="var(--ink)" stroke-width="5"
+                  stroke-linejoin="round"/>
+          </svg>
+          <span class="bb-text"><span class="acc">아</span> 맞다<span class="bang">!</span></span>
+        </div>
+        <div class="k03-koala">
+          <!-- koala face peeking — borrowed from animals-saeboman-v0 -->
+          <svg viewBox="0 0 100 100" aria-label="코알라" style="filter: drop-shadow(2px 3px 0 rgba(28,28,28,0.85));">
+            <circle cx="22" cy="34" r="17" fill="#9ea5a8" stroke="rgba(28,28,28,0.22)" stroke-width="1.6"/>
+            <circle cx="78" cy="34" r="17" fill="#9ea5a8" stroke="rgba(28,28,28,0.22)" stroke-width="1.6"/>
+            <circle cx="22" cy="34" r="10.5" fill="#f0c8c8"/>
+            <circle cx="78" cy="34" r="10.5" fill="#f0c8c8"/>
+            <ellipse cx="50" cy="58" rx="33" ry="30" fill="#9ea5a8" stroke="rgba(28,28,28,0.22)" stroke-width="1.6"/>
+            <ellipse cx="50" cy="64" rx="14" ry="9" fill="#1c1c1c"/>
+            <circle cx="34" cy="52" r="3" fill="#1c1c1c"/>
+            <circle cx="66" cy="52" r="3" fill="#1c1c1c"/>
+            <circle cx="34.7" cy="51" r="0.9" fill="#fbf8f1"/>
+            <circle cx="66.7" cy="51" r="0.9" fill="#fbf8f1"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="variant-app-row">
+      <div class="app-frame lg"><div class="k03-app lg" style="display:grid;place-items:center;width:100%;height:100%;position:relative;">
+        <div class="k03-bubble">
+          <svg class="bb" viewBox="0 0 460 220"><path d="M 36 110 C 36 50, 80 30, 140 30 L 320 28 C 388 28, 426 60, 424 112 C 422 158, 380 188, 320 188 L 188 188 L 152 218 L 168 188 L 140 188 C 84 188, 36 168, 36 110 Z" fill="var(--yellow)" stroke="var(--ink)" stroke-width="6" stroke-linejoin="round"/></svg>
+          <span class="bb-text"><span class="acc">아</span> 맞다<span class="bang">!</span></span>
+        </div>
+        <div class="k03-koala">
+          <svg viewBox="0 0 100 100">
+            <circle cx="22" cy="34" r="17" fill="#9ea5a8"/><circle cx="78" cy="34" r="17" fill="#9ea5a8"/>
+            <circle cx="22" cy="34" r="10.5" fill="#f0c8c8"/><circle cx="78" cy="34" r="10.5" fill="#f0c8c8"/>
+            <ellipse cx="50" cy="58" rx="33" ry="30" fill="#9ea5a8"/>
+            <ellipse cx="50" cy="64" rx="14" ry="9" fill="#1c1c1c"/>
+            <circle cx="34" cy="52" r="3" fill="#1c1c1c"/><circle cx="66" cy="52" r="3" fill="#1c1c1c"/>
+          </svg>
+        </div>
+      </div></div>
+      <div class="app-frame md"><div class="k03-app md" style="display:grid;place-items:center;width:100%;height:100%;position:relative;">
+        <div class="k03-bubble">
+          <svg class="bb" viewBox="0 0 460 220"><path d="M 36 110 C 36 50, 80 30, 140 30 L 320 28 C 388 28, 426 60, 424 112 C 422 158, 380 188, 320 188 L 188 188 L 152 218 L 168 188 L 140 188 C 84 188, 36 168, 36 110 Z" fill="var(--yellow)" stroke="var(--ink)" stroke-width="8" stroke-linejoin="round"/></svg>
+          <span class="bb-text"><span class="acc">아</span>맞다<span class="bang">!</span></span>
+        </div>
+        <div class="k03-koala">
+          <svg viewBox="0 0 100 100">
+            <circle cx="22" cy="34" r="17" fill="#9ea5a8"/><circle cx="78" cy="34" r="17" fill="#9ea5a8"/>
+            <circle cx="22" cy="34" r="10.5" fill="#f0c8c8"/><circle cx="78" cy="34" r="10.5" fill="#f0c8c8"/>
+            <ellipse cx="50" cy="58" rx="33" ry="30" fill="#9ea5a8"/>
+            <ellipse cx="50" cy="64" rx="14" ry="9" fill="#1c1c1c"/>
+            <circle cx="34" cy="52" r="3" fill="#1c1c1c"/><circle cx="66" cy="52" r="3" fill="#1c1c1c"/>
+          </svg>
+        </div>
+      </div></div>
+      <div class="app-frame sm"><div class="k03-app sm" style="display:grid;place-items:center;width:100%;height:100%;position:relative;">
+        <div class="k03-bubble">
+          <svg class="bb" viewBox="0 0 460 220"><path d="M 36 110 C 36 50, 80 30, 140 30 L 320 28 C 388 28, 426 60, 424 112 C 422 158, 380 188, 320 188 L 188 188 L 152 218 L 168 188 L 140 188 C 84 188, 36 168, 36 110 Z" fill="var(--yellow)" stroke="var(--ink)" stroke-width="12" stroke-linejoin="round"/></svg>
+          <span class="bb-text" style="font-size:11px;">아!</span>
+        </div>
+      </div></div>
+    </div>
+    <p class="variant-note"><b>노란 말풍선 + "아 맞다!" 손글씨 + 코알라 마스코트 peeking.</b> 픽처마크와 wordmark를 한 로고에 통합. "아 맞다" 순간의 감정 → 말풍선 시각화 + 코알라가 알려주는 듯. 작은 앱 아이콘에선 코알라 숨기고 말풍선 + "아!"만 (sm 사이즈).</p>
+  </section>
+
+  <!-- footnote -->
+  <footer class="foot reveal d5">
+    <div class="row"><b>톤.</b> 키치 = 친근감 ↑ + 손그림 wobble + offset shadow + 컬러 contrast. 모든 시안 cream <code>#f7f4ed</code> + charcoal <code>#1c1c1c</code> + 4-color 액센트.</div>
+    <div class="row"><b>폰트.</b> K01 = Gaegu (손글씨). K02 = Black Han Sans (vintage cartoon thick). K03 = Gaegu (bubble interior).</div>
+    <div class="row"><b>스케일링.</b> 각 시안 app-icon 3사이즈 (120·80·48) 확인. sm 사이즈에서 sparkle/koala 등 작은 element는 자동 제거.</div>
+    <div class="chips">
+      <span class="chip"><i style="background:var(--orange)"></i>#FF9302 primary</span>
+      <span class="chip"><i style="background:var(--mustard)"></i>#FBB008 mustard</span>
+      <span class="chip"><i style="background:var(--yellow)"></i>#FBE26E bubble</span>
+      <span class="chip"><i style="background:var(--pink)"></i>#FFE4ED pink</span>
+      <span class="chip"><i style="background:var(--ink)"></i>#1c1c1c ink</span>
+      <span class="chip"><i style="background:var(--shadow-cream)"></i>#d8d0bd shadow cream</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

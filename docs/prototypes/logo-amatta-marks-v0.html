@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>아마따 로고 마크 — v0 (round 2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gaegu:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+@font-face { font-family: 'Paperlogy'; src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-3@1.0/Paperlogy-7Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperlogy'; src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2'); font-weight: 800; font-style: normal; font-display: swap; }
+
+:root {
+  --cream: #f7f4ed;
+  --cream-hi: #fdfbf5;
+  --ink: #1c1c1c;
+  --ink-82: rgba(28,28,28,0.82);
+  --ink-60: rgba(28,28,28,0.60);
+  --ink-40: rgba(28,28,28,0.40);
+  --rule: #eceae4;
+  --orange: #FF9302;
+  --mustard: #FBB008;
+  --yellow: #FBE26E;
+  --mint: #E2EFEA;
+  --pink-deep: #c4477e;
+
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --display: 'Paperlogy', 'Pretendard', sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--cream); color: var(--ink); -webkit-font-smoothing: antialiased; }
+body {
+  background-image:
+    radial-gradient(circle at 14% 18%, rgba(251,176,8,0.07) 0%, transparent 38%),
+    radial-gradient(circle at 86% 82%, rgba(255,147,2,0.05) 0%, transparent 42%);
+  min-height: 100vh;
+  padding: 56px 32px 96px;
+  font-family: var(--display);
+}
+
+.page { max-width: 1000px; margin: 0 auto; }
+
+header.stage {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 22px;
+  margin-bottom: 36px;
+}
+.stage .meta {
+  font-family: var(--mono);
+  font-size: 10.5px; letter-spacing: 0.10em;
+  color: var(--ink-40);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.stage h1 {
+  font-family: var(--display);
+  font-size: 34px; font-weight: 800;
+  letter-spacing: -1.2px; line-height: 1.05;
+  margin: 0 0 8px;
+}
+.stage h1 em { font-style: normal; color: var(--orange); }
+.stage .lede {
+  font-size: 14px; line-height: 1.55;
+  color: var(--ink-82);
+  max-width: 720px;
+}
+
+section.variant {
+  background: var(--cream-hi);
+  border: 1px solid var(--rule);
+  border-radius: 22px;
+  padding: 32px 28px 28px;
+  margin-bottom: 18px;
+}
+.variant-head {
+  display: flex; align-items: baseline; gap: 10px;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px dashed var(--rule);
+}
+.variant-head .id {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: 0.08em;
+  color: var(--ink-40);
+  text-transform: uppercase;
+}
+.variant-head .title {
+  font-family: var(--display);
+  font-size: 16px; font-weight: 700;
+  letter-spacing: -0.4px;
+}
+.icon-stage {
+  display: flex; align-items: flex-end; gap: 28px;
+  padding: 14px 0;
+  flex-wrap: wrap;
+}
+.icon-frame {
+  background: var(--cream);
+  border: 1px solid var(--rule);
+  display: grid; place-items: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 6px 16px rgba(40,28,8,0.08);
+}
+.icon-frame.xl { width: 220px; height: 220px; border-radius: 48px; }
+.icon-frame.lg { width: 110px; height: 110px; border-radius: 24px; }
+.icon-frame.sm { width: 48px; height: 48px; border-radius: 11px; }
+.icon-frame.xs { width: 32px; height: 32px; border-radius: 7px; }
+.icon-frame.xxs { width: 20px; height: 20px; border-radius: 5px; }
+
+/* M4 color background variants */
+.icon-frame.bg-orange { background: #FF9302; border-color: #e07f00; }
+.icon-frame.bg-mustard { background: #FBB008; border-color: #d99700; }
+.icon-frame.bg-yellow { background: #FBE26E; border-color: #e3c647; }
+.icon-frame.bg-ink { background: #1c1c1c; border-color: #1c1c1c; }
+.icon-frame.bg-pink { background: #ffe4ed; border-color: #f0c4d4; }
+.icon-frame.bg-mint { background: #E2EFEA; border-color: #c4ddd2; }
+.icon-frame.bg-cream-soft { background: #fdfbf5; }
+
+/* M4 grid */
+.m4-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px 16px;
+  margin-top: 6px;
+}
+.m4-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.m4-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-60);
+  letter-spacing: 0.04em;
+  text-align: center;
+  line-height: 1.4;
+}
+.m4-label .n {
+  display: inline-block;
+  color: var(--ink-40);
+  margin-right: 4px;
+}
+.icon-frame svg { width: 100%; height: 100%; display: block; }
+
+.banner-stage {
+  background: var(--cream);
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+  padding: 48px 32px;
+  display: grid; place-items: center;
+  margin-bottom: 14px;
+}
+
+.variant-note {
+  font-size: 13px; line-height: 1.55;
+  color: var(--ink-82);
+  padding: 14px 4px 0;
+  border-top: 1px dashed var(--rule);
+  margin-top: 14px;
+}
+.variant-note b { color: var(--ink); font-weight: 700; }
+
+footer.foot {
+  margin-top: 40px;
+  padding-top: 22px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-40);
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+}
+footer.foot b { color: var(--ink-82); font-weight: 600; }
+
+.reveal { opacity: 0; transform: translateY(8px); animation: rise .55s cubic-bezier(.2,.7,.2,1) forwards; }
+@keyframes rise { to { opacity: 1; transform: none; } }
+.d1 { animation-delay: 0s; } .d2 { animation-delay: .08s; } .d3 { animation-delay: .16s; } .d4 { animation-delay: .24s; } .d5 { animation-delay: .32s; } .d6 { animation-delay: .4s; }
+
+/* M3 wordmark */
+.m3-wordmark {
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 130px;
+  letter-spacing: -3px;
+  line-height: 1;
+  color: var(--ink);
+}
+.m3-wordmark .acc { color: var(--orange); }
+.m3-app-mark {
+  font-family: 'Black Han Sans', sans-serif;
+  line-height: 1;
+  letter-spacing: -1px;
+  color: var(--ink);
+}
+.m3-app-mark .acc { color: var(--orange); }
+.m3-app-mark.lg { font-size: 64px; letter-spacing: -3px; }
+.m3-app-mark.md { font-size: 36px; letter-spacing: -1.5px; }
+.m3-app-mark.sm { font-size: 18px; letter-spacing: -0.8px; }
+.m3-app-mark.xs { font-size: 11px; letter-spacing: -0.5px; }
+.m3-app-mark.xxs { font-size: 7px; letter-spacing: -0.3px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="stage reveal d1">
+    <div class="meta">PROTOTYPE / LOGO MARKS V0 / 아마따 — ROUND 2</div>
+    <h1>아마따 로고 마크 <em>— round 2</em></h1>
+    <p class="lede">4가지 방향: <b>M1</b> ㅇㅁㄸ 자모 삼각 (내부 hollow + 붙임) · <b>M2</b> 캘린더 shape (Instagram-style 깔끔) · <b>M3</b> Musinsa-style 워드마크 (clean, no shadow) · <b>M4</b> Sparkle 마크 단독.</p>
+  </header>
+
+  <!-- ============ M1 ㅇㅁㄸ revised ============ -->
+  <section class="variant reveal d2">
+    <div class="variant-head"><span class="id">M1</span><span class="title">ㅇㅁㄸ — 자모 삼각, 내부 hollow + 붙여서</span></div>
+    <div class="icon-stage">
+      <div class="icon-frame xl"><svg viewBox="0 0 120 120">
+        <!-- ㅇ ring: outer r=22, inner r=14, wall 8 -->
+        <path d="M 60 18 A 22 22 0 1 1 60 62 A 22 22 0 1 1 60 18 Z M 60 26 A 14 14 0 1 0 60 54 A 14 14 0 1 0 60 26 Z" fill="#1c1c1c" fill-rule="evenodd"/>
+        <!-- ㅁ frame: outer 18-60, inner 26-52 wall 8 -->
+        <path d="M 18 58 L 60 58 L 60 100 L 18 100 Z M 26 66 L 26 92 L 52 92 L 52 66 Z" fill="#1c1c1c" fill-rule="evenodd"/>
+        <!-- ㄸ: 2 C-shapes touching ㅁ at x=60 -->
+        <path d="M 60 58 L 81 58 L 81 66 L 68 66 L 68 92 L 81 92 L 81 100 L 60 100 Z" fill="#1c1c1c"/>
+        <path d="M 81 58 L 102 58 L 102 66 L 89 66 L 89 92 L 102 92 L 102 100 L 81 100 Z" fill="#1c1c1c"/>
+      </svg></div>
+      <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+        <path d="M 60 18 A 22 22 0 1 1 60 62 A 22 22 0 1 1 60 18 Z M 60 26 A 14 14 0 1 0 60 54 A 14 14 0 1 0 60 26 Z" fill="#1c1c1c" fill-rule="evenodd"/>
+        <path d="M 18 58 L 60 58 L 60 100 L 18 100 Z M 26 66 L 26 92 L 52 92 L 52 66 Z" fill="#1c1c1c" fill-rule="evenodd"/>
+        <path d="M 60 58 L 81 58 L 81 66 L 68 66 L 68 92 L 81 92 L 81 100 L 60 100 Z" fill="#1c1c1c"/>
+        <path d="M 81 58 L 102 58 L 102 66 L 89 66 L 89 92 L 102 92 L 102 100 L 81 100 Z" fill="#1c1c1c"/>
+      </svg></div>
+      <div class="icon-frame sm"><svg viewBox="0 0 120 120">
+        <path d="M 60 18 A 22 22 0 1 1 60 62 A 22 22 0 1 1 60 18 Z M 60 26 A 14 14 0 1 0 60 54 A 14 14 0 1 0 60 26 Z" fill="#1c1c1c" fill-rule="evenodd"/>
+        <path d="M 18 58 L 60 58 L 60 100 L 18 100 Z M 26 66 L 26 92 L 52 92 L 52 66 Z" fill="#1c1c1c" fill-rule="evenodd"/>
+        <path d="M 60 58 L 81 58 L 81 66 L 68 66 L 68 92 L 81 92 L 81 100 L 60 100 Z" fill="#1c1c1c"/>
+        <path d="M 81 58 L 102 58 L 102 66 L 89 66 L 89 92 L 102 92 L 102 100 L 81 100 Z" fill="#1c1c1c"/>
+      </svg></div>
+    </div>
+    <p class="variant-note"><b>ㅇ과 ㅁ 내부 hollow 유지 (도넛/프레임 형태).</b> wall 두께 8px 통일. ㅇ ↔ ㅁ/ㄸ 행 사이 거리 4px 좁혀 시각적으로 접하는 느낌 ↑ (이전 I1보다 dense). ㅁ-ㄸ는 x=60 라인에서 접함.</p>
+  </section>
+
+  <!-- ============ M2 CALENDAR ============ -->
+  <section class="variant reveal d3">
+    <div class="variant-head"><span class="id">M2</span><span class="title">Calendar shape — Instagram-style 깔끔한 캘린더</span></div>
+    <div class="icon-stage">
+      <div class="icon-frame xl"><svg viewBox="0 0 120 120">
+        <!-- Calendar body rounded square frame -->
+        <rect x="18" y="28" width="84" height="80" rx="14" fill="none" stroke="#1c1c1c" stroke-width="5"/>
+        <!-- header band line -->
+        <line x1="18" y1="46" x2="102" y2="46" stroke="#1c1c1c" stroke-width="5"/>
+        <!-- two binding tabs at top -->
+        <line x1="40" y1="18" x2="40" y2="34" stroke="#1c1c1c" stroke-width="5" stroke-linecap="round"/>
+        <line x1="80" y1="18" x2="80" y2="34" stroke="#1c1c1c" stroke-width="5" stroke-linecap="round"/>
+        <!-- center: orange "!" -->
+        <path d="M 57 60 L 63 60 L 62 86 L 58 86 Z" fill="#FF9302"/>
+        <circle cx="60" cy="94" r="3.2" fill="#FF9302"/>
+      </svg></div>
+      <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+        <rect x="18" y="28" width="84" height="80" rx="14" fill="none" stroke="#1c1c1c" stroke-width="5"/>
+        <line x1="18" y1="46" x2="102" y2="46" stroke="#1c1c1c" stroke-width="5"/>
+        <line x1="40" y1="18" x2="40" y2="34" stroke="#1c1c1c" stroke-width="5" stroke-linecap="round"/>
+        <line x1="80" y1="18" x2="80" y2="34" stroke="#1c1c1c" stroke-width="5" stroke-linecap="round"/>
+        <path d="M 57 60 L 63 60 L 62 86 L 58 86 Z" fill="#FF9302"/>
+        <circle cx="60" cy="94" r="3.2" fill="#FF9302"/>
+      </svg></div>
+      <div class="icon-frame sm"><svg viewBox="0 0 120 120">
+        <rect x="18" y="28" width="84" height="80" rx="14" fill="none" stroke="#1c1c1c" stroke-width="6"/>
+        <line x1="18" y1="46" x2="102" y2="46" stroke="#1c1c1c" stroke-width="6"/>
+        <line x1="40" y1="18" x2="40" y2="34" stroke="#1c1c1c" stroke-width="6" stroke-linecap="round"/>
+        <line x1="80" y1="18" x2="80" y2="34" stroke="#1c1c1c" stroke-width="6" stroke-linecap="round"/>
+        <path d="M 56 58 L 64 58 L 63 84 L 57 84 Z" fill="#FF9302"/>
+        <circle cx="60" cy="92" r="4" fill="#FF9302"/>
+      </svg></div>
+    </div>
+    <p class="variant-note"><b>캘린더 → "아 맞다!"의 느낌표가 안에.</b> Instagram 카메라처럼 단순 outline + 가운데 정체성 글리프. 캘린더 = 우리 앱 카테고리 직관 + 느낌표 = "아 맞다!" 순간. 작은 사이즈에서 stroke 두께 자동 가변 (5→6px).</p>
+  </section>
+
+  <!-- ============ M3 MUSINSA-style wordmark ============ -->
+  <section class="variant reveal d4">
+    <div class="variant-head"><span class="id">M3</span><span class="title">Wordmark — Musinsa-clean (no shadow, 가독성 ↑)</span></div>
+    <div class="banner-stage">
+      <div class="m3-wordmark"><span class="acc">아</span>마따</div>
+    </div>
+    <div class="icon-stage">
+      <div class="icon-frame xl"><div class="m3-app-mark lg"><span class="acc">아</span>마따</div></div>
+      <div class="icon-frame lg"><div class="m3-app-mark md"><span class="acc">아</span>마따</div></div>
+      <div class="icon-frame sm"><div class="m3-app-mark sm"><span class="acc">아</span>마따</div></div>
+      <div class="icon-frame xs"><div class="m3-app-mark xs"><span class="acc">아</span>마따</div></div>
+      <div class="icon-frame xxs"><div class="m3-app-mark xxs"><span class="acc">아</span>마따</div></div>
+    </div>
+    <p class="variant-note"><b>K02에서 drop shadow 제거 → 가독성 ↑.</b> Black Han Sans 굵은 한글 wordmark, "아"만 orange 액센트. Musinsa·LINE 같은 클린 wordmark 톤. 앱 아이콘도 <b>"아마따"</b> 풀 wordmark — sm 사이즈에선 letter-spacing 자동 좁힘.</p>
+  </section>
+
+  <!-- ============ M4 SPARKLE — single shape refined ============ -->
+  <section class="variant reveal d5">
+    <div class="variant-head"><span class="id">M4</span><span class="title">Sparkle 마크 — 단독 모양, 모서리·그라데이션 변주 6가지</span></div>
+
+    <div class="m4-grid">
+
+      <!-- D1: a baseline (sharp flat) -->
+      <div class="m4-cell">
+        <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+          <g fill="#FF9302" transform="translate(60, 60) rotate(-8)"><path d="M 0 -50 C 5.5 -17, 17 -5.5, 50 0 C 17 5.5, 5.5 17, 0 50 C -5.5 17, -17 5.5, -50 0 C -17 -5.5, -5.5 -17, 0 -50 Z"/></g>
+        </svg></div>
+        <div class="m4-label"><span class="n">D1</span>a baseline<br/>sharp flat orange</div>
+      </div>
+
+      <!-- D2: a + 작은 highlight (cream dot upper-left) -->
+      <div class="m4-cell">
+        <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+          <g transform="translate(60, 60) rotate(-8)">
+            <path d="M 0 -50 C 5.5 -17, 17 -5.5, 50 0 C 17 5.5, 5.5 17, 0 50 C -5.5 17, -17 5.5, -50 0 C -17 -5.5, -5.5 -17, 0 -50 Z" fill="#FF9302"/>
+            <ellipse cx="-13" cy="-19" rx="6" ry="3.4" fill="#fff5e0" opacity="0.65" transform="rotate(-30)"/>
+          </g>
+        </svg></div>
+        <div class="m4-label"><span class="n">D2</span>a + highlight<br/>작은 광택점</div>
+      </div>
+
+      <!-- D3: a + subtle rim (slightly larger darker behind) -->
+      <div class="m4-cell">
+        <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+          <g transform="translate(60, 60) rotate(-8)">
+            <!-- darker rim behind -->
+            <path d="M 0 -50 C 5.5 -17, 17 -5.5, 50 0 C 17 5.5, 5.5 17, 0 50 C -5.5 17, -17 5.5, -50 0 C -17 -5.5, -5.5 -17, 0 -50 Z" fill="#D87100" transform="scale(1.035)"/>
+            <!-- main -->
+            <path d="M 0 -50 C 5.5 -17, 17 -5.5, 50 0 C 17 5.5, 5.5 17, 0 50 C -5.5 17, -17 5.5, -50 0 C -17 -5.5, -5.5 -17, 0 -50 Z" fill="#FF9302"/>
+          </g>
+        </svg></div>
+        <div class="m4-label"><span class="n">D3</span>a + rim<br/>외곽 미세 진한 톤</div>
+      </div>
+
+      <!-- D4: e baseline (radial) -->
+      <div class="m4-cell">
+        <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+          <defs>
+            <radialGradient id="m4_d4" cx="35%" cy="35%" r="70%">
+              <stop offset="0%" stop-color="#FFC76A"/>
+              <stop offset="60%" stop-color="#FF9302"/>
+              <stop offset="100%" stop-color="#D87100"/>
+            </radialGradient>
+          </defs>
+          <g fill="url(#m4_d4)" transform="translate(60, 60) rotate(-8)"><path d="M 0 -50 C 5.5 -17, 17 -5.5, 50 0 C 17 5.5, 5.5 17, 0 50 C -5.5 17, -17 5.5, -50 0 C -17 -5.5, -5.5 -17, 0 -50 Z"/></g>
+        </svg></div>
+        <div class="m4-label"><span class="n">D4</span>e baseline<br/>radial gradient</div>
+      </div>
+
+      <!-- D5: e + highlight dot -->
+      <div class="m4-cell">
+        <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+          <defs>
+            <radialGradient id="m4_d5" cx="35%" cy="35%" r="70%">
+              <stop offset="0%" stop-color="#FFC76A"/>
+              <stop offset="60%" stop-color="#FF9302"/>
+              <stop offset="100%" stop-color="#D87100"/>
+            </radialGradient>
+          </defs>
+          <g transform="translate(60, 60) rotate(-8)">
+            <path d="M 0 -50 C 5.5 -17, 17 -5.5, 50 0 C 17 5.5, 5.5 17, 0 50 C -5.5 17, -17 5.5, -50 0 C -17 -5.5, -5.5 -17, 0 -50 Z" fill="url(#m4_d5)"/>
+            <ellipse cx="-13" cy="-19" rx="6" ry="3.4" fill="#fff5e0" opacity="0.7" transform="rotate(-30)"/>
+          </g>
+        </svg></div>
+        <div class="m4-label"><span class="n">D5</span>e + highlight<br/>radial + 광택</div>
+      </div>
+
+      <!-- D6: 3-stop deeper gradient + tighter highlight (more 입체) -->
+      <div class="m4-cell">
+        <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+          <defs>
+            <radialGradient id="m4_d6" cx="32%" cy="30%" r="80%">
+              <stop offset="0%" stop-color="#FFDA8E"/>
+              <stop offset="35%" stop-color="#FFA52A"/>
+              <stop offset="75%" stop-color="#F08400"/>
+              <stop offset="100%" stop-color="#C45F00"/>
+            </radialGradient>
+          </defs>
+          <g transform="translate(60, 60) rotate(-8)">
+            <path d="M 0 -50 C 5.5 -17, 17 -5.5, 50 0 C 17 5.5, 5.5 17, 0 50 C -5.5 17, -17 5.5, -50 0 C -17 -5.5, -5.5 -17, 0 -50 Z" fill="url(#m4_d6)"/>
+            <ellipse cx="-14" cy="-21" rx="5" ry="3" fill="#fff5e0" opacity="0.8" transform="rotate(-32)"/>
+          </g>
+        </svg></div>
+        <div class="m4-label"><span class="n">D6</span>e+ 입체감<br/>4-stop + 작은 highlight</div>
+      </div>
+
+    </div>
+    <p class="variant-note"><b>a / e 디벨롭 6종.</b> D1 = a 원본 / D2 = a + 작은 광택점 / D3 = a + 외곽 진한 톤 rim / D4 = e 원본 radial / D5 = e + highlight 광택 / D6 = e+ 4-stop 깊은 gradient + 작은 광택. 모두 110×110(lg) 동일 사이즈.</p>
+
+    <!-- ── D4 size scale ── -->
+    <div style="margin-top: 22px; padding-top: 18px; border-top: 1px dashed var(--rule);">
+      <div style="font-family: var(--mono); font-size: 10.5px; color: var(--ink-60); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px;">D4 사이즈 스케일 (xl · lg · sm · xs · xxs)</div>
+      <div class="icon-stage">
+        <div class="icon-frame xl"><svg viewBox="0 0 120 120"><defs><radialGradient id="g_d4_xl" cx="35%" cy="35%" r="70%"><stop offset="0%" stop-color="#FFC76A"/><stop offset="60%" stop-color="#FF9302"/><stop offset="100%" stop-color="#D87100"/></radialGradient></defs><g fill="url(#g_d4_xl)" transform="translate(60, 60) rotate(-8)"><path d="M 0 -50 C 5.5 -17, 17 -5.5, 50 0 C 17 5.5, 5.5 17, 0 50 C -5.5 17, -17 5.5, -50 0 C -17 -5.5, -5.5 -17, 0 -50 Z"/></g></svg></div>
+        <div class="icon-frame lg"><svg viewBox="0 0 120 120"><defs><radialGradient id="g_d4_lg" cx="35%" cy="35%" r="70%"><stop offset="0%" stop-color="#FFC76A"/><stop offset="60%" stop-color="#FF9302"/><stop offset="100%" stop-color="#D87100"/></radialGradient></defs><g fill="url(#g_d4_lg)" transform="translate(60, 60) rotate(-8)"><path d="M 0 -50 C 5.5 -17, 17 -5.5, 50 0 C 17 5.5, 5.5 17, 0 50 C -5.5 17, -17 5.5, -50 0 C -17 -5.5, -5.5 -17, 0 -50 Z"/></g></svg></div>
+        <div class="icon-frame sm"><svg viewBox="0 0 120 120"><defs><radialGradient id="g_d4_sm" cx="35%" cy="35%" r="70%"><stop offset="0%" stop-color="#FFC76A"/><stop offset="60%" stop-color="#FF9302"/><stop offset="100%" stop-color="#D87100"/></radialGradient></defs><g fill="url(#g_d4_sm)" transform="translate(60, 60) rotate(-8)"><path d="M 0 -50 C 5.5 -17, 17 -5.5, 50 0 C 17 5.5, 5.5 17, 0 50 C -5.5 17, -17 5.5, -50 0 C -17 -5.5, -5.5 -17, 0 -50 Z"/></g></svg></div>
+        <div class="icon-frame xs"><svg viewBox="0 0 120 120"><defs><radialGradient id="g_d4_xs" cx="35%" cy="35%" r="70%"><stop offset="0%" stop-color="#FFC76A"/><stop offset="60%" stop-color="#FF9302"/><stop offset="100%" stop-color="#D87100"/></radialGradient></defs><g fill="url(#g_d4_xs)" transform="translate(60, 60) rotate(-8)"><path d="M 0 -50 C 5.5 -17, 17 -5.5, 50 0 C 17 5.5, 5.5 17, 0 50 C -5.5 17, -17 5.5, -50 0 C -17 -5.5, -5.5 -17, 0 -50 Z"/></g></svg></div>
+        <div class="icon-frame xxs"><svg viewBox="0 0 120 120"><defs><radialGradient id="g_d4_xxs" cx="35%" cy="35%" r="70%"><stop offset="0%" stop-color="#FFC76A"/><stop offset="60%" stop-color="#FF9302"/><stop offset="100%" stop-color="#D87100"/></radialGradient></defs><g fill="url(#g_d4_xxs)" transform="translate(60, 60) rotate(-8)"><path d="M 0 -50 C 5.5 -17, 17 -5.5, 50 0 C 17 5.5, 5.5 17, 0 50 C -5.5 17, -17 5.5, -50 0 C -17 -5.5, -5.5 -17, 0 -50 Z"/></g></svg></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- footnote -->
+  <footer class="foot reveal d6">
+    <div><b>4 방향 비교.</b> M1 = 추상 자모 (브랜드 의미는 약하지만 절제). M2 = 컨텍스트 (캘린더). M3 = 글자 (정체성 명확). M4 = 감정 (sparkle = 깨달음 순간).</div>
+    <div style="margin-top:8px"><b>가능 조합.</b> M3 wordmark + M2/M4 icon = 페어. M1은 단독 picto. 다음 단계: 골라주시면 컬러 variant + 페어 사용 가이드.</div>
+  </footer>
+
+</div>
+</body>
+</html>

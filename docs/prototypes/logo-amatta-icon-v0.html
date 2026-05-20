@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>아마따 아이콘 시안 — 자모 삼각 v0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+@font-face { font-family: 'Paperlogy'; src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-3@1.0/Paperlogy-7Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Paperlogy'; src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2'); font-weight: 800; font-style: normal; font-display: swap; }
+
+:root {
+  --cream: #f7f4ed;
+  --cream-hi: #fdfbf5;
+  --shadow-cream: #d8d0bd;
+  --ink: #1c1c1c;
+  --ink-82: rgba(28,28,28,0.82);
+  --ink-60: rgba(28,28,28,0.60);
+  --ink-40: rgba(28,28,28,0.40);
+  --ink-22: rgba(28,28,28,0.22);
+  --ink-08: rgba(28,28,28,0.08);
+  --ink-04: rgba(28,28,28,0.04);
+  --rule: #eceae4;
+  --orange: #FF9302;
+  --mustard: #FBB008;
+  --yellow: #FBE26E;
+  --mint: #E2EFEA;
+  --pink-bg: #ffe4ed;
+  --pink-deep: #c4477e;
+  --green-deep: #1e7a2e;
+  --blue-deep: #1e4abf;
+  --warm-paper: #ede4d0;
+
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --display: 'Paperlogy', 'Pretendard', sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--cream); color: var(--ink); -webkit-font-smoothing: antialiased; }
+body {
+  background-image:
+    radial-gradient(circle at 14% 18%, rgba(251,176,8,0.07) 0%, transparent 38%),
+    radial-gradient(circle at 86% 82%, rgba(255,147,2,0.05) 0%, transparent 42%);
+  min-height: 100vh;
+  padding: 56px 32px 96px;
+  font-family: var(--display);
+}
+
+.page { max-width: 980px; margin: 0 auto; }
+
+header.stage {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 22px;
+  margin-bottom: 36px;
+}
+.stage .meta {
+  font-family: var(--mono);
+  font-size: 10.5px; letter-spacing: 0.10em;
+  color: var(--ink-40);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.stage h1 {
+  font-family: var(--display);
+  font-size: 34px; font-weight: 800;
+  letter-spacing: -1.2px; line-height: 1.05;
+  margin: 0 0 8px;
+}
+.stage h1 em { font-style: normal; color: var(--orange); }
+.stage .lede {
+  font-size: 14px; line-height: 1.55;
+  color: var(--ink-82);
+  max-width: 680px;
+}
+
+section.variant {
+  background: var(--cream-hi);
+  border: 1px solid var(--rule);
+  border-radius: 22px;
+  padding: 32px 28px 28px;
+  margin-bottom: 18px;
+}
+.variant-head {
+  display: flex; align-items: baseline; gap: 10px;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px dashed var(--rule);
+}
+.variant-head .id {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: 0.08em;
+  color: var(--ink-40);
+  text-transform: uppercase;
+}
+.variant-head .title {
+  font-family: var(--display);
+  font-size: 16px; font-weight: 700;
+  letter-spacing: -0.4px;
+}
+.icon-stage {
+  display: flex; align-items: flex-end; gap: 28px;
+  padding: 14px 0;
+}
+.icon-frame {
+  background: var(--cream);
+  border: 1px solid var(--rule);
+  display: grid; place-items: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 6px 16px rgba(40,28,8,0.08);
+}
+.icon-frame.xl { width: 220px; height: 220px; border-radius: 48px; }
+.icon-frame.lg { width: 110px; height: 110px; border-radius: 24px; }
+.icon-frame.sm { width: 48px; height: 48px; border-radius: 11px; }
+.icon-frame svg { width: 100%; height: 100%; display: block; }
+.variant-note {
+  font-size: 13px; line-height: 1.55;
+  color: var(--ink-82);
+  padding: 14px 4px 0;
+  border-top: 1px dashed var(--rule);
+  margin-top: 14px;
+}
+.variant-note b { color: var(--ink); font-weight: 700; }
+
+footer.foot {
+  margin-top: 40px;
+  padding-top: 22px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-40);
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+}
+footer.foot b { color: var(--ink-82); font-weight: 600; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 9999px;
+  background: var(--cream-hi); border: 1px solid var(--rule);
+  font-size: 10px; color: var(--ink-82); font-weight: 500;
+}
+.chip i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+
+.reveal { opacity: 0; transform: translateY(8px); animation: rise .55s cubic-bezier(.2,.7,.2,1) forwards; }
+@keyframes rise { to { opacity: 1; transform: none; } }
+.d1 { animation-delay: 0s; } .d2 { animation-delay: .08s; } .d3 { animation-delay: .16s; } .d4 { animation-delay: .24s; } .d5 { animation-delay: .32s; } .d6 { animation-delay: .4s; } .d7 { animation-delay: .48s; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="stage reveal d1">
+    <div class="meta">PROTOTYPE / ICON V0 / 아마따 — ㅇㅁㄸ 자모 삼각</div>
+    <h1>아마따 아이콘 시안 <em>— 자모 삼각</em></h1>
+    <p class="lede">"아마따"의 초성·자모를 <b>ㅇ + ㅁ + ㄸ</b>로 분해해 삼각 구도로 붙이고 5가지 룩앤필. ㅇ이 꼭짓점(위), ㅁ/ㄸ이 베이스(아래). 동일 컴포지션, 표면 처리만 다름.</p>
+  </header>
+
+  <!-- ============ I1 SOLID GEOMETRIC ============ -->
+  <section class="variant reveal d2">
+    <div class="variant-head"><span class="id">I1</span><span class="title">Solid geometric — 검정 면, 정형</span></div>
+    <div class="icon-stage">
+      <div class="icon-frame xl"><svg viewBox="0 0 120 120">
+        <circle cx="60" cy="38" r="22" fill="#1c1c1c"/>
+        <rect x="18" y="60" width="42" height="42" fill="#1c1c1c"/>
+        <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z" fill="#1c1c1c"/>
+        <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z" fill="#1c1c1c"/>
+      </svg></div>
+      <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+        <circle cx="60" cy="38" r="22" fill="#1c1c1c"/>
+        <rect x="18" y="60" width="42" height="42" fill="#1c1c1c"/>
+        <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z" fill="#1c1c1c"/>
+        <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z" fill="#1c1c1c"/>
+      </svg></div>
+      <div class="icon-frame sm"><svg viewBox="0 0 120 120">
+        <circle cx="60" cy="38" r="22" fill="#1c1c1c"/>
+        <rect x="18" y="60" width="42" height="42" fill="#1c1c1c"/>
+        <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z" fill="#1c1c1c"/>
+        <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z" fill="#1c1c1c"/>
+      </svg></div>
+    </div>
+    <p class="variant-note"><b>가장 절제·정형.</b> P01의 진화 — ㅇ/ㅁ이 꼭짓점에서 접하고 ㅁ/ㄸ도 측면 접점. 모든 자모가 검정 면, sans 분위기. 작은 사이즈에서도 silhouette 안정적.</p>
+  </section>
+
+  <!-- ============ I2 OUTLINED ============ -->
+  <section class="variant reveal d3">
+    <div class="variant-head"><span class="id">I2</span><span class="title">Outlined — 선만, 가벼움</span></div>
+    <div class="icon-stage">
+      <div class="icon-frame xl"><svg viewBox="0 0 120 120">
+        <circle cx="60" cy="38" r="22" fill="none" stroke="#1c1c1c" stroke-width="6"/>
+        <rect x="18" y="60" width="42" height="42" fill="none" stroke="#1c1c1c" stroke-width="6" stroke-linejoin="miter"/>
+        <path d="M 81 60 L 60 60 L 60 102 L 81 102" fill="none" stroke="#1c1c1c" stroke-width="6" stroke-linejoin="miter"/>
+        <path d="M 102 60 L 81 60 L 81 102 L 102 102" fill="none" stroke="#1c1c1c" stroke-width="6" stroke-linejoin="miter"/>
+      </svg></div>
+      <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+        <circle cx="60" cy="38" r="22" fill="none" stroke="#1c1c1c" stroke-width="6"/>
+        <rect x="18" y="60" width="42" height="42" fill="none" stroke="#1c1c1c" stroke-width="6" stroke-linejoin="miter"/>
+        <path d="M 81 60 L 60 60 L 60 102 L 81 102" fill="none" stroke="#1c1c1c" stroke-width="6" stroke-linejoin="miter"/>
+        <path d="M 102 60 L 81 60 L 81 102 L 102 102" fill="none" stroke="#1c1c1c" stroke-width="6" stroke-linejoin="miter"/>
+      </svg></div>
+      <div class="icon-frame sm"><svg viewBox="0 0 120 120">
+        <circle cx="60" cy="38" r="22" fill="none" stroke="#1c1c1c" stroke-width="8"/>
+        <rect x="18" y="60" width="42" height="42" fill="none" stroke="#1c1c1c" stroke-width="8" stroke-linejoin="miter"/>
+        <path d="M 81 60 L 60 60 L 60 102 L 81 102" fill="none" stroke="#1c1c1c" stroke-width="8" stroke-linejoin="miter"/>
+        <path d="M 102 60 L 81 60 L 81 102 L 102 102" fill="none" stroke="#1c1c1c" stroke-width="8" stroke-linejoin="miter"/>
+      </svg></div>
+    </div>
+    <p class="variant-note"><b>가벼움 + 구조 강조.</b> 면이 아닌 선. ㅁ과 ㄸ 모두 stroke 동일 두께로 통일감. 모더니즘·테크 톤. 작은 사이즈에서 stroke 자동 굵힘(8px).</p>
+  </section>
+
+  <!-- ============ I3 COLOR BLOCK ============ -->
+  <section class="variant reveal d4">
+    <div class="variant-head"><span class="id">I3</span><span class="title">Color block — 4-color 키치 포스터</span></div>
+    <div class="icon-stage">
+      <div class="icon-frame xl"><svg viewBox="0 0 120 120">
+        <circle cx="60" cy="38" r="22" fill="#FF9302"/>
+        <rect x="18" y="60" width="42" height="42" fill="#FBE26E"/>
+        <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z" fill="#c4477e"/>
+        <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z" fill="#c4477e"/>
+      </svg></div>
+      <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+        <circle cx="60" cy="38" r="22" fill="#FF9302"/>
+        <rect x="18" y="60" width="42" height="42" fill="#FBE26E"/>
+        <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z" fill="#c4477e"/>
+        <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z" fill="#c4477e"/>
+      </svg></div>
+      <div class="icon-frame sm"><svg viewBox="0 0 120 120">
+        <circle cx="60" cy="38" r="22" fill="#FF9302"/>
+        <rect x="18" y="60" width="42" height="42" fill="#FBE26E"/>
+        <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z" fill="#c4477e"/>
+        <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z" fill="#c4477e"/>
+      </svg></div>
+    </div>
+    <p class="variant-note"><b>키치 포스터 톤.</b> ㅇ=orange / ㅁ=yellow / ㄸ=pink-deep. 우리 4-color 액센트에서 골라 3색 분담. 작은 사이즈에서도 색 대비로 형태 식별 강함. 가장 "젊고 발랄"한 톤.</p>
+  </section>
+
+  <!-- ============ I4 MATISSE PAPER-CUTOUT ============ -->
+  <section class="variant reveal d5">
+    <div class="variant-head"><span class="id">I4</span><span class="title">Paper-cutout — Matisse warm humanist</span></div>
+    <div class="icon-stage">
+      <div class="icon-frame xl"><svg viewBox="0 0 120 120">
+        <!-- 살짝 비대칭 ellipse + 약한 charcoal stroke로 종이 가장자리 -->
+        <ellipse cx="60" cy="37" rx="22.5" ry="21" fill="#1c1c1c" transform="rotate(-3 60 37)" stroke="rgba(28,28,28,0.22)" stroke-width="1.6"/>
+        <!-- 살짝 회전된 둥근 사각 -->
+        <rect x="18" y="60" width="42" height="42" rx="3" fill="#1c1c1c" transform="rotate(-2 39 81)" stroke="rgba(28,28,28,0.22)" stroke-width="1.6"/>
+        <!-- ㄸ — slight skew, 둥근 끝 -->
+        <g stroke="rgba(28,28,28,0.22)" stroke-width="1.6">
+          <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z" fill="#1c1c1c" transform="rotate(1 70.5 81)"/>
+          <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z" fill="#1c1c1c" transform="rotate(-1 91.5 81)"/>
+        </g>
+      </svg></div>
+      <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+        <ellipse cx="60" cy="37" rx="22.5" ry="21" fill="#1c1c1c" transform="rotate(-3 60 37)" stroke="rgba(28,28,28,0.22)" stroke-width="1.6"/>
+        <rect x="18" y="60" width="42" height="42" rx="3" fill="#1c1c1c" transform="rotate(-2 39 81)" stroke="rgba(28,28,28,0.22)" stroke-width="1.6"/>
+        <g stroke="rgba(28,28,28,0.22)" stroke-width="1.6">
+          <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z" fill="#1c1c1c" transform="rotate(1 70.5 81)"/>
+          <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z" fill="#1c1c1c" transform="rotate(-1 91.5 81)"/>
+        </g>
+      </svg></div>
+      <div class="icon-frame sm"><svg viewBox="0 0 120 120">
+        <ellipse cx="60" cy="37" rx="22.5" ry="21" fill="#1c1c1c" transform="rotate(-3 60 37)"/>
+        <rect x="18" y="60" width="42" height="42" rx="3" fill="#1c1c1c" transform="rotate(-2 39 81)"/>
+        <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z" fill="#1c1c1c" transform="rotate(1 70.5 81)"/>
+        <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z" fill="#1c1c1c" transform="rotate(-1 91.5 81)"/>
+      </svg></div>
+    </div>
+    <p class="variant-note"><b>손으로 잘라 붙인 종이 느낌.</b> ㅇ=ellipse(살짝 평평) + ㅁ 둥근 모서리 + 자모마다 ±2° 회전으로 wobble. 우리 동물 마스코트와 톤 정합 (Matisse paper-cutout). 작은 사이즈에선 stroke 생략해 묻힘 방지.</p>
+  </section>
+
+  <!-- ============ I5 STICKER (K01 system extension) ============ -->
+  <section class="variant reveal d6">
+    <div class="variant-head"><span class="id">I5</span><span class="title">Sticker — mustard drop shadow + sparkle</span></div>
+    <div class="icon-stage">
+      <div class="icon-frame xl"><svg viewBox="0 0 120 120">
+        <!-- mustard offset shadow shapes -->
+        <g transform="translate(4, 4)" fill="#FBB008">
+          <circle cx="60" cy="38" r="22"/>
+          <rect x="18" y="60" width="42" height="42"/>
+          <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z"/>
+          <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z"/>
+        </g>
+        <!-- main ink shapes -->
+        <g fill="#1c1c1c">
+          <circle cx="60" cy="38" r="22"/>
+          <rect x="18" y="60" width="42" height="42"/>
+          <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z"/>
+          <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z"/>
+        </g>
+        <!-- sparkle decorations -->
+        <g fill="#FBB008" transform="translate(96, 18) rotate(-12)">
+          <path d="M 0 -7 C 0.5 -2.5, 2 -1, 7 0 C 2 1, 0.5 2.5, 0 7 C -0.5 2.5, -2 1, -7 0 C -2 -1, -0.5 -2.5, 0 -7 Z"/>
+        </g>
+        <g fill="#FF9302" transform="translate(14, 102) rotate(20)">
+          <path d="M 0 -5 C 0.4 -1.8, 1.4 -0.7, 5 0 C 1.4 0.7, 0.4 1.8, 0 5 C -0.4 1.8, -1.4 0.7, -5 0 C -1.4 -0.7, -0.4 -1.8, 0 -5 Z"/>
+        </g>
+      </svg></div>
+      <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+        <g transform="translate(4, 4)" fill="#FBB008">
+          <circle cx="60" cy="38" r="22"/>
+          <rect x="18" y="60" width="42" height="42"/>
+          <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z"/>
+          <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z"/>
+        </g>
+        <g fill="#1c1c1c">
+          <circle cx="60" cy="38" r="22"/>
+          <rect x="18" y="60" width="42" height="42"/>
+          <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z"/>
+          <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z"/>
+        </g>
+        <g fill="#FBB008" transform="translate(96, 18) rotate(-12)">
+          <path d="M 0 -7 C 0.5 -2.5, 2 -1, 7 0 C 2 1, 0.5 2.5, 0 7 C -0.5 2.5, -2 1, -7 0 C -2 -1, -0.5 -2.5, 0 -7 Z"/>
+        </g>
+      </svg></div>
+      <div class="icon-frame sm"><svg viewBox="0 0 120 120">
+        <g transform="translate(4, 4)" fill="#FBB008">
+          <circle cx="60" cy="38" r="22"/>
+          <rect x="18" y="60" width="42" height="42"/>
+          <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z"/>
+          <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z"/>
+        </g>
+        <g fill="#1c1c1c">
+          <circle cx="60" cy="38" r="22"/>
+          <rect x="18" y="60" width="42" height="42"/>
+          <path d="M 60 60 L 81 60 L 81 68 L 68 68 L 68 94 L 81 94 L 81 102 L 60 102 Z"/>
+          <path d="M 81 60 L 102 60 L 102 68 L 89 68 L 89 94 L 102 94 L 102 102 L 81 102 Z"/>
+        </g>
+      </svg></div>
+    </div>
+    <p class="variant-note"><b>K01 시스템 확장.</b> 검정 면 + mustard offset shadow 4px + 4-point sparkle. xl·lg 사이즈에 sparkle, sm 사이즈는 sparkle 생략(silhouette만). K01 wordmark와 같은 sticker 톤이라 brand system 통일성 ↑.</p>
+  </section>
+
+  <!-- ============ I6 HANDWRITTEN GAEGU OUTLINE ============ -->
+  <section class="variant reveal d7">
+    <div class="variant-head"><span class="id">I6</span><span class="title">Handwritten outline — Gaegu Bold + 두꺼운 ink stroke</span></div>
+    <div class="icon-stage">
+      <div class="icon-frame xl"><svg viewBox="0 0 120 120">
+        <g font-family="Gaegu, sans-serif" font-weight="700" text-anchor="middle" dominant-baseline="central"
+           fill="#fdfbf5" stroke="#1c1c1c" stroke-width="3" stroke-linejoin="round" paint-order="stroke fill">
+          <text x="60" y="32" font-size="60">ㅇ</text>
+          <text x="36" y="86" font-size="60">ㅁ</text>
+          <text x="84" y="86" font-size="60">ㄸ</text>
+        </g>
+      </svg></div>
+      <div class="icon-frame lg"><svg viewBox="0 0 120 120">
+        <g font-family="Gaegu, sans-serif" font-weight="700" text-anchor="middle" dominant-baseline="central"
+           fill="#fdfbf5" stroke="#1c1c1c" stroke-width="3.5" stroke-linejoin="round" paint-order="stroke fill">
+          <text x="60" y="32" font-size="60">ㅇ</text>
+          <text x="36" y="86" font-size="60">ㅁ</text>
+          <text x="84" y="86" font-size="60">ㄸ</text>
+        </g>
+      </svg></div>
+      <div class="icon-frame sm"><svg viewBox="0 0 120 120">
+        <g font-family="Gaegu, sans-serif" font-weight="700" text-anchor="middle" dominant-baseline="central"
+           fill="#fdfbf5" stroke="#1c1c1c" stroke-width="5" stroke-linejoin="round" paint-order="stroke fill">
+          <text x="60" y="32" font-size="60">ㅇ</text>
+          <text x="36" y="86" font-size="60">ㅁ</text>
+          <text x="84" y="86" font-size="60">ㄸ</text>
+        </g>
+      </svg></div>
+    </div>
+    <p class="variant-note"><b>손글씨 자모 outlined — 키치 핵심.</b> Gaegu Bold ㅇ·ㅁ·ㄸ에 ink stroke 3~5px(사이즈별 가변) + cream fill. 모더니즘 geometric과 정반대 — 폰트 자체의 손그림 wobble이 키치감 ↑. paint-order로 stroke 안쪽 잘림 방지.</p>
+  </section>
+
+  <!-- footnote -->
+  <footer class="foot reveal d7">
+    <div><b>컴포지션.</b> ㅇ(꼭짓점) + ㅁ(좌하) + ㄸ(우하), 셋이 모두 접점. ㅇ-ㅁ-ㄸ 위치는 5종 모두 동일. viewBox 120×120, 좌상단 (18,16) → 우하단 (102,102) 컨텐츠 영역.</div>
+    <div style="margin-top:8px"><b>다음 단계.</b> 마음에 드는 룩앤필 1~2개 골라주시면 — 컬러 더 풀고, 외곽 fine-tune, app icon export, K01 wordmark와 페어링까지.</div>
+    <div class="chips">
+      <span class="chip"><i style="background:var(--orange)"></i>#FF9302 orange</span>
+      <span class="chip"><i style="background:var(--mustard)"></i>#FBB008 mustard</span>
+      <span class="chip"><i style="background:var(--yellow)"></i>#FBE26E yellow</span>
+      <span class="chip"><i style="background:var(--pink-deep)"></i>#c4477e pink-deep</span>
+      <span class="chip"><i style="background:var(--ink)"></i>#1c1c1c ink</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
