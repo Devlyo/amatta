@@ -58,6 +58,10 @@ function MultiKidGridImpl({
   onBlockPress,
 }: MultiKidGridProps): React.ReactElement {
   const scrollRef = useRef<ScrollView>(null);
+  // Guards onContentSizeChange so the synchronous "set initial scroll
+  // position before paint" runs exactly once per mount. After that the
+  // user (or week-change effect) owns the scroll position.
+  const initialScrollDone = useRef(false);
 
   // Find today's column (0..6) — returns -1 if today is not in this week.
   const todayIdx = weekDates.findIndex(
@@ -120,6 +124,16 @@ function MultiKidGridImpl({
       ]}
       showsVerticalScrollIndicator={false}
       contentOffset={{ x: 0, y: targetY }}
+      onContentSizeChange={() => {
+        // Belt-and-suspenders for the platforms where `contentOffset` is
+        // unreliable (Android, certain RN/iOS versions). This fires when
+        // the inner View is first sized — synchronously, before paint —
+        // so a one-shot scrollTo here lets us land at targetY without a
+        // visible jump from y=0.
+        if (initialScrollDone.current) return;
+        initialScrollDone.current = true;
+        scrollRef.current?.scrollTo({ y: targetY, animated: false });
+      }}
     >
       <View style={[styles.body, { height: GRID_H }]}>
         {/* Time gutter — hour labels (number + AM/PM stacked) */}
