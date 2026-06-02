@@ -3,7 +3,7 @@
 // driven by useUiStore.editSheetState (create / editAll / editOccurrence)
 // and saves through useSchedulesStore.{add,update,applyException}.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -17,14 +17,20 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import DateTimePicker, {
+  type DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 
 import { useChildrenStore } from '../../state/children-store';
+import { useChecklistStore } from '../../state/checklist-store';
 import { useSchedulesStore } from '../../state/schedules-store';
 import { useUiStore } from '../../state/ui-store';
 import { getDb } from '../../db/client';
 import type {
+  ChecklistItem,
   DaysOfWeekMask,
   ISODate,
+  Minutes,
   Schedule,
   ScheduleException,
   ScheduleType,
@@ -32,8 +38,13 @@ import type {
 import { KidAvatar } from '../common/KidAvatar';
 import { TypeIcon } from '../common/TypeIcon';
 import { FONT_FAMILIES } from '../fonts';
+import {
+  IconChevronDown,
+  IconPlus,
+  IconXMark,
+} from '../icons';
 import { TOKENS } from '../palette';
-import { fmtKoTime } from '../utils/date';
+import { fmtKoTime, weekdayKo } from '../utils/date';
 import {
   DOW_LABELS_KO,
   NOTIFY_OPTIONS,
@@ -42,7 +53,6 @@ import {
   defaultFormState,
   formFromOccurrence,
   formFromSchedule,
-  stepMinutes,
   toggleDayMask,
   validate,
   type EditFormState,
@@ -57,6 +67,53 @@ const VISUAL_TO_MASK_BIT: readonly number[] = [6, 0, 1, 2, 3, 4, 5];
 // become dead-import noise — both shapes ship from edit-sheet-form.
 void DOW_LABELS_KO;
 
+// Drafted checklist row. `id===null` = brand-new (not yet persisted) so save
+// knows whether to INSERT vs UPDATE.
+interface ChecklistDraft {
+  id: number | null;
+  label: string;
+}
+
+type PickerState =
+  | null
+  | { field: 'validFrom' | 'validUntil'; mode: 'date'; value: Date }
+  | { field: 'startMinutes' | 'endMinutes'; mode: 'time'; value: Date };
+
+// ── Native-picker bridge helpers ────────────────────────────────────────────
+function isoToDate(iso: string): Date {
+  // Local-tz interpretation. Empty string → today (caller suppresses display).
+  if (iso.length === 0) return new Date();
+  const y = Number(iso.slice(0, 4));
+  const m = Number(iso.slice(5, 7));
+  const d = Number(iso.slice(8, 10));
+  return new Date(y, m - 1, d);
+}
+function dateToIso(d: Date): string {
+  const y = d.getFullYear();
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+function minutesToDate(min: Minutes): Date {
+  const ref = new Date(2000, 0, 1);
+  ref.setHours(Math.floor(min / 60));
+  ref.setMinutes(min % 60);
+  ref.setSeconds(0);
+  ref.setMilliseconds(0);
+  return ref;
+}
+function dateToMinutes(d: Date): Minutes {
+  return (d.getHours() * 60 + d.getMinutes()) as Minutes;
+}
+// "2026.06.02 (월)" — prototype caption format for the date row.
+function formatKoDateFull(iso: string): string {
+  if (iso.length === 0) return '날짜 선택';
+  const y = iso.slice(0, 4);
+  const m = iso.slice(5, 7);
+  const d = iso.slice(8, 10);
+  return `${y}.${m}.${d} (${weekdayKo(iso as unknown as ISODate)})`;
+}
+
 export function ScheduleEditSheet(): React.ReactElement {
   const editSheetState = useUiStore((s) => s.editSheetState);
   const closeEditSheet = useUiStore((s) => s.closeEditSheet);
@@ -67,6 +124,12 @@ export function ScheduleEditSheet(): React.ReactElement {
   const updateSchedule = useSchedulesStore((s) => s.updateSchedule);
   const removeSchedule = useSchedulesStore((s) => s.removeSchedule);
   const applyException = useSchedulesStore((s) => s.applyException);
+  const checklistAdd = useChecklistStore((s) => s.add);
+  const checklistUpdate = useChecklistStore((s) => s.updateOne);
+  const checklistRemove = useChecklistStore((s) => s.removeOne);
+  const checklistItemsByScheduleId = useChecklistStore(
+    (s) => s.itemsByScheduleId,
+  );
 
   const mode = editSheetState.mode;
   const sheetMode: 'create' | 'editAll' | 'editOccurrence' | null =
@@ -93,6 +156,11 @@ export function ScheduleEditSheet(): React.ReactElement {
     defaultFormState(null, null),
   );
   const [submitted, setSubmitted] = useState(false);
+  const [picker, setPicker] = useState<PickerState>(null);
+  const [checklist, setChecklist] = useState<ChecklistDraft[]>([]);
+  // Snapshot of the checklist as it was when the sheet opened. Used by save
+  // to compute INSERT / UPDATE / DELETE diffs against the in-memory edits.
+  const originalChecklistRef = useRef<ChecklistItem[]>([]);
 
   useEffect(() => {
     if (sheetMode === null) return;
@@ -103,16 +171,32 @@ export function ScheduleEditSheet(): React.ReactElement {
           editSheetState.preFill?.date ?? null,
         ),
       );
+      originalChecklistRef.current = [];
+      setChecklist([]);
     } else if (sheetMode === 'editAll' && existingSchedule !== undefined) {
       setForm(formFromSchedule(existingSchedule));
+      const items = checklistItemsByScheduleId.get(existingSchedule.id) ?? [];
+      originalChecklistRef.current = items;
+      setChecklist(items.map((it) => ({ id: it.id, label: it.label })));
     } else if (
       sheetMode === 'editOccurrence' &&
       existingSchedule !== undefined
     ) {
       setForm(formFromOccurrence(existingSchedule, existingException));
+      // editOccurrence is single-day; checklists live at the schedule level,
+      // so we skip the section (see render guard below) and stash empty.
+      originalChecklistRef.current = [];
+      setChecklist([]);
     }
     setSubmitted(false);
-  }, [sheetMode, existingSchedule, existingException, editSheetState.preFill]);
+    setPicker(null);
+  }, [
+    sheetMode,
+    existingSchedule,
+    existingException,
+    editSheetState.preFill,
+    checklistItemsByScheduleId,
+  ]);
 
   const validation = useMemo(
     () =>
@@ -132,7 +216,7 @@ export function ScheduleEditSheet(): React.ReactElement {
 
     if (sheetMode === 'create') {
       if (form.childId === null) return;
-      await addSchedule(db, {
+      const created = await addSchedule(db, {
         childId: form.childId,
         title: form.title.trim(),
         type: form.type,
@@ -149,6 +233,17 @@ export function ScheduleEditSheet(): React.ReactElement {
         notifyMinutesBefore: form.notifyMinutesBefore,
         needsPickup: form.needsPickup,
       });
+      // Persist the drafted checklist labels — empty/whitespace rows skipped.
+      const labels = checklist
+        .map((c) => c.label.trim())
+        .filter((s) => s.length > 0);
+      for (let i = 0; i < labels.length; i++) {
+        await checklistAdd(db, {
+          scheduleId: created.id,
+          label: labels[i] ?? '',
+          sortOrder: i,
+        });
+      }
     } else if (sheetMode === 'editAll' && existingSchedule !== undefined) {
       await updateSchedule(db, existingSchedule.id, {
         title: form.title.trim(),
@@ -166,6 +261,13 @@ export function ScheduleEditSheet(): React.ReactElement {
         notifyMinutesBefore: form.notifyMinutesBefore,
         needsPickup: form.needsPickup,
       });
+      await persistChecklistDiff(
+        db,
+        existingSchedule.id,
+        originalChecklistRef.current,
+        checklist,
+        { add: checklistAdd, update: checklistUpdate, remove: checklistRemove },
+      );
     } else if (
       sheetMode === 'editOccurrence' &&
       existingSchedule !== undefined &&
@@ -205,6 +307,10 @@ export function ScheduleEditSheet(): React.ReactElement {
     updateSchedule,
     applyException,
     closeEditSheet,
+    checklist,
+    checklistAdd,
+    checklistUpdate,
+    checklistRemove,
   ]);
 
   const handleDeleteAll = useCallback(() => {
@@ -398,49 +504,76 @@ export function ScheduleEditSheet(): React.ReactElement {
           {/* Group 3: 날짜 + 시간 + 반복 */}
           <Group>
             <Row label="날짜">
-              <TextInput
-                value={form.validFrom}
-                onChangeText={(v: string) =>
-                  setForm({ ...form, validFrom: v })
+              <NativeField
+                displayText={formatKoDateFull(form.validFrom)}
+                onPress={() =>
+                  setPicker({
+                    field: 'validFrom',
+                    mode: 'date',
+                    value: isoToDate(form.validFrom),
+                  })
                 }
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={TOKENS.ink30}
-                style={styles.dateInput}
-                maxLength={10}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="numbers-and-punctuation"
-                accessibilityLabel="시작 날짜"
+                ariaLabel="시작 날짜"
               />
             </Row>
             <Row label="시간">
-              <TimeStepper
+              <NativeField
+                displayText={fmtKoTime(form.startMinutes)}
+                onPress={() =>
+                  setPicker({
+                    field: 'startMinutes',
+                    mode: 'time',
+                    value: minutesToDate(form.startMinutes),
+                  })
+                }
                 ariaLabel="시작 시간"
-                minutes={form.startMinutes}
-                onChange={(m) => setForm({ ...form, startMinutes: m })}
               />
               <Text style={styles.timeDash}>–</Text>
-              <TimeStepper
+              <NativeField
+                displayText={fmtKoTime(form.endMinutes)}
+                onPress={() =>
+                  setPicker({
+                    field: 'endMinutes',
+                    mode: 'time',
+                    value: minutesToDate(form.endMinutes),
+                  })
+                }
                 ariaLabel="끝 시간"
-                minutes={form.endMinutes}
-                onChange={(m) => setForm({ ...form, endMinutes: m })}
               />
             </Row>
             {sheetMode !== 'editOccurrence' ? (
               <Row label="종료일">
-                <TextInput
-                  value={form.validUntil}
-                  onChangeText={(v: string) =>
-                    setForm({ ...form, validUntil: v })
+                <NativeField
+                  displayText={
+                    form.validUntil.length > 0
+                      ? formatKoDateFull(form.validUntil)
+                      : '선택 (없음)'
                   }
-                  placeholder="YYYY-MM-DD (선택)"
-                  placeholderTextColor={TOKENS.ink30}
-                  style={styles.dateInput}
-                  maxLength={10}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="numbers-and-punctuation"
-                  accessibilityLabel="종료 날짜"
+                  onPress={() =>
+                    setPicker({
+                      field: 'validUntil',
+                      mode: 'date',
+                      value: isoToDate(
+                        form.validUntil.length > 0
+                          ? form.validUntil
+                          : form.validFrom,
+                      ),
+                    })
+                  }
+                  ariaLabel="종료 날짜"
+                  trailing={
+                    form.validUntil.length > 0 ? (
+                      <Pressable
+                        onPress={() => setForm({ ...form, validUntil: '' })}
+                        hitSlop={6}
+                        accessibilityLabel="종료 날짜 지우기"
+                        accessibilityRole="button"
+                        style={styles.clearBtn}
+                      >
+                        <IconXMark size={12} color={TOKENS.inkSub} />
+                      </Pressable>
+                    ) : null
+                  }
                 />
               </Row>
             ) : null}
@@ -532,6 +665,69 @@ export function ScheduleEditSheet(): React.ReactElement {
             </Row>
           </Group>
 
+          {/* Group 6: 준비물 — checklist items attached to the schedule.
+              Hidden in editOccurrence mode because checklists are template-
+              level, not per-occurrence (ADR-002). */}
+          {sheetMode !== 'editOccurrence' ? (
+            <Group>
+              <Row label="준비물" align="top" hairline={false}>
+                <View style={styles.checklistColumn}>
+                  {checklist.map((item, idx) => (
+                    <View
+                      key={item.id ?? `new-${idx}`}
+                      style={[
+                        styles.checklistRow,
+                        idx > 0 ? styles.checklistRowTop : null,
+                      ]}
+                    >
+                      <View style={styles.checklistBullet} />
+                      <TextInput
+                        value={item.label}
+                        onChangeText={(v: string) =>
+                          setChecklist((cs) =>
+                            cs.map((c, i) =>
+                              i === idx ? { ...c, label: v } : c,
+                            ),
+                          )
+                        }
+                        placeholder="준비물 이름"
+                        placeholderTextColor={TOKENS.ink30}
+                        style={styles.checklistInput}
+                        maxLength={60}
+                        accessibilityLabel={`준비물 ${idx + 1}`}
+                      />
+                      <Pressable
+                        onPress={() =>
+                          setChecklist((cs) => cs.filter((_, i) => i !== idx))
+                        }
+                        hitSlop={6}
+                        accessibilityRole="button"
+                        accessibilityLabel="준비물 삭제"
+                        style={styles.checklistRemoveBtn}
+                      >
+                        <IconXMark size={14} color={TOKENS.inkSub} />
+                      </Pressable>
+                    </View>
+                  ))}
+                  <Pressable
+                    onPress={() =>
+                      setChecklist((cs) => [...cs, { id: null, label: '' }])
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel="준비물 추가"
+                    style={[
+                      styles.checklistAddBtn,
+                      checklist.length > 0 ? styles.checklistAddBtnSpaced : null,
+                    ]}
+                  >
+                    <IconPlus size={12} color={TOKENS.inkSub} />
+                    <Text style={styles.checklistAddLabel}>추가</Text>
+                  </Pressable>
+                </View>
+              </Row>
+            </Group>
+          ) : null}
+
           {/* Destructive actions — editAll only. editOccurrence shows a single
               "이 회차 취소" ghost action. */}
           {sheetMode === 'editAll' && existingSchedule !== undefined ? (
@@ -567,8 +763,88 @@ export function ScheduleEditSheet(): React.ReactElement {
           <View style={styles.tail} />
         </ScrollView>
       </KeyboardAvoidingView>
+      <PickerOverlay
+        state={picker}
+        onClose={() => setPicker(null)}
+        onChange={(d) => {
+          if (picker === null) return;
+          if (picker.field === 'validFrom') {
+            setForm({ ...form, validFrom: dateToIso(d) });
+          } else if (picker.field === 'validUntil') {
+            setForm({ ...form, validUntil: dateToIso(d) });
+          } else if (picker.field === 'startMinutes') {
+            const m = dateToMinutes(d);
+            // Drag start forward → push end so end always > start.
+            const minEnd = (m + 30) as Minutes;
+            setForm({
+              ...form,
+              startMinutes: m,
+              endMinutes: (form.endMinutes <= m ? minEnd : form.endMinutes),
+            });
+          } else if (picker.field === 'endMinutes') {
+            setForm({ ...form, endMinutes: dateToMinutes(d) });
+          }
+        }}
+      />
     </Modal>
   );
+}
+
+// ── Checklist diff helper ──────────────────────────────────────────────────
+// Compares the original loaded items against the in-memory edited list and
+// fires the matching store mutations: remove deleted ids, update label
+// changes, append new (id===null) rows.
+async function persistChecklistDiff(
+  db: import('expo-sqlite').SQLiteDatabase,
+  scheduleId: number,
+  original: readonly ChecklistItem[],
+  edited: readonly ChecklistDraft[],
+  ops: {
+    add: (
+      db: import('expo-sqlite').SQLiteDatabase,
+      input: import('../../db/repositories').NewChecklistItem,
+    ) => Promise<ChecklistItem>;
+    update: (
+      db: import('expo-sqlite').SQLiteDatabase,
+      id: number,
+      patch: Partial<Omit<ChecklistItem, 'id' | 'scheduleId'>>,
+    ) => Promise<void>;
+    remove: (
+      db: import('expo-sqlite').SQLiteDatabase,
+      id: number,
+    ) => Promise<void>;
+  },
+): Promise<void> {
+  const editedIds = new Set<number>();
+  for (const e of edited) {
+    if (e.id !== null) editedIds.add(e.id);
+  }
+  // Remove items absent from edited list.
+  for (const o of original) {
+    if (!editedIds.has(o.id)) {
+      await ops.remove(db, o.id);
+    }
+  }
+  // Update label changes / insert new rows. Drop blank rows entirely so users
+  // can leave a half-typed row and have it discarded on save.
+  for (let i = 0; i < edited.length; i++) {
+    const e = edited[i];
+    if (e === undefined) continue;
+    const label = e.label.trim();
+    if (label.length === 0) {
+      if (e.id !== null) await ops.remove(db, e.id);
+      continue;
+    }
+    if (e.id === null) {
+      await ops.add(db, { scheduleId, label, sortOrder: i });
+    } else {
+      const prev = original.find((o) => o.id === e.id);
+      if (prev === undefined) continue;
+      if (prev.label !== label || prev.sortOrder !== i) {
+        await ops.update(db, e.id, { label, sortOrder: i });
+      }
+    }
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -767,37 +1043,96 @@ function KidPillRow({
   );
 }
 
-function TimeStepper({
-  minutes,
-  onChange,
+function NativeField({
+  displayText,
+  onPress,
   ariaLabel,
+  trailing,
 }: {
-  minutes: number;
-  onChange: (m: number) => void;
+  displayText: string;
+  onPress: () => void;
   ariaLabel: string;
+  trailing?: React.ReactNode;
 }): React.ReactElement {
   return (
-    <View style={styles.timeStepper}>
+    <View style={styles.nativeFieldWrap}>
       <Pressable
-        onPress={() => onChange(stepMinutes(minutes, -1))}
+        onPress={onPress}
         accessibilityRole="button"
-        accessibilityLabel={`${ariaLabel} 30분 빼기`}
+        accessibilityLabel={ariaLabel}
         hitSlop={6}
-        style={styles.timeStepperBtn}
+        style={styles.nativeField}
       >
-        <Text style={styles.timeStepperBtnLabel}>−</Text>
+        <Text style={styles.nativeFieldText}>{displayText}</Text>
+        <IconChevronDown size={14} color={TOKENS.inkSub} />
       </Pressable>
-      <Text style={styles.timeStepperValue}>{fmtKoTime(minutes)}</Text>
-      <Pressable
-        onPress={() => onChange(stepMinutes(minutes, 1))}
-        accessibilityRole="button"
-        accessibilityLabel={`${ariaLabel} 30분 더하기`}
-        hitSlop={6}
-        style={styles.timeStepperBtn}
-      >
-        <Text style={styles.timeStepperBtnLabel}>＋</Text>
-      </Pressable>
+      {trailing}
     </View>
+  );
+}
+
+// Cross-platform picker wrapper. On iOS we render a centred Modal with the
+// spinner inline + a "완료" button. On Android the OEM picker is a system
+// dialog: mounting <DateTimePicker> auto-opens it, and onChange (set/dismiss)
+// closes our state so it unmounts.
+function PickerOverlay({
+  state,
+  onClose,
+  onChange,
+}: {
+  state: PickerState;
+  onClose: () => void;
+  onChange: (d: Date) => void;
+}): React.ReactElement | null {
+  if (state === null) return null;
+
+  if (Platform.OS === 'android') {
+    return (
+      <DateTimePicker
+        value={state.value}
+        mode={state.mode}
+        is24Hour={false}
+        onChange={(event: DateTimePickerEvent, selectedDate?: Date) => {
+          if (event.type === 'set' && selectedDate !== undefined) {
+            onChange(selectedDate);
+          }
+          onClose();
+        }}
+      />
+    );
+  }
+
+  // iOS — wrap in our own modal so it feels like a sheet over the form.
+  return (
+    <Modal
+      transparent
+      visible
+      animationType="fade"
+      onRequestClose={onClose}
+      accessibilityViewIsModal
+    >
+      <Pressable style={styles.pickerBackdrop} onPress={onClose} />
+      <View style={styles.pickerCard}>
+        <DateTimePicker
+          value={state.value}
+          mode={state.mode}
+          display="spinner"
+          minuteInterval={5}
+          onChange={(_event: DateTimePickerEvent, selectedDate?: Date) => {
+            if (selectedDate !== undefined) onChange(selectedDate);
+          }}
+          style={styles.pickerSpinner}
+        />
+        <Pressable
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="완료"
+          style={styles.pickerDoneBtn}
+        >
+          <Text style={styles.pickerDoneLabel}>완료</Text>
+        </Pressable>
+      </View>
+    </Modal>
   );
 }
 
@@ -958,15 +1293,110 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   notesInput: { minHeight: 64, textAlignVertical: 'top' },
-  dateInput: {
+
+  // --- Native date/time field ------------------------------------------
+  nativeFieldWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  nativeField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 2,
+  },
+  nativeFieldText: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.ink,
+    letterSpacing: -0.2,
+  },
+  clearBtn: {
+    width: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 9,
+    backgroundColor: TOKENS.ink04,
+  },
+
+  // --- Picker overlay (iOS centred card + Android dialog auto-shows) ----
+  pickerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(20,18,16,0.45)',
+  },
+  pickerCard: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    top: '30%',
+    backgroundColor: TOKENS.surface,
+    borderRadius: 14,
+    paddingTop: 8,
+    paddingBottom: 4,
+    overflow: 'hidden',
+  },
+  pickerSpinner: { width: '100%' },
+  pickerDoneBtn: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: TOKENS.ink04,
+  },
+  pickerDoneLabel: {
+    fontSize: 15,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    color: TOKENS.primary,
+    letterSpacing: -0.3,
+  },
+
+  // --- Checklist (준비물) ----------------------------------------------
+  checklistColumn: { width: '100%' },
+  checklistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  checklistRowTop: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: TOKENS.ink04,
+  },
+  checklistBullet: {
+    width: 18,
+    height: 18,
+    borderRadius: 9999,
+    borderWidth: 1.5,
+    borderColor: TOKENS.ink30,
+  },
+  checklistInput: {
+    flex: 1,
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     letterSpacing: -0.2,
     padding: 0,
     margin: 0,
-    minWidth: 120,
-    textAlign: 'right',
+  },
+  checklistRemoveBtn: {
+    width: 22,
+    height: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checklistAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  checklistAddBtnSpaced: { paddingTop: 6 },
+  checklistAddLabel: {
+    fontSize: 12.5,
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+    color: TOKENS.inkSub,
+    letterSpacing: -0.2,
   },
 
   // --- Pills -----------------------------------------------------------
@@ -1032,33 +1462,6 @@ const styles = StyleSheet.create({
   },
   dayCircleLabelActive: { color: TOKENS.surface },
 
-  // --- Time stepper ----------------------------------------------------
-  timeStepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  timeStepperBtn: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    backgroundColor: TOKENS.ink04,
-  },
-  timeStepperBtnLabel: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: TOKENS.ink,
-  },
-  timeStepperValue: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
-    letterSpacing: -0.2,
-    minWidth: 64,
-    textAlign: 'center',
-  },
   timeDash: {
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
