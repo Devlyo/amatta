@@ -234,13 +234,24 @@ interface NowProps {
   nowMinutes: number;
 }
 
+// Pill is ~18px tall (paddingVertical 2 × 2 + label lineHeight 12 + a hair).
+// We want the LINE's vertical center to land exactly at `top` (the px
+// derived from current minutes), so we shift the whole row up by half the
+// pill height. Mirrors app-multi-grid.jsx's `top: nowY - 9` pattern, which
+// is the corrected version from the same prototype suite.
+const NOW_ROW_H = 18;
+const NOW_OFFSET = NOW_ROW_H / 2;
+
 function NowLine({ top, nowMinutes }: NowProps): React.ReactElement {
   const h = Math.floor(nowMinutes / 60);
   const m = nowMinutes % 60;
   const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
   const label = `${h12}:${String(m).padStart(2, '0')}`;
   return (
-    <View pointerEvents="none" style={[styles.nowWrap, { top }]}>
+    <View
+      pointerEvents="none"
+      style={[styles.nowWrap, { top: top - NOW_OFFSET, height: NOW_ROW_H }]}
+    >
       <View style={styles.nowPill}>
         <Text style={styles.nowPillLabel}>{label}</Text>
       </View>
