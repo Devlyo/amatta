@@ -18,7 +18,8 @@
 - **Entities (ADR-002)**: Child / Schedule / ScheduleException / NotificationSetting + **ChecklistItem · Todo · SchedulePickupLog** (총 7 tables)
 - **Schedule extra (ADR-002)**: `needs_pickup` boolean. ScheduleException은 손대지 않음 (kind CHECK 제약 유지). 회차별 픽업 완료는 `schedule_pickup_log(schedule_id, occurrence_date, completed_at)` UNIQUE 제약으로 별도 기록.
 - **알림 정책 (ADR-002)**: 일정 알림 본문에 ChecklistItem 자동 prepend(≤80자). Todo는 dueAt 기반 단독 푸시. **그 외 새 푸시 surface 금지** (충돌 푸시 X).
-- **충돌 인디케이터 (ADR-002)**: 일간 그리드 sub-bar `⚠ {hh:mm} 픽업 충돌` pill 단일 위치. 블록 오버레이·푸시 둘 다 금지.
+- **픽업 시각화 (ADR-003, ADR-002 supersede)**: 일간 그리드 상단 `PickupCarousel` 단일 위치. 다음 픽업 1+개를 swipe 가능 카드(Sunset Orange / French Lavender bg)로 표시. 동시 시간 픽업 ≥ 2 → carousel 추가 카드. 블록 오버레이·푸시 둘 다 금지. `⚠ {hh:mm} 픽업 충돌` sub-bar pill은 ADR-003에서 폐기.
+- **NOW 라인 (ADR-003)**: 일간 그리드 라임색 NOW 라인은 분 단위 실시간 갱신 (setInterval 60s + 다음 분 경계 align + AppState focus 즉시 동기화).
 
 ## Authoritative Documents
 | 무엇 | 어디 |
@@ -28,7 +29,7 @@
 | Architect/Critic 리뷰 | `.omc/plans/ralplan-schedul-app-v2.{architect,critic}-review.md` |
 | 보류된 결정 | `.omc/plans/open-questions.md` |
 | 제품 PRD·페르소나 | `docs/product/` |
-| 아키텍처·ADR | `docs/architecture/` (ADR-001 stack lock, **ADR-002 prep·todos·pickup**) |
+| 아키텍처·ADR | `docs/architecture/` (ADR-001 stack lock, ADR-002 prep·todos·pickup, **ADR-003 pickup carousel + NOW tick**) |
 | UI/UX 가이드 | `docs/design/` |
 | 회의록 | `docs/meetings/` |
 | 로드맵·백로그·스프린트 | `schedule/` |

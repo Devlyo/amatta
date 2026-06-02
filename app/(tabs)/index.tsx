@@ -51,14 +51,43 @@ export default function DailyViewScreen(): React.ReactElement {
   const [tab, setTab] = useState<DailyTabKey>('schedule');
   const [nowMinutes, setNowMinutes] = useState<number>(() => currentMinutes());
 
-  // Refresh "now" when the app returns to the foreground so the now-line and
-  // smart-scroll target stay correct after the user comes back from another
-  // app or screen lock. Cheap — no interval timer needed.
+  // NOW line tick — ADR-003 §B. The grid's lime now-line + pill must
+  // advance every minute (8:30 → 8:31 → ...) without requiring user input,
+  // so we align to the next minute boundary, then fire setInterval(60s).
+  // AppState=active also re-syncs immediately + restarts the alignment in
+  // case the device was backgrounded across many minutes.
   useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const tick = (): void => setNowMinutes(currentMinutes());
+
+    const start = (): void => {
+      if (timeoutId !== null) clearTimeout(timeoutId);
+      if (intervalId !== null) clearInterval(intervalId);
+      const now = new Date();
+      const msUntilNextMinute =
+        (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+      timeoutId = setTimeout(() => {
+        tick();
+        intervalId = setInterval(tick, 60_000);
+      }, msUntilNextMinute);
+    };
+
+    start();
+
     const sub = AppState.addEventListener('change', (status) => {
-      if (status === 'active') setNowMinutes(currentMinutes());
+      if (status === 'active') {
+        tick();
+        start();
+      }
     });
-    return () => sub.remove();
+
+    return () => {
+      if (timeoutId !== null) clearTimeout(timeoutId);
+      if (intervalId !== null) clearInterval(intervalId);
+      sub.remove();
+    };
   }, []);
 
   // First 4 children, sorted by id ASC (stable insertion order). Hooks must
