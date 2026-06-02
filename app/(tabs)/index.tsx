@@ -186,11 +186,9 @@ export default function DailyViewScreen(): React.ReactElement {
   };
 
   const handlePressWeek = (): void => {
-    // First visible kid's weekly view. If nothing's been added yet the empty
-    // state would have taken over already, so the index is safe.
-    const first = visibleChildren[0];
-    if (first === undefined) return;
-    router.push(`/child/${first.id}`);
+    // WEEK toggle = multi-kid weekly grid. (Single-kid weekly is reached
+    // by tapping a kid pill instead — see KidPillsHeader.onPressKid below.)
+    router.push('/multi');
   };
 
   if (children.length === 0) {
