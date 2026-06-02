@@ -132,7 +132,7 @@ describe('computePickupCards', () => {
     expect(cards.map((c) => c.scheduleId)).toEqual([11, 22]);
   });
 
-  test('past occurrence on today (endMinutes < nowMinutes) → dropped', () => {
+  test('past occurrence on today is kept (user marks complete via pickup log to dismiss)', () => {
     const occs: Occurrence[] = [
       makeOccurrence({
         scheduleId: 11,
@@ -152,7 +152,9 @@ describe('computePickupCards', () => {
       }),
     ];
     const cards = computePickupCards(occs, NEVER_COMPLETE, kidsById, 10 * 60, TODAY_ISO);
-    expect(cards.map((c) => c.scheduleId)).toEqual([12]);
+    // Both visible; past pickups stay until completed via pickup_log.
+    // Sorted by endMinutes ASC.
+    expect(cards.map((c) => c.scheduleId)).toEqual([11, 12]);
   });
 
   test('cap at 4 — five eligible pickups collapse to the four soonest', () => {

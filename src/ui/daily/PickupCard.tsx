@@ -5,14 +5,13 @@
 // 17–22; we keep the exact same formula here so the contrast matches the
 // design reference.
 //
-// CSS shorthand → RN longhand mapping:
-//   padding: '6px 14px 10px'  → paddingTop:6, paddingHorizontal:14, paddingBottom:10
-//   boxShadow: '0 6px 16px {bg}40' → shadow* + elevation
-//
-// The "pulse" animation on the leading dot is intentionally static per spec
-// §10 (skip to reduce complexity).
+// Leading dot pulse animation mirrors the prototype's `amattaPulse` keyframe
+// (scale 1→1.4→1 + opacity 1→0.55→1 over 1.6s, ease-in-out, infinite). Uses
+// RN Animated with useNativeDriver so the animation runs on the UI thread
+// with no JS-thread cost.
 
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { FONT_FAMILIES } from '../fonts';
 import { TOKENS } from '../palette';
@@ -34,6 +33,45 @@ export function PickupCard({ data, index }: Props): React.ReactElement {
   const roadLineColor =
     onBg === '#fff' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.10)';
 
+  const pulseScale = useRef(new Animated.Value(1)).current;
+  const pulseOpacity = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const seq = Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(pulseScale, {
+            toValue: 1.4,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseScale, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(pulseOpacity, {
+            toValue: 0.55,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseOpacity, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+    );
+    seq.start();
+    return () => seq.stop();
+  }, [pulseScale, pulseOpacity]);
+
   return (
     <View
       style={[
@@ -48,7 +86,16 @@ export function PickupCard({ data, index }: Props): React.ReactElement {
 
       <View style={styles.textBlock}>
         <View style={styles.eyebrowRow}>
-          <View style={[styles.eyebrowDot, { backgroundColor: onBg }]} />
+          <Animated.View
+            style={[
+              styles.eyebrowDot,
+              {
+                backgroundColor: onBg,
+                transform: [{ scale: pulseScale }],
+                opacity: pulseOpacity,
+              },
+            ]}
+          />
           <Text style={[styles.eyebrow, { color: onBgSub }]}>
             NEXT PICKUP · {data.etaText}
           </Text>

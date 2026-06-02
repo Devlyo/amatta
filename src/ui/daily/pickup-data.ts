@@ -94,7 +94,13 @@ export function computePickupCards(
     const occDateInt = isoToYyyymmdd(occ.date);
     if (pickupLogIsComplete(occ.scheduleId, occDateInt)) continue;
 
-    if (viewingToday && occ.endMinutes < nowMinutes) continue;
+    // Note: we used to drop past-today pickups (endMinutes < nowMinutes when
+    // viewingToday), but that hid the banner immediately after the pickup
+    // time passed even though the user hadn't yet marked it complete. Show
+    // today's pickups until the user explicitly marks them done via the
+    // pickup log — that's a clearer source of "is this still upcoming?".
+    void viewingToday;
+    void nowMinutes;
 
     const child = childrenById.get(occ.childId);
     if (child === undefined) continue;
