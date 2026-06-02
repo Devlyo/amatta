@@ -7,6 +7,7 @@ export {
   type TxMode,
 } from './migrations';
 export { migration001 } from './migrations/001_init.sql';
+export { seedDevData } from './seed-dev';
 export {
   rowToChild,
   rowToNotificationSetting,
