@@ -183,7 +183,7 @@ export function SearchDrawer(): React.ReactElement {
       <Pressable style={styles.backdrop} onPress={closeSearch} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.sheet}
+        style={[styles.sheet, showEmpty ? styles.sheetCompact : null]}
       >
         <View style={styles.handleArea}>
           <View style={styles.handle} />
@@ -395,6 +395,12 @@ const styles = StyleSheet.create({
     backgroundColor: TOKENS.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+  },
+  // Empty-query state — shrink sheet to match CalendarDrawer footprint
+  // (top:'50%' + paddingBottom 8) so the bottom whitespace stays consistent.
+  sheetCompact: {
+    top: '50%',
+    paddingBottom: 8,
   },
   handleArea: {
     alignItems: 'center',
