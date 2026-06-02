@@ -62,6 +62,15 @@ function realTodayIso(): string {
   return `${y}-${m}-${d}`;
 }
 
+function shiftDate(iso: string, days: number): string {
+  const [y, m, d] = iso.split('-').map(Number) as [number, number, number];
+  const dt = new Date(y, m - 1, d + days);
+  const yy = String(dt.getFullYear()).padStart(4, '0');
+  const mm = String(dt.getMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
 describe('computePickupCards', () => {
   test('empty occurrences → empty cards', () => {
     const cards = computePickupCards([], NEVER_COMPLETE, kidsById, 9 * 60, TODAY_ISO);
@@ -132,7 +141,7 @@ describe('computePickupCards', () => {
     expect(cards.map((c) => c.scheduleId)).toEqual([11, 22]);
   });
 
-  test('past occurrence on today is kept (user marks complete via pickup log to dismiss)', () => {
+  test('past occurrence on today → dropped (NEXT-PICKUP is future-only)', () => {
     const occs: Occurrence[] = [
       makeOccurrence({
         scheduleId: 11,
@@ -152,25 +161,48 @@ describe('computePickupCards', () => {
       }),
     ];
     const cards = computePickupCards(occs, NEVER_COMPLETE, kidsById, 10 * 60, TODAY_ISO);
-    // Both visible; past pickups stay until completed via pickup_log.
-    // Sorted by endMinutes ASC.
-    expect(cards.map((c) => c.scheduleId)).toEqual([11, 12]);
+    // Only the future one — the past 9:00 pickup is excluded.
+    expect(cards.map((c) => c.scheduleId)).toEqual([12]);
   });
 
-  test('cap at 4 — five eligible pickups collapse to the four soonest', () => {
-    const occs: Occurrence[] = [11, 12, 13, 14, 15].map((sid, i) =>
+  test('multiple pickups at different times → only the soonest is shown', () => {
+    const occs: Occurrence[] = [
       makeOccurrence({
-        scheduleId: sid,
+        scheduleId: 11,
         childId: 1,
         date: TODAY_ISO,
-        startMinutes: 14 * 60,
-        endMinutes: 15 * 60 + i, // ascending so order is stable
+        startMinutes: 13 * 60,
+        endMinutes: 14 * 60,
         needsPickup: true,
       }),
-    );
+      makeOccurrence({
+        scheduleId: 12,
+        childId: 1,
+        date: TODAY_ISO,
+        startMinutes: 17 * 60,
+        endMinutes: 18 * 60,
+        needsPickup: true,
+      }),
+    ];
     const cards = computePickupCards(occs, NEVER_COMPLETE, kidsById, 9 * 60, TODAY_ISO);
-    expect(cards).toHaveLength(4);
-    expect(cards.map((c) => c.scheduleId)).toEqual([11, 12, 13, 14]);
+    // 14:00 + 18:00 isn't a conflict — only the 14:00 surfaces.
+    expect(cards.map((c) => c.scheduleId)).toEqual([11]);
+  });
+
+  test('non-today date → empty (banner only renders for today)', () => {
+    const tomorrow = ISO(shiftDate(TODAY_ISO as unknown as string, 1));
+    const occs: Occurrence[] = [
+      makeOccurrence({
+        scheduleId: 11,
+        childId: 1,
+        date: tomorrow,
+        startMinutes: 14 * 60,
+        endMinutes: 15 * 60,
+        needsPickup: true,
+      }),
+    ];
+    const cards = computePickupCards(occs, NEVER_COMPLETE, kidsById, 9 * 60, tomorrow);
+    expect(cards).toEqual([]);
   });
 
   test('defensive: missing needsPickup field → treated as false', () => {

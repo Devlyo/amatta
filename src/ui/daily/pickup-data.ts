@@ -1,11 +1,23 @@
-// Pickup carousel data derivation. Spec §2.1.
+// Pickup carousel data derivation.
 //
-// Builds the list of "next pickup" cards for the currently-viewed date by
-// filtering the day's Occurrences down to those whose source Schedule has
-// `needsPickup === true`, excluding ones already completed in the pickup log
-// and ones whose end-time has already passed (when viewing today). Sorted by
-// `(date, endMinutes, scheduleId)` ASC — soonest pickup first — and capped at
-// the per-day max of 4 (= MAX_CHILDREN).
+// Rules (per the user's spec, 2026-06):
+//   1. Banner renders ONLY when `currentDate === today`. On any other date,
+//      the carousel collapses to zero height — non-today views never advertise
+//      "next pickup."
+//   2. Past-today pickups (`endMinutes < nowMinutes`) are excluded — they
+//      already happened. The kid was either picked up or won't be picked up;
+//      either way the carousel should move on to the next.
+//   3. Completed pickups (in `schedule_pickup_log` for that occurrence_date)
+//      are excluded.
+//   4. Of all eligible pickups today, only the SOONEST `endMinutes` group is
+//      surfaced. If a single pickup sits at the soonest time we render one
+//      card; if two-or-more pickups share that exact `endMinutes` (= conflict
+//      where the user must split themselves), all of them become cards. A
+//      14:00 + 18:00 pair is NOT a conflict and only the 14:00 card shows
+//      until that time passes; then the 18:00 surfaces alone.
+//
+// `etaText` is the remaining time from now to the pickup's `endMinutes`,
+// formatted "Nh Nm" / "Nm" / "곧" Korean shorthand.
 
 import type { Child, ColorIndex, ISODate, Occurrence } from '../../domain/types';
 import { fmtKoTime, todayIso } from '../utils/date';
@@ -22,8 +34,6 @@ export interface PickupCardData {
   childColorIndex: ColorIndex;
 }
 
-const MAX_CARDS = 4;
-
 /**
  * Parses an `YYYY-MM-DD` ISO date into a `YYYYMMDD` integer used by the
  * pickup-log table's `occurrence_date` column.
@@ -36,25 +46,15 @@ export function isoToYyyymmdd(iso: ISODate): number {
   return y * 10000 + m * 100 + d;
 }
 
-/**
- * Formats `endMinutes` as the compact `H:MM` form used in PickupCard's title
- * row (no AM/PM, matches the prototype's `15:30` literal).
- */
 function fmtTimeShort(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `${h}:${String(m).padStart(2, '0')}`;
 }
 
-/**
- * Returns a Korean ETA caption like "1시간 10분" / "10분" / "지금" for the
- * delta between `nowMinutes` and `targetMinutes`. Negative deltas (already
- * past) collapse to "지금" — callers filter past pickups out earlier so this
- * branch only fires on borderline ties.
- */
 function fmtEta(nowMinutes: number, targetMinutes: number): string {
   const delta = targetMinutes - nowMinutes;
-  if (delta <= 0) return '지금';
+  if (delta <= 0) return '곧';
   const h = Math.floor(delta / 60);
   const m = delta % 60;
   if (h === 0) return `${m}분`;
@@ -62,18 +62,11 @@ function fmtEta(nowMinutes: number, targetMinutes: number): string {
   return `${h}시간 ${m}분`;
 }
 
-interface ScoredCard {
-  card: PickupCardData;
-  endMinutes: number;
+interface Eligible {
+  occ: Occurrence;
+  child: Child;
 }
 
-/**
- * Selects, sorts, and caps the pickup cards for the day in view.
- *
- * Defensive: when an Occurrence lacks the `needsPickup` field (worker-pickup-
- * domain may not have landed yet during integration), we treat it as `false`
- * so this helper can ship before the domain extension. See spec §8 Stage 1.
- */
 export function computePickupCards(
   occurrences: Occurrence[],
   pickupLogIsComplete: (scheduleId: number, occurrenceDateInt: number) => boolean,
@@ -81,52 +74,43 @@ export function computePickupCards(
   nowMinutes: number,
   currentDate: ISODate,
 ): PickupCardData[] {
+  // Rule 1: only today.
   const today = todayIso() as unknown as string;
-  const viewingToday = (currentDate as unknown as string) === today;
+  if ((currentDate as unknown as string) !== today) return [];
 
-  const scored: ScoredCard[] = [];
+  // Rules 2 + 3: future + uncompleted + needsPickup + has a known child.
+  const eligible: Eligible[] = [];
   for (const occ of occurrences) {
-    // Cast through unknown so a missing field on a drifted Occurrence shape
-    // resolves to `undefined` → `false` rather than throwing.
     const needs = (occ as unknown as { needsPickup?: boolean }).needsPickup === true;
     if (!needs) continue;
-
+    if (occ.endMinutes < nowMinutes) continue;
     const occDateInt = isoToYyyymmdd(occ.date);
     if (pickupLogIsComplete(occ.scheduleId, occDateInt)) continue;
-
-    // Note: we used to drop past-today pickups (endMinutes < nowMinutes when
-    // viewingToday), but that hid the banner immediately after the pickup
-    // time passed even though the user hadn't yet marked it complete. Show
-    // today's pickups until the user explicitly marks them done via the
-    // pickup log — that's a clearer source of "is this still upcoming?".
-    void viewingToday;
-    void nowMinutes;
-
     const child = childrenById.get(occ.childId);
     if (child === undefined) continue;
-
-    scored.push({
-      endMinutes: occ.endMinutes,
-      card: {
-        scheduleId: occ.scheduleId,
-        occurrenceDate: occ.date,
-        occurrenceDateInt: occDateInt,
-        time: fmtKoTime(occ.endMinutes),
-        timeShort: fmtTimeShort(occ.endMinutes),
-        who: child.name,
-        what: occ.title,
-        etaText: viewingToday ? fmtEta(nowMinutes, occ.endMinutes) : '예정',
-        childColorIndex: child.colorIndex,
-      },
-    });
+    eligible.push({ occ, child });
   }
+  if (eligible.length === 0) return [];
 
-  scored.sort((a, b) => {
-    const ad = a.card.occurrenceDateInt - b.card.occurrenceDateInt;
-    if (ad !== 0) return ad;
-    if (a.endMinutes !== b.endMinutes) return a.endMinutes - b.endMinutes;
-    return a.card.scheduleId - b.card.scheduleId;
-  });
+  // Rule 4: only the soonest-end-time group, all pickups at that exact time.
+  let soonestEnd = Infinity;
+  for (const e of eligible) {
+    if (e.occ.endMinutes < soonestEnd) soonestEnd = e.occ.endMinutes;
+  }
+  const nextBatch = eligible.filter((e) => e.occ.endMinutes === soonestEnd);
+  // Stable order by scheduleId so the carousel always renders the same kid
+  // in the same slot across re-renders.
+  nextBatch.sort((a, b) => a.occ.scheduleId - b.occ.scheduleId);
 
-  return scored.slice(0, MAX_CARDS).map((s) => s.card);
+  return nextBatch.map<PickupCardData>(({ occ, child }) => ({
+    scheduleId: occ.scheduleId,
+    occurrenceDate: occ.date,
+    occurrenceDateInt: isoToYyyymmdd(occ.date),
+    time: fmtKoTime(occ.endMinutes),
+    timeShort: fmtTimeShort(occ.endMinutes),
+    who: child.name,
+    what: occ.title,
+    etaText: fmtEta(nowMinutes, occ.endMinutes),
+    childColorIndex: child.colorIndex,
+  }));
 }

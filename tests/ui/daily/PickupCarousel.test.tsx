@@ -99,11 +99,14 @@ describe('PickupCarousel', () => {
     expect(queryByText(/서연/)).toBeNull();
   });
 
-  test('3 cards → renders 3 PickupCards, 3 dots', () => {
+  test('3 same-time conflict pickups → renders 3 PickupCards, 3 dots', () => {
+    // All three share endMinutes=15:00 — this IS a conflict, all 3 surface.
+    // Different end-times would only show the soonest (separate test in
+    // pickup-data.test.ts).
     const occs = [
       makeOccurrence(11, 1, 15 * 60, true, '수영'),
-      makeOccurrence(12, 2, 16 * 60, true, '미술'),
-      makeOccurrence(13, 3, 17 * 60, true, '발레'),
+      makeOccurrence(12, 2, 15 * 60, true, '미술'),
+      makeOccurrence(13, 3, 15 * 60, true, '발레'),
     ];
     const { getAllByText } = render(
       <PickupCarousel
