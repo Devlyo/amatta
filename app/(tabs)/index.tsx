@@ -15,8 +15,9 @@
 // the form port lands in R3.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AppState, StyleSheet } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 
 import { MAX_CHILDREN } from '../../src/domain/constants';
@@ -37,7 +38,9 @@ import { TabStrip, type DailyTabKey } from '../../src/ui/daily/TabStrip';
 import { TodoTabContent } from '../../src/ui/daily/TodoTabContent';
 import { TopBar } from '../../src/ui/daily/TopBar';
 import { TOKENS } from '../../src/ui/palette';
-import { formatKoreanShortDate, isToday } from '../../src/ui/utils/date';
+import { formatKoreanShortDate, isToday, shiftIsoDate } from '../../src/ui/utils/date';
+
+const SWIPE_THRESHOLD = 60;
 
 function currentMinutes(): number {
   const now = new Date();
@@ -49,8 +52,26 @@ export default function DailyViewScreen(): React.ReactElement {
   const schedules = useSchedulesStore((s) => s.schedules);
   const exceptions = useSchedulesStore((s) => s.exceptions);
   const currentDate = useUiStore((s) => s.currentDate);
+  const setCurrentDate = useUiStore((s) => s.setCurrentDate);
   const openEditSheet = useUiStore((s) => s.openEditSheet);
   const router = useRouter();
+
+  // Horizontal swipe ±1 day on the schedule body. activeOffsetX delays
+  // activation until the user commits to a horizontal motion so vertical
+  // scroll inside ScheduleGrid wins for predominantly-vertical drags.
+  // Until R3 ships the CalendarDrawer, this is the user's primary
+  // date-navigation gesture.
+  const panGesture = Gesture.Pan()
+    .activeOffsetX([-12, 12])
+    .failOffsetY([-12, 12])
+    .onEnd((e) => {
+      if (e.translationX <= -SWIPE_THRESHOLD) {
+        setCurrentDate(shiftIsoDate(currentDate, 1));
+      } else if (e.translationX >= SWIPE_THRESHOLD) {
+        setCurrentDate(shiftIsoDate(currentDate, -1));
+      }
+    })
+    .runOnJS(true);
 
   const [tab, setTab] = useState<DailyTabKey>('schedule');
   const [nowMinutes, setNowMinutes] = useState<number>(() => currentMinutes());
@@ -204,20 +225,22 @@ export default function DailyViewScreen(): React.ReactElement {
       <TabStrip active={tab} onChange={setTab} todoCount={todoCount} />
 
       {tab === 'schedule' ? (
-        <>
-          {/* Section 5 — Kid pill header row */}
-          <KidPillsHeader
-            kids={visibleChildren}
-            onPressKid={(id) => router.push(`/child/${id}`)}
-          />
-          {/* Section 6 — Day grid (scrolls vertically) */}
-          <ScheduleGrid
-            kids={visibleChildren}
-            occurrences={occurrences}
-            nowMinutes={nowMinutes}
-            onBlockPress={handleBlockPress}
-          />
-        </>
+        <GestureDetector gesture={panGesture}>
+          <View style={styles.scheduleBody}>
+            {/* Section 5 — Kid pill header row */}
+            <KidPillsHeader
+              kids={visibleChildren}
+              onPressKid={(id) => router.push(`/child/${id}`)}
+            />
+            {/* Section 6 — Day grid (scrolls vertically) */}
+            <ScheduleGrid
+              kids={visibleChildren}
+              occurrences={occurrences}
+              nowMinutes={nowMinutes}
+              onBlockPress={handleBlockPress}
+            />
+          </View>
+        </GestureDetector>
       ) : (
         <TodoTabContent />
       )}
@@ -232,5 +255,6 @@ export default function DailyViewScreen(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
+  scheduleBody: { flex: 1 },
   safe: { flex: 1, backgroundColor: TOKENS.surface },
 });
