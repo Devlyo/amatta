@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { ISODate } from '../domain/types';
+import { todayIso } from '../ui/utils/date';
 
 export type EditSheetMode = 'closed' | 'create' | 'editAll' | 'editOccurrence';
 
@@ -16,10 +17,11 @@ export interface EditSheetState {
   preFill?: EditSheetPreFill;
 }
 
-function todayISO(): ISODate {
-  return new Date().toISOString().slice(0, 10) as ISODate;
-}
-
+// NOTE: do NOT use `new Date().toISOString().slice(0,10)` here — that returns
+// the date in UTC, which between 00:00 and 09:00 KST resolves to the previous
+// local day and breaks isToday() comparisons. The canonical helper in
+// src/ui/utils/date.ts uses local-time getters and is the only source of
+// truth for "today" across the app.
 interface UiState {
   currentDate: ISODate;
   setCurrentDate: (date: ISODate) => void;
@@ -34,7 +36,7 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>()((set) => ({
-  currentDate: todayISO(),
+  currentDate: todayIso(),
   setCurrentDate: (date) => set({ currentDate: date }),
 
   selectedChildId: null,

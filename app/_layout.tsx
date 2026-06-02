@@ -27,13 +27,21 @@ export default function RootLayout() {
   // Hooks must be declared at the top — above any conditional return — so
   // the call order is stable across renders. expo-font's `useFonts` returns
   // [loaded, error]; we block boot until `fontsLoaded` is true.
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     'Pretendard-Regular': require('../assets/fonts/Pretendard-Regular.ttf'),
     'Pretendard-Medium': require('../assets/fonts/Pretendard-Medium.ttf'),
     'Pretendard-SemiBold': require('../assets/fonts/Pretendard-SemiBold.ttf'),
     'Pretendard-Bold': require('../assets/fonts/Pretendard-Bold.ttf'),
     GeistMono_400Regular,
   });
+
+  // Surface font loader errors instead of silently falling back to system font.
+  // expo-font emits an error here if a .ttf file is missing or invalid.
+  useEffect(() => {
+    if (fontError) {
+      console.warn('[fonts] expo-font load error:', fontError);
+    }
+  }, [fontError]);
 
   const [bootState, setBootState] = useState<BootState>('booting');
   const [bootError, setBootError] = useState<string | null>(null);
