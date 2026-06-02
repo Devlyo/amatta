@@ -17,7 +17,7 @@
 // dropped on mobile — the user gets EditDetail / EditSheet via the parent
 // screen's wiring instead.)
 
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 
 import type { Child, ISODate, Occurrence } from '../../domain/types';
@@ -66,25 +66,33 @@ function MultiKidGridImpl({
   const showNow = todayIdx >= 0;
   const nowTop = minutesToPx(nowMinutes);
 
-  // Smart-scroll: if today is in the week, target the NOW line; otherwise
-  // target the earliest event of the week (similar to ScheduleGrid).
-  useEffect(() => {
-    if (scrollRef.current === null) return;
-    let targetY = 0;
-    if (showNow) {
-      targetY = Math.max(0, nowTop - 110);
-    } else if (occurrences.length > 0) {
+  // Compute the scroll target synchronously so it's available *before* the
+  // first paint — passed to ScrollView via `contentOffset`. Without this
+  // the view first paints at y=0 then jumps to targetY via scrollTo, which
+  // reads as a flash/jitter at every day↔week toggle.
+  const targetY = useMemo<number>(() => {
+    if (showNow) return Math.max(0, nowTop - 110);
+    if (occurrences.length > 0) {
       let earliest = Number.POSITIVE_INFINITY;
       for (const occ of occurrences) {
         if (occ.startMinutes < earliest) earliest = occ.startMinutes;
       }
       if (Number.isFinite(earliest)) {
-        targetY = Math.max(0, minutesToPx(earliest) - 60);
+        return Math.max(0, minutesToPx(earliest) - 60);
       }
     }
+    return 0;
+  }, [showNow, nowTop, occurrences]);
+
+  // Re-scroll when the visible week changes (swipe ±7d). On the first
+  // mount this also reasserts the contentOffset target, which is harmless
+  // (scrolling to the same y is a no-op visually).
+  const firstWeekKey = weekDates[0] as unknown as string | undefined;
+  useEffect(() => {
+    if (scrollRef.current === null) return;
     scrollRef.current.scrollTo({ y: targetY, animated: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekDates[0]]);
+  }, [firstWeekKey]);
 
   // Bucket occurrences by (kidId, dayIdx) for O(1) lookup in the render.
   const byKidDay = new Map<string, Occurrence[]>();
@@ -111,6 +119,7 @@ function MultiKidGridImpl({
         { height: GRID_H + SCROLL_BOTTOM_PAD },
       ]}
       showsVerticalScrollIndicator={false}
+      contentOffset={{ x: 0, y: targetY }}
     >
       <View style={[styles.body, { height: GRID_H }]}>
         {/* Time gutter — hour labels (number + AM/PM stacked) */}
