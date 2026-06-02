@@ -23,11 +23,7 @@ import { ViewToggle } from '../src/ui/common/ViewToggle';
 import { TabStrip, type DailyTabKey } from '../src/ui/daily/TabStrip';
 import { TodoTabContent } from '../src/ui/daily/TodoTabContent';
 import { FONT_FAMILIES } from '../src/ui/fonts';
-import {
-  IconChevronDown,
-  IconChevronLeft,
-  IconSearch,
-} from '../src/ui/icons';
+import { IconChevronDown, IconSearch } from '../src/ui/icons';
 import { TOKENS } from '../src/ui/palette';
 import {
   shiftIsoDate,
@@ -226,26 +222,24 @@ function MultiViewScreenImpl(): React.ReactElement {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Top bar: chev-back + 이번 주 + range + DAY/WEEK toggle + search */}
+      {/* Top bar — mirrors daily TopBar layout: title pressable on the left,
+          ViewToggle + search on the right. The DAY segment of ViewToggle is
+          the back affordance (router.back); a separate chev-back would be
+          redundant. */}
       <View style={styles.topBar}>
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="뒤로"
-          hitSlop={8}
-          style={styles.topBtn}
-        >
-          <IconChevronLeft size={20} color={TOKENS.ink} />
-        </Pressable>
         <Pressable
           onPress={handlePressTitle}
           accessibilityRole="button"
           accessibilityLabel="주 선택"
-          style={styles.topTitleRow}
+          style={styles.leftBtn}
         >
           <Text style={styles.topTitle}>이번 주</Text>
           <View style={styles.topCaptionRow}>
-            <Text style={styles.topCaption}>
+            <Text
+              style={styles.topCaption}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               {formatWeekRange(weekStart, weekEnd)}
             </Text>
             <IconChevronDown size={16} color={TOKENS.inkSub} />
@@ -362,20 +356,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     gap: 10,
   },
-  topBtn: {
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 9999,
-  },
-  topTitleRow: {
+  leftBtn: {
     flex: 1,
     minWidth: 0,
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 8,
     paddingHorizontal: 4,
+    paddingVertical: 4,
   },
   topTitle: {
     fontSize: 22,
