@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+    "postinstall": "node scripts/fix-react-native-svg-manifest.js"
   },
   "dependencies": {
     "@expo-google-fonts/geist-mono": "^0.4.2",
