@@ -110,10 +110,16 @@ export default function DailyViewScreen(): React.ReactElement {
     openEditSheet('create', {
       preFill: { childId: child.id, date: currentDate },
     });
-    // TODO (Phase 4): the actual edit sheet UI consumes ui-store and reads
-    // preFill.childId + a startMinutes hint. Plumb startMinutes through
-    // EditSheetPreFill once the sheet ships.
+    // TODO (Phase 4 polish): plumb startMinutes through EditSheetPreFill so the
+    // sheet pre-fills the chosen slot instead of using the form default.
     void startMinutes;
+  };
+
+  const handleBlockPress = (scheduleId: number): void => {
+    openEditSheet('editAll', {
+      scheduleId,
+      occurrenceDate: currentDate,
+    });
   };
 
   if (children.length === 0) {
@@ -212,6 +218,7 @@ export default function DailyViewScreen(): React.ReactElement {
               childrenOrder={childrenOrder}
               columnWidth={columnWidth}
               onEmptySlotPress={handleEmptySlotPress}
+              onBlockPress={handleBlockPress}
             />
           </View>
         </View>

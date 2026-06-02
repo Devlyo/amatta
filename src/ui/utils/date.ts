@@ -41,3 +41,46 @@ export function todayIso(): ISODate {
   const dd = String(now.getDate()).padStart(2, '0');
   return `${yy}-${mm}-${dd}` as unknown as ISODate;
 }
+
+/**
+ * Returns the Monday-anchored start-of-week for the given ISO date. Computed
+ * in local time so DST boundaries don't silently shift the week. Mon=0..Sun=6
+ * per `domain/days-of-week.ts:dayOfWeekIndex` — subtract that many days to
+ * reach Monday.
+ */
+export function weekStartIso(iso: ISODate): ISODate {
+  const s = iso as unknown as string;
+  const y = Number(s.slice(0, 4));
+  const m = Number(s.slice(5, 7));
+  const d = Number(s.slice(8, 10));
+  const date = new Date(y, m - 1, d);
+  // Mon=1..Sun=0 from getDay(); shift to Mon=0..Sun=6.
+  const dow = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - dow);
+  const yy = String(date.getFullYear()).padStart(4, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}` as unknown as ISODate;
+}
+
+/**
+ * Returns the 7 ISO dates Mon..Sun for the week containing `iso`.
+ */
+export function weekDatesIso(iso: ISODate): ISODate[] {
+  const start = weekStartIso(iso);
+  return [0, 1, 2, 3, 4, 5, 6].map((offset) => shiftIsoDate(start, offset));
+}
+
+/**
+ * Formats a Korean week-range label like "5월 25일 — 5월 31일".
+ */
+export function formatKoreanWeekRange(weekStart: ISODate): string {
+  const end = shiftIsoDate(weekStart, 6);
+  const s = weekStart as unknown as string;
+  const e = end as unknown as string;
+  const sm = Number(s.slice(5, 7));
+  const sd = Number(s.slice(8, 10));
+  const em = Number(e.slice(5, 7));
+  const ed = Number(e.slice(8, 10));
+  return `${sm}월 ${sd}일 — ${em}월 ${ed}일`;
+}

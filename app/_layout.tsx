@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Text, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import 'react-native-reanimated';
@@ -10,6 +11,7 @@ import { runMigrations } from '../src/db/migrations';
 import { seedDevData } from '../src/db/seed-dev';
 import { useChildrenStore } from '../src/state/children-store';
 import { useSchedulesStore } from '../src/state/schedules-store';
+import { ScheduleEditSheet } from '../src/ui/sheets/ScheduleEditSheet';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -71,11 +73,16 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.flex}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="child/[id]" options={{ title: '자녀 주간' }} />
-        <Stack.Screen name="schedule/edit" options={{ title: '일정 편집', presentation: 'modal' }} />
-      </Stack>
+      <BottomSheetModalProvider>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="child/[id]" options={{ title: '자녀 주간' }} />
+          <Stack.Screen name="schedule/edit" options={{ title: '일정 편집', presentation: 'modal' }} />
+        </Stack>
+        {/* Sheet mounted once at the layout level so daily/weekly views can
+            open it via ui-store without route navigation. */}
+        <ScheduleEditSheet />
+      </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
 }

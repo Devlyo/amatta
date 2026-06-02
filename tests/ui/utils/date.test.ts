@@ -1,7 +1,10 @@
 import {
   formatKoreanDateLabel,
+  formatKoreanWeekRange,
   shiftIsoDate,
   todayIso,
+  weekDatesIso,
+  weekStartIso,
 } from '../../../src/ui/utils/date';
 import type { ISODate } from '../../../src/domain/types';
 
@@ -40,5 +43,45 @@ describe('shiftIsoDate', () => {
 describe('todayIso', () => {
   test('returns a YYYY-MM-DD string', () => {
     expect(todayIso()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('weekStartIso', () => {
+  // 2026-06-02 is a Tuesday → Monday is 2026-06-01.
+  test('Tuesday → previous Monday', () => {
+    expect(weekStartIso(iso('2026-06-02'))).toBe('2026-06-01');
+  });
+  test('Monday → itself', () => {
+    expect(weekStartIso(iso('2026-06-01'))).toBe('2026-06-01');
+  });
+  test('Sunday → previous Monday (6 days back)', () => {
+    expect(weekStartIso(iso('2026-06-07'))).toBe('2026-06-01');
+  });
+  test('crosses month boundary backward', () => {
+    expect(weekStartIso(iso('2026-07-01'))).toBe('2026-06-29');
+  });
+});
+
+describe('weekDatesIso', () => {
+  test('returns 7 ISO dates Mon..Sun', () => {
+    const days = weekDatesIso(iso('2026-06-02'));
+    expect(days).toEqual([
+      '2026-06-01',
+      '2026-06-02',
+      '2026-06-03',
+      '2026-06-04',
+      '2026-06-05',
+      '2026-06-06',
+      '2026-06-07',
+    ]);
+  });
+});
+
+describe('formatKoreanWeekRange', () => {
+  test('formats a Mon-anchored week as "M월 D일 — M월 D일"', () => {
+    expect(formatKoreanWeekRange(iso('2026-05-25'))).toBe('5월 25일 — 5월 31일');
+  });
+  test('formats a week that crosses a month boundary', () => {
+    expect(formatKoreanWeekRange(iso('2026-06-29'))).toBe('6월 29일 — 7월 5일');
   });
 });

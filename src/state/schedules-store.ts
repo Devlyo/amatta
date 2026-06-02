@@ -1,8 +1,17 @@
 import { create } from 'zustand';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import type { Schedule, ScheduleException } from '../domain/types';
+import type { ISODate, Schedule, ScheduleException } from '../domain/types';
 import { schedulesRepo, exceptionsRepo, type NewSchedule, type NewScheduleException } from '../db/repositories';
+
+export type ExceptionOverrides =
+  | { kind: 'cancel' }
+  | {
+      kind: 'modify';
+      overrideStartMinutes?: number | null;
+      overrideEndMinutes?: number | null;
+      overrideTitle?: string | null;
+    };
 
 interface SchedulesState {
   schedules: Schedule[];
@@ -15,6 +24,19 @@ interface SchedulesState {
   addException: (db: SQLiteDatabase, input: NewScheduleException) => Promise<ScheduleException>;
   updateException: (db: SQLiteDatabase, id: number, patch: Partial<Omit<ScheduleException, 'id'>>) => Promise<void>;
   removeException: (db: SQLiteDatabase, id: number) => Promise<void>;
+  /**
+   * Idempotent upsert for a per-occurrence exception. Deletes any existing
+   * row for `(scheduleId, date)` then inserts the new exception in a single
+   * transaction. Required because the underlying `schedule_exceptions` table
+   * has a `UNIQUE(schedule_id, date)` constraint and we deferred a true
+   * `ON CONFLICT` UPSERT to v3 (Architect S4).
+   */
+  applyException: (
+    db: SQLiteDatabase,
+    scheduleId: number,
+    date: ISODate,
+    overrides: ExceptionOverrides,
+  ) => Promise<void>;
 }
 
 async function loadBoth(db: SQLiteDatabase): Promise<{ schedules: Schedule[]; exceptions: ScheduleException[] }> {
@@ -69,6 +91,44 @@ export const useSchedulesStore = create<SchedulesState>()((set) => ({
 
   removeException: async (db, id) => {
     await exceptionsRepo.remove(db, id);
+    const { schedules, exceptions } = await loadBoth(db);
+    set({ schedules, exceptions });
+  },
+
+  applyException: async (db, scheduleId, date, overrides) => {
+    // Delete-then-insert in a single transaction so the row count for
+    // (scheduleId, date) stays exactly 1. UNIQUE(schedule_id, date) on the
+    // table guarantees the SELECT returns at most one match — but we
+    // delete-by-where to also handle any orphan rows from prior buggy paths.
+    await db.withTransactionAsync(async () => {
+      await db.runAsync(
+        'DELETE FROM schedule_exceptions WHERE schedule_id = ? AND date = ?',
+        [scheduleId, date as unknown as string],
+      );
+      if (overrides.kind === 'cancel') {
+        await db.runAsync(
+          `INSERT INTO schedule_exceptions
+             (schedule_id, date, kind,
+              override_start_minutes, override_end_minutes, override_title)
+           VALUES (?, ?, 'cancel', NULL, NULL, NULL)`,
+          [scheduleId, date as unknown as string],
+        );
+      } else {
+        await db.runAsync(
+          `INSERT INTO schedule_exceptions
+             (schedule_id, date, kind,
+              override_start_minutes, override_end_minutes, override_title)
+           VALUES (?, ?, 'modify', ?, ?, ?)`,
+          [
+            scheduleId,
+            date as unknown as string,
+            overrides.overrideStartMinutes ?? null,
+            overrides.overrideEndMinutes ?? null,
+            overrides.overrideTitle ?? null,
+          ],
+        );
+      }
+    });
     const { schedules, exceptions } = await loadBoth(db);
     set({ schedules, exceptions });
   },

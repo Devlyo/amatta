@@ -1,18 +1,27 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function ScheduleEditScreen() {
+/**
+ * Phase 4 onwards: edit happens in a globally-mounted `ScheduleEditSheet`
+ * driven by `useUiStore.openEditSheet`, not via route navigation. This
+ * route is retained so deep links don't 404, but it immediately bounces
+ * back to the previous screen.
+ */
+export default function ScheduleEditScreen(): React.ReactElement {
+  const router = useRouter();
+  useEffect(() => {
+    router.back();
+  }, [router]);
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <Text style={styles.text}>일정 편집 (Phase 4)</Text>
-      </View>
+      <View style={styles.container} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  text: { fontSize: 16 },
+  container: { flex: 1 },
 });
