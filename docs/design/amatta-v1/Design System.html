@@ -9,2172 +9,1782 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 
-<!-- Pretendard -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"/>
-<!-- Geist (English) -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"/>
 
 <style>
-  /* ── Paperlogy (Korean primary) ───────────────────────── */
-  @font-face {
-    font-family: 'Paperlogy';
-    font-weight: 900; font-style: normal; font-display: swap;
-    src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-9Black.woff2') format('woff2');
-  }
-  @font-face {
-    font-family: 'Paperlogy';
-    font-weight: 800; font-style: normal; font-display: swap;
-    src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-8ExtraBold.woff2') format('woff2');
-  }
-  @font-face {
-    font-family: 'Paperlogy';
-    font-weight: 700; font-style: normal; font-display: swap;
-    src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-7Bold.woff2') format('woff2');
-  }
-  @font-face {
-    font-family: 'Paperlogy';
-    font-weight: 600; font-style: normal; font-display: swap;
-    src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-6SemiBold.woff2') format('woff2');
-  }
-  @font-face {
-    font-family: 'Paperlogy';
-    font-weight: 500; font-style: normal; font-display: swap;
-    src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-5Medium.woff2') format('woff2');
-  }
-  @font-face {
-    font-family: 'Paperlogy';
-    font-weight: 400; font-style: normal; font-display: swap;
-    src: url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy-4Regular.woff2') format('woff2');
-  }
-
-  /* ── Tokens ───────────────────────────────────────────── */
+  /* ── Tokens — strict mirror of DESIGN_SYSTEM.md ─────────────── */
   :root {
-    /* Surfaces */
-    --cream:        #FEFDFA;
-    --cream-warm:   #FAF8F2;
-    --soft-gray:    #F5F3EE;
-    --hair:         #ECEAE4;
-    --paper:        #FFFFFF;
+    /* Surface */
+    --surface:       #FFFFFF;
+    --surface-warm:  #FAF8F2;
+    --surface-soft:  #F5F3EE;
 
-    /* Ink (text) — opacity-driven scale on #1d1d1b */
-    --ink:          #1d1d1b;
-    --ink-sub:      #7a756e;
-    --ink-90:       rgba(29,29,27,0.90);
-    --ink-70:       rgba(29,29,27,0.70);
-    --ink-50:       rgba(29,29,27,0.50);
-    --ink-30:       rgba(29,29,27,0.30);
-    --ink-12:       rgba(29,29,27,0.12);
-    --ink-06:       rgba(29,29,27,0.06);
-    --ink-04:       rgba(29,29,27,0.04);
+    /* Ink (opacity-based scale on #1D1D1B) */
+    --ink:           #1D1D1B;
+    --ink-sub:       #7A756E;
+    --ink-70:        rgba(29,29,27,0.70);
+    --ink-50:        rgba(29,29,27,0.50);
+    --ink-30:        rgba(29,29,27,0.30);
+    --ink-12:        rgba(29,29,27,0.12);
+    --ink-06:        rgba(29,29,27,0.06);
+    --ink-04:        rgba(29,29,27,0.04);
+    --hair:          #ECEAE4;
 
     /* Brand — Sunset Orange */
-    --primary:      #FF7144;
-    --primary-deep: #D8501F;
-    --primary-tint: #FFE2D0;
-    --primary-soft: #FFD8C2;
+    --primary:       #FF7144;
+    --primary-deep:  #D8501F;
+    --primary-tint:  #FFE2D0;
 
     /* Semantic */
-    --danger:       #E84A2D;
-    --success:      #3A7A4E;
+    --success:       #00C951;
+    --danger:        #FF4444;
+    --warning-dot:   #FFB000;
 
-    /* Kid · Peach (민준) */
-    --kid-peach-bg:   #FBF3F3;
-    --kid-peach-dot:  #F596E5;
-    --kid-peach-ink:  #7A2B5A;
-    /* Kid · Mint (서윤) */
-    --kid-mint-bg:    #F3F9F5;
-    --kid-mint-dot:   #AFDE94;
-    --kid-mint-ink:   #456A2A;
-    /* Kid · Sky (지호) */
-    --kid-sky-bg:     #F3F3FB;
-    --kid-sky-dot:    #B0C9F0;
-    --kid-sky-ink:    #1F2D8A;
-    /* Kid · Butter (서아) */
-    --kid-butter-bg:  #FFF4E5;
-    --kid-butter-dot: #FFB28C;
-    --kid-butter-ink: #7A4220;
+    /* Kid · 6 saturated sources */
+    --kid-pink:      #FFA9FF;
+    --kid-mint:      #C0F0AA;
+    --kid-blue:      #D8E6FF;
+    --kid-peach:     #FFE8D2;
+    --kid-citrus:    #E0E446;
+    --kid-lavender:  #C7B0FF;
+    /* Kid · derived block bg (source 15% + #FFFFFF 85%) */
+    --kid-pink-bg:     #FFF2FF;
+    --kid-mint-bg:     #F6FDF2;
+    --kid-blue-bg:     #F9FBFF;
+    --kid-peach-bg:    #FFFCF8;
+    --kid-citrus-bg:   #FAFBE3;
+    --kid-lavender-bg: #F7F3FF;
 
-    /* Radii */
-    --r-2: 4px;
-    --r-3: 6px;
-    --r-4: 8px;
-    --r-5: 10px;
-    --r-6: 12px;
-    --r-7: 14px;
-    --r-8: 16px;
-    --r-10: 20px;
-    --r-pill: 9999px;
-
-    /* Spacing — 4-base */
-    --sp-1: 4px;
-    --sp-2: 8px;
-    --sp-3: 12px;
-    --sp-4: 16px;
-    --sp-5: 20px;
-    --sp-6: 24px;
-    --sp-8: 32px;
-    --sp-10: 40px;
-    --sp-12: 48px;
-    --sp-16: 64px;
-    --sp-20: 80px;
+    /* Radius */
+    --r-xs:   6px;   /* tag, micro pill */
+    --r-sm:   8px;   /* schedule block */
+    --r-md:   12px;  /* button, input */
+    --r-lg:   16px;  /* card, sheet handle */
+    --r-xl:   24px;  /* bottom sheet top */
+    --r-full: 9999px;
 
     /* Type */
-    --kr-display: 'Paperlogy', 'Pretendard', -apple-system, system-ui, sans-serif;
-    --kr-text:    'Pretendard', 'Paperlogy', -apple-system, system-ui, sans-serif;
-    --en-text:    'Geist', 'Pretendard', -apple-system, system-ui, sans-serif;
-    --mono:       'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --font-display: 'Pretendard', -apple-system, system-ui, sans-serif;
+    --font-text:    'Pretendard', -apple-system, system-ui, sans-serif;
+    --font-en:      'Noto Sans', 'Pretendard', -apple-system, system-ui, sans-serif;
+    --font-mono:    'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
-    /* Shadows */
-    --shadow-1: 0 1px 2px rgba(29,29,27,0.06), 0 0 0 1px rgba(29,29,27,0.06);
-    --shadow-2: 0 4px 12px rgba(29,29,27,0.08), 0 0 0 1px rgba(29,29,27,0.04);
-    --shadow-3: 0 8px 24px rgba(29,29,27,0.10), 0 0 0 1px rgba(29,29,27,0.04);
-    --shadow-fab: 0 8px 20px rgba(255,113,68,0.45), 0 2px 4px rgba(0,0,0,0.08);
-    --shadow-pickup: 0 6px 16px rgba(255,113,68,0.28);
-    --shadow-inset-dark:
-      inset 0 0.5px 0 rgba(255,255,255,0.18),
-      inset 0 0 0 0.5px rgba(0,0,0,0.20),
-      0 1px 2px rgba(0,0,0,0.05);
+    /* Shadow — used sparingly per system */
+    --shadow-fab:    0 6px 16px rgba(255,113,68,0.35);
+    --shadow-focus:  0 4px 12px rgba(255,113,68,0.25);
+    --inset-btn:     inset 0 0.5px 0 rgba(255,255,255,0.25), inset 0 0 0 0.5px rgba(0,0,0,0.15);
   }
 
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0;
-    background: var(--cream);
+    background: var(--surface);
     color: var(--ink);
-    font-family: var(--kr-text);
+    font-family: var(--font-text);
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
   }
   ::selection { background: var(--primary-tint); color: var(--ink); }
 
-  /* ── Layout ───────────────────────────────────────────── */
-  .shell {
-    display: grid;
-    grid-template-columns: 232px minmax(0, 1fr);
-    max-width: 1320px;
-    margin: 0 auto;
-    min-height: 100vh;
-  }
-  .toc {
-    position: sticky; top: 0; align-self: start;
-    height: 100vh; overflow-y: auto;
-    padding: 40px 24px 40px 40px;
-    border-right: 1px solid var(--hair);
-  }
-  .toc__brand {
-    display: flex; align-items: baseline; gap: 6px;
-    margin-bottom: 28px;
-  }
-  .toc__brand .wm {
-    font-family: var(--kr-display);
-    font-weight: 900;
-    font-size: 24px;
-    letter-spacing: -1px;
-    color: var(--primary);
-    line-height: 1;
-  }
-  .toc__brand .ver {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--ink-sub);
-    font-weight: 400;
-  }
-  .toc__group {
-    font-family: var(--mono);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--ink-sub);
-    margin: 18px 0 8px;
-    font-weight: 500;
-  }
-  .toc__link {
-    display: block;
-    font-size: 13px;
-    color: var(--ink-70);
-    text-decoration: none;
-    padding: 5px 0;
-    line-height: 1.35;
-    transition: color .15s;
-  }
+  /* ── Layout shell ─────────────────────────────────── */
+  .shell { display: grid; grid-template-columns: 240px minmax(0,1fr); max-width: 1360px; margin: 0 auto; min-height: 100vh; }
+  .toc { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+         padding: 36px 24px 40px 40px; border-right: 1px solid var(--hair); background: var(--surface); }
+  .toc__brand { display: flex; align-items: baseline; gap: 8px; margin-bottom: 22px; }
+  .toc__brand .wm { font-family: var(--font-display); font-weight: 700; font-size: 22px;
+                    letter-spacing: -0.01em; color: var(--primary); line-height: 1; }
+  .toc__brand .ver { font-family: var(--font-en); font-size: 11px; color: var(--ink-sub); font-weight: 500; letter-spacing: 0.04em; }
+  .toc__group { font-family: var(--font-en); font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+                color: var(--ink-sub); margin: 18px 0 6px; font-weight: 500; }
+  .toc__link { display: flex; gap: 10px; font-size: 13px; color: var(--ink-70);
+               text-decoration: none; padding: 5px 0; line-height: 1.35; transition: color .12s; }
   .toc__link:hover { color: var(--ink); }
-  .toc__link .num {
-    font-family: var(--mono);
-    color: var(--ink-30);
-    font-size: 10px;
-    margin-right: 8px;
-  }
+  .toc__link .num { font-family: var(--font-en); color: var(--ink-30); font-size: 11px; min-width: 18px; font-weight: 500; }
 
-  main { padding: 56px 56px 120px; min-width: 0; }
+  main { padding: 48px 56px 120px; min-width: 0; }
 
-  /* ── Typography utility ───────────────────────────────── */
-  .kicker {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--primary-deep);
-  }
-  .h-display {
-    font-family: var(--kr-display);
-    font-weight: 800;
-    font-size: 64px;
-    line-height: 1.02;
-    letter-spacing: -2.5px;
-    margin: 8px 0 0;
-  }
-  .h-section {
-    font-family: var(--kr-display);
-    font-weight: 800;
-    font-size: 36px;
-    line-height: 1.08;
-    letter-spacing: -1.4px;
-    margin: 0;
-  }
-  .h-sub {
-    font-family: var(--kr-display);
-    font-weight: 700;
-    font-size: 22px;
-    line-height: 1.15;
-    letter-spacing: -0.6px;
-    margin: 0;
-  }
-  .h-card {
-    font-family: var(--kr-text);
-    font-weight: 600;
-    font-size: 14px;
-    letter-spacing: -0.2px;
-    margin: 0;
-    color: var(--ink);
-  }
-  .body {
-    font-family: var(--kr-text);
-    font-weight: 400;
-    font-size: 14.5px;
-    line-height: 1.65;
-    color: var(--ink-70);
-    letter-spacing: -0.1px;
-  }
-  .body-sm {
-    font-family: var(--kr-text);
-    font-weight: 400;
-    font-size: 12.5px;
-    line-height: 1.55;
-    color: var(--ink-sub);
-    letter-spacing: -0.05px;
-  }
-  .mono { font-family: var(--mono); }
+  /* ── Type roles (mirror README §4) ────────────────── */
+  .t-display { font-family: var(--font-display); font-weight: 700; font-size: 32px; line-height: 1.15; letter-spacing: -0.02em; }
+  .t-title-l { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.20; letter-spacing: -0.01em; }
+  .t-title-m { font-family: var(--font-display); font-weight: 600; font-size: 20px; line-height: 1.25; }
+  .t-title-s { font-family: var(--font-text);    font-weight: 600; font-size: 16px; line-height: 1.30; }
+  .t-body-l  { font-family: var(--font-text);    font-weight: 400; font-size: 16px; line-height: 1.50; }
+  .t-body    { font-family: var(--font-text);    font-weight: 400; font-size: 14px; line-height: 1.45; }
+  .t-caption { font-family: var(--font-text);    font-weight: 500; font-size: 12px; line-height: 1.40; }
+  .t-mono    { font-family: var(--font-mono);    font-weight: 400; font-size: 12px; line-height: 1.00; }
 
-  /* ── Section ──────────────────────────────────────────── */
-  section.block {
-    padding: 56px 0;
-    border-top: 1px solid var(--hair);
-  }
-  section.block:first-of-type { border-top: none; padding-top: 0; }
-  .block__head {
-    display: grid;
-    grid-template-columns: 200px minmax(0, 1fr);
-    gap: 40px;
-    margin-bottom: 36px;
-  }
-  .block__head .meta { padding-top: 6px; }
-  .block__head .meta .num {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--ink-30);
-    letter-spacing: 0.08em;
-  }
+  /* doc utility */
+  .kicker { font-family: var(--font-en); font-size: 11px; font-weight: 500;
+            text-transform: uppercase; letter-spacing: 0.14em; color: var(--primary-deep); }
+  .h-hero { font-family: var(--font-display); font-weight: 700; font-size: 56px; line-height: 1.0; letter-spacing: -0.025em; margin: 6px 0 0; color: var(--ink); }
+  .h-section { font-family: var(--font-display); font-weight: 700; font-size: 28px; line-height: 1.15; letter-spacing: -0.01em; margin: 0; }
+  .h-sub { font-family: var(--font-display); font-weight: 600; font-size: 18px; line-height: 1.25; margin: 0; }
+  .body { font-family: var(--font-text); font-weight: 400; font-size: 14px; line-height: 1.6; color: var(--ink-70); }
+  .body-sm { font-family: var(--font-text); font-weight: 400; font-size: 12.5px; line-height: 1.5; color: var(--ink-sub); }
+  .mono { font-family: var(--font-mono); }
+  b.in { color: var(--ink); font-weight: 600; }
+
+  /* ── Section frame ────────────────────────────────── */
+  section.block { padding: 56px 0; border-top: 1px solid var(--hair); }
+  section.block:first-of-type { border-top: none; padding-top: 16px; }
+  .block__head { display: grid; grid-template-columns: 160px minmax(0,1fr); gap: 40px; margin-bottom: 32px; }
+  .block__head .meta { padding-top: 4px; }
+  .block__head .meta .num { font-family: var(--font-en); font-size: 11px; color: var(--ink-30); letter-spacing: 0.12em; font-weight: 500; }
   .block__head .lead { max-width: 720px; }
-  .block__head .lead p { margin: 12px 0 0; }
-  .block__body { display: flex; flex-direction: column; gap: 32px; }
+  .block__head .lead p { margin: 10px 0 0; }
+  .block__body { display: flex; flex-direction: column; gap: 24px; }
 
-  /* ── Card ─────────────────────────────────────────────── */
-  .card {
-    background: var(--paper);
-    border: 1px solid var(--hair);
-    border-radius: var(--r-6);
-    padding: 24px;
-  }
-  .card--soft {
-    background: var(--cream-warm);
-    border: 1px solid var(--hair);
-    border-radius: var(--r-6);
-    padding: 24px;
-  }
-  .card__label {
-    font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--ink-sub);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 12px;
-  }
+  /* ── Card chrome (doc) ────────────────────────────── */
+  .doc-card { background: var(--surface); border: 1px solid var(--hair); border-radius: var(--r-lg); padding: 20px; }
+  .doc-card--soft { background: var(--surface-warm); border: 1px solid var(--hair); border-radius: var(--r-lg); padding: 20px; }
+  .doc-card__label { font-family: var(--font-en); font-size: 10px; color: var(--ink-sub);
+                     text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px; font-weight: 500; }
 
-  /* ── Grid ─────────────────────────────────────────────── */
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-  .row    { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  /* ── Grids ────────────────────────────────────────── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .grid-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 
-  /* ── Color swatch ─────────────────────────────────────── */
-  .sw {
-    border-radius: var(--r-5);
-    padding: 14px;
-    border: 1px solid var(--hair);
-    display: flex; flex-direction: column;
-    min-height: 120px;
-  }
-  .sw__chip {
-    width: 100%; height: 56px;
-    border-radius: var(--r-4);
-    margin-bottom: 12px;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
-  }
-  .sw__name {
-    font-family: var(--kr-text);
-    font-weight: 600;
-    font-size: 13px;
-    letter-spacing: -0.2px;
-  }
-  .sw__role {
-    font-size: 11px;
-    color: var(--ink-sub);
-    margin-top: 2px;
-    line-height: 1.4;
-  }
-  .sw__hex {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--ink-70);
-    margin-top: 8px;
-    letter-spacing: 0;
-  }
+  /* ── Swatches ─────────────────────────────────────── */
+  .sw { border-radius: var(--r-md); padding: 12px; border: 1px solid var(--hair); display: flex; flex-direction: column; background: var(--surface); min-height: 116px; }
+  .sw__chip { width: 100%; height: 56px; border-radius: var(--r-sm); margin-bottom: 12px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04); }
+  .sw__name { font-family: var(--font-text); font-weight: 600; font-size: 13px; letter-spacing: -0.01em; color: var(--ink); }
+  .sw__role { font-size: 11.5px; color: var(--ink-sub); margin-top: 2px; line-height: 1.4; }
+  .sw__hex { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-70); margin-top: 8px; }
 
-  /* ── Token table ──────────────────────────────────────── */
-  table.tokens {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: var(--kr-text);
-    font-size: 13px;
-  }
-  table.tokens th, table.tokens td {
-    padding: 10px 14px;
-    text-align: left;
-    border-bottom: 1px solid var(--hair);
-    vertical-align: middle;
-  }
-  table.tokens th {
-    font-family: var(--mono);
-    font-size: 10.5px;
-    font-weight: 500;
-    color: var(--ink-sub);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    background: var(--cream-warm);
-  }
-  table.tokens td.mono { font-family: var(--mono); font-size: 12px; color: var(--ink-70); }
+  /* ── Type sample row ──────────────────────────────── */
+  .type-row { display: grid; grid-template-columns: 220px minmax(0,1fr); gap: 24px;
+              padding: 18px 0; border-bottom: 1px solid var(--hair); align-items: baseline; }
+  .type-row:last-child { border-bottom: none; }
+  .type-row .spec { font-family: var(--font-mono); font-size: 11px; color: var(--ink-sub); line-height: 1.55; }
+  .type-row .spec strong { font-family: var(--font-text); font-weight: 600; color: var(--ink); font-size: 12px;
+                           display: block; margin-bottom: 4px; letter-spacing: -0.01em; }
+  .type-row .spec em { font-style: normal; color: var(--ink-30); }
+
+  /* ── Token table ──────────────────────────────────── */
+  table.tokens { width: 100%; border-collapse: collapse; font-family: var(--font-text); font-size: 13px; }
+  table.tokens th, table.tokens td { padding: 10px 14px; text-align: left;
+                                     border-bottom: 1px solid var(--hair); vertical-align: middle; }
+  table.tokens th { font-family: var(--font-en); font-size: 10px; font-weight: 500; color: var(--ink-sub);
+                    text-transform: uppercase; letter-spacing: 0.12em; background: var(--surface-warm); }
+  table.tokens td.mono { font-family: var(--font-mono); font-size: 12px; color: var(--ink-70); }
   table.tokens td.swatch { width: 40px; }
-  table.tokens td.swatch .dot {
-    width: 24px; height: 24px;
-    border-radius: var(--r-3);
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
-  }
+  table.tokens td.swatch .dot { width: 24px; height: 24px; border-radius: var(--r-xs);
+                                box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06); }
 
-  /* ── Type sample ──────────────────────────────────────── */
-  .type-row {
-    display: grid;
-    grid-template-columns: 180px minmax(0, 1fr);
-    gap: 24px;
-    padding: 20px 0;
-    border-bottom: 1px solid var(--hair);
-    align-items: baseline;
-  }
-  .type-row .spec {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--ink-sub);
-    line-height: 1.5;
-  }
-  .type-row .spec strong {
-    font-family: var(--kr-text);
-    font-weight: 600;
-    color: var(--ink);
-    font-size: 12px;
-    display: block;
-    margin-bottom: 4px;
-  }
+  /* ── Radius visualizer ────────────────────────────── */
+  .rad { display: flex; gap: 22px; flex-wrap: wrap; }
+  .rad__item { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  .rad__box { width: 72px; height: 72px; background: var(--ink); }
+  .rad__lbl { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-sub); text-align: center; line-height: 1.4; }
+  .rad__lbl b { font-family: var(--font-text); font-weight: 600; color: var(--ink); display: block; font-size: 12px; }
 
-  /* ── Phone preview (component samples on the actual surface) ── */
-  .preview {
-    background: var(--cream);
-    border-radius: var(--r-8);
-    border: 1px solid var(--hair);
-    padding: 24px;
-    display: flex; flex-direction: column;
-    gap: 16px;
-  }
-  .preview__caption {
-    font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--ink-sub);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 4px;
-  }
+  /* ── Icon grid (live) ─────────────────────────────── */
+  .icons { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
+  .icons__cell { aspect-ratio: 1; border: 1px solid var(--hair); border-radius: var(--r-md);
+                 display: grid; place-items: center; background: var(--surface); position: relative; padding-bottom: 12px; }
+  .icons__cell .nm { position: absolute; bottom: 5px; left: 0; right: 0; text-align: center;
+                     font-family: var(--font-mono); font-size: 9.5px; color: var(--ink-sub); letter-spacing: 0.02em; }
+  .icons__cell svg { color: var(--ink); }
 
-  /* ── Components: real samples ─────────────────────────── */
-  /* Buttons */
+  /* ── Live preview frame ───────────────────────────── */
+  .preview { background: var(--surface-warm); border-radius: var(--r-lg); border: 1px solid var(--hair);
+             padding: 28px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .preview__caption { font-family: var(--font-mono); font-size: 10px; color: var(--ink-sub);
+                      text-transform: uppercase; letter-spacing: 0.12em; }
+  .preview__caption + * { margin-top: -4px; }
+
+  /* ═══════════════════════════════════════════════════════════
+     COMPONENTS — exact spec, deterministic radii
+     ═══════════════════════════════════════════════════════════ */
+
+  /* ── Buttons ──────────────────────────────────────── */
   .btn {
-    font-family: var(--kr-text);
-    font-weight: 600;
-    font-size: 13.5px;
-    letter-spacing: -0.2px;
-    border: none;
-    padding: 9px 16px;
-    border-radius: var(--r-pill);
+    font-family: var(--font-text);
+    font-weight: 500; font-size: 14px;
+    letter-spacing: -0.01em;
+    padding: 12px 20px;
+    border-radius: var(--r-md);            /* 12px — per spec */
+    border: 1px solid transparent;
     cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: opacity .15s, transform .12s;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px;
+    transition: background .12s ease, box-shadow .12s ease, color .12s ease, border-color .12s ease;
+    user-select: none;
+    line-height: 1.0;
+    min-height: 40px;
   }
-  .btn:active { transform: scale(0.97); }
-  .btn--primary {
+  .btn:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+
+  /* Ink (filled black) — primary CTA in onboarding · 완료 · 시작하기 */
+  .btn--ink {
     background: var(--ink);
     color: #fff;
-    box-shadow: var(--shadow-inset-dark);
+    box-shadow: var(--inset-btn);
   }
-  .btn--brand {
+  .btn--ink:hover  { background: #2A2A28; }
+  .btn--ink:active { background: #000; }
+  .btn--ink:disabled { background: rgba(29,29,27,0.18); cursor: not-allowed; box-shadow: none; color: rgba(255,255,255,0.9); }
+
+  /* Primary (filled Sunset Orange) — brand action · FAB · 픽업 CTA */
+  .btn--primary {
     background: var(--primary);
     color: #fff;
-    box-shadow: 0 2px 8px rgba(255,113,68,0.30);
+    box-shadow: var(--inset-btn);
   }
+  .btn--primary:hover  { background: #F46438; }
+  .btn--primary:active { background: var(--primary-deep); }
+  .btn--primary:disabled { background: rgba(255,113,68,0.40); cursor: not-allowed; box-shadow: none; color: rgba(255,255,255,0.85); }
+
+  /* Ghost / Outline */
   .btn--ghost {
     background: transparent;
     color: var(--ink);
-    border: 1px solid var(--hair);
+    border-color: var(--ink-30);
   }
+  .btn--ghost:hover  { background: var(--ink-04); border-color: var(--ink); }
+  .btn--ghost:active { background: var(--ink-06); }
+  .btn--ghost:disabled { color: var(--ink-50); border-color: var(--ink-12); cursor: not-allowed; background: transparent; }
+
+  /* Soft — ink-04 fill (실제 GhostCTA · 시트 "취소") */
   .btn--soft {
     background: var(--ink-04);
     color: var(--ink);
+    font-weight: 500;
   }
+  .btn--soft:hover  { background: var(--ink-06); }
+  .btn--soft:active { background: var(--ink-12); }
+
+  /* Surface (warm fill) — alt 보조 액션 */
+  .btn--surface {
+    background: var(--surface-warm);
+    color: var(--ink);
+  }
+  .btn--surface:hover  { background: #F2EFE6; }
+  .btn--surface:active { background: var(--surface-soft); }
+
+  /* Danger */
   .btn--danger {
-    background: transparent;
-    color: var(--danger);
-    border: 1px solid var(--hair);
-  }
-  .btn--sm { font-size: 12px; padding: 6px 12px; }
-
-  .pill {
-    font-family: var(--kr-text);
-    font-weight: 500;
-    font-size: 12.5px;
-    letter-spacing: -0.2px;
-    padding: 6px 12px;
-    border-radius: var(--r-pill);
-    border: 1px solid var(--hair);
-    background: #fff;
-    color: var(--ink);
-    cursor: pointer;
-  }
-  .pill--active {
-    background: var(--ink);
+    background: var(--danger);
     color: #fff;
-    border-color: var(--ink);
-    font-weight: 600;
+    box-shadow: var(--inset-btn);
   }
+  .btn--danger:hover  { background: #F03A3A; }
+  .btn--danger:active { background: #DC2E2E; }
 
-  /* Tab seg */
-  .seg {
-    display: inline-grid;
-    grid-auto-flow: column;
-    background: var(--ink-04);
-    border-radius: var(--r-pill);
-    padding: 4px;
-    gap: 4px;
-  }
-  .seg__opt {
-    font-family: var(--kr-text);
-    font-weight: 600;
-    font-size: 12.5px;
-    letter-spacing: -0.2px;
-    padding: 7px 16px;
-    border-radius: var(--r-pill);
-    color: var(--ink-70);
-    cursor: pointer;
-    background: transparent;
-    border: none;
-  }
-  .seg__opt--active {
-    background: var(--ink);
-    color: #fff;
-  }
+  /* Radius modifiers */
+  .btn--pill  { border-radius: var(--r-full); }   /* full — major CTA in 온보딩/시트 */
+  .btn--sheet { border-radius: 14px; }             /* sheet 내부 버튼 — radius 14 */
 
-  /* Day circle */
-  .day {
-    width: 30px; height: 30px;
-    border-radius: var(--r-pill);
-    border: 1px solid var(--hair);
-    background: #fff;
-    color: var(--ink);
-    font-family: var(--kr-text);
-    font-size: 12px;
-    font-weight: 500;
-    display: grid; place-items: center;
-    cursor: pointer;
-  }
-  .day--active {
-    background: var(--ink);
-    color: #fff;
-    border-color: var(--ink);
-    font-weight: 600;
-  }
+  /* Sizes */
+  .btn--sm { padding: 8px 14px; font-size: 13px; min-height: 32px; border-radius: var(--r-md); }
+  .btn--lg { padding: 14px 16px; font-size: 15px; font-weight: 600; min-height: 48px; }
+  .btn--block { width: 100%; }
 
-  /* Toggle switch */
-  .tgl {
-    width: 40px; height: 24px;
-    border-radius: var(--r-pill);
-    background: #D9D5CC;
-    position: relative;
-    cursor: pointer;
-    transition: background .15s;
-  }
-  .tgl--on { background: var(--ink); }
-  .tgl::after {
-    content: ''; position: absolute;
-    top: 2px; left: 2px;
-    width: 20px; height: 20px;
-    border-radius: var(--r-pill);
-    background: #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    transition: left .15s;
-  }
-  .tgl--on::after { left: 18px; }
-
-  /* Input */
-  .input {
-    width: 100%;
-    border: 1px solid var(--hair);
-    background: #fff;
-    border-radius: var(--r-5);
-    padding: 10px 12px;
-    font-family: var(--kr-text);
-    font-size: 14px;
-    color: var(--ink);
-    outline: none;
-    letter-spacing: -0.2px;
-  }
-  .input::placeholder { color: var(--ink-50); }
-  .input:focus {
-    border-color: var(--ink-30);
-    box-shadow: 0 0 0 3px var(--ink-06);
-  }
-
-  /* FAB */
+  /* ── FAB — black by default · full pill ────────────── */
   .fab {
     width: 56px; height: 56px;
-    border-radius: var(--r-pill);
-    background: var(--primary);
+    border-radius: var(--r-full);
+    background: var(--ink);
     color: #fff;
+    border: none; cursor: pointer;
     display: grid; place-items: center;
-    border: none;
-    cursor: pointer;
-    box-shadow: var(--shadow-fab);
+    box-shadow: 0 6px 16px rgba(29,29,27,0.30), 0 2px 4px rgba(29,29,27,0.10);
+    transition: background .12s, box-shadow .12s, transform .08s;
   }
+  .fab:hover  { background: #2A2A28; }
+  .fab:active { background: #000; transform: scale(0.96); }
+  .fab:disabled { opacity: 0.4; cursor: not-allowed; }
+  .fab--sm { width: 44px; height: 44px; box-shadow: 0 4px 10px rgba(29,29,27,0.25); }
+  /* Brand FAB — exceptional, only when brand intent is primary */
+  .fab--primary { background: var(--primary); box-shadow: var(--shadow-fab); }
+  .fab--primary:hover { background: #F46438; }
+  .fab--primary:active { background: var(--primary-deep); }
 
-  /* Pickup pill */
-  .pickup {
-    display: flex; align-items: center; gap: 10px;
-    background: linear-gradient(100deg, var(--primary) 0%, var(--primary-deep) 60%, var(--primary) 100%);
-    color: #fff;
-    border-radius: var(--r-6);
+  /* ── Inputs ───────────────────────────────────────── */
+  .field {
+    width: 100%;
+    font-family: var(--font-text);
+    font-size: 14px; font-weight: 400;
+    color: var(--ink);
+    background: var(--surface-warm);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-md);             /* 12px */
     padding: 12px 14px;
-    box-shadow: var(--shadow-pickup);
+    outline: none;
+    transition: border-color .12s, box-shadow .12s;
+    line-height: 1.4;
   }
-  .pickup__icon {
-    width: 28px; height: 28px;
-    border-radius: var(--r-4);
-    background: rgba(255,255,255,0.22);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3);
-    display: grid; place-items: center;
-  }
-  .pickup__label {
-    font-family: var(--mono);
-    font-size: 9px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    opacity: 0.9;
-    font-weight: 500;
-  }
-  .pickup__main {
-    font-family: var(--kr-display);
-    font-weight: 700;
-    font-size: 14px;
-    letter-spacing: -0.3px;
-    margin-top: 1px;
-  }
-  .pickup__time { font-family: var(--mono); font-weight: 500; margin-right: 6px; }
+  .field::placeholder { color: var(--ink-sub); }
+  .field:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(255,113,68,0.30); }
+  .field:disabled { opacity: 0.5; cursor: not-allowed; }
+  .field--lg { padding: 14px 16px; font-size: 15px; }
 
-  /* Avatar */
-  .avatar {
-    width: 40px; height: 40px;
-    border-radius: var(--r-pill);
+  /* ── Toggle (Switch) ──────────────────────────────── */
+  .toggle {
+    width: 44px; height: 26px;
+    border-radius: var(--r-full);
+    position: relative;
+    flex: 0 0 auto;
+    background: var(--ink-12);
+    cursor: pointer;
+    transition: background .18s ease;
+  }
+  .toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 22px; height: 22px; border-radius: var(--r-full);
     background: #fff;
-    display: grid; place-items: center;
-    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 1px 1px rgba(0,0,0,0.08);
+    transition: left .2s cubic-bezier(.2,.8,.2,1);
   }
+  .toggle--on { background: var(--primary); }
+  .toggle--on::after { left: 20px; }
 
-  /* Schedule block */
+  /* ── Segmented control ────────────────────────────── */
+  .seg { display: inline-flex; background: var(--ink-04); border-radius: var(--r-md); padding: 3px; gap: 2px; }
+  .seg__opt { font-family: var(--font-text); font-weight: 500; font-size: 13px;
+              padding: 8px 14px; border-radius: 9px; color: var(--ink-sub); cursor: pointer;
+              background: transparent; border: none; transition: all .12s; }
+  .seg__opt:hover { color: var(--ink); }
+  .seg__opt--active { background: var(--surface); color: var(--ink); font-weight: 600;
+                      box-shadow: 0 1px 2px rgba(0,0,0,0.06), inset 0 0 0 1px var(--hair); }
+
+  /* ── Card ─────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-lg);
+    padding: 20px;
+  }
+  .card--warm { background: var(--surface-warm); }
+  .card--soft { background: var(--surface-soft); }
+
+  /* ── Tag / Pill ───────────────────────────────────── */
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: var(--ink-04); color: var(--ink);
+    font-family: var(--font-text); font-size: 12px; font-weight: 500;
+    border-radius: var(--r-xs);
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    background: var(--ink-04); color: var(--ink);
+    font-family: var(--font-text); font-size: 12px; font-weight: 500;
+    border-radius: var(--r-full);
+  }
+  .pill--primary { background: var(--primary-tint); color: var(--primary-deep); }
+  .pill--success { background: rgba(0,201,81,0.12); color: #008638; }
+  .pill--danger  { background: rgba(255,68,68,0.10); color: #C5232A; }
+
+  /* ── Schedule block ───────────────────────────────── */
   .sched {
-    border-radius: var(--r-4);
+    border-radius: var(--r-sm);            /* 8px */
     padding: 8px 10px;
-    box-shadow: inset 3px 0 0 currentColor;
+    min-height: 60px;
     display: flex; flex-direction: column; gap: 2px;
   }
-  .sched__title {
-    font-family: var(--kr-text);
-    font-weight: 600;
-    font-size: 12.5px;
-    letter-spacing: -0.2px;
-    display: flex; align-items: center; gap: 4px;
-  }
-  .sched__time {
-    font-family: var(--mono);
-    font-size: 10.5px;
-    opacity: 0.85;
-    letter-spacing: -0.1px;
-  }
+  .sched__row { display: flex; align-items: center; gap: 5px;
+                font-family: var(--font-text); font-size: 12px; font-weight: 500;
+                color: var(--ink); }
+  .sched__ico { opacity: 0.85; display: inline-flex; }
+  .sched__name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sched__time { font-family: var(--font-text); font-size: 10px; color: var(--ink-sub); }
+  .sched__place { font-family: var(--font-text); font-size: 10px; color: var(--ink-sub); }
+  /* Pickup indicator — PRIMARY color, blocks that need pickup */
+  .sched__pickup { width: 7px; height: 7px; border-radius: var(--r-full); background: var(--primary);
+                   box-shadow: 0 0 0 2px #fff; flex: 0 0 auto; }
+  /* Modify exception — warning-dot color, 6px, info-level */
+  .sched__warn   { width: 6px; height: 6px; border-radius: var(--r-full); background: var(--warning-dot); flex: 0 0 auto; }
 
-  /* Kid header chip */
-  .kid {
-    display: flex; align-items: center; gap: 8px;
-    padding: 6px 10px 6px 6px;
-    background: #fff;
-    border: 1px solid var(--hair);
-    border-radius: var(--r-pill);
-  }
-  .kid__avatar {
-    width: 28px; height: 28px;
-    border-radius: var(--r-pill);
-    background: #fff;
-    display: grid; place-items: center;
-    overflow: hidden;
-    flex: 0 0 auto;
-  }
-  .kid__name {
-    font-family: var(--kr-text);
-    font-weight: 600;
-    font-size: 12.5px;
-    letter-spacing: -0.2px;
-  }
-  .kid__grade {
-    font-family: var(--mono);
-    font-size: 9.5px;
-    color: var(--ink-sub);
-    letter-spacing: 0.04em;
-  }
+  /* ── Kid swatch (palette card) ────────────────────── */
+  .kid-card { padding: 18px; }
+  .kid-card__head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .kid-card__avatar { width: 44px; height: 44px; border-radius: var(--r-full); display: grid; place-items: center; box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--c, var(--ink-12)); }
+  .kid-card__name { font-family: var(--font-text); font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+  .kid-card__role { font-family: var(--font-text); font-size: 12px; color: var(--ink-sub); margin-top: 1px; }
+  .kid-card__chips { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 12px; }
+  .kid-card__chip { height: 38px; border-radius: var(--r-xs); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04); }
+  .kid-card__hex { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-sub); line-height: 1.7; }
 
-  /* Spacing visualizer */
-  .sp {
-    display: flex; align-items: flex-end; gap: 12px;
-    flex-wrap: wrap;
-  }
-  .sp__item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-  .sp__bar {
-    background: var(--primary-tint);
-    border-radius: 2px;
-    width: 28px;
-    box-shadow: inset 0 0 0 1px var(--primary-soft);
-  }
-  .sp__label {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--ink-sub);
-    text-align: center;
-    line-height: 1.3;
-  }
-  .sp__label b {
-    font-family: var(--kr-text);
-    font-weight: 600;
-    color: var(--ink);
-    display: block;
-    font-size: 11px;
-  }
+  /* ── Setting list ─────────────────────────────────── */
+  .listcard { background: var(--surface); border: 1px solid var(--hair); border-radius: var(--r-lg);
+              padding: 4px; overflow: hidden; }
+  .listrow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; }
+  .listrow:hover { background: var(--ink-04); }
+  .listrow__label { flex: 1; font-family: var(--font-text); font-size: 14px; color: var(--ink); }
+  .listrow__label .sub { font-family: var(--font-text); font-size: 12px; color: var(--ink-sub);
+                         margin-top: 2px; }
+  .listrow__chevR { color: var(--ink-30); }
+  .listrow__val { font-size: 13px; color: var(--ink-sub); }
+  .listdiv { border-top: 1px solid var(--ink-04); margin: 0 12px; }
 
-  /* Radius visualizer */
-  .rad {
-    display: flex; align-items: center; gap: 18px;
-    flex-wrap: wrap;
-  }
-  .rad__item { display: flex; flex-direction: column; gap: 8px; align-items: center; }
-  .rad__box {
-    width: 64px; height: 64px;
-    background: var(--ink);
-    box-shadow: var(--shadow-inset-dark);
-  }
-  .rad__lbl {
-    font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--ink-sub);
-    text-align: center;
-  }
-  .rad__lbl b {
-    font-family: var(--kr-text);
-    font-weight: 600;
-    color: var(--ink);
-    display: block;
-    font-size: 11.5px;
-  }
+  /* ── Avatars ──────────────────────────────────────── */
+  .av-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+  .av-cell { aspect-ratio: 1; border: 1px solid var(--hair); border-radius: var(--r-md); background: var(--surface-warm);
+             display: grid; place-items: center; padding: 8px; position: relative; padding-bottom: 20px; }
+  .av-cell img { width: 100%; height: 100%; object-fit: contain; }
+  .av-cell .nm { position: absolute; bottom: 5px; left: 0; right: 0; text-align: center;
+                 font-family: var(--font-mono); font-size: 9.5px; color: var(--ink-sub); }
 
-  /* Shadow demo */
-  .shd {
-    background: #fff;
-    border-radius: var(--r-5);
-    padding: 18px 16px;
-    width: 100%;
-    text-align: center;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--ink-sub);
-  }
-  .shd b { display: block; color: var(--ink); font-family: var(--kr-text); font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+  /* ── Mascot row ───────────────────────────────────── */
+  .mascot { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .mascot__cell { aspect-ratio: 1; border: 1px solid var(--hair); border-radius: var(--r-lg);
+                  background: var(--surface-warm); display: grid; place-items: center; padding: 16px;
+                  position: relative; padding-bottom: 28px; overflow: hidden; }
+  .mascot__cell img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .mascot__cell .nm { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center;
+                      font-family: var(--font-mono); font-size: 10px; color: var(--ink-sub); }
 
-  /* Icon grid */
-  .icons {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 12px;
-  }
-  .icons__cell {
-    aspect-ratio: 1;
-    border: 1px solid var(--hair);
-    border-radius: var(--r-5);
-    display: grid; place-items: center;
-    background: var(--paper);
-    position: relative;
-  }
-  .icons__cell .nm {
-    position: absolute;
-    bottom: 6px;
-    font-family: var(--mono);
-    font-size: 9px;
-    color: var(--ink-sub);
-    letter-spacing: 0;
-  }
-  .icons__cell svg { color: var(--ink); }
+  /* ── FAB shadow demo ──────────────────────────────── */
+  .shd { background: var(--surface); border-radius: var(--r-md); padding: 22px 16px; width: 100%; text-align: center;
+         font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-sub); }
+  .shd b { display: block; color: var(--ink); font-family: var(--font-text); font-weight: 600; font-size: 12px; margin-bottom: 6px; }
+  .shd .css { font-size: 10px; line-height: 1.5; margin-top: 8px; color: var(--ink-30); }
 
-  /* Do / Don't */
-  .gd {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-  .gd__col {
-    border-radius: var(--r-6);
-    padding: 20px;
-    border: 1px solid var(--hair);
-  }
-  .gd__col--do    { background: #F4F9F4; border-color: #DDEAD8; }
-  .gd__col--dont  { background: #FAF1F0; border-color: #EEDAD7; }
-  .gd__head {
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    font-weight: 600;
-    margin-bottom: 12px;
-  }
-  .gd__col--do .gd__head   { color: #2E6B3F; }
+  /* ── Do/Don't ─────────────────────────────────────── */
+  .gd { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .gd__col { border-radius: var(--r-lg); padding: 20px; border: 1px solid var(--hair); }
+  .gd__col--do { background: #F4F9F4; border-color: #DDEAD8; }
+  .gd__col--dont { background: #FAF1F0; border-color: #EEDAD7; }
+  .gd__head { font-family: var(--font-en); font-size: 11px; letter-spacing: 0.12em;
+              text-transform: uppercase; font-weight: 600; margin-bottom: 12px; }
+  .gd__col--do .gd__head { color: #2E6B3F; }
   .gd__col--dont .gd__head { color: #B8443F; }
   .gd ul { margin: 0; padding-left: 18px; }
-  .gd li {
-    font-family: var(--kr-text);
-    font-size: 13px;
-    line-height: 1.65;
-    color: var(--ink);
-    letter-spacing: -0.1px;
-    margin-bottom: 6px;
-  }
+  .gd li { font-family: var(--font-text); font-size: 13px; line-height: 1.7; color: var(--ink); margin-bottom: 4px; }
 
-  /* Hero */
-  .hero {
-    padding: 80px 0 56px;
-    display: grid;
-    grid-template-columns: minmax(0,1fr) 280px;
-    gap: 48px;
-    align-items: end;
-  }
-  .hero .lockup {
-    font-family: var(--kr-display);
-    font-weight: 900;
-    font-size: 96px;
-    color: var(--primary);
-    letter-spacing: -4px;
-    line-height: 0.95;
-    display: flex;
-    align-items: baseline;
-  }
-  .hero .lockup .bang { color: var(--primary); }
-  .hero .meta {
-    padding-bottom: 12px;
-    display: flex; flex-direction: column; gap: 6px;
-    text-align: right;
-  }
-  .hero .meta .row {
-    display: flex; justify-content: space-between;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--ink-sub);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-  .hero .meta .row b { font-family: var(--kr-text); font-weight: 600; color: var(--ink); letter-spacing: -0.1px; text-transform: none; }
+  /* ── Hero ─────────────────────────────────────────── */
+  .hero { padding: 0 0 24px; display: grid; grid-template-columns: minmax(0,1fr) 280px; gap: 48px; align-items: end; }
+  .hero .meta { padding-bottom: 8px; display: flex; flex-direction: column; gap: 6px; text-align: right; }
+  .hero .meta .r { display: flex; justify-content: space-between;
+                   font-family: var(--font-en); font-size: 11px; color: var(--ink-sub);
+                   letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; }
+  .hero .meta .r b { font-family: var(--font-text); font-weight: 600; color: var(--ink); text-transform: none; }
+
+  footer { padding: 48px 0 0; border-top: 1px solid var(--hair);
+           display: flex; align-items: baseline; justify-content: space-between; }
 </style>
 </head>
 <body>
 
 <div class="shell">
-  <!-- ── TOC ─────────────────────────────────────────── -->
+  <!-- ── TOC ─────────────────────────────────────── -->
   <aside class="toc">
     <div class="toc__brand">
       <span class="wm">아마따</span>
-      <span class="ver">DS · v1.0</span>
+      <span class="ver">DS · v1</span>
     </div>
 
     <div class="toc__group">Foundation</div>
     <a class="toc__link" href="#about"><span class="num">00</span>철학</a>
     <a class="toc__link" href="#color"><span class="num">01</span>컬러</a>
-    <a class="toc__link" href="#kids"><span class="num">02</span>자녀 팔레트</a>
+    <a class="toc__link" href="#kids"><span class="num">02</span>자녀 6색</a>
     <a class="toc__link" href="#type"><span class="num">03</span>타이포그래피</a>
-    <a class="toc__link" href="#spacing"><span class="num">04</span>스페이싱</a>
-    <a class="toc__link" href="#radius"><span class="num">05</span>라디우스</a>
-    <a class="toc__link" href="#elevation"><span class="num">06</span>그림자 · 깊이</a>
+    <a class="toc__link" href="#radius"><span class="num">04</span>라디우스</a>
+    <a class="toc__link" href="#elevation"><span class="num">05</span>그림자</a>
 
     <div class="toc__group">Assets</div>
-    <a class="toc__link" href="#icons"><span class="num">07</span>아이콘</a>
-    <a class="toc__link" href="#avatars"><span class="num">08</span>캐릭터 아바타</a>
+    <a class="toc__link" href="#icons"><span class="num">06</span>아이콘</a>
+    <a class="toc__link" href="#avatars"><span class="num">07</span>아바타</a>
+    <a class="toc__link" href="#mascots"><span class="num">08</span>마스코트</a>
 
     <div class="toc__group">Components</div>
     <a class="toc__link" href="#buttons"><span class="num">09</span>버튼</a>
-    <a class="toc__link" href="#chips"><span class="num">10</span>칩 · 세그먼트</a>
-    <a class="toc__link" href="#forms"><span class="num">11</span>폼 요소</a>
-    <a class="toc__link" href="#cards"><span class="num">12</span>카드 · 표면</a>
-    <a class="toc__link" href="#pickup"><span class="num">13</span>Next Pickup</a>
-    <a class="toc__link" href="#schedule"><span class="num">14</span>일정 블록</a>
+    <a class="toc__link" href="#fab"><span class="num">10</span>FAB</a>
+    <a class="toc__link" href="#inputs"><span class="num">11</span>입력</a>
+    <a class="toc__link" href="#toggle"><span class="num">12</span>토글 · 세그먼트</a>
+    <a class="toc__link" href="#cards"><span class="num">13</span>카드</a>
+    <a class="toc__link" href="#tags"><span class="num">14</span>태그 · 칩</a>
+    <a class="toc__link" href="#list"><span class="num">15</span>리스트 · 행</a>
+    <a class="toc__link" href="#schedule"><span class="num">16</span>일정 블록</a>
 
     <div class="toc__group">Guide</div>
-    <a class="toc__link" href="#dos"><span class="num">15</span>Do · Don't</a>
+    <a class="toc__link" href="#dos"><span class="num">17</span>Do · Don't</a>
   </aside>
 
   <main>
-    <!-- ── HERO ─────────────────────────────────────── -->
+    <!-- ── HERO ────────────────────────────────────── -->
     <header class="hero">
       <div>
-        <div class="kicker">아마따 · Amatta Design System</div>
-        <div class="lockup">아마따<span class="bang">!</span></div>
-        <p class="body" style="max-width: 560px; margin-top: 20px;">
-          엄마의 머릿속에서 일어나던 일을 한 화면 안으로 가져오는 일정 앱.
-          따뜻한 크림 배경, Sunset Orange 한 점, 자녀별 손글씨 같은 파스텔.
-          작은 디테일이 부모의 1분을 덜어내는 것이 시스템의 목적입니다.
+        <div class="kicker">Amatta · Design System</div>
+        <h1 class="h-hero">아마따<span style="color:var(--primary);">!</span></h1>
+        <p class="body" style="max-width: 580px; margin-top: 18px;">
+          이 문서는 <b class="in">DESIGN_SYSTEM.md</b>를 정확히 반영하는 살아있는 컴포넌트 카탈로그입니다.
+          모든 토큰·라디우스·타입 스케일이 사양과 1:1로 일치합니다.
         </p>
       </div>
       <div class="meta">
-        <div class="row"><span>Version</span><b>1.0</b></div>
-        <div class="row"><span>Updated</span><b>2026.05.17</b></div>
-        <div class="row"><span>Scale</span><b>Mobile · 402×874</b></div>
-        <div class="row"><span>Locale</span><b>한국어 · KST</b></div>
+        <div class="r"><span>Version</span><b>1.0</b></div>
+        <div class="r"><span>Updated</span><b>2026.05.25</b></div>
+        <div class="r"><span>Spec</span><b>DESIGN_SYSTEM.md</b></div>
+        <div class="r"><span>Scale</span><b>Mobile · 402×874</b></div>
       </div>
     </header>
 
-    <!-- ── 00 · ABOUT ───────────────────────────────── -->
+    <!-- ── 00 · 철학 ──────────────────────────────── -->
     <section class="block" id="about">
       <div class="block__head">
-        <div class="meta">
-          <div class="num">00</div>
-          <h2 class="h-section" style="margin-top: 8px;">철학</h2>
-        </div>
+        <div class="meta"><div class="num">00</div><h2 class="h-section" style="margin-top:6px;">철학</h2></div>
         <div class="lead">
           <p class="body">
-            아마따는 <b style="color:var(--ink); font-weight:600;">"따뜻한 종이"</b> 위에 일정이 얹혀 있는 듯한 인상을 만듭니다.
-            순백색이 아닌 <span class="mono" style="color:var(--ink);">#FEFDFA</span> 크림이 모든 배경이 되고,
-            텍스트는 검정 대신 <span class="mono" style="color:var(--ink);">#1d1d1b</span>의 따뜻한 잉크입니다.
-            모든 회색은 잉크의 투명도로만 파생되어, 한 가지 안료로 그려낸 듯한 톤의 일관성을 유지합니다.
+            아마따는 <b class="in">가족 일정을 다루는 따뜻한 도구</b>입니다 — 차가운 생산성 앱이 아니라 손에 잡히는 노트 같은 결.
+            순백(<span class="mono" style="color:var(--ink);">#FFFFFF</span>) 베이스 위에 따뜻한 크림(<span class="mono" style="color:var(--ink);">#FAF8F2</span>)을 surface로 깔아 오프-화이트의 인상을 만들고,
+            <b class="in" style="color:var(--primary);">Sunset Orange</b> 한 컬러로 모든 CTA와 강조를 잡습니다.
           </p>
           <p class="body">
-            브랜드 컬러 <b style="color:var(--primary);">Sunset Orange</b>는 한 화면에 단 한 번,
-            가장 중요한 행동(Next Pickup · Floating Add)에만 등장하여 부모의 시선을 정확히 한 점으로 모읍니다.
-            자녀별 파스텔(피치 · 민트 · 스카이 · 버터)은 톤이 낮은 배경 색이어서
-            여러 명이 있어도 화면이 시끄럽지 않으면서 아이마다 시각적 자리를 보장합니다.
+            자녀 6색은 사용자 식별 도구로만 쓰입니다. 큰 면적에 깔 때는 원본을 그대로 쓰지 않고
+            <span class="mono">color-mix(15%)</span>로 옅게 변환해 그리드 채도를 가볍게 유지합니다.
           </p>
         </div>
       </div>
-
       <div class="block__body">
-        <div class="grid-3" style="gap: 14px;">
-          <div class="card">
-            <div class="card__label">Principle 01</div>
-            <h3 class="h-sub" style="font-size:18px;">잉크 하나, 농도 다섯</h3>
-            <p class="body-sm" style="margin-top:8px;">모든 회색은 <span class="mono">#1d1d1b</span>의 투명도. 색상이 아닌 농도로 위계를 만듭니다.</p>
+        <div class="grid-3">
+          <div class="doc-card">
+            <div class="doc-card__label">Principle 01</div>
+            <h3 class="h-sub">잉크 하나, 농도 다섯</h3>
+            <p class="body-sm" style="margin-top:8px;">회색은 모두 <span class="mono">#1D1D1B</span>의 투명도. 색이 아닌 농도로 위계를 만듭니다.</p>
           </div>
-          <div class="card">
-            <div class="card__label">Principle 02</div>
-            <h3 class="h-sub" style="font-size:18px;">크림 위의 종이</h3>
-            <p class="body-sm" style="margin-top:8px;">배경은 흰색이 아닌 따뜻한 크림. 카드와 표면은 헤어라인으로만 구분됩니다.</p>
+          <div class="doc-card">
+            <div class="doc-card__label">Principle 02</div>
+            <h3 class="h-sub">한 번의 주황</h3>
+            <p class="body-sm" style="margin-top:8px;">Sunset Orange는 CTA · brand · focus 전용. 자녀 색과 섞지 않습니다.</p>
           </div>
-          <div class="card">
-            <div class="card__label">Principle 03</div>
-            <h3 class="h-sub" style="font-size:18px;">한 번의 주황</h3>
-            <p class="body-sm" style="margin-top:8px;">Sunset Orange는 화면당 1회 등장이 원칙. 다음 행동을 가리키는 화살표입니다.</p>
+          <div class="doc-card">
+            <div class="doc-card__label">Principle 03</div>
+            <h3 class="h-sub">보더가 먼저, 그림자는 나중</h3>
+            <p class="body-sm" style="margin-top:8px;">카드 컨테인먼트는 헤어라인 보더로. 그림자는 FAB·Focus·FAB-grade에만.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ── 01 · COLOR ───────────────────────────────── -->
+    <!-- ── 01 · COLOR ────────────────────────────── -->
     <section class="block" id="color">
       <div class="block__head">
-        <div class="meta">
-          <div class="num">01</div>
-          <h2 class="h-section" style="margin-top:8px;">컬러</h2>
-        </div>
+        <div class="meta"><div class="num">01</div><h2 class="h-section" style="margin-top:6px;">컬러</h2></div>
         <div class="lead">
           <p class="body">
-            컬러는 네 갈래로 나뉩니다.
-            <b style="color:var(--ink); font-weight:600;">표면(Surface)</b>,
-            <b style="color:var(--ink); font-weight:600;">잉크(Ink)</b>,
-            <b style="color:var(--ink); font-weight:600;">브랜드(Brand)</b>,
-            <b style="color:var(--ink); font-weight:600;">자녀(Kid)</b>.
-            잉크 스케일은 모두 같은 색의 투명도이며, 자녀 팔레트는 채도 낮은 파스텔 4종으로 고정합니다.
+            네 갈래: <b class="in">표면 · 잉크 · 브랜드 · 시맨틱</b>. 잉크 스케일은 모두 같은 색의 투명도이며,
+            <span class="mono">success</span> · <span class="mono">danger</span> · <span class="mono">warning-dot</span>이 명확히 분리됩니다.
           </p>
         </div>
       </div>
-
       <div class="block__body">
+
         <!-- Surface -->
         <div>
-          <div class="card__label" style="margin-bottom:10px;">Surface · 표면</div>
-          <div class="grid-4">
-            <div class="sw"><div class="sw__chip" style="background:#FEFDFA"></div>
-              <div class="sw__name">Cream</div><div class="sw__role">기본 배경 · 화면의 종이</div><div class="sw__hex">#FEFDFA</div></div>
+          <div class="doc-card__label">Surface · 표면</div>
+          <div class="grid-3">
+            <div class="sw"><div class="sw__chip" style="background:#FFFFFF; box-shadow: inset 0 0 0 1px var(--hair);"></div>
+              <div class="sw__name">surface</div><div class="sw__role">기본 배경 (스크린 · 시트)</div><div class="sw__hex">#FFFFFF</div></div>
             <div class="sw"><div class="sw__chip" style="background:#FAF8F2"></div>
-              <div class="sw__name">Cream Warm</div><div class="sw__role">대안 표면 · 테이블 헤더</div><div class="sw__hex">#FAF8F2</div></div>
+              <div class="sw__name">surface-warm</div><div class="sw__role">alt surface · 카드 강조 · 입력 fill</div><div class="sw__hex">#FAF8F2</div></div>
             <div class="sw"><div class="sw__chip" style="background:#F5F3EE"></div>
-              <div class="sw__name">Soft Gray</div><div class="sw__role">자녀 그룹 배경</div><div class="sw__hex">#F5F3EE</div></div>
-            <div class="sw"><div class="sw__chip" style="background:#FFFFFF; box-shadow: inset 0 0 0 1px #ECEAE4;"></div>
-              <div class="sw__name">Paper</div><div class="sw__role">카드 · 입력 · 떠있는 표면</div><div class="sw__hex">#FFFFFF</div></div>
+              <div class="sw__name">surface-soft</div><div class="sw__role">자녀 그룹 묶음 배경</div><div class="sw__hex">#F5F3EE</div></div>
           </div>
         </div>
 
-        <!-- Ink scale -->
+        <!-- Ink -->
         <div>
-          <div class="card__label" style="margin-bottom:10px;">Ink · 잉크 스케일 (투명도 파생)</div>
+          <div class="doc-card__label">Ink · 잉크 스케일</div>
           <table class="tokens">
-            <thead>
-              <tr><th></th><th>토큰</th><th>역할</th><th>값</th></tr>
-            </thead>
+            <thead><tr><th></th><th>토큰</th><th>역할</th><th>값</th></tr></thead>
             <tbody>
-              <tr><td class="swatch"><div class="dot" style="background:#1d1d1b"></div></td>
-                <td>ink</td><td>본문 · 제목 · 가장 강한 텍스트</td><td class="mono">#1d1d1b</td></tr>
-              <tr><td class="swatch"><div class="dot" style="background:rgba(29,29,27,0.70); background-color: #FEFDFA; box-shadow: inset 0 0 0 28px rgba(29,29,27,0.70);"></div></td>
-                <td>ink-70</td><td>보조 텍스트</td><td class="mono">rgba(29,29,27, .70)</td></tr>
-              <tr><td class="swatch"><div class="dot" style="background:#FEFDFA; box-shadow: inset 0 0 0 28px rgba(29,29,27,0.50);"></div></td>
-                <td>ink-50 / ink-sub</td><td>캡션 · 메타 · 비활성 텍스트</td><td class="mono">#7a756e · rgba(... ,.50)</td></tr>
-              <tr><td class="swatch"><div class="dot" style="background:#FEFDFA; box-shadow: inset 0 0 0 28px rgba(29,29,27,0.30);"></div></td>
-                <td>ink-30</td><td>아이콘 · 비활성 보더</td><td class="mono">rgba(29,29,27, .30)</td></tr>
-              <tr><td class="swatch"><div class="dot" style="background:#FEFDFA; box-shadow: inset 0 0 0 28px rgba(29,29,27,0.12);"></div></td>
-                <td>ink-12</td><td>그래버 · 매우 옅은 디바이더</td><td class="mono">rgba(29,29,27, .12)</td></tr>
+              <tr><td class="swatch"><div class="dot" style="background:#1D1D1B"></div></td>
+                <td>ink</td><td>본문 · 제목</td><td class="mono">#1D1D1B</td></tr>
+              <tr><td class="swatch"><div class="dot" style="background:#7A756E"></div></td>
+                <td>ink-sub</td><td>보조 · 캡션 (warm gray)</td><td class="mono">#7A756E</td></tr>
+              <tr><td class="swatch"><div class="dot" style="background:#FFF; box-shadow: inset 0 0 0 28px rgba(29,29,27,0.70);"></div></td>
+                <td>ink-70</td><td>강한 보조 텍스트</td><td class="mono">rgba(29,29,27,.70)</td></tr>
+              <tr><td class="swatch"><div class="dot" style="background:#FFF; box-shadow: inset 0 0 0 28px rgba(29,29,27,0.50);"></div></td>
+                <td>ink-50</td><td>disabled 텍스트</td><td class="mono">rgba(29,29,27,.50)</td></tr>
+              <tr><td class="swatch"><div class="dot" style="background:#FFF; box-shadow: inset 0 0 0 28px rgba(29,29,27,0.30);"></div></td>
+                <td>ink-30</td><td>인터랙티브 보더</td><td class="mono">rgba(29,29,27,.30)</td></tr>
+              <tr><td class="swatch"><div class="dot" style="background:#FFF; box-shadow: inset 0 0 0 28px rgba(29,29,27,0.12);"></div></td>
+                <td>ink-12</td><td>강한 디바이더 · 토글 OFF</td><td class="mono">rgba(29,29,27,.12)</td></tr>
+              <tr><td class="swatch"><div class="dot" style="background:#FFF; box-shadow: inset 0 0 0 28px rgba(29,29,27,0.06);"></div></td>
+                <td>ink-06</td><td>hover tint · 미세 채움</td><td class="mono">rgba(29,29,27,.06)</td></tr>
+              <tr><td class="swatch"><div class="dot" style="background:#FFF; box-shadow: inset 0 0 0 28px rgba(29,29,27,0.04);"></div></td>
+                <td>ink-04</td><td>희미한 오버레이</td><td class="mono">rgba(29,29,27,.04)</td></tr>
               <tr><td class="swatch"><div class="dot" style="background:#ECEAE4"></div></td>
-                <td>hair</td><td>카드 보더 · 헤어라인</td><td class="mono">#ECEAE4</td></tr>
-              <tr><td class="swatch"><div class="dot" style="background:#FEFDFA; box-shadow: inset 0 0 0 28px rgba(29,29,27,0.06);"></div></td>
-                <td>ink-06</td><td>탭 배경 · 미세 호버</td><td class="mono">rgba(29,29,27, .06)</td></tr>
-              <tr><td class="swatch"><div class="dot" style="background:#FEFDFA; box-shadow: inset 0 0 0 28px rgba(29,29,27,0.04);"></div></td>
-                <td>ink-04</td><td>가장 옅은 면 · 세그먼트 배경</td><td class="mono">rgba(29,29,27, .04)</td></tr>
+                <td>hair</td><td>수동 보더 · 디바이더</td><td class="mono">#ECEAE4</td></tr>
             </tbody>
           </table>
         </div>
 
         <!-- Brand -->
         <div>
-          <div class="card__label" style="margin-bottom:10px;">Brand · Sunset Orange</div>
-          <div class="grid-4">
-            <div class="sw" style="background:#fff;">
-              <div class="sw__chip" style="background:#FF7144"></div>
-              <div class="sw__name">Primary</div>
-              <div class="sw__role">CTA · FAB · 강조 텍스트</div>
-              <div class="sw__hex">#FF7144</div>
-            </div>
-            <div class="sw" style="background:#fff;">
-              <div class="sw__chip" style="background:#D8501F"></div>
-              <div class="sw__name">Primary Deep</div>
-              <div class="sw__role">그라디언트 중심 · 호버</div>
-              <div class="sw__hex">#D8501F</div>
-            </div>
-            <div class="sw" style="background:#fff;">
-              <div class="sw__chip" style="background:#FFE2D0"></div>
-              <div class="sw__name">Primary Tint</div>
-              <div class="sw__role">픽업 카드 배경</div>
-              <div class="sw__hex">#FFE2D0</div>
-            </div>
-            <div class="sw" style="background:#fff;">
-              <div class="sw__chip" style="background:linear-gradient(100deg, #FF7144 0%, #D8501F 60%, #FF7144 100%); box-shadow: 0 4px 12px rgba(255,113,68,0.35);"></div>
-              <div class="sw__name">Pickup Gradient</div>
-              <div class="sw__role">Next Pickup 카드 전용</div>
-              <div class="sw__hex">light → deep → light</div>
-            </div>
+          <div class="doc-card__label">Brand · Sunset Orange</div>
+          <div class="grid-3">
+            <div class="sw"><div class="sw__chip" style="background:#FF7144"></div>
+              <div class="sw__name">primary</div><div class="sw__role">CTA · FAB · brand · focus</div><div class="sw__hex">#FF7144</div></div>
+            <div class="sw"><div class="sw__chip" style="background:#D8501F"></div>
+              <div class="sw__name">primary-deep</div><div class="sw__role">hover / pressed 상태</div><div class="sw__hex">#D8501F</div></div>
+            <div class="sw"><div class="sw__chip" style="background:#FFE2D0"></div>
+              <div class="sw__name">primary-tint</div><div class="sw__role">primary 영역의 옅은 fill</div><div class="sw__hex">#FFE2D0</div></div>
           </div>
         </div>
 
         <!-- Semantic -->
         <div>
-          <div class="card__label" style="margin-bottom:10px;">Semantic · 의미</div>
-          <div class="grid-4">
-            <div class="sw" style="background:#fff;">
-              <div class="sw__chip" style="background:#E84A2D"></div>
-              <div class="sw__name">Danger</div>
-              <div class="sw__role">삭제 · 위험 액션 텍스트</div>
-              <div class="sw__hex">#E84A2D</div>
-            </div>
-            <div class="sw" style="background:#fff;">
-              <div class="sw__chip" style="background:#3A7A4E"></div>
-              <div class="sw__name">Success</div>
-              <div class="sw__role">완료 · 출석 확인</div>
-              <div class="sw__hex">#3A7A4E</div>
-            </div>
-            <div class="sw" style="background:#fff;">
-              <div class="sw__chip" style="background:#fff; box-shadow: inset 0 0 0 1px var(--hair);"></div>
-              <div class="sw__name">반드시 사용 금지</div>
-              <div class="sw__role">순백 #FFFFFF는 배경에 사용하지 않음</div>
-              <div class="sw__hex">use cream 대신</div>
-            </div>
-            <div class="sw" style="background:#fff;">
-              <div class="sw__chip" style="background:#000;"></div>
-              <div class="sw__name">절대 순흑 금지</div>
-              <div class="sw__role">텍스트는 ink (#1d1d1b)</div>
-              <div class="sw__hex">never #000000</div>
-            </div>
+          <div class="doc-card__label">Semantic · 의미</div>
+          <div class="grid-3">
+            <div class="sw"><div class="sw__chip" style="background:#00C951"></div>
+              <div class="sw__name">success</div><div class="sw__role">완료 · 저장 · 픽업 완료</div><div class="sw__hex">#00C951</div></div>
+            <div class="sw"><div class="sw__chip" style="background:#FF4444"></div>
+              <div class="sw__name">danger</div><div class="sw__role">삭제 · 경고 (warm tone, 휴 다름)</div><div class="sw__hex">#FF4444</div></div>
+            <div class="sw"><div class="sw__chip" style="background:#FFB000"></div>
+              <div class="sw__name">warning-dot</div><div class="sw__role">일정 예외 6px 점 (info-level)</div><div class="sw__hex">#FFB000</div></div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ── 02 · KID PALETTES ───────────────────────── -->
+    <!-- ── 02 · KID 6 COLORS ────────────────────── -->
     <section class="block" id="kids">
       <div class="block__head">
-        <div class="meta">
-          <div class="num">02</div>
-          <h2 class="h-section" style="margin-top:8px;">자녀 팔레트</h2>
-        </div>
+        <div class="meta"><div class="num">02</div><h2 class="h-section" style="margin-top:6px;">자녀 6색</h2></div>
         <div class="lead">
           <p class="body">
-            자녀 4명까지를 색으로 구분합니다. 모든 팔레트는 채도 낮은 파스텔이며,
-            각 자녀는 <b style="color:var(--ink); font-weight:600;">bg(배경)</b>,
-            <b style="color:var(--ink); font-weight:600;">dot(점·아바타·캐릭터 채움)</b>,
-            <b style="color:var(--ink); font-weight:600;">ink(자녀 색 위 텍스트)</b> 3종을 가집니다.
-            아이가 한 명 추가될 때마다 위에서 아래 순서로 할당합니다.
+            자녀 등록 시 1인당 1색. <b class="in">Source(원본)</b>은 dot · border · avatar ring에만,
+            큰 면적의 <b class="in">Block bg</b>는 <span class="mono">color-mix(in srgb, source 15%, #FFFFFF)</span>로 자동 변환합니다.
+            블록 내 텍스트는 항상 <span class="mono">ink #1D1D1B</span>.
           </p>
         </div>
       </div>
-
       <div class="block__body">
-        <div class="grid-4">
+        <div class="grid-3">
 
-          <!-- Peach -->
-          <div class="card" style="padding:18px;">
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-              <div class="avatar" style="background:var(--kid-peach-bg)">
-                <svg width="34" height="34" viewBox="0 0 100 100">
-                  <ellipse cx="35" cy="28" rx="7" ry="17" transform="rotate(-8 35 28)" fill="#F596E5"/>
-                  <ellipse cx="65" cy="28" rx="7" ry="17" transform="rotate(8 65 28)" fill="#F596E5"/>
-                  <ellipse cx="50" cy="62" rx="37" ry="28" fill="#F596E5"/>
-                  <circle cx="39" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <path d="M50 66 Q46.5 70.2 43.4 67.6 M50 66 Q53.5 70.2 56.6 67.6" fill="none" stroke="#1d1d1b" stroke-width="2" stroke-linecap="round"/>
-                </svg>
+          <!-- Petunia Pink -->
+          <div class="card kid-card">
+            <div class="kid-card__head">
+              <div class="kid-card__avatar" style="--c: var(--kid-pink); background: var(--kid-pink-bg);">
+                <img src="assets/avatar-face-wink.png" alt="" style="width:32px; height:32px;"/>
               </div>
               <div>
-                <div class="kid__name">민준 · Peach</div>
-                <div class="body-sm" style="margin-top:1px;">초3 · 토끼</div>
+                <div class="kid-card__name">Petunia Pink</div>
+                <div class="kid-card__role">첫째 · index 0</div>
               </div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:4px; margin-bottom:12px;">
-              <div style="height:36px; border-radius:6px; background:var(--kid-peach-bg); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);"></div>
-              <div style="height:36px; border-radius:6px; background:var(--kid-peach-dot);"></div>
-              <div style="height:36px; border-radius:6px; background:var(--kid-peach-ink);"></div>
+            <div class="kid-card__chips">
+              <div class="kid-card__chip" style="background: var(--kid-pink);"></div>
+              <div class="kid-card__chip" style="background: var(--kid-pink-bg);"></div>
             </div>
-            <div class="mono body-sm" style="font-size:10.5px; line-height:1.7;">
-              bg&nbsp;&nbsp;#FBF3F3<br/>
-              dot&nbsp;&nbsp;#F596E5<br/>
-              ink&nbsp;&nbsp;#7A2B5A
-            </div>
+            <div class="kid-card__hex">source&nbsp;&nbsp;#FFA9FF<br/>bg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#FFF2FF</div>
           </div>
 
-          <!-- Mint -->
-          <div class="card" style="padding:18px;">
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-              <div class="avatar" style="background:var(--kid-mint-bg)">
-                <svg width="34" height="34" viewBox="0 0 100 100">
-                  <ellipse cx="22" cy="36" rx="13" ry="11" fill="#AFDE94"/>
-                  <ellipse cx="78" cy="36" rx="13" ry="11" fill="#AFDE94"/>
-                  <ellipse cx="50" cy="62" rx="36" ry="30" fill="#AFDE94"/>
-                  <circle cx="39" cy="59" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="59" r="3.6" fill="#1d1d1b"/>
-                  <path d="M50 68 Q46.5 72.2 43.4 69.6 M50 68 Q53.5 72.2 56.6 69.6" fill="none" stroke="#1d1d1b" stroke-width="2" stroke-linecap="round"/>
-                </svg>
+          <!-- Vibrant Mint -->
+          <div class="card kid-card">
+            <div class="kid-card__head">
+              <div class="kid-card__avatar" style="--c: var(--kid-mint); background: var(--kid-mint-bg);">
+                <img src="assets/avatar-face-dizzy.png" alt="" style="width:32px; height:32px;"/>
               </div>
               <div>
-                <div class="kid__name">서윤 · Mint</div>
-                <div class="body-sm" style="margin-top:1px;">초1 · 판다</div>
+                <div class="kid-card__name">Vibrant Mint</div>
+                <div class="kid-card__role">둘째 · index 1</div>
               </div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:4px; margin-bottom:12px;">
-              <div style="height:36px; border-radius:6px; background:var(--kid-mint-bg); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);"></div>
-              <div style="height:36px; border-radius:6px; background:var(--kid-mint-dot);"></div>
-              <div style="height:36px; border-radius:6px; background:var(--kid-mint-ink);"></div>
+            <div class="kid-card__chips">
+              <div class="kid-card__chip" style="background: var(--kid-mint);"></div>
+              <div class="kid-card__chip" style="background: var(--kid-mint-bg);"></div>
             </div>
-            <div class="mono body-sm" style="font-size:10.5px; line-height:1.7;">
-              bg&nbsp;&nbsp;#F3F9F5<br/>
-              dot&nbsp;&nbsp;#AFDE94<br/>
-              ink&nbsp;&nbsp;#456A2A
-            </div>
+            <div class="kid-card__hex">source&nbsp;&nbsp;#C0F0AA<br/>bg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#F6FDF2</div>
           </div>
 
-          <!-- Sky -->
-          <div class="card" style="padding:18px;">
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-              <div class="avatar" style="background:var(--kid-sky-bg)">
-                <svg width="34" height="34" viewBox="0 0 100 100">
-                  <path d="M20 42 L30 14 L46 36 Z" fill="#B0C9F0"/>
-                  <path d="M80 42 L70 14 L54 36 Z" fill="#B0C9F0"/>
-                  <ellipse cx="50" cy="60" rx="35" ry="30" fill="#B0C9F0"/>
-                  <circle cx="39" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <path d="M50 66 Q46.5 70.2 43.4 67.6 M50 66 Q53.5 70.2 56.6 67.6" fill="none" stroke="#1d1d1b" stroke-width="2" stroke-linecap="round"/>
-                </svg>
+          <!-- Glacier Blue -->
+          <div class="card kid-card">
+            <div class="kid-card__head">
+              <div class="kid-card__avatar" style="--c: var(--kid-blue); background: var(--kid-blue-bg);">
+                <img src="assets/avatar-face-cool.png" alt="" style="width:32px; height:32px;"/>
               </div>
               <div>
-                <div class="kid__name">지호 · Sky</div>
-                <div class="body-sm" style="margin-top:1px;">유치원 · 고양이</div>
+                <div class="kid-card__name">Glacier Blue</div>
+                <div class="kid-card__role">셋째 · index 2</div>
               </div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:4px; margin-bottom:12px;">
-              <div style="height:36px; border-radius:6px; background:var(--kid-sky-bg); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);"></div>
-              <div style="height:36px; border-radius:6px; background:var(--kid-sky-dot);"></div>
-              <div style="height:36px; border-radius:6px; background:var(--kid-sky-ink);"></div>
+            <div class="kid-card__chips">
+              <div class="kid-card__chip" style="background: var(--kid-blue);"></div>
+              <div class="kid-card__chip" style="background: var(--kid-blue-bg);"></div>
             </div>
-            <div class="mono body-sm" style="font-size:10.5px; line-height:1.7;">
-              bg&nbsp;&nbsp;#F3F3FB<br/>
-              dot&nbsp;&nbsp;#B0C9F0<br/>
-              ink&nbsp;&nbsp;#1F2D8A
-            </div>
+            <div class="kid-card__hex">source&nbsp;&nbsp;#D8E6FF<br/>bg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#F9FBFF</div>
           </div>
 
-          <!-- Butter -->
-          <div class="card" style="padding:18px;">
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-              <div class="avatar" style="background:var(--kid-butter-bg)">
-                <svg width="34" height="34" viewBox="0 0 100 100">
-                  <path d="M18 40 C 18 33, 24 30, 30 30 L 70 30 C 76 30, 82 33, 82 40 L 68 80 C 64 90, 36 90, 32 80 Z" fill="#FFB28C"/>
-                  <ellipse cx="13" cy="34" rx="7" ry="10" transform="rotate(-28 13 34)" fill="#FFB28C"/>
-                  <ellipse cx="87" cy="34" rx="7" ry="10" transform="rotate(28 87 34)" fill="#FFB28C"/>
-                  <g stroke="#FFB28C" stroke-width="3.5" stroke-linecap="round" fill="none">
-                    <path d="M34 28 L28 8"/><path d="M31 18 L22 10"/>
-                    <path d="M66 28 L72 8"/><path d="M69 18 L78 10"/>
-                  </g>
-                  <circle cx="39" cy="53" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="53" r="3.6" fill="#1d1d1b"/>
-                  <path d="M50 62 Q46.5 66.2 43.4 63.6 M50 62 Q53.5 66.2 56.6 63.6" fill="none" stroke="#1d1d1b" stroke-width="2" stroke-linecap="round"/>
-                </svg>
+          <!-- Soft Peach -->
+          <div class="card kid-card">
+            <div class="kid-card__head">
+              <div class="kid-card__avatar" style="--c: var(--kid-peach); background: var(--kid-peach-bg);">
+                <img src="assets/avatar-face-sleep.png" alt="" style="width:32px; height:32px;"/>
               </div>
               <div>
-                <div class="kid__name">서아 · Butter</div>
-                <div class="body-sm" style="margin-top:1px;">어린이집 · 사슴</div>
+                <div class="kid-card__name">Soft Peach</div>
+                <div class="kid-card__role">넷째 · index 3</div>
               </div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:4px; margin-bottom:12px;">
-              <div style="height:36px; border-radius:6px; background:var(--kid-butter-bg); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);"></div>
-              <div style="height:36px; border-radius:6px; background:var(--kid-butter-dot);"></div>
-              <div style="height:36px; border-radius:6px; background:var(--kid-butter-ink);"></div>
+            <div class="kid-card__chips">
+              <div class="kid-card__chip" style="background: var(--kid-peach);"></div>
+              <div class="kid-card__chip" style="background: var(--kid-peach-bg);"></div>
             </div>
-            <div class="mono body-sm" style="font-size:10.5px; line-height:1.7;">
-              bg&nbsp;&nbsp;#FFF4E5<br/>
-              dot&nbsp;&nbsp;#FFB28C<br/>
-              ink&nbsp;&nbsp;#7A4220
+            <div class="kid-card__hex">source&nbsp;&nbsp;#FFE8D2<br/>bg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#FFFCF8</div>
+          </div>
+
+          <!-- Citrus Green -->
+          <div class="card kid-card">
+            <div class="kid-card__head">
+              <div class="kid-card__avatar" style="--c: var(--kid-citrus); background: var(--kid-citrus-bg);">
+                <img src="assets/avatar-face-surprise.png" alt="" style="width:32px; height:32px;"/>
+              </div>
+              <div>
+                <div class="kid-card__name">Citrus Green</div>
+                <div class="kid-card__role">추가 · index 4</div>
+              </div>
             </div>
+            <div class="kid-card__chips">
+              <div class="kid-card__chip" style="background: var(--kid-citrus);"></div>
+              <div class="kid-card__chip" style="background: var(--kid-citrus-bg);"></div>
+            </div>
+            <div class="kid-card__hex">source&nbsp;&nbsp;#E0E446<br/>bg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#FAFBE3</div>
+          </div>
+
+          <!-- French Lavender -->
+          <div class="card kid-card">
+            <div class="kid-card__head">
+              <div class="kid-card__avatar" style="--c: var(--kid-lavender); background: var(--kid-lavender-bg);">
+                <img src="assets/avatar-face-calm.png" alt="" style="width:32px; height:32px;"/>
+              </div>
+              <div>
+                <div class="kid-card__name">French Lavender</div>
+                <div class="kid-card__role">추가 · index 5</div>
+              </div>
+            </div>
+            <div class="kid-card__chips">
+              <div class="kid-card__chip" style="background: var(--kid-lavender);"></div>
+              <div class="kid-card__chip" style="background: var(--kid-lavender-bg);"></div>
+            </div>
+            <div class="kid-card__hex">source&nbsp;&nbsp;#C7B0FF<br/>bg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;#F7F3FF</div>
           </div>
         </div>
 
-        <div class="card--soft" style="margin-top:8px;">
-          <div class="card__label">사용 규칙</div>
-          <div class="grid-3" style="margin-top:6px;">
-            <div>
-              <div class="h-card">bg</div>
-              <p class="body-sm" style="margin-top:6px;">자녀별 시간 그리드 컬럼 · 일정 블록 배경. 화면을 가장 많이 채우므로 채도를 가장 낮춥니다.</p>
-            </div>
-            <div>
-              <div class="h-card">dot</div>
-              <p class="body-sm" style="margin-top:6px;">캐릭터 채움색 · 일정 블록의 왼쪽 인셋 라인 · 활성 표시 점. 가장 사람들의 시선을 끄는 위치에만 사용.</p>
-            </div>
-            <div>
-              <div class="h-card">ink</div>
-              <p class="body-sm" style="margin-top:6px;">자녀별 컬러 배경 위에 올라가는 텍스트 · 진한 강조. 같은 색 계열로 통일감을 유지합니다.</p>
-            </div>
-          </div>
+        <div class="doc-card--soft">
+          <div class="doc-card__label">Derivation rule</div>
+          <pre style="margin: 8px 0 0; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; color: var(--ink);">--kid-source: &lt;자녀 색&gt;;                                       /* dot, border, avatar ring */
+--kid-bg:     color-mix(in srgb, var(--kid-source) 15%, #FFFFFF); /* block background */</pre>
+          <p class="body-sm" style="margin-top: 12px;">
+            <b class="in">Avatar ring</b> — <span class="mono">box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px var(--kid-source)</span> (위 카드 아바타 참고).
+          </p>
         </div>
       </div>
     </section>
 
-    <!-- ── 03 · TYPOGRAPHY ─────────────────────────── -->
+    <!-- ── 03 · TYPOGRAPHY ─────────────────────── -->
     <section class="block" id="type">
       <div class="block__head">
-        <div class="meta">
-          <div class="num">03</div>
-          <h2 class="h-section" style="margin-top:8px;">타이포그래피</h2>
-        </div>
+        <div class="meta"><div class="num">03</div><h2 class="h-section" style="margin-top:6px;">타이포그래피</h2></div>
         <div class="lead">
           <p class="body">
-            세 개의 폰트를 명확한 역할로 분담합니다.
-            <b style="font-family:var(--kr-display); font-weight:800;">Paperlogy</b>는 헤딩·강조·로고타입,
-            <b style="font-weight:600;">Pretendard</b>는 본문·UI·라벨,
-            <b style="font-family:var(--en-text); font-weight:600;">Geist</b>는 영문 텍스트와 캡션을 담당합니다.
-            숫자와 시간은 항상 <b class="mono">Geist Mono</b>로 표기하여 시각적 리듬을 유지합니다.
+            한글·UI는 <b class="in">Pretendard</b>, 영문·숫자는 <b class="in">Noto Sans</b>, 시간 라벨 등 monospace는 <b class="in">Geist Mono</b>.
+            weight는 <span class="mono">400 / 500 / 600 / 700</span> 4단만 — 800/900은 로고 등 예외.
           </p>
         </div>
       </div>
-
       <div class="block__body">
 
-        <!-- Font family cards -->
-        <div class="grid-3">
+        <div class="grid-2">
           <div class="card">
-            <div class="card__label">한글 메인 · Display</div>
-            <div style="font-family:var(--kr-display); font-weight:900; font-size:56px; line-height:0.95; letter-spacing:-2px; color:var(--ink); margin: 8px 0 12px;">아마따</div>
-            <div class="h-card">Paperlogy</div>
-            <p class="body-sm" style="margin-top:6px;">둥글고 따뜻한 휴머니스트 한글 산세리프. 9가지 굵기. 헤딩·로고타입·강조 숫자에만 사용.</p>
-            <div class="mono body-sm" style="font-size:10.5px; margin-top:10px; color:var(--ink-70);">weights 400 · 500 · 600 · 700 · 800 · 900</div>
+            <div class="doc-card__label">한글 · Pretendard</div>
+            <div style="font-family: var(--font-display); font-weight: 700; font-size: 56px; line-height: 0.95; letter-spacing: -0.025em; color: var(--ink); margin: 6px 0 12px;">아마따</div>
+            <div class="t-body" style="color: var(--ink-70);">민준의 수영 가방을 챙기세요. 오늘 오후 3시 30분, 지호 태권도 픽업이 있습니다.</div>
+            <div class="mono body-sm" style="font-size: 10.5px; margin-top: 14px;">weights · 400 / 500 / 600 / 700</div>
           </div>
           <div class="card">
-            <div class="card__label">한글 서브 · Text</div>
-            <div style="font-family:var(--kr-text); font-weight:500; font-size:56px; line-height:0.95; letter-spacing:-2px; color:var(--ink); margin: 8px 0 12px;">아마따</div>
-            <div class="h-card">Pretendard</div>
-            <p class="body-sm" style="margin-top:6px;">한국어 본문의 표준. 긴 줄·작은 사이즈에서 읽기 쉬움. 모든 UI 라벨·본문 기본값.</p>
-            <div class="mono body-sm" style="font-size:10.5px; margin-top:10px; color:var(--ink-70);">weights 400 · 500 · 600 · 700</div>
-          </div>
-          <div class="card">
-            <div class="card__label">영문 · English</div>
-            <div style="font-family:var(--en-text); font-weight:500; font-size:56px; line-height:0.95; letter-spacing:-2.5px; color:var(--ink); margin: 8px 0 12px;">Amatta</div>
-            <div class="h-card">Geist</div>
-            <p class="body-sm" style="margin-top:6px;">모던 휴머니스트. Paperlogy의 둥근 톤과 호흡이 맞음. 영문·캡션·라벨에 사용.</p>
-            <div class="mono body-sm" style="font-size:10.5px; margin-top:10px; color:var(--ink-70);">weights 300 · 400 · 500 · 600 · 700</div>
+            <div class="doc-card__label">영문 · Noto Sans + Geist Mono</div>
+            <div style="font-family: var(--font-en); font-weight: 700; font-size: 48px; line-height: 0.95; letter-spacing: -0.02em; color: var(--ink); margin: 6px 0 6px;">Amatta</div>
+            <div style="font-family: var(--font-mono); font-size: 13px; color: var(--ink-70); margin-bottom: 6px;">15:30 — 16:30 · NEXT PICKUP</div>
+            <div class="mono body-sm" style="font-size: 10.5px; margin-top: 14px;">Noto Sans 400–700 · Geist Mono 400/500</div>
           </div>
         </div>
 
-        <!-- Type scale -->
+        <!-- Hierarchy -->
         <div>
-          <div class="card__label" style="margin-bottom:10px;">Type Scale</div>
+          <div class="doc-card__label">Type hierarchy (spec)</div>
 
           <div class="type-row">
-            <div class="spec"><strong>Hero Display</strong>Paperlogy 900<br/>64 / 1.02 / -2.5</div>
-            <div style="font-family:var(--kr-display); font-weight:900; font-size:64px; line-height:1.02; letter-spacing:-2.5px;">아마따!</div>
+            <div class="spec"><strong>Display</strong>Pretendard 700<br/>32 / 1.15 / -0.02em<br/><em>온보딩 히어로 · 스플래시 워드마크</em></div>
+            <div class="t-display">자녀를 알려주세요</div>
           </div>
           <div class="type-row">
-            <div class="spec"><strong>Section H1</strong>Paperlogy 800<br/>36 / 1.08 / -1.4</div>
-            <div style="font-family:var(--kr-display); font-weight:800; font-size:36px; line-height:1.08; letter-spacing:-1.4px;">오늘의 픽업</div>
+            <div class="spec"><strong>Title L</strong>Pretendard 700<br/>24 / 1.20 / -0.01em<br/><em>화면 타이틀</em></div>
+            <div class="t-title-l">오늘 일정</div>
           </div>
           <div class="type-row">
-            <div class="spec"><strong>Subhead H2</strong>Paperlogy 700<br/>22 / 1.15 / -0.6</div>
-            <div style="font-family:var(--kr-display); font-weight:700; font-size:22px; line-height:1.15; letter-spacing:-0.6px;">5월 5일 · 화요일</div>
+            <div class="spec"><strong>Title M</strong>Pretendard 600<br/>20 / 1.25 / normal<br/><em>섹션 제목 · 카드 헤더</em></div>
+            <div class="t-title-m">준비물 · 할일</div>
           </div>
           <div class="type-row">
-            <div class="spec"><strong>Card Title</strong>Pretendard 600<br/>16 / 1.35 / -0.3</div>
-            <div style="font-family:var(--kr-text); font-weight:600; font-size:16px; line-height:1.35; letter-spacing:-0.3px;">민준 · 영어학원</div>
+            <div class="spec"><strong>Title S</strong>Pretendard 600<br/>16 / 1.30 / normal<br/><em>리스트 row 제목 · 그리드 자녀 헤더</em></div>
+            <div class="t-title-s">민준 · 영어학원</div>
           </div>
           <div class="type-row">
-            <div class="spec"><strong>Body</strong>Pretendard 400<br/>14 / 1.55 / -0.1</div>
-            <div style="font-family:var(--kr-text); font-weight:400; font-size:14px; line-height:1.55; letter-spacing:-0.1px; color:var(--ink-70); max-width:520px;">
-              오늘 일정에 필요한 준비물 7개가 있어요. 수영가방, 미술 준비물 (붓), 도복, 발레슈즈.
+            <div class="spec"><strong>Body L</strong>Pretendard 400<br/>16 / 1.50 / normal<br/><em>본문 (긴 텍스트)</em></div>
+            <div class="t-body-l" style="color: var(--ink-70); max-width: 460px;">
+              아마따와 함께 여러 자녀의 일정과 준비물을 한 화면에서 관리해보세요.
             </div>
           </div>
           <div class="type-row">
-            <div class="spec"><strong>Caption</strong>Pretendard 500<br/>12 / 1.5 / -0.1</div>
-            <div style="font-family:var(--kr-text); font-weight:500; font-size:12px; line-height:1.5; color:var(--ink-sub); letter-spacing:-0.1px;">초3 · 10세 · 토끼</div>
+            <div class="spec"><strong>Body</strong>Pretendard 400<br/>14 / 1.45 / normal<br/><em>기본 본문 · 버튼 라벨</em></div>
+            <div class="t-body" style="color: var(--ink);">15:00 시작, 16:00 종료 예정입니다.</div>
           </div>
           <div class="type-row">
-            <div class="spec"><strong>Time · Number</strong>Geist Mono 500<br/>13 / 1.4 / -0.2</div>
-            <div class="mono" style="font-size:13px; font-weight:500; letter-spacing:-0.2px;">14:30 – 16:00 · ₩320,000</div>
+            <div class="spec"><strong>Caption</strong>Pretendard 500<br/>12 / 1.40 / normal<br/><em>메타 · 타임스탬프</em></div>
+            <div class="t-caption" style="color: var(--ink-sub);">2026.05.05 (화)</div>
           </div>
           <div class="type-row">
-            <div class="spec"><strong>Kicker · Label</strong>Geist Mono 500<br/>11 / 1.0 / 0.12em up</div>
-            <div class="mono" style="font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:0.12em; color:var(--primary-deep);">NEXT PICKUP · 1H 10M</div>
+            <div class="spec"><strong>Mono</strong>Geist Mono 400<br/>12 / 1.00 / normal<br/><em>시간 컬럼 라벨</em></div>
+            <div class="t-mono" style="color: var(--ink-sub);">09:00 · 09:30 · 10:00</div>
           </div>
         </div>
 
-        <!-- Rules -->
         <div class="grid-2">
-          <div class="card">
-            <div class="card__label">규칙 · Rules</div>
-            <ul style="margin:0; padding-left:18px; font-family:var(--kr-text); font-size:13px; line-height:1.7; color:var(--ink);">
-              <li>헤딩에는 <b style="font-weight:600;">Paperlogy</b>만, 본문은 <b style="font-weight:600;">Pretendard</b>만.</li>
-              <li>숫자·시간·hex는 <span class="mono">Geist Mono</span>로 고정. 한글 본문 안에 들어와도 같습니다.</li>
-              <li>letter-spacing은 큰 크기에서 음수, 14px 이하에서는 -0.2~-0.1 사이.</li>
-              <li>line-height 헤딩 1.0–1.15, 본문 1.5–1.65.</li>
-              <li>weight는 400/500/600/700/800/900만 사용. 그 사이값 금지.</li>
-            </ul>
+          <div class="doc-card">
+            <div class="doc-card__label">Family roles</div>
+            <table class="tokens">
+              <tbody>
+                <tr><td><span class="mono">--font-display</span></td><td>Pretendard</td></tr>
+                <tr><td><span class="mono">--font-text</span></td><td>Pretendard</td></tr>
+                <tr><td><span class="mono">--font-en</span></td><td>Noto Sans</td></tr>
+                <tr><td><span class="mono">--font-mono</span></td><td>Geist Mono</td></tr>
+              </tbody>
+            </table>
           </div>
-          <div class="card">
-            <div class="card__label">금지 · Forbidden</div>
-            <ul style="margin:0; padding-left:18px; font-family:var(--kr-text); font-size:13px; line-height:1.7; color:var(--ink);">
-              <li>본문에 Paperlogy 사용 (가독성 떨어짐, 작은 사이즈에서 흐릿).</li>
-              <li>한 화면에 3개 이상의 weight 혼용.</li>
-              <li>이탤릭 · underline 강조. 색·굵기로만 강조합니다.</li>
-              <li>letter-spacing 양수. Paperlogy는 디자인상 음수 트래킹에 맞춰 그려졌습니다.</li>
-              <li>System UI 폰트 직접 호출 (fallback에만 사용).</li>
+          <div class="doc-card">
+            <div class="doc-card__label">규칙</div>
+            <ul style="margin: 0; padding-left: 18px; font-family: var(--font-text); font-size: 13px; line-height: 1.75; color: var(--ink);">
+              <li>weight는 <span class="mono">400 / 500 / 600 / 700</span>만 사용.</li>
+              <li>800/900은 로고 등 예외적 자산.</li>
+              <li>letter-spacing은 큰 사이즈(20px+)에서만 음수.</li>
+              <li>본문 line-height 1.45–1.50, 제목 1.15–1.30.</li>
             </ul>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ── 04 · SPACING ────────────────────────────── -->
-    <section class="block" id="spacing">
-      <div class="block__head">
-        <div class="meta">
-          <div class="num">04</div>
-          <h2 class="h-section" style="margin-top:8px;">스페이싱</h2>
-        </div>
-        <div class="lead">
-          <p class="body">
-            4의 배수를 베이스로 하는 스케일. 카드 내부는 12·16, 카드 간격은 8·12,
-            섹션 간격은 24·32·48. 화면 가장자리 패딩은 항상 16 또는 14입니다.
-            지금 시안에 일관성이 부족한 부분은 이 표 기준으로 정리합니다.
-          </p>
-        </div>
-      </div>
-      <div class="block__body">
-        <div class="card">
-          <div class="sp">
-            <div class="sp__item"><div class="sp__bar" style="height:4px;"></div><div class="sp__label"><b>sp-1</b>4 px</div></div>
-            <div class="sp__item"><div class="sp__bar" style="height:8px;"></div><div class="sp__label"><b>sp-2</b>8 px</div></div>
-            <div class="sp__item"><div class="sp__bar" style="height:12px;"></div><div class="sp__label"><b>sp-3</b>12 px</div></div>
-            <div class="sp__item"><div class="sp__bar" style="height:16px;"></div><div class="sp__label"><b>sp-4</b>16 px</div></div>
-            <div class="sp__item"><div class="sp__bar" style="height:20px;"></div><div class="sp__label"><b>sp-5</b>20 px</div></div>
-            <div class="sp__item"><div class="sp__bar" style="height:24px;"></div><div class="sp__label"><b>sp-6</b>24 px</div></div>
-            <div class="sp__item"><div class="sp__bar" style="height:32px;"></div><div class="sp__label"><b>sp-8</b>32 px</div></div>
-            <div class="sp__item"><div class="sp__bar" style="height:40px;"></div><div class="sp__label"><b>sp-10</b>40 px</div></div>
-            <div class="sp__item"><div class="sp__bar" style="height:48px;"></div><div class="sp__label"><b>sp-12</b>48 px</div></div>
-            <div class="sp__item"><div class="sp__bar" style="height:64px;"></div><div class="sp__label"><b>sp-16</b>64 px</div></div>
-            <div class="sp__item"><div class="sp__bar" style="height:80px;"></div><div class="sp__label"><b>sp-20</b>80 px</div></div>
-          </div>
-        </div>
-
-        <table class="tokens">
-          <thead><tr><th>구간</th><th>토큰</th><th>용도</th></tr></thead>
-          <tbody>
-            <tr><td>4</td><td class="mono">sp-1</td><td>아이콘과 라벨 사이, 매우 좁은 인접</td></tr>
-            <tr><td>8</td><td class="mono">sp-2</td><td>리스트 아이템 내부 행 간격, 작은 칩들 사이</td></tr>
-            <tr><td>12</td><td class="mono">sp-3</td><td>카드 안 요소 그룹 간격, 칩과 폼 행 간격</td></tr>
-            <tr><td>14 / 16</td><td class="mono">sp-4</td><td>화면 좌우 가장자리 패딩, 카드 내부 패딩</td></tr>
-            <tr><td>24</td><td class="mono">sp-6</td><td>섹션 내부 블록 간격, 헤딩과 본문 사이</td></tr>
-            <tr><td>32 / 48</td><td class="mono">sp-8 · sp-12</td><td>섹션 간격 (디자인 시스템 문서 전용)</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ── 05 · RADIUS ─────────────────────────────── -->
+    <!-- ── 04 · RADIUS ──────────────────────────── -->
     <section class="block" id="radius">
       <div class="block__head">
-        <div class="meta">
-          <div class="num">05</div>
-          <h2 class="h-section" style="margin-top:8px;">라디우스</h2>
-        </div>
+        <div class="meta"><div class="num">04</div><h2 class="h-section" style="margin-top:6px;">라디우스</h2></div>
         <div class="lead">
           <p class="body">
-            모서리는 작은 요소(아이콘 박스·태그)에서 4~6,
-            카드와 입력은 10~12, 큰 컨테이너는 16,
-            행동 버튼·칩·아바타는 항상 <span class="mono">9999px</span> 풀필.
-            <b style="color:var(--ink); font-weight:600;">서로 다른 두 라디우스를 같은 layer에 섞지 않습니다.</b>
+            <b class="in">6단계 + 풀필</b>. 같은 레이어에서 두 단계 이상 차이 나지 않도록 유지.
+            버튼·입력은 <span class="mono">r-md (12)</span>로 고정, 풀필은 FAB·아바타·status pill 전용.
           </p>
         </div>
       </div>
       <div class="block__body">
         <div class="card">
           <div class="rad">
-            <div class="rad__item"><div class="rad__box" style="border-radius:4px;"></div><div class="rad__lbl"><b>r-2</b>4 px</div></div>
-            <div class="rad__item"><div class="rad__box" style="border-radius:6px;"></div><div class="rad__lbl"><b>r-3</b>6 px</div></div>
-            <div class="rad__item"><div class="rad__box" style="border-radius:8px;"></div><div class="rad__lbl"><b>r-4</b>8 px</div></div>
-            <div class="rad__item"><div class="rad__box" style="border-radius:10px;"></div><div class="rad__lbl"><b>r-5</b>10 px</div></div>
-            <div class="rad__item"><div class="rad__box" style="border-radius:12px;"></div><div class="rad__lbl"><b>r-6</b>12 px</div></div>
-            <div class="rad__item"><div class="rad__box" style="border-radius:14px;"></div><div class="rad__lbl"><b>r-7</b>14 px</div></div>
-            <div class="rad__item"><div class="rad__box" style="border-radius:16px;"></div><div class="rad__lbl"><b>r-8</b>16 px</div></div>
-            <div class="rad__item"><div class="rad__box" style="border-radius:20px;"></div><div class="rad__lbl"><b>r-10</b>20 px</div></div>
-            <div class="rad__item"><div class="rad__box" style="border-radius:9999px;"></div><div class="rad__lbl"><b>r-pill</b>풀필</div></div>
+            <div class="rad__item"><div class="rad__box" style="border-radius: var(--r-xs);"></div><div class="rad__lbl"><b>r-xs · 6</b>태그 · 마이크로</div></div>
+            <div class="rad__item"><div class="rad__box" style="border-radius: var(--r-sm);"></div><div class="rad__lbl"><b>r-sm · 8</b>일정 블록</div></div>
+            <div class="rad__item"><div class="rad__box" style="border-radius: var(--r-md);"></div><div class="rad__lbl"><b>r-md · 12</b>버튼 · 입력</div></div>
+            <div class="rad__item"><div class="rad__box" style="border-radius: var(--r-lg);"></div><div class="rad__lbl"><b>r-lg · 16</b>카드 · 시트 핸들</div></div>
+            <div class="rad__item"><div class="rad__box" style="border-radius: var(--r-xl);"></div><div class="rad__lbl"><b>r-xl · 24</b>바텀시트 상단</div></div>
+            <div class="rad__item"><div class="rad__box" style="border-radius: var(--r-full);"></div><div class="rad__lbl"><b>r-full · 9999</b>FAB · 아바타 · pill</div></div>
           </div>
         </div>
-
-        <table class="tokens">
-          <thead><tr><th>토큰</th><th>값</th><th>사용</th></tr></thead>
-          <tbody>
-            <tr><td class="mono">r-2 / r-3</td><td>4 / 6 px</td><td>일정 블록 안의 아이콘 박스, 작은 태그</td></tr>
-            <tr><td class="mono">r-4</td><td>8 px</td><td>일정 블록 자체, 픽업 카드 안 아이콘 박스</td></tr>
-            <tr><td class="mono">r-5</td><td>10 px</td><td>입력 필드, 카드 안 보조 박스</td></tr>
-            <tr><td class="mono">r-6</td><td>12 px</td><td>표준 카드, 픽업 카드, 모달 상단</td></tr>
-            <tr><td class="mono">r-7 / r-8</td><td>14 / 16 px</td><td>큰 카드 · 모달 컨테이너</td></tr>
-            <tr><td class="mono">r-10</td><td>20 px</td><td>풀스크린 시트 상단</td></tr>
-            <tr><td class="mono">r-pill</td><td>9999 px</td><td>아바타, 토글, 칩, 세그먼트, FAB, 데이 서클</td></tr>
-          </tbody>
-        </table>
       </div>
     </section>
 
-    <!-- ── 06 · ELEVATION ──────────────────────────── -->
+    <!-- ── 05 · ELEVATION ────────────────────────── -->
     <section class="block" id="elevation">
       <div class="block__head">
-        <div class="meta">
-          <div class="num">06</div>
-          <h2 class="h-section" style="margin-top:8px;">그림자 · 깊이</h2>
-        </div>
+        <div class="meta"><div class="num">05</div><h2 class="h-section" style="margin-top:6px;">그림자</h2></div>
         <div class="lead">
           <p class="body">
-            아마따의 깊이는 얕습니다. 대부분의 카드는 헤어라인(<span class="mono">#ECEAE4</span>)으로만 경계를 만들고,
-            그림자는 <b style="color:var(--ink); font-weight:600;">떠야 하는 것</b>(FAB · 모달 · 픽업 카드)에만 사용합니다.
-            FAB 그림자만 Sunset Orange 톤이 묻어나오게 해서 브랜드 광원을 만듭니다.
+            <b class="in">카드는 그림자 사용 금지</b> — 보더(<span class="mono">hair</span>)가 컨테인먼트를 담당합니다.
+            그림자는 FAB, primary 버튼의 focus, 그리고 시트 가장자리에만.
           </p>
         </div>
       </div>
       <div class="block__body">
-        <div class="grid-4">
-          <div>
-            <div class="shd" style="box-shadow: none; border: 1px solid var(--hair);">
-              <b>Level 0 · Flat</b>그림자 없음, 헤어라인만
+        <div class="doc-card--soft" style="padding: 32px 24px;">
+          <div class="grid-3">
+            <div class="shd" style="box-shadow: var(--shadow-fab);">
+              <b>FAB · Primary</b>플로팅 추가 버튼
+              <div class="css">0 6 16 primary/.35</div>
             </div>
-            <div class="body-sm" style="margin-top:8px;">일반 카드, 자녀 헤더 칩, 폼 입력 — 가장 많이 쓰이는 레벨.</div>
-          </div>
-          <div>
-            <div class="shd" style="box-shadow: var(--shadow-1);">
-              <b>Level 1 · Soft</b>0 1 2 / 6 % + ring
+            <div class="shd" style="box-shadow: var(--shadow-focus);">
+              <b>Primary Focus</b>버튼 포커스 링
+              <div class="css">0 4 12 primary/.25</div>
             </div>
-            <div class="body-sm" style="margin-top:8px;">호버된 카드, 떠 있는 작은 칩.</div>
-          </div>
-          <div>
-            <div class="shd" style="box-shadow: var(--shadow-2);">
-              <b>Level 2 · Card</b>0 4 12 / 8 % + ring
+            <div class="shd" style="box-shadow: 0 4px 10px rgba(29,29,27,0.25);">
+              <b>Ink FAB</b>닥 내 ink 버튼
+              <div class="css">0 4 10 ink/.25</div>
             </div>
-            <div class="body-sm" style="margin-top:8px;">바텀시트, 떠 있는 모달, 드롭다운.</div>
-          </div>
-          <div>
-            <div class="shd" style="box-shadow: var(--shadow-fab); background: var(--primary); color:#fff;">
-              <b style="color:#fff;">Level 3 · FAB</b>orange glow
-            </div>
-            <div class="body-sm" style="margin-top:8px;">Floating Action Button 전용. 브랜드 컬러가 그림자로 새어 나옴.</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card__label">Inset Shadow · Dark Button</div>
-          <p class="body-sm" style="margin-top:4px;">검정 버튼 안쪽 위 모서리 1px 하이라이트 + 둘레 1px 어두운 링. "눌려있는" 촉감을 만듭니다.</p>
-          <div class="row" style="margin-top:14px;">
-            <button class="btn btn--primary">저장</button>
-            <button class="btn btn--primary btn--sm">수정</button>
-            <span class="mono body-sm" style="margin-left:auto;">inset 0 .5 0 rgba(255,255,255,.18), inset 0 0 0 .5 rgba(0,0,0,.20), 0 1 2 rgba(0,0,0,.05)</span>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ── 07 · ICONS ──────────────────────────────── -->
+    <!-- ── 06 · ICONS ──────────────────────────── -->
     <section class="block" id="icons">
       <div class="block__head">
-        <div class="meta">
-          <div class="num">07</div>
-          <h2 class="h-section" style="margin-top:8px;">아이콘</h2>
-        </div>
+        <div class="meta"><div class="num">06</div><h2 class="h-section" style="margin-top:6px;">아이콘</h2></div>
         <div class="lead">
           <p class="body">
-            두 갈래의 아이콘 세트. <b style="font-weight:600; color:var(--ink);">UI 아이콘</b>은 24px 그리드에 솔리드/아웃라인 혼합으로 시스템 액션을 표시.
-            <b style="font-weight:600; color:var(--ink);">카테고리 아이콘</b>은 가방·졸업모·팔레트·클립 등 사물 메타포로 학교/학원/활동/기타를 표현합니다.
-            크기는 일정 블록 안에서 11–14px, 상세 화면 16–20px.
-          </p>
-        </div>
-      </div>
-
-      <div class="block__body">
-        <div>
-          <div class="card__label" style="margin-bottom:10px;">UI · Action</div>
-          <div class="icons">
-            <div class="icons__cell"><svg width="22" height="22" viewBox="0 0 24 24" fill="#1d1d1b"><path d="M3 12l9-8 9 8v8a2 2 0 01-2 2h-3v-6h-8v6H5a2 2 0 01-2-2v-8z"/></svg><span class="nm">home</span></div>
-            <div class="icons__cell"><svg width="22" height="22" viewBox="0 0 24 24" fill="#1d1d1b"><path fill-rule="evenodd" d="M10.5 3a7.5 7.5 0 015.9 12.16l4.22 4.22a1 1 0 01-1.42 1.42l-4.22-4.22A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 100 11 5.5 5.5 0 000-11z" clip-rule="evenodd"/></svg><span class="nm">search</span></div>
-            <div class="icons__cell"><svg width="22" height="22" viewBox="0 0 24 24" fill="#1d1d1b"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span class="nm">grid</span></div>
-            <div class="icons__cell"><svg width="22" height="22" viewBox="0 0 24 24" fill="#1d1d1b"><path fill-rule="evenodd" d="M11.5 1a1 1 0 00-.97.76l-.4 1.6a8 8 0 00-1.7.7l-1.4-.86a1 1 0 00-1.23.15L4.41 4.74a1 1 0 00-.15 1.23l.87 1.4a8 8 0 00-.7 1.7l-1.6.4a1 1 0 00-.76.97v2.12a1 1 0 00.76.97l1.6.4a8 8 0 00.7 1.7l-.87 1.4a1 1 0 00.15 1.23l1.39 1.39a1 1 0 001.23.15l1.4-.87a8 8 0 001.7.7l.4 1.6a1 1 0 00.97.76h2.12a1 1 0 00.97-.76l.4-1.6a8 8 0 001.7-.7l1.4.87a1 1 0 001.23-.15l1.39-1.39a1 1 0 00.15-1.23l-.87-1.4a8 8 0 00.7-1.7l1.6-.4a1 1 0 00.76-.97v-2.12a1 1 0 00-.76-.97l-1.6-.4a8 8 0 00-.7-1.7l.87-1.4a1 1 0 00-.15-1.23l-1.39-1.39a1 1 0 00-1.23-.15l-1.4.87a8 8 0 00-1.7-.7l-.4-1.6A1 1 0 0013.62 1H11.5zm1.06 7a4 4 0 100 8 4 4 0 000-8z" clip-rule="evenodd"/></svg><span class="nm">settings</span></div>
-            <div class="icons__cell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d1d1b" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="nm">plus</span></div>
-            <div class="icons__cell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d1d1b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg><span class="nm">check</span></div>
-            <div class="icons__cell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d1d1b" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="nm">close</span></div>
-            <div class="icons__cell"><svg width="22" height="22" viewBox="0 0 24 24" fill="#1d1d1b"><path d="M12 2a6 6 0 00-6 6v3.4l-1.7 3.4A1 1 0 005.2 16h13.6a1 1 0 00.9-1.2L18 11.4V8a6 6 0 00-6-6zm-3 16a3 3 0 006 0H9z"/></svg><span class="nm">bell</span></div>
-            <div class="icons__cell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d1d1b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg><span class="nm">back</span></div>
-            <div class="icons__cell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d1d1b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span class="nm">forward</span></div>
-            <div class="icons__cell"><svg width="22" height="22" viewBox="0 0 24 24" fill="#1d1d1b"><path d="M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.4L19 11h.5a1.5 1.5 0 011.5 1.5V17a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H6v1a1 1 0 01-1 1H4a1 1 0 01-1-1v-4.5A1.5 1.5 0 014.5 11H5zm2.6-1h8.8l-.9-2.7a.5.5 0 00-.5-.3H9a.5.5 0 00-.5.3L7.6 10z"/></svg><span class="nm">car</span></div>
-            <div class="icons__cell"><svg width="22" height="22" viewBox="0 0 24 24" fill="#1d1d1b"><path d="M12 2c.6 4 2 5.4 6 6-4 .6-5.4 2-6 6-.6-4-2-5.4-6-6 4-.6 5.4-2 6-6z"/></svg><span class="nm">sparkle</span></div>
-          </div>
-        </div>
-
-        <div>
-          <div class="card__label" style="margin-bottom:10px;">Category · 학교 · 학원 · 활동 · 기타</div>
-          <div class="grid-4">
-            <div class="card" style="text-align:center;">
-              <svg width="44" height="44" viewBox="0 0 24 24" fill="#1d1d1b" style="margin: 0 auto;">
-                <path d="M9 4a3 3 0 016 0v1h-2V4a1 1 0 00-2 0v1H9V4z"/>
-                <path d="M5 9a3 3 0 013-3h8a3 3 0 013 3v9a3 3 0 01-3 3H8a3 3 0 01-3-3V9zm4 2.5a1 1 0 011-1h4a1 1 0 011 1V14a1 1 0 01-1 1h-4a1 1 0 01-1-1v-2.5z"/>
-              </svg>
-              <div class="h-card" style="margin-top:8px;">학교</div>
-              <div class="body-sm" style="margin-top:4px;">가방 메타포</div>
-            </div>
-            <div class="card" style="text-align:center;">
-              <svg width="44" height="44" viewBox="0 0 24 24" fill="#1d1d1b" style="margin: 0 auto;">
-                <path d="M2 9l10-5 10 5-10 5L2 9z"/>
-                <path d="M6 12v3.5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V12l-6 3-6-3z"/>
-              </svg>
-              <div class="h-card" style="margin-top:8px;">학원</div>
-              <div class="body-sm" style="margin-top:4px;">졸업모 메타포</div>
-            </div>
-            <div class="card" style="text-align:center;">
-              <svg width="44" height="44" viewBox="0 0 24 24" fill="#1d1d1b" style="margin: 0 auto;">
-                <path d="M12 3C6.5 3 3 6.8 3 11.5c0 4.7 3.6 8.5 8 8.5 1 0 1.6-.6 1.6-1.5 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.1 0-.9.7-1.6 1.6-1.6h1.7c3 0 5.1-2 5.1-5C20 6.7 16.4 3 12 3z"/>
-                <circle cx="7" cy="9" r="1.2" fill="#FEFDFA"/>
-                <circle cx="12" cy="7" r="1.2" fill="#FEFDFA"/>
-                <circle cx="16.5" cy="9.5" r="1.2" fill="#FEFDFA"/>
-              </svg>
-              <div class="h-card" style="margin-top:8px;">활동</div>
-              <div class="body-sm" style="margin-top:4px;">팔레트 메타포</div>
-            </div>
-            <div class="card" style="text-align:center;">
-              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#1d1d1b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto;">
-                <path d="M16 6l-7 7a3 3 0 004.2 4.2l7-7a5 5 0 00-7-7l-7 7a7 7 0 0010 10l4-4"/>
-              </svg>
-              <div class="h-card" style="margin-top:8px;">기타</div>
-              <div class="body-sm" style="margin-top:4px;">클립 메타포</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── 08 · AVATARS ────────────────────────────── -->
-    <section class="block" id="avatars">
-      <div class="block__head">
-        <div class="meta">
-          <div class="num">08</div>
-          <h2 class="h-section" style="margin-top:8px;">캐릭터 아바타</h2>
-        </div>
-        <div class="lead">
-          <p class="body">
-            자녀를 표현하는 동물 실루엣. 토끼 · 판다 · 고양이 · 사슴 · 곰 · 펭귄 6종.
-            모든 캐릭터는 같은 얼굴 좌표(눈 두 개 + ω 입)를 공유하며, 채움색은 자녀의 <span class="mono">dot</span> 컬러를 따릅니다.
-            세부를 줄이고 실루엣과 색만 다르게 해서 4명까지 한 화면에 있어도 안 시끄럽도록 합니다.
+            카테고리 4종 고정(<span class="mono">school · academy · activity · other</span>), 시스템 아이콘은 <span class="mono">lucide-react-native</span> 매핑.
+            프로토타입에서는 <span class="mono">app-tokens.jsx</span>의 손그림 SVG로 대체합니다.
           </p>
         </div>
       </div>
       <div class="block__body">
         <div class="card">
-          <div class="row" style="gap:24px; justify-content: space-around;">
-            <div style="text-align:center;">
-              <div class="avatar" style="width:64px; height:64px; background:var(--kid-peach-bg); margin:0 auto;">
-                <svg width="56" height="56" viewBox="0 0 100 100">
-                  <ellipse cx="35" cy="28" rx="7" ry="17" transform="rotate(-8 35 28)" fill="#F596E5"/>
-                  <ellipse cx="65" cy="28" rx="7" ry="17" transform="rotate(8 65 28)" fill="#F596E5"/>
-                  <ellipse cx="50" cy="62" rx="37" ry="28" fill="#F596E5"/>
-                  <circle cx="39" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <path d="M50 66 Q46.5 70.2 43.4 67.6 M50 66 Q53.5 70.2 56.6 67.6" fill="none" stroke="#1d1d1b" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <div class="h-card" style="margin-top:8px;">토끼</div>
-              <div class="body-sm">rabbit</div>
-            </div>
-            <div style="text-align:center;">
-              <div class="avatar" style="width:64px; height:64px; background:var(--kid-mint-bg); margin:0 auto;">
-                <svg width="56" height="56" viewBox="0 0 100 100">
-                  <ellipse cx="22" cy="36" rx="13" ry="11" fill="#AFDE94"/>
-                  <ellipse cx="78" cy="36" rx="13" ry="11" fill="#AFDE94"/>
-                  <ellipse cx="50" cy="62" rx="36" ry="30" fill="#AFDE94"/>
-                  <circle cx="39" cy="59" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="59" r="3.6" fill="#1d1d1b"/>
-                  <path d="M50 68 Q46.5 72.2 43.4 69.6 M50 68 Q53.5 72.2 56.6 69.6" fill="none" stroke="#1d1d1b" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <div class="h-card" style="margin-top:8px;">판다</div>
-              <div class="body-sm">panda</div>
-            </div>
-            <div style="text-align:center;">
-              <div class="avatar" style="width:64px; height:64px; background:var(--kid-sky-bg); margin:0 auto;">
-                <svg width="56" height="56" viewBox="0 0 100 100">
-                  <path d="M20 42 L30 14 L46 36 Z" fill="#B0C9F0"/>
-                  <path d="M80 42 L70 14 L54 36 Z" fill="#B0C9F0"/>
-                  <ellipse cx="50" cy="60" rx="35" ry="30" fill="#B0C9F0"/>
-                  <circle cx="39" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <path d="M50 66 Q46.5 70.2 43.4 67.6 M50 66 Q53.5 70.2 56.6 67.6" fill="none" stroke="#1d1d1b" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <div class="h-card" style="margin-top:8px;">고양이</div>
-              <div class="body-sm">cat</div>
-            </div>
-            <div style="text-align:center;">
-              <div class="avatar" style="width:64px; height:64px; background:var(--kid-butter-bg); margin:0 auto;">
-                <svg width="56" height="56" viewBox="0 0 100 100">
-                  <path d="M18 40 C 18 33, 24 30, 30 30 L 70 30 C 76 30, 82 33, 82 40 L 68 80 C 64 90, 36 90, 32 80 Z" fill="#FFB28C"/>
-                  <ellipse cx="13" cy="34" rx="7" ry="10" transform="rotate(-28 13 34)" fill="#FFB28C"/>
-                  <ellipse cx="87" cy="34" rx="7" ry="10" transform="rotate(28 87 34)" fill="#FFB28C"/>
-                  <g stroke="#FFB28C" stroke-width="3.5" stroke-linecap="round" fill="none">
-                    <path d="M34 28 L28 8"/><path d="M31 18 L22 10"/>
-                    <path d="M66 28 L72 8"/><path d="M69 18 L78 10"/>
-                  </g>
-                  <circle cx="39" cy="53" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="53" r="3.6" fill="#1d1d1b"/>
-                  <path d="M50 62 Q46.5 66.2 43.4 63.6 M50 62 Q53.5 66.2 56.6 63.6" fill="none" stroke="#1d1d1b" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <div class="h-card" style="margin-top:8px;">사슴</div>
-              <div class="body-sm">deer</div>
-            </div>
-            <div style="text-align:center;">
-              <div class="avatar" style="width:64px; height:64px; background:#F5F3EE; margin:0 auto;">
-                <svg width="56" height="56" viewBox="0 0 100 100">
-                  <circle cx="28" cy="36" r="10" fill="#B8956A"/>
-                  <circle cx="72" cy="36" r="10" fill="#B8956A"/>
-                  <ellipse cx="50" cy="62" rx="37" ry="28" fill="#B8956A"/>
-                  <circle cx="39" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <path d="M50 66 Q46.5 70.2 43.4 67.6 M50 66 Q53.5 70.2 56.6 67.6" fill="none" stroke="#1d1d1b" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <div class="h-card" style="margin-top:8px;">곰</div>
-              <div class="body-sm">bear · 예비</div>
-            </div>
-            <div style="text-align:center;">
-              <div class="avatar" style="width:64px; height:64px; background:#EEF2F4; margin:0 auto;">
-                <svg width="56" height="56" viewBox="0 0 100 100">
-                  <path d="M50 8 C 30 8, 19 28, 19 54 C 19 80, 32 94, 50 94 C 68 94, 81 80, 81 54 C 81 28, 70 8, 50 8 Z" fill="#5A7A92"/>
-                  <circle cx="39" cy="42" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="42" r="3.6" fill="#1d1d1b"/>
-                  <path d="M50 51 Q46.5 55.2 43.4 52.6 M50 51 Q53.5 55.2 56.6 52.6" fill="none" stroke="#1d1d1b" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <div class="h-card" style="margin-top:8px;">펭귄</div>
-              <div class="body-sm">penguin · 예비</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card--soft">
-          <div class="card__label">규칙</div>
-          <ul style="margin:0; padding-left:18px; font-family:var(--kr-text); font-size:13px; line-height:1.7; color:var(--ink);">
-            <li>아바타는 항상 흰 원 또는 자녀 <span class="mono">bg</span> 위에 놓습니다. 단독 배경 위에 놓지 않습니다.</li>
-            <li>크기는 24 · 28 · 36 · 40 · 64 다섯 가지만 사용. 그 사이 임의 크기 금지.</li>
-            <li>얼굴 디테일을 추가하지 않습니다. 표정 변화는 색 변화로 대신.</li>
-          </ul>
+          <div id="icon-grid" class="icons"></div>
         </div>
       </div>
     </section>
 
-    <!-- ── 09 · BUTTONS ────────────────────────────── -->
+    <!-- ── 07 · AVATARS ────────────────────────── -->
+    <section class="block" id="avatars">
+      <div class="block__head">
+        <div class="meta"><div class="num">07</div><h2 class="h-section" style="margin-top:6px;">아바타</h2></div>
+        <div class="lead">
+          <p class="body">
+            온보딩에서 자녀가 고를 수 있는 표정 7종 + 동물 4종.
+            <b class="in">주황이는 자녀 picker에서 제외</b> — Sunset Orange는 brand primary 전용.
+          </p>
+        </div>
+      </div>
+      <div class="block__body">
+        <div>
+          <div class="doc-card__label">표정 (face) · 6종 — 자녀 아바타 picker</div>
+          <div class="av-grid" style="grid-template-columns: repeat(6, 1fr);">
+            <div class="av-cell"><img src="assets/avatar-face-wink.png" alt=""/><div class="nm">wink</div></div>
+            <div class="av-cell"><img src="assets/avatar-face-dizzy.png" alt=""/><div class="nm">dizzy</div></div>
+            <div class="av-cell"><img src="assets/avatar-face-cool.png" alt=""/><div class="nm">cool</div></div>
+            <div class="av-cell"><img src="assets/avatar-face-sleep.png" alt=""/><div class="nm">sleep</div></div>
+            <div class="av-cell"><img src="assets/avatar-face-surprise.png" alt=""/><div class="nm">surprise</div></div>
+            <div class="av-cell"><img src="assets/avatar-face-calm.png" alt=""/><div class="nm">calm</div></div>
+          </div>
+          <p class="body-sm" style="margin-top: 10px;">
+            <b class="in">face-happy(주황)는 picker에서 제외</b> — brand primary 컴러와 겹쳐 자녀 식별 충돌. 자녀 수 최대 6명와 1:1 대응.
+          </p>
+        </div>
+        <div>
+          <div class="doc-card__label">동물 (animal) · 예비</div>
+          <div class="av-grid" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="av-cell"><img src="assets/avatar-rabbit.png" alt=""/><div class="nm">rabbit</div></div>
+            <div class="av-cell"><img src="assets/avatar-bear.png" alt=""/><div class="nm">bear</div></div>
+            <div class="av-cell"><img src="assets/avatar-cat.png" alt=""/><div class="nm">cat</div></div>
+            <div class="av-cell"><img src="assets/avatar-deer.png" alt=""/><div class="nm">deer</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 08 · MASCOTS ────────────────────────── -->
+    <section class="block" id="mascots">
+      <div class="block__head">
+        <div class="meta"><div class="num">08</div><h2 class="h-section" style="margin-top:6px;">마스코트</h2></div>
+        <div class="lead">
+          <p class="body">
+            온보딩 · 빈 상태 등 콘텐츠 영역에만 등장. 시스템 chrome(헤더 · 탭 · 버튼)에는 사용하지 않습니다.
+          </p>
+        </div>
+      </div>
+      <div class="block__body">
+        <div class="mascot">
+          <div class="mascot__cell"><img src="assets/mascot-pink.png" alt=""/><div class="nm">mascot-pink</div></div>
+          <div class="mascot__cell"><img src="assets/mascot-orange.png" alt=""/><div class="nm">mascot-orange</div></div>
+          <div class="mascot__cell"><img src="assets/mascot-yellow.png" alt=""/><div class="nm">mascot-yellow</div></div>
+          <div class="mascot__cell"><img src="assets/mascot-sleep.png" alt=""/><div class="nm">mascot-sleep</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- COMPONENTS                                                   -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+
+    <!-- ── 09 · BUTTONS ─────────────────────────── -->
     <section class="block" id="buttons">
       <div class="block__head">
-        <div class="meta">
-          <div class="num">09</div>
-          <h2 class="h-section" style="margin-top:8px;">버튼</h2>
-        </div>
+        <div class="meta"><div class="num">09</div><h2 class="h-section" style="margin-top:6px;">버튼</h2></div>
         <div class="lead">
           <p class="body">
-            4가지 버튼 + FAB. <b style="color:var(--ink); font-weight:600;">Primary(Dark)</b>가 화면의 주 행동,
-            <b style="color:var(--ink); font-weight:600;">Brand(Orange)</b>는 픽업·FAB처럼 브랜드 모먼트에만 사용합니다.
-            모든 버튼은 풀필(<span class="mono">9999px</span>)이 기본이며, 사각형 버튼은 모달의 큰 결정 액션에만 허용됩니다.
+            <b class="in">5 variants</b> (Ink · Primary · Ghost · Soft · Danger) × <b class="in">2 라디우스</b>
+            (디폴트 <span class="mono">r-md 12</span> · 옵션 <span class="mono">pill full</span>).
+            메인 CTA는 <b class="in">Ink + Pill + Large</b> 조합이 실제 앱의 표준입니다 — 온보딩 "시작하기", "완료" 등.
+          </p>
+          <p class="body">
+            Sunset Orange Primary 버튼은 <b class="in">브랜드 의도</b>가 있을 때(픽업 카드, 강조 액션)만 등장하고,
+            그 외는 Ink로 위계를 잡습니다.
           </p>
         </div>
       </div>
+      <div class="block__body">
 
+        <!-- Variants -->
+        <div class="preview">
+          <div class="preview__caption">Variants · default radius (12)</div>
+          <div class="row" style="gap: 12px;">
+            <button class="btn btn--ink">Ink</button>
+            <button class="btn btn--primary">Primary</button>
+            <button class="btn btn--ghost">Ghost</button>
+            <button class="btn btn--soft">Soft</button>
+            <button class="btn btn--surface">Surface</button>
+            <button class="btn btn--danger">Danger</button>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">Pill radius (full) · 메인 CTA 표준</div>
+          <div class="row" style="gap: 12px;">
+            <button class="btn btn--ink btn--pill">Ink Pill</button>
+            <button class="btn btn--primary btn--pill">Primary Pill</button>
+            <button class="btn btn--soft btn--pill">Soft Pill</button>
+            <button class="btn btn--ghost btn--pill">Ghost Pill</button>
+            <button class="btn btn--danger btn--pill">Danger Pill</button>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">States · Ink</div>
+          <div class="row" style="gap: 12px;">
+            <button class="btn btn--ink">Default</button>
+            <button class="btn btn--ink" style="background: #2A2A28;">Hover</button>
+            <button class="btn btn--ink" style="background: #000;">Pressed</button>
+            <button class="btn btn--ink" style="box-shadow: var(--inset-btn), 0 0 0 3px rgba(29,29,27,0.18);">Focused</button>
+            <button class="btn btn--ink" disabled>Disabled</button>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">States · Primary</div>
+          <div class="row" style="gap: 12px;">
+            <button class="btn btn--primary">Default</button>
+            <button class="btn btn--primary" style="background: #F46438;">Hover</button>
+            <button class="btn btn--primary" style="background: var(--primary-deep);">Pressed</button>
+            <button class="btn btn--primary" style="box-shadow: var(--shadow-focus);">Focused</button>
+            <button class="btn btn--primary" disabled>Disabled</button>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">States · Ghost</div>
+          <div class="row" style="gap: 12px;">
+            <button class="btn btn--ghost">Default</button>
+            <button class="btn btn--ghost" style="background: var(--ink-04); border-color: var(--ink);">Hover</button>
+            <button class="btn btn--ghost" style="background: var(--ink-06);">Pressed</button>
+            <button class="btn btn--ghost" disabled>Disabled</button>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">Sizes</div>
+          <div class="row" style="gap: 12px; align-items: center;">
+            <button class="btn btn--ink btn--sm">Small</button>
+            <button class="btn btn--ink">Default</button>
+            <button class="btn btn--ink btn--lg">Large</button>
+            <button class="btn btn--ink btn--lg btn--pill">Large Pill</button>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">Block (full-width) · 온보딩 CTA 스택</div>
+          <div style="width: 320px; display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn--ink btn--block btn--lg btn--pill">완료</button>
+            <button class="btn btn--soft btn--block btn--lg btn--pill">+ 자녀 추가</button>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">Block (full-width) · 브랜드 의도 CTA</div>
+          <div style="width: 320px; display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn--primary btn--block btn--lg btn--pill">시작하기</button>
+            <button class="btn btn--ghost btn--block btn--lg btn--pill">나중에</button>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">Sheet CTA · radius 14 (시트 내부 예외)</div>
+          <div style="width: 320px; display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn--danger btn--block btn--lg btn--sheet">초기화하기</button>
+            <button class="btn btn--soft btn--block btn--lg btn--sheet">취소</button>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">With icon</div>
+          <div class="row" style="gap: 12px;">
+            <button class="btn btn--ink">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              새 일정
+            </button>
+            <button class="btn btn--primary btn--pill">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              추가
+            </button>
+            <button class="btn btn--ghost">
+              검색
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.5 3a7.5 7.5 0 015.9 12.16l4.22 4.22a1 1 0 01-1.42 1.42l-4.22-4.22A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 100 11 5.5 5.5 0 000-11z" clip-rule="evenodd"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="doc-card--soft">
+          <div class="doc-card__label">변형 · 스펙</div>
+          <table class="tokens">
+            <thead><tr><th>variant</th><th>bg</th><th>color</th><th>border</th><th>state notes</th></tr></thead>
+            <tbody>
+              <tr><td><b class="in">Ink</b></td><td class="mono">#1D1D1B</td><td class="mono">#FFF</td><td>—</td><td>hover #2A2A28 · pressed #000 — <b class="in">메인 CTA 기본값</b></td></tr>
+              <tr><td>Primary</td><td class="mono">#FF7144</td><td class="mono">#FFF</td><td>—</td><td>brand 의도(픽업·강조) 한정 — hover #F46438 · pressed #D8501F</td></tr>
+              <tr><td>Ghost</td><td>transparent</td><td class="mono">ink</td><td class="mono">1px ink-30</td><td>hover bg ink-04 + border ink</td></tr>
+              <tr><td>Soft</td><td class="mono">ink-04</td><td class="mono">ink</td><td>—</td><td>온보딩 "자녀 추가" · 시트 "취소" — hover ink-06</td></tr>
+              <tr><td>Surface</td><td class="mono">surface-warm</td><td class="mono">ink</td><td>—</td><td>보조 액션 · hover #F2EFE6</td></tr>
+              <tr><td>Danger</td><td class="mono">#FF4444</td><td class="mono">#FFF</td><td>—</td><td>삭제 · 초기화 — hover #F03A3A</td></tr>
+            </tbody>
+          </table>
+
+          <div class="doc-card__label" style="margin-top: 16px;">라디우스 · 사이즈 모디파이어</div>
+          <table class="tokens">
+            <tbody>
+              <tr><td><span class="mono">.btn</span> (default)</td><td class="mono">radius 12 · padding 12×20 · 14/500 · 40h</td><td>일반 단일 액션</td></tr>
+              <tr><td><span class="mono">.btn--pill</span></td><td class="mono">radius full</td><td>메인 CTA · 온보딩 · 디자이너의 의도적 장식</td></tr>
+              <tr><td><span class="mono">.btn--sheet</span></td><td class="mono">radius 14</td><td>시트 내부 버튼 전용 예외</td></tr>
+              <tr><td><span class="mono">.btn--sm</span></td><td class="mono">padding 8×14 · 13/500 · 32h</td><td>인라인 보조 액션</td></tr>
+              <tr><td><span class="mono">.btn--lg</span></td><td class="mono">padding 14×16 · 15/600 · 48h</td><td>온보딩/시트 메인 CTA</td></tr>
+              <tr><td><span class="mono">.btn--block</span></td><td class="mono">width 100%</td><td>풀폭 CTA</td></tr>
+            </tbody>
+          </table>
+
+          <p class="body-sm" style="margin-top: 12px;">
+            Filled 버튼(Ink · Primary · Danger)에는 inset highlight
+            <span class="mono">inset 0 0.5px 0 rgba(255,255,255,0.25), inset 0 0 0 0.5px rgba(0,0,0,0.15)</span>를 적용해 깊이를 줍니다.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 10 · FAB ─────────────────────────────── -->
+    <section class="block" id="fab">
+      <div class="block__head">
+        <div class="meta"><div class="num">10</div><h2 class="h-section" style="margin-top:6px;">FAB · 플로팅 액션</h2></div>
+        <div class="lead">
+          <p class="body">
+            FAB는 <b class="in">Ink (검정)이 기본값</b>입니다 — 새 일정 추가 등 모든 메인 액션.
+            라디우스는 풀필 고정, 한 화면에 하나만. Sunset Orange FAB는 브랜드 강조가 필요한 예외 상황 한정.
+          </p>
+        </div>
+      </div>
       <div class="block__body">
         <div class="preview">
-          <div class="preview__caption">Primary · Brand · Ghost · Soft</div>
-          <div class="row">
-            <button class="btn btn--primary">저장</button>
-            <button class="btn btn--brand">새 일정</button>
-            <button class="btn btn--ghost">취소</button>
-            <button class="btn btn--soft">필터</button>
-            <button class="btn btn--danger">삭제</button>
-          </div>
-          <div class="preview__caption" style="margin-top:8px;">Small variants</div>
-          <div class="row">
-            <button class="btn btn--primary btn--sm">수정</button>
-            <button class="btn btn--ghost btn--sm">뒤로</button>
-            <button class="btn btn--soft btn--sm">보기</button>
-          </div>
-          <div class="preview__caption" style="margin-top:8px;">FAB · Floating Action Button</div>
-          <div class="row">
-            <button class="fab" aria-label="새 일정 추가">
+          <div class="preview__caption">Ink FAB · default · 56 / 44</div>
+          <div class="row" style="gap: 24px; align-items: center;">
+            <button class="fab" aria-label="추가">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
-            <span class="body-sm">화면당 1개. 새 일정 추가 액션 고정.</span>
+            <button class="fab fab--sm" aria-label="추가">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button class="fab" style="background: #2A2A28;" aria-label="hover">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button class="fab" style="background: #000; transform: scale(0.96);" aria-label="pressed">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button class="fab" disabled aria-label="disabled">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">Primary FAB · 예외 (브랜드 강조)</div>
+          <div class="row" style="gap: 24px; align-items: center;">
+            <button class="fab fab--primary" aria-label="추가">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button class="fab fab--primary fab--sm" aria-label="추가">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">In context · 바텀 닥 (홈 · FAB · 설정)</div>
+          <div style="width: 320px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+                      background: #fff; border-radius: 9999px; padding: 6px 16px; gap: 10px;
+                      box-shadow: 0 10px 26px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04);">
+            <button style="background: transparent; border: none; cursor: pointer; padding: 2px; display: flex; justify-content: center; color: var(--primary);">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M4.5 18.9V10.1c0-.6.3-1 .7-1.4L11 4.4c.6-.4 1.4-.4 2 0l5.8 4.3c.4.4.7.8.7 1.4v8.9c0 .8-.7 1.5-1.5 1.5h-3.2v-5.7c0-.5-.4-.9-.9-.9h-2c-.5 0-.9.4-.9.9v5.7H6c-.8 0-1.5-.7-1.5-1.5z"/></svg>
+            </button>
+            <button class="fab fab--sm" aria-label="추가">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button style="background: transparent; border: none; cursor: pointer; padding: 2px; display: flex; justify-content: center; color: var(--ink-sub);">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19.4 13a7.5 7.5 0 000-2l2-1.6-2-3.4L17 7a7.5 7.5 0 00-1.7-1L15 3.5h-4L10.7 6A7.5 7.5 0 009 7L6.6 6 4.6 9.4 6.6 11a7.5 7.5 0 000 2l-2 1.6 2 3.4L9 17a7.5 7.5 0 001.7 1L11 20.5h4L15.3 18A7.5 7.5 0 0017 17l2.4 1 2-3.4L19.4 13zM13 15a3 3 0 110-6 3 3 0 010 6z"/></svg>
+            </button>
           </div>
         </div>
-
-        <table class="tokens">
-          <thead><tr><th>버튼</th><th>배경</th><th>텍스트</th><th>보더</th><th>그림자</th></tr></thead>
-          <tbody>
-            <tr><td>Primary (Dark)</td><td class="mono">ink #1d1d1b</td><td class="mono">#fff</td><td>없음</td><td>inset dark</td></tr>
-            <tr><td>Brand (Orange)</td><td class="mono">primary #FF7144</td><td class="mono">#fff</td><td>없음</td><td>0 2 8 / orange 30%</td></tr>
-            <tr><td>Ghost</td><td>transparent</td><td class="mono">ink</td><td class="mono">1px hair</td><td>없음</td></tr>
-            <tr><td>Soft</td><td class="mono">ink-04</td><td class="mono">ink</td><td>없음</td><td>없음</td></tr>
-            <tr><td>Danger Ghost</td><td>transparent</td><td class="mono">danger #E84A2D</td><td class="mono">1px hair</td><td>없음</td></tr>
-            <tr><td>FAB</td><td class="mono">primary</td><td class="mono">#fff</td><td>없음</td><td>orange glow</td></tr>
-          </tbody>
-        </table>
-
-        <div class="card--soft">
-          <div class="card__label">패딩 · 사이즈</div>
-          <ul style="margin:0; padding-left:18px; font-family:var(--kr-text); font-size:13px; line-height:1.7; color:var(--ink);">
-            <li><b style="font-weight:600;">기본</b> · 9px 16px, 폰트 13.5px / 600</li>
-            <li><b style="font-weight:600;">Small</b> · 6px 12px, 폰트 12px / 600</li>
-            <li><b style="font-weight:600;">FAB</b> · 56 × 56, 아이콘 26px</li>
-            <li><b style="font-weight:600;">탭 가능 영역</b>은 항상 44 × 44 이상 (작은 칩은 패딩으로 확보)</li>
+        <div class="doc-card--soft">
+          <div class="doc-card__label">스펙</div>
+          <table class="tokens">
+            <thead><tr><th>variant</th><th>size</th><th>bg</th><th>shadow</th><th>notes</th></tr></thead>
+            <tbody>
+              <tr><td><b class="in">Ink (기본)</b></td><td class="mono">56 / 44</td><td class="mono">#1D1D1B</td><td class="mono">0 6 16 ink/.30 + 0 2 4 ink/.10</td><td>모든 화면 메인 FAB · sm은 닥 내부</td></tr>
+              <tr><td>Primary (예외)</td><td class="mono">56 / 44</td><td class="mono">#FF7144</td><td class="mono">0 6 16 primary/.35</td><td>브랜드 강조 의도 한정</td></tr>
+            </tbody>
+          </table>
+          <ul style="margin: 12px 0 0; padding-left: 18px; font-family: var(--font-text); font-size: 13px; line-height: 1.7; color: var(--ink);">
+            <li>라디우스는 항상 <span class="mono">r-full (9999)</span>.</li>
+            <li>Hover — Ink #2A2A28 · Primary #F46438.</li>
+            <li>Pressed — Ink #000 · Primary #D8501F · 공통 <span class="mono">scale(0.96)</span>.</li>
+            <li>Disabled — opacity 0.4 · not-allowed.</li>
           </ul>
         </div>
       </div>
     </section>
 
-    <!-- ── 10 · CHIPS · SEG ─────────────────────────── -->
-    <section class="block" id="chips">
+    <!-- ── 11 · INPUTS ──────────────────────────── -->
+    <section class="block" id="inputs">
       <div class="block__head">
-        <div class="meta">
-          <div class="num">10</div>
-          <h2 class="h-section" style="margin-top:8px;">칩 · 세그먼트</h2>
-        </div>
+        <div class="meta"><div class="num">11</div><h2 class="h-section" style="margin-top:6px;">입력</h2></div>
         <div class="lead">
           <p class="body">
-            한 그룹 안에서 하나만 활성화되는 선택을 표현. 세그먼트는 탭 전환,
-            칩은 카테고리 · 자녀 · 알림 시간 같은 단일 선택입니다.
-            데이 서클은 요일 반복 전용.
+            <span class="mono">surface-warm</span> 채움 + <span class="mono">1px hair</span> 보더 + <span class="mono">radius 12</span>.
+            포커스 시 보더 색이 primary로 바뀌고 <span class="mono">2px ring</span>이 더해집니다.
           </p>
         </div>
       </div>
       <div class="block__body">
         <div class="preview">
-          <div class="preview__caption">Segment</div>
+          <div class="preview__caption">Default · Focus · Filled · Disabled</div>
+          <div style="width: 360px; display: flex; flex-direction: column; gap: 12px;">
+            <input class="field" placeholder="자녀 이름"/>
+            <input class="field" placeholder="포커스 상태" style="border-color: var(--primary); box-shadow: 0 0 0 2px rgba(255,113,68,0.30);"/>
+            <input class="field" value="민준" readonly/>
+            <input class="field" placeholder="비활성화" disabled/>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">Larger field (lg)</div>
+          <div style="width: 360px;">
+            <input class="field field--lg" placeholder="이벤트 제목"/>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">With label</div>
+          <div style="width: 360px;">
+            <label class="t-caption" style="display: block; color: var(--ink-sub); margin-bottom: 6px;">자녀 이름</label>
+            <input class="field" placeholder="예) 민준"/>
+          </div>
+        </div>
+        <div class="doc-card--soft">
+          <div class="doc-card__label">스펙</div>
+          <ul style="margin: 0; padding-left: 18px; font-family: var(--font-text); font-size: 13px; line-height: 1.7; color: var(--ink);">
+            <li>Default — <span class="mono">bg surface-warm · border 1px hair · radius 12 · padding 12×14 · 14/400</span></li>
+            <li>Focus — <span class="mono">border primary · box-shadow 0 0 0 2px primary/0.30</span></li>
+            <li>Placeholder — <span class="mono">color ink-sub</span></li>
+            <li>Disabled — opacity 0.5 · not-allowed</li>
+            <li>Large — padding 14×16 · 15/400 (시트 첫 입력 등)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 12 · TOGGLE & SEGMENTED ──────────────── -->
+    <section class="block" id="toggle">
+      <div class="block__head">
+        <div class="meta"><div class="num">12</div><h2 class="h-section" style="margin-top:6px;">토글 · 세그먼트</h2></div>
+        <div class="lead">
+          <p class="body">
+            토글 ON 색은 <b class="in" style="color:var(--primary);">primary</b>, OFF는 <span class="mono">ink-12</span>.
+            세그먼트는 <span class="mono">ink-04</span> 트랙 + 흰색 활성 옵션 (헤어라인 인셋).
+          </p>
+        </div>
+      </div>
+      <div class="block__body">
+        <div class="preview">
+          <div class="preview__caption">Toggle</div>
+          <div class="row" style="gap: 20px; align-items: center;">
+            <div class="toggle toggle--on"></div>
+            <span class="t-body" style="color: var(--ink);">ON · primary</span>
+            <div class="toggle"></div>
+            <span class="t-body" style="color: var(--ink);">OFF · ink-12</span>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">Segmented control</div>
           <div class="seg">
-            <button class="seg__opt seg__opt--active">일정</button>
-            <button class="seg__opt">준비물 &amp; 할일</button>
+            <button class="seg__opt">10분 전</button>
+            <button class="seg__opt seg__opt--active">30분 전</button>
+            <button class="seg__opt">1시간 전</button>
           </div>
 
-          <div class="preview__caption" style="margin-top:8px;">Pills · Category</div>
-          <div class="row">
-            <button class="pill pill--active">학교</button>
-            <button class="pill">학원</button>
-            <button class="pill">활동</button>
-            <button class="pill">기타</button>
+          <div class="seg">
+            <button class="seg__opt seg__opt--active">일간</button>
+            <button class="seg__opt">주간</button>
           </div>
-
-          <div class="preview__caption" style="margin-top:8px;">Pills · Kid (avatar prefix)</div>
-          <div class="row">
-            <button class="pill pill--active" style="padding-left:4px; gap:6px; display:inline-flex; align-items:center;">
-              <span style="width:20px;height:20px;border-radius:99px;background:var(--kid-peach-bg);display:grid;place-items:center;overflow:hidden;">
-                <svg width="17" height="17" viewBox="0 0 100 100">
-                  <ellipse cx="35" cy="28" rx="7" ry="17" transform="rotate(-8 35 28)" fill="#F596E5"/>
-                  <ellipse cx="65" cy="28" rx="7" ry="17" transform="rotate(8 65 28)" fill="#F596E5"/>
-                  <ellipse cx="50" cy="62" rx="37" ry="28" fill="#F596E5"/>
-                  <circle cx="39" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="57" r="3.6" fill="#1d1d1b"/>
-                </svg>
-              </span>
-              민준
-            </button>
-            <button class="pill" style="padding-left:4px; gap:6px; display:inline-flex; align-items:center;">
-              <span style="width:20px;height:20px;border-radius:99px;background:var(--kid-mint-bg);display:grid;place-items:center;overflow:hidden;">
-                <svg width="17" height="17" viewBox="0 0 100 100">
-                  <ellipse cx="22" cy="36" rx="13" ry="11" fill="#AFDE94"/>
-                  <ellipse cx="78" cy="36" rx="13" ry="11" fill="#AFDE94"/>
-                  <ellipse cx="50" cy="62" rx="36" ry="30" fill="#AFDE94"/>
-                  <circle cx="39" cy="59" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="59" r="3.6" fill="#1d1d1b"/>
-                </svg>
-              </span>
-              서윤
-            </button>
-            <button class="pill" style="padding-left:4px; gap:6px; display:inline-flex; align-items:center;">
-              <span style="width:20px;height:20px;border-radius:99px;background:var(--kid-sky-bg);display:grid;place-items:center;overflow:hidden;">
-                <svg width="17" height="17" viewBox="0 0 100 100">
-                  <path d="M20 42 L30 14 L46 36 Z" fill="#B0C9F0"/>
-                  <path d="M80 42 L70 14 L54 36 Z" fill="#B0C9F0"/>
-                  <ellipse cx="50" cy="60" rx="35" ry="30" fill="#B0C9F0"/>
-                  <circle cx="39" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="57" r="3.6" fill="#1d1d1b"/>
-                </svg>
-              </span>
-              지호
-            </button>
-          </div>
-
-          <div class="preview__caption" style="margin-top:8px;">Day Circles · 요일 반복</div>
-          <div class="row" style="gap:6px;">
-            <button class="day">일</button>
-            <button class="day day--active">월</button>
-            <button class="day">화</button>
-            <button class="day day--active">수</button>
-            <button class="day">목</button>
-            <button class="day day--active">금</button>
-            <button class="day">토</button>
-          </div>
+        </div>
+        <div class="doc-card--soft">
+          <div class="doc-card__label">스펙</div>
+          <ul style="margin: 0; padding-left: 18px; font-family: var(--font-text); font-size: 13px; line-height: 1.7; color: var(--ink);">
+            <li>Toggle — <span class="mono">44×26 · radius full · ON primary · OFF ink-12 · 노브 22 · padding 2</span></li>
+            <li>Seg track — <span class="mono">bg ink-04 · radius r-md (12) · padding 3</span></li>
+            <li>Seg option — <span class="mono">padding 8×14 · radius 9 · active bg #FFF + hair inset shadow + 600</span></li>
+          </ul>
         </div>
       </div>
     </section>
 
-    <!-- ── 11 · FORMS ──────────────────────────────── -->
-    <section class="block" id="forms">
-      <div class="block__head">
-        <div class="meta">
-          <div class="num">11</div>
-          <h2 class="h-section" style="margin-top:8px;">폼 요소</h2>
-        </div>
-        <div class="lead">
-          <p class="body">
-            입력 필드는 흰 종이 위 헤어라인. 포커스 시 보더가 살짝 어두워지고 6%의 ring이 외곽에 추가됩니다.
-            토글은 검정/회색 두 상태만, 시간 픽커는 모노스페이스로 시간 자체를 텍스트로 표시.
-          </p>
-        </div>
-      </div>
-      <div class="block__body">
-        <div class="preview">
-          <div class="preview__caption">Text input</div>
-          <input class="input" placeholder="예) 영어학원"/>
-          <input class="input" value="JLS어학원" readonly/>
-
-          <div class="preview__caption" style="margin-top:8px;">Time pill (mono)</div>
-          <div class="row" style="gap:6px;">
-            <button class="input" style="flex:1; text-align:left; font-family:var(--mono); font-size:14px; font-weight:500;">14:30</button>
-            <span class="body-sm" style="padding:0 4px;">–</span>
-            <button class="input" style="flex:1; text-align:left; font-family:var(--mono); font-size:14px; font-weight:500;">16:00</button>
-          </div>
-
-          <div class="preview__caption" style="margin-top:8px;">Toggle</div>
-          <div style="display:flex; align-items:center; justify-content:space-between; background:#fff; padding:10px 14px; border-radius: var(--r-5); border: 1px solid var(--hair);">
-            <div>
-              <div class="h-card">데리러 가야 함</div>
-              <div class="body-sm" style="margin-top:2px;">오후 4:00 도착</div>
-            </div>
-            <div class="tgl tgl--on"></div>
-          </div>
-          <div style="display:flex; align-items:center; justify-content:space-between; background:#fff; padding:10px 14px; border-radius: var(--r-5); border: 1px solid var(--hair);">
-            <div>
-              <div class="h-card">알림 받기</div>
-              <div class="body-sm" style="margin-top:2px;">시작 30분 전</div>
-            </div>
-            <div class="tgl"></div>
-          </div>
-
-          <div class="preview__caption" style="margin-top:8px;">Form label</div>
-          <div>
-            <div style="font-family:var(--kr-text); font-size:10.5px; font-weight:500; color:var(--ink-sub); letter-spacing:-0.1px; margin-bottom:5px;">위치</div>
-            <input class="input" placeholder="예) 윤스영어학원"/>
-            <div style="font-family:var(--kr-text); font-size:10.5px; color:var(--ink-sub); margin-top:5px; padding-left:2px;">다른 자녀 일정과 겹치면 충돌 알림 표시</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── 12 · CARDS ──────────────────────────────── -->
+    <!-- ── 13 · CARDS ───────────────────────────── -->
     <section class="block" id="cards">
       <div class="block__head">
-        <div class="meta">
-          <div class="num">12</div>
-          <h2 class="h-section" style="margin-top:8px;">카드 · 표면</h2>
-        </div>
+        <div class="meta"><div class="num">13</div><h2 class="h-section" style="margin-top:6px;">카드</h2></div>
         <div class="lead">
           <p class="body">
-            세 종류의 표면을 명확히 구분합니다. <b style="color:var(--ink); font-weight:600;">Paper Card</b>는 흰 배경 + 헤어라인,
-            <b style="color:var(--ink); font-weight:600;">Cream Card</b>는 배경과 같은 색이고 헤어라인만으로 구분되며,
-            <b style="color:var(--ink); font-weight:600;">Kid Card</b>는 자녀의 <span class="mono">bg</span> 색이 면을 채웁니다.
-          </p>
-        </div>
-      </div>
-      <div class="block__body">
-        <div class="grid-3">
-          <div>
-            <div class="preview__caption" style="margin-bottom:8px;">Paper Card</div>
-            <div style="background:#fff; border:1px solid var(--hair); border-radius: var(--r-6); padding:14px;">
-              <div class="h-card">수영가방 챙기기</div>
-              <div class="row" style="margin-top:6px; gap:6px;">
-                <span class="pill" style="background:var(--kid-peach-bg); border-color: transparent; color: var(--kid-peach-ink); font-size:10.5px; padding:3px 8px;">민준</span>
-                <span class="mono body-sm" style="font-size:10.5px;">14:30까지</span>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div class="preview__caption" style="margin-bottom:8px;">Cream Card</div>
-            <div style="background:var(--cream); border:1px solid var(--hair); border-radius: var(--r-6); padding:14px;">
-              <div class="h-card">영어학원 등록비 입금</div>
-              <div class="row" style="margin-top:6px; gap:6px;">
-                <span class="mono body-sm" style="font-size:10.5px; color: var(--primary-deep);">5월 8일 마감</span>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div class="preview__caption" style="margin-bottom:8px;">Kid Card (Sky)</div>
-            <div style="background: var(--kid-sky-bg); border-radius: var(--r-6); padding:14px; box-shadow: inset 3px 0 0 var(--kid-sky-dot);">
-              <div class="h-card" style="color: var(--kid-sky-ink);">태권도</div>
-              <div class="row" style="margin-top:4px;">
-                <span class="mono" style="font-size:11px; color: var(--kid-sky-ink); opacity:0.75;">15:30 – 16:30 · 태권관</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card--soft">
-          <div class="card__label">표면 위계</div>
-          <ul style="margin:0; padding-left:18px; font-family:var(--kr-text); font-size:13px; line-height:1.7; color:var(--ink);">
-            <li><b style="font-weight:600;">화면 → Cream Card → Paper Card</b> 순으로 위로 올라옴. Paper Card가 가장 위.</li>
-            <li>같은 위계의 카드끼리는 그림자를 다르게 두지 않습니다.</li>
-            <li>카드 안에 또 카드 → 안쪽은 무조건 보더 없이 padding과 배경색만으로 분리.</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── 13 · PICKUP ─────────────────────────────── -->
-    <section class="block" id="pickup">
-      <div class="block__head">
-        <div class="meta">
-          <div class="num">13</div>
-          <h2 class="h-section" style="margin-top:8px;">Next Pickup</h2>
-        </div>
-        <div class="lead">
-          <p class="body">
-            아마따의 시그니처 컴포넌트. 일간뷰 상단에 항상 떠있으며 부모가 가장 먼저 보는 정보입니다.
-            그라디언트는 <b class="mono">linear-gradient(100deg, primary 0%, primary-deep 60%, primary 100%)</b> 고정.
-            셔머 효과를 만들어 "지금 움직여야 한다"는 시각적 신호를 줍니다.
+            <span class="mono">1px hair</span> 보더 + <span class="mono">radius 16</span>. 그림자 없음 — 보더가 컨테인먼트를 담당.
+            강조 시 배경을 <span class="mono">surface-warm</span>으로 살짝 올립니다.
           </p>
         </div>
       </div>
       <div class="block__body">
         <div class="preview">
-          <div class="preview__caption">Primary state · default</div>
-          <div class="pickup" style="max-width: 360px;">
-            <div class="pickup__icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.4L19 11h.5a1.5 1.5 0 011.5 1.5V17a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H6v1a1 1 0 01-1 1H4a1 1 0 01-1-1v-4.5A1.5 1.5 0 014.5 11H5z"/></svg>
+          <div class="preview__caption">Surface variants</div>
+          <div class="grid-3" style="gap: 14px; width: 100%;">
+            <div class="card">
+              <div class="t-caption" style="color: var(--ink-sub);">CARD · SURFACE</div>
+              <div class="t-title-s" style="margin-top: 6px;">기본 카드</div>
+              <div class="t-body" style="color: var(--ink-70); margin-top: 8px;">흰색 표면 + 헤어라인 보더.</div>
             </div>
-            <div style="flex:1; min-width:0;">
-              <div class="pickup__label">Next Pickup · 1H 10M</div>
-              <div class="pickup__main"><span class="pickup__time">15:30</span>지호 · 태권도</div>
+            <div class="card card--warm">
+              <div class="t-caption" style="color: var(--ink-sub);">CARD · WARM</div>
+              <div class="t-title-s" style="margin-top: 6px;">강조 카드</div>
+              <div class="t-body" style="color: var(--ink-70); margin-top: 8px;">살짝 따뜻한 오프-화이트.</div>
             </div>
-            <button class="btn" style="background:#fff; color:var(--ink); padding: 6px 14px; font-size: 12px;">보기</button>
-          </div>
-
-          <div class="preview__caption" style="margin-top:8px;">No-pickup state · soft</div>
-          <div style="display:flex; align-items:center; gap:10px; background: var(--cream-warm); border:1px solid var(--hair); border-radius: var(--r-6); padding:12px 14px; max-width:360px;">
-            <div style="width:28px; height:28px; border-radius:8px; background: var(--ink-04); display:grid; place-items:center;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#7a756e"><path d="M12 2a6 6 0 00-6 6v3.4l-1.7 3.4A1 1 0 005.2 16h13.6a1 1 0 00.9-1.2L18 11.4V8a6 6 0 00-6-6zm-3 16a3 3 0 006 0H9z"/></svg>
-            </div>
-            <div>
-              <div class="pickup__label" style="color: var(--ink-sub);">오늘 픽업 없음</div>
-              <div class="pickup__main" style="color: var(--ink);">모두 직접 귀가</div>
+            <div class="card card--soft">
+              <div class="t-caption" style="color: var(--ink-sub);">CARD · SOFT</div>
+              <div class="t-title-s" style="margin-top: 6px;">그룹 카드</div>
+              <div class="t-body" style="color: var(--ink-70); margin-top: 8px;">자녀 묶음 등 가장 옅은 톤.</div>
             </div>
           </div>
         </div>
-
-        <div class="card--soft">
-          <div class="card__label">사양</div>
-          <ul style="margin:0; padding-left:18px; font-family:var(--kr-text); font-size:13px; line-height:1.7; color:var(--ink);">
-            <li>너비: 화면 너비 - 좌우 패딩 16. 높이는 내용에 따라 자동.</li>
-            <li>그림자: <span class="mono">0 6 16 rgba(255,113,68, .28)</span> — 브랜드 글로우.</li>
-            <li>아이콘 박스: 28 × 28 · radius 8 · 안쪽 흰색 22%, 외곽 흰색 30% 보더.</li>
-            <li>라벨 (Kicker): Geist Mono · 9px · uppercase · 0.12em letter-spacing.</li>
-            <li>본문: Paperlogy 700 · 14px · -0.3 letter-spacing. 시간은 Geist Mono 인라인.</li>
+        <div class="doc-card--soft">
+          <div class="doc-card__label">스펙</div>
+          <ul style="margin: 0; padding-left: 18px; font-family: var(--font-text); font-size: 13px; line-height: 1.7; color: var(--ink);">
+            <li><b class="in">card</b> — <span class="mono">bg #FFF · border 1px hair · radius 16 · padding 20</span></li>
+            <li><b class="in">card--warm</b> — bg <span class="mono">surface-warm</span> #FAF8F2</li>
+            <li><b class="in">card--soft</b> — bg <span class="mono">surface-soft</span> #F5F3EE</li>
+            <li>그림자 사용 금지 — 보더만으로 분리.</li>
           </ul>
         </div>
       </div>
     </section>
 
-    <!-- ── 14 · SCHEDULE BLOCKS ───────────────────── -->
+    <!-- ── 14 · TAGS ────────────────────────────── -->
+    <section class="block" id="tags">
+      <div class="block__head">
+        <div class="meta"><div class="num">14</div><h2 class="h-section" style="margin-top:6px;">태그 · 칩 · pill</h2></div>
+        <div class="lead">
+          <p class="body">
+            <b class="in">태그</b>는 <span class="mono">r-xs (6)</span> 사각형, <b class="in">pill</b>은 풀필. 둘 다 padding이 작아 본문에 inline으로 끼울 수 있습니다.
+          </p>
+        </div>
+      </div>
+      <div class="block__body">
+        <div class="preview">
+          <div class="preview__caption">Tag (r-xs)</div>
+          <div class="row">
+            <span class="tag">학교</span>
+            <span class="tag" style="background: var(--kid-pink-bg); color: #6B286A;">민준</span>
+            <span class="tag" style="background: var(--kid-mint-bg); color: #3F6128;">서윤</span>
+            <span class="tag" style="background: var(--kid-blue-bg); color: #1F3370;">지호</span>
+            <span class="tag" style="background: var(--kid-peach-bg); color: #7A4220;">서아</span>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">Pill (r-full)</div>
+          <div class="row">
+            <span class="pill">기본</span>
+            <span class="pill pill--primary">NEXT PICKUP · 1H 10M</span>
+            <span class="pill pill--success">✓ 완료</span>
+            <span class="pill pill--danger">⚠ 픽업 충돌</span>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">Count chip · tab</div>
+          <div class="row" style="gap: 16px; align-items: center;">
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+              <span class="t-body" style="font-weight: 600;">준비물 & 할일</span>
+              <span class="pill" style="background: var(--primary); color: #fff; padding: 2px 8px; font-size: 11px;">7</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 15 · LIST ROW ────────────────────────── -->
+    <section class="block" id="list">
+      <div class="block__head">
+        <div class="meta"><div class="num">15</div><h2 class="h-section" style="margin-top:6px;">리스트 · 행</h2></div>
+        <div class="lead">
+          <p class="body">
+            카드 내부에 행을 쌓는 패턴. 행 사이는 보더 없이 <span class="mono">ink-04</span> 단일 라인으로만 구분합니다.
+          </p>
+        </div>
+      </div>
+      <div class="block__body">
+        <div class="preview">
+          <div class="preview__caption">Settings · navigation rows</div>
+          <div class="listcard" style="width: 380px;">
+            <div class="listrow">
+              <div class="listrow__label">자녀 관리</div>
+              <div class="listrow__val">
+                <span style="display: inline-flex;">
+                  <img src="assets/avatar-face-wink.png" alt="" style="width:22px; height:22px; border-radius:99px; box-shadow: 0 0 0 1.5px #fff;"/>
+                  <img src="assets/avatar-face-dizzy.png" alt="" style="width:22px; height:22px; border-radius:99px; box-shadow: 0 0 0 1.5px #fff; margin-left:-7px;"/>
+                  <img src="assets/avatar-face-cool.png" alt="" style="width:22px; height:22px; border-radius:99px; box-shadow: 0 0 0 1.5px #fff; margin-left:-7px;"/>
+                  <img src="assets/avatar-face-sleep.png" alt="" style="width:22px; height:22px; border-radius:99px; box-shadow: 0 0 0 1.5px #fff; margin-left:-7px;"/>
+                </span>
+                <span style="margin-left: 6px;">4명</span>
+              </div>
+              <svg class="listrow__chevR" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="listdiv"></div>
+            <div class="listrow">
+              <div class="listrow__label">
+                시스템 알림
+                <div class="sub">이벤트 시작 전에 푸시 받기</div>
+              </div>
+              <div class="toggle toggle--on"></div>
+            </div>
+            <div class="listdiv"></div>
+            <div class="listrow">
+              <div class="listrow__label">
+                기본 알림 시점
+                <div class="sub">새 일정에 자동 설정</div>
+              </div>
+              <div class="listrow__val">30분 전</div>
+              <svg class="listrow__chevR" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="listdiv"></div>
+            <div class="listrow">
+              <div class="listrow__label" style="color: var(--danger);">
+                모든 데이터 초기화
+                <div class="sub" style="color: var(--ink-sub);">자녀·일정·할일이 모두 삭제돼요</div>
+              </div>
+              <svg class="listrow__chevR" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="doc-card--soft">
+          <div class="doc-card__label">스펙</div>
+          <ul style="margin: 0; padding-left: 18px; font-family: var(--font-text); font-size: 13px; line-height: 1.7; color: var(--ink);">
+            <li>List card — <span class="mono">bg #FFF · border 1px hair · radius 16 · padding 4</span></li>
+            <li>Row — <span class="mono">padding 10×12 · radius 10 · gap 12 · hover bg ink-04</span></li>
+            <li>Row label — Pretendard 14/400 · sub 12/400 inkSub</li>
+            <li>Divider — border-top 1px ink-04 · margin 0 12</li>
+            <li>Right chevron — 16×16 · stroke 2.2 ink-30 (또는 danger)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 16 · SCHEDULE BLOCK ──────────────────── -->
     <section class="block" id="schedule">
       <div class="block__head">
-        <div class="meta">
-          <div class="num">14</div>
-          <h2 class="h-section" style="margin-top:8px;">일정 블록 · Schedule</h2>
-        </div>
+        <div class="meta"><div class="num">16</div><h2 class="h-section" style="margin-top:6px;">일정 블록</h2></div>
         <div class="lead">
           <p class="body">
-            일간뷰의 메인 컴포넌트. 각 자녀의 <span class="mono">bg</span> 색을 배경으로,
-            왼쪽에 <span class="mono">dot</span> 색의 3px 인셋 라인을 그어 자녀 식별 + 일정 식별을 동시에 합니다.
-            크기는 30분 슬롯을 기준으로 시간에 비례, 한 줄짜리 짧은 일정도 최소 한 줄 텍스트가 보이도록 합니다.
+            일간 그리드 안의 일정 칩. <b class="in">bg</b>는 자녀 색의 derived light bg,
+            <b class="in">border 1px solid {kid.source}</b>로 자녀 식별, 라디우스는 <span class="mono">r-sm (8)</span>.
+            텍스트는 항상 <span class="mono">ink</span>.
           </p>
         </div>
       </div>
       <div class="block__body">
         <div class="preview">
-          <div class="preview__caption">Schedule blocks (1h each)</div>
-          <div class="grid-4" style="gap:10px;">
-            <div class="sched" style="background: var(--kid-peach-bg); color: var(--kid-peach-dot);">
-              <div class="sched__title" style="color: var(--kid-peach-ink);">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 3 6.8 3 11.5c0 4.7 3.6 8.5 8 8.5 1 0 1.6-.6 1.6-1.5 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.1 0-.9.7-1.6 1.6-1.6h1.7c3 0 5.1-2 5.1-5C20 6.7 16.4 3 12 3z"/></svg>
-                수영
+          <div class="preview__caption">Schedule blocks · 6 kids</div>
+          <div class="grid-3" style="gap: 10px;">
+            <div class="sched" style="background: var(--kid-pink-bg); border: 1px solid var(--kid-pink);">
+              <div class="sched__row">
+                <span class="sched__ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M2 9l10-5 10 5-10 5L2 9zM6 12v3.5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V12l-6 3-6-3z"/></svg></span>
+                <span class="sched__name">학교</span>
               </div>
-              <div class="sched__time" style="color: var(--kid-peach-ink);">15:00 – 16:00</div>
-              <div class="sched__time" style="color: var(--kid-peach-ink); opacity: 0.7; font-size: 10px;">센터수영장</div>
+              <div class="sched__time">08:30 — 14:30</div>
+              <div class="sched__place">교실</div>
             </div>
-            <div class="sched" style="background: var(--kid-mint-bg); color: var(--kid-mint-dot);">
-              <div class="sched__title" style="color: var(--kid-mint-ink);">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M2 9l10-5 10 5-10 5L2 9z"/><path d="M6 12v3.5c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V12l-6 3-6-3z"/></svg>
-                미술
+            <div class="sched" style="background: var(--kid-mint-bg); border: 1px solid var(--kid-mint);">
+              <div class="sched__row">
+                <span class="sched__ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5zm14 16H5V5h14v14z"/><path d="M7 7h10v2H7zM7 11h10v2H7zM7 15h6v2H7z"/></svg></span>
+                <span class="sched__name">미술</span>
               </div>
-              <div class="sched__time" style="color: var(--kid-mint-ink);">14:30 – 15:30</div>
-              <div class="sched__time" style="color: var(--kid-mint-ink); opacity: 0.7; font-size: 10px;">아트스페이스</div>
+              <div class="sched__time">14:30 — 15:30</div>
+              <div class="sched__place">아트스페이스</div>
             </div>
-            <div class="sched" style="background: var(--kid-sky-bg); color: var(--kid-sky-dot);">
-              <div class="sched__title" style="color: var(--kid-sky-ink);">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 3 6.8 3 11.5c0 4.7 3.6 8.5 8 8.5 1 0 1.6-.6 1.6-1.5 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.1 0-.9.7-1.6 1.6-1.6h1.7c3 0 5.1-2 5.1-5C20 6.7 16.4 3 12 3z"/></svg>
-                태권도
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="margin-left:auto;"><path d="M5 11l1.5-4.5A2 2 0 018.4 5h7.2a2 2 0 011.9 1.4L19 11h.5a1.5 1.5 0 011.5 1.5V17a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H6v1a1 1 0 01-1 1H4a1 1 0 01-1-1v-4.5A1.5 1.5 0 014.5 11H5z"/></svg>
+            <div class="sched" style="background: var(--kid-blue-bg); border: 1px solid var(--kid-blue);">
+              <div class="sched__row">
+                <span class="sched__ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M22 12h-3M5 12H2M19.1 4.9l-2.1 2.1M7 17l-2.1 2.1M19.1 19.1L17 17M7 7L4.9 4.9" stroke="currentColor" stroke-width="2"/></svg></span>
+                <span class="sched__name">태권도</span>
+                <span class="sched__pickup" title="pickup"></span>
               </div>
-              <div class="sched__time" style="color: var(--kid-sky-ink);">15:30 – 16:30</div>
-              <div class="sched__time" style="color: var(--kid-sky-ink); opacity: 0.7; font-size: 10px;">태권관 · 픽업</div>
+              <div class="sched__time">15:30 — 16:30</div>
+              <div class="sched__place">태권관</div>
             </div>
-            <div class="sched" style="background: var(--kid-butter-bg); color: var(--kid-butter-dot);">
-              <div class="sched__title" style="color: var(--kid-butter-ink);">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M9 4a3 3 0 016 0v1h-2V4a1 1 0 00-2 0v1H9V4z"/><path d="M5 9a3 3 0 013-3h8a3 3 0 013 3v9a3 3 0 01-3 3H8a3 3 0 01-3-3V9z"/></svg>
-                어린이집
+            <div class="sched" style="background: var(--kid-peach-bg); border: 1px solid var(--kid-peach);">
+              <div class="sched__row">
+                <span class="sched__ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M5 9a3 3 0 013-3h8a3 3 0 013 3v9a3 3 0 01-3 3H8a3 3 0 01-3-3V9z"/></svg></span>
+                <span class="sched__name">어린이집</span>
               </div>
-              <div class="sched__time" style="color: var(--kid-butter-ink);">09:00 – 14:00</div>
-              <div class="sched__time" style="color: var(--kid-butter-ink); opacity: 0.7; font-size: 10px;">햇살반</div>
+              <div class="sched__time">09:00 — 14:00</div>
+              <div class="sched__place">햇살반</div>
+            </div>
+            <div class="sched" style="background: var(--kid-citrus-bg); border: 1px solid var(--kid-citrus);">
+              <div class="sched__row">
+                <span class="sched__ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg></span>
+                <span class="sched__name">합기도</span>
+                <span class="sched__warn" title="modify exception"></span>
+              </div>
+              <div class="sched__time">16:00 — 17:00</div>
+              <div class="sched__place">체육관</div>
+            </div>
+            <div class="sched" style="background: var(--kid-lavender-bg); border: 1px solid var(--kid-lavender);">
+              <div class="sched__row">
+                <span class="sched__ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.6 4 2 5.4 6 6-4 .6-5.4 2-6 6-.6-4-2-5.4-6-6 4-.6 5.4-2 6-6z"/></svg></span>
+                <span class="sched__name">발레</span>
+              </div>
+              <div class="sched__time">17:00 — 18:00</div>
+              <div class="sched__place">발레학원</div>
             </div>
           </div>
 
-          <div class="preview__caption" style="margin-top:8px;">Kid header chips</div>
-          <div class="row">
-            <div class="kid">
-              <div class="kid__avatar" style="background: var(--kid-peach-bg);">
-                <svg width="24" height="24" viewBox="0 0 100 100">
-                  <ellipse cx="35" cy="28" rx="7" ry="17" transform="rotate(-8 35 28)" fill="#F596E5"/>
-                  <ellipse cx="65" cy="28" rx="7" ry="17" transform="rotate(8 65 28)" fill="#F596E5"/>
-                  <ellipse cx="50" cy="62" rx="37" ry="28" fill="#F596E5"/>
-                  <circle cx="39" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="57" r="3.6" fill="#1d1d1b"/>
-                </svg>
-              </div>
-              <div>
-                <div class="kid__name">민준</div>
-                <div class="kid__grade">초3 · 10세</div>
-              </div>
+          <div class="preview__caption" style="margin-top: 8px;">Indicator dots · 픽업 (primary) · 수정 예외 (warning-dot)</div>
+          <div class="row" style="gap: 16px; align-items: center;">
+            <div style="display: inline-flex; align-items: center; gap: 8px;">
+              <span class="sched__pickup"></span>
+              <span class="t-body">픽업 필요 · <span class="mono">primary #FF7144</span></span>
             </div>
-            <div class="kid">
-              <div class="kid__avatar" style="background: var(--kid-mint-bg);">
-                <svg width="24" height="24" viewBox="0 0 100 100">
-                  <ellipse cx="22" cy="36" rx="13" ry="11" fill="#AFDE94"/>
-                  <ellipse cx="78" cy="36" rx="13" ry="11" fill="#AFDE94"/>
-                  <ellipse cx="50" cy="62" rx="36" ry="30" fill="#AFDE94"/>
-                  <circle cx="39" cy="59" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="59" r="3.6" fill="#1d1d1b"/>
-                </svg>
-              </div>
-              <div>
-                <div class="kid__name">서윤</div>
-                <div class="kid__grade">초1 · 8세</div>
-              </div>
+            <div style="display: inline-flex; align-items: center; gap: 8px;">
+              <span class="sched__warn"></span>
+              <span class="t-body">수정 예외 · <span class="mono">warning-dot #FFB000</span></span>
             </div>
-            <div class="kid">
-              <div class="kid__avatar" style="background: var(--kid-sky-bg);">
-                <svg width="24" height="24" viewBox="0 0 100 100">
-                  <path d="M20 42 L30 14 L46 36 Z" fill="#B0C9F0"/>
-                  <path d="M80 42 L70 14 L54 36 Z" fill="#B0C9F0"/>
-                  <ellipse cx="50" cy="60" rx="35" ry="30" fill="#B0C9F0"/>
-                  <circle cx="39" cy="57" r="3.6" fill="#1d1d1b"/>
-                  <circle cx="61" cy="57" r="3.6" fill="#1d1d1b"/>
-                </svg>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">Cancelled (opacity 0.3 + strike)</div>
+          <div style="width: 240px;">
+            <div class="sched" style="background: var(--kid-mint-bg); border: 1px solid var(--kid-mint); opacity: 0.3; position: relative;">
+              <div class="sched__row" style="text-decoration: line-through;">
+                <span class="sched__ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M2 9l10-5 10 5-10 5L2 9z"/></svg></span>
+                <span class="sched__name">미술 (취소)</span>
               </div>
-              <div>
-                <div class="kid__name">지호</div>
-                <div class="kid__grade">유치원 · 5세</div>
-              </div>
+              <div class="sched__time" style="text-decoration: line-through;">14:30 — 15:30</div>
             </div>
+          </div>
+
+          <div class="preview__caption" style="margin-top: 8px;">Pickup 충돌 알림 · 그리드 sub-bar (블록 오버레이/푸시 금지)</div>
+          <div style="width: 320px; display: flex; gap: 8px; align-items: center;
+                      padding: 8px 12px; border-radius: var(--r-md);
+                      background: rgba(255,68,68,0.08); border: 1px solid rgba(255,68,68,0.18);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.3 3.6L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.6a2 2 0 00-3.4 0z"/>
+              <path d="M12 9v4M12 17h.01"/>
+            </svg>
+            <span class="t-body" style="color: #C5232A; font-weight: 600;">픽업 충돌</span>
+            <span class="t-mono" style="color: #C5232A; margin-left: 2px;">15:30</span>
+            <span class="t-body" style="color: #C5232A; opacity: 0.85;">· 지호 · 민준</span>
           </div>
         </div>
-
-        <div class="card--soft">
-          <div class="card__label">일정 블록 사양</div>
-          <ul style="margin:0; padding-left:18px; font-family:var(--kr-text); font-size:13px; line-height:1.7; color:var(--ink);">
-            <li>높이는 30분당 30px (변경 시 토큰 단일 수정). 1시간 블록 = 60px.</li>
-            <li>배경 = 자녀 <span class="mono">bg</span>. 왼쪽 인셋 라인 = 자녀 <span class="mono">dot</span> · 3px.</li>
-            <li>타이틀 = Pretendard 600 · 12.5px · 자녀 <span class="mono">ink</span> 컬러.</li>
-            <li>시간 = Geist Mono 10.5px · ink 컬러 · 0.85 opacity.</li>
-            <li>아이콘은 카테고리 색이 아닌 자녀 ink 컬러를 사용 (일관된 톤).</li>
+        <div class="doc-card--soft">
+          <div class="doc-card__label">스펙</div>
+          <ul style="margin: 0; padding-left: 18px; font-family: var(--font-text); font-size: 13px; line-height: 1.7; color: var(--ink);">
+            <li><b class="in">bg</b> — color-mix(자녀 색 15%, #FFFFFF) · <b class="in">border</b> 1px solid {kid.source} · <b class="in">radius</b> 8.</li>
+            <li>제목 — Pretendard 12/500 ink (블록 작으면 숨기고 아이콘만).</li>
+            <li>장소 — Pretendard 10/400 inkSub (2번째 줄 truncate).</li>
+            <li><b class="in">픽업 dot</b> — 우상단 7px <span class="mono">primary #FF7144</span> + 2px #fff ring (픽업 필요 표시).</li>
+            <li><b class="in">수정 예외 dot</b> — 우상단 6px <span class="mono">warning-dot #FFB000</span> (info-level, 다른 의미).</li>
+            <li>Cancelled — opacity 0.3 + 가로 strike-through 1px.</li>
+            <li>30분 미만 슬롯도 비례 높이로 렌더 (잘림 X).</li>
+            <li><b class="in">픽업 충돌</b>은 명시적으로 그리드 sub-bar pill로만 알림 — 블록 위 오버레이 · OS 푸시는 금지.</li>
           </ul>
         </div>
       </div>
     </section>
 
-    <!-- ── 15 · DO / DON'T ────────────────────────── -->
-    <section class="block" id="dos">
+    <!-- ── 17 · DO / DON'T ─────────────────────── -->
+    <section class="block" id="sheet">
       <div class="block__head">
-        <div class="meta">
-          <div class="num">15</div>
-          <h2 class="h-section" style="margin-top:8px;">Do · Don't</h2>
-        </div>
+        <div class="meta"><div class="num">17</div><h2 class="h-section" style="margin-top:6px;">바텀 시트</h2></div>
         <div class="lead">
           <p class="body">
-            지금 시안에서 가장 흔히 깨지는 규칙들. 이 표를 기준으로 정리할 예정입니다.
+            위로 올라오는 모달. 상단 라디우스 <span class="mono">r-xl (24)</span>, 그래버 38×4px,
+            내부 버튼은 예외적으로 <span class="mono">.btn--sheet (radius 14)</span>를 쓰는 이유는 시트 구조와 결이 맞아서.
           </p>
+        </div>
+      </div>
+      <div class="block__body">
+        <div class="preview" style="padding: 32px 24px; background: rgba(29,29,27,0.30); position: relative;">
+          <div class="preview__caption" style="color: rgba(255,255,255,0.7);">Confirm sheet · 데이터 초기화</div>
+          <div style="width: 360px; background: #fff; border-radius: 24px 24px 0 0;
+                      padding: 20px 18px 24px; box-shadow: 0 -8px 30px rgba(0,0,0,0.18); margin: 0 auto;">
+            <div style="width: 38px; height: 4px; border-radius: 99px; background: var(--ink-12); margin: 0 auto 16px;"></div>
+            <div style="font-family: var(--font-display); font-size: 17px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 6px;">모든 데이터를 초기화할까요?</div>
+            <div style="font-family: var(--font-text); font-size: 13px; color: var(--ink-sub); line-height: 1.5; margin-bottom: 18px;">자녀, 일정, 할일, 알림 설정이 모두 삭제돼요. 이 작업은 되돌릴 수 없어요.</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button class="btn btn--danger btn--block btn--lg btn--sheet">초기화하기</button>
+              <button class="btn btn--soft btn--block btn--lg btn--sheet">취소</button>
+            </div>
+          </div>
+        </div>
+        <div class="doc-card--soft">
+          <div class="doc-card__label">스펙</div>
+          <ul style="margin: 0; padding-left: 18px; font-family: var(--font-text); font-size: 13px; line-height: 1.7; color: var(--ink);">
+            <li><b class="in">Container</b> — <span class="mono">bg #fff · radius 24 24 0 0 · padding 20 18 24</span></li>
+            <li><b class="in">Grabber</b> — <span class="mono">38×4 · radius full · ink-12 · margin 0 auto 16</span></li>
+            <li><b class="in">Title</b> — 17/700 Pretendard · letter-spacing -0.01em</li>
+            <li><b class="in">Body</b> — 13/400 · ink-sub · line-height 1.5</li>
+            <li><b class="in">CTA</b> — 시트 내부는 <span class="mono">.btn--sheet (radius 14)</span> 예외</li>
+            <li><b class="in">Backdrop</b> — <span class="mono">rgba(29,29,27,0.30)</span> + optional <span class="mono">backdrop-filter: blur(2px)</span></li>
+            <li><b class="in">Shadow</b> — <span class="mono">0 -8px 30px rgba(0,0,0,0.18)</span></li>
+            <li>풀스크린 모달(새 일정)은 top 20px + 동일 radius/shadow.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="grid">
+      <div class="block__head">
+        <div class="meta"><div class="num">18</div><h2 class="h-section" style="margin-top:6px;">일간 그리드</h2></div>
+        <div class="lead">
+          <p class="body">
+            일간뷰의 시간×자녀 그리드 상수 — <span class="mono">src/ui/grid/layout.ts</span>에서 export, ADR-001/CLAUDE.md에서 잠김.
+            타이포그래피는 <b class="in">Mono 12/400</b> 시간 라벨 + <b class="in">Title S 16/600</b> 자녀 헤더.
+          </p>
+        </div>
+      </div>
+      <div class="block__body">
+        <div class="doc-card">
+          <div class="doc-card__label">Layout constants</div>
+          <pre style="margin: 0; font-family: var(--font-mono); font-size: 12px; line-height: 1.8; color: var(--ink);">GRID_START_HOUR = 6
+GRID_END_HOUR   = 23
+SLOT_MINUTES    = 30
+ROWS            = 34
+ROW_HEIGHT      = 24    // px
+TIME_COL_WIDTH  = 56
+CHILD_COL_MIN   = 80</pre>
+        </div>
+
+        <div class="preview">
+          <div class="preview__caption">Grid 견본 · 시간 컬럼 + 자녀 축</div>
+          <div style="width: 360px; background: #fff; border: 1px solid var(--hair); border-radius: var(--r-md); overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 56px repeat(3, 1fr); border-bottom: 1px solid var(--hair); background: var(--surface-warm);">
+              <div></div>
+              <div style="padding: 10px 8px; font-family: var(--font-text); font-size: 14px; font-weight: 600; color: var(--ink); border-left: 1px solid var(--hair);">민준</div>
+              <div style="padding: 10px 8px; font-family: var(--font-text); font-size: 14px; font-weight: 600; color: var(--ink); border-left: 1px solid var(--hair);">서윤</div>
+              <div style="padding: 10px 8px; font-family: var(--font-text); font-size: 14px; font-weight: 600; color: var(--ink); border-left: 1px solid var(--hair);">지호</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 56px repeat(3, 1fr); min-height: 192px;">
+              <div style="display: flex; flex-direction: column; padding-top: 6px;">
+                <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-sub); padding: 0 8px; height: 48px;">09:00</div>
+                <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-sub); padding: 0 8px; height: 48px;">10:00</div>
+                <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-sub); padding: 0 8px; height: 48px;">11:00</div>
+                <div style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-sub); padding: 0 8px; height: 48px;">12:00</div>
+              </div>
+              <div style="border-left: 1px solid var(--hair); padding: 4px; position: relative;">
+                <div class="sched" style="background: var(--kid-pink-bg); border: 1px solid var(--kid-pink); min-height: 0; height: 96px;">
+                  <div class="sched__row"><span class="sched__name">학교</span></div>
+                  <div class="sched__time">09:00 — 11:00</div>
+                </div>
+              </div>
+              <div style="border-left: 1px solid var(--hair); padding: 4px; position: relative;">
+                <div class="sched" style="background: var(--kid-mint-bg); border: 1px solid var(--kid-mint); min-height: 0; height: 48px; margin-top: 48px;">
+                  <div class="sched__row"><span class="sched__name">미술</span></div>
+                  <div class="sched__time">10:00 — 11:00</div>
+                </div>
+              </div>
+              <div style="border-left: 1px solid var(--hair); padding: 4px; position: relative;">
+                <div class="sched" style="background: var(--kid-blue-bg); border: 1px solid var(--kid-blue); min-height: 0; height: 144px;">
+                  <div class="sched__row"><span class="sched__name">유치원</span></div>
+                  <div class="sched__time">09:00 — 12:00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="doc-card--soft">
+          <div class="doc-card__label">Grid typography</div>
+          <ul style="margin: 0; padding-left: 18px; font-family: var(--font-text); font-size: 13px; line-height: 1.7; color: var(--ink);">
+            <li>시간 컬럼 라벨 — <span class="mono">Mono 12/400 · ink-sub</span></li>
+            <li>자녀 헤더 — <span class="mono">Title S · 16/600</span></li>
+            <li>일정 블록 제목 — 12/500 · 1줄 truncate</li>
+            <li>일정 블록 장소 — 10/400 · 2번째 줄 truncate</li>
+            <li>동일 자녀 · 동일 슬롯 충돌 — 가로 50:50 분할 (UX상 회피)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="dos">
+      <div class="block__head">
+        <div class="meta"><div class="num">19</div><h2 class="h-section" style="margin-top:6px;">Do · Don't</h2></div>
+        <div class="lead">
+          <p class="body">DESIGN_SYSTEM.md §9의 가이드를 정리합니다.</p>
         </div>
       </div>
       <div class="block__body">
         <div class="gd">
           <div class="gd__col gd__col--do">
-            <div class="gd__head">Do · 지키기</div>
+            <div class="gd__head">Do</div>
             <ul>
-              <li>배경은 항상 <span class="mono">#FEFDFA</span> 크림으로.</li>
-              <li>회색은 <span class="mono">ink-XX</span> 토큰만 사용. 임의 hex 회색 금지.</li>
-              <li>주황(Sunset Orange)은 한 화면에 한 번. FAB와 Next Pickup만.</li>
-              <li>자녀 컬러는 항상 bg + dot + ink 세 개를 묶어서 사용.</li>
-              <li>한글 헤딩은 Paperlogy, 본문은 Pretendard, 숫자는 Geist Mono.</li>
-              <li>풀필(<span class="mono">9999px</span>)은 칩·세그먼트·FAB·아바타에만.</li>
-              <li>스페이싱은 4의 배수에서만 선택.</li>
-              <li>그림자보다 헤어라인을 먼저 시도.</li>
+              <li>Sunset Orange는 <b>브랜드 강조</b>(픽업·focus)에만 — 일반 CTA는 Ink.</li>
+              <li>FAB는 <b>Ink (검정)</b>이 기본 — Primary FAB는 브랜드 의도 한정.</li>
+              <li>메인 CTA는 <b>Ink + Pill + Large</b> 조합 (온보딩·시트).</li>
+              <li>자녀 색은 §3 derivation 규칙으로 옅게 변환 후 사용.</li>
+              <li>회색은 <span class="mono">ink</span> opacity 변형만 사용.</li>
+              <li>Pretendard weight 400/500/600/700만.</li>
+              <li>카드 컨테인먼트는 <span class="mono">hair</span> 보더로.</li>
+              <li>일반 단일 액션은 <span class="mono">r-md (12)</span>, 메인 CTA는 pill, 시트 내부는 14.</li>
+              <li>danger와 primary는 휴가 다르므로 같은 영역에 동시 사용 금지.</li>
             </ul>
           </div>
           <div class="gd__col gd__col--dont">
-            <div class="gd__head">Don't · 피하기</div>
+            <div class="gd__head">Don't</div>
             <ul>
-              <li>흰색 <span class="mono">#FFFFFF</span>를 화면 배경에 깔지 않기.</li>
-              <li>순흑 <span class="mono">#000000</span> 텍스트 금지. ink로 통일.</li>
-              <li>자녀 컬러를 브랜드 컬러보다 진하게 쓰지 않기 (서열 깨짐).</li>
-              <li>같은 layer에 서로 다른 라디우스 (6 + 12) 섞지 않기.</li>
-              <li>본문에 Paperlogy 사용 금지. 작은 사이즈에서 흐림.</li>
-              <li>한 화면에 weight 3개 이상 혼용 금지.</li>
-              <li>그림자로 카드를 둥둥 띄우지 않기. 보더로 분리.</li>
-              <li>이모지를 시스템 아이콘으로 대체해서 쓰지 않기.</li>
+              <li>자녀 6색을 직접 인접 배치해 팔레트로 디자인.</li>
+              <li>모든 배경을 따뜻한 크림으로 깔기 (lovable 카피 금지).</li>
+              <li>임의 회색 hex (<span class="mono">#999</span>, <span class="mono">#CCC</span>) 사용.</li>
+              <li>카드 분리에 그림자 사용.</li>
+              <li>주황을 자녀 picker에 포함.</li>
+              <li>버튼 라디우스를 99px(pill)로 — FAB가 아니라면 12.</li>
+              <li>일정 블록 위 푸시·오버레이로 픽업 충돌 표시.</li>
             </ul>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Footer -->
-    <footer style="padding: 56px 0 0; border-top: 1px solid var(--hair); display:flex; align-items:baseline; justify-content:space-between;">
+    <footer>
       <div>
         <div class="kicker">End of System</div>
-        <div class="h-sub" style="margin-top:6px;">아마따 디자인 시스템 v1.0</div>
+        <div class="h-sub" style="margin-top: 6px;">아마따 디자인 시스템 v1 · spec mirror</div>
       </div>
-      <div class="mono body-sm">© 2026 · 아마따 · made with care</div>
+      <div class="mono body-sm">© 2026 · 아마따</div>
     </footer>
   </main>
 </div>
 
-<script>
-  // Smooth-scroll for TOC links
+<!-- Live icon grid — pulled from app-tokens.jsx Icon.* -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="app-tokens.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+  const ICONS = [
+    ['school', 'school'], ['academy', 'academy'], ['activity', 'activity'], ['etc', 'other'],
+    ['home', 'home'], ['gear', 'settings'], ['plus', 'plus'], ['search', 'search'],
+    ['grid', 'grid'], ['bell', 'bell'], ['sparkle', 'sparkle'], ['car', 'car'],
+    ['chevL', 'chev L'], ['chevR', 'chev R'], ['chevD', 'chev D'], ['check', 'check'],
+    ['xMark', 'close'],
+  ];
+  function IconGrid() {
+    return (
+      <React.Fragment>
+        {ICONS.map(([k, name]) => {
+          const I = window.Icon && window.Icon[k];
+          return (
+            <div className="icons__cell" key={k}>
+              {I ? <I size={22} stroke="#1D1D1B" fill="#1D1D1B"/> : <span style={{fontSize:10,color:'#aaa'}}>missing</span>}
+              <div className="nm">{name}</div>
+            </div>
+          );
+        })}
+      </React.Fragment>
+    );
+  }
+  const host = document.getElementById('icon-grid');
+  if (host) ReactDOM.createRoot(host).render(<IconGrid/>);
+
   document.querySelectorAll('.toc__link').forEach(a => {
     a.addEventListener('click', (e) => {
       const id = a.getAttribute('href').slice(1);
       const el = document.getElementById(id);
-      if (el) {
-        e.preventDefault();
-        window.scrollTo({ top: el.offsetTop - 24, behavior: 'smooth' });
-      }
+      if (el) { e.preventDefault(); window.scrollTo({ top: el.offsetTop - 24, behavior: 'smooth' }); }
     });
   });
 </script>

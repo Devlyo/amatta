@@ -295,7 +295,7 @@ function IOSKeyboard({ dark = false }) {
       }}>
         {['"The"', 'the', 'to'].map((w, i) => (
           <React.Fragment key={i}>
-            {i > 0 && <div style={{ width: 1, height: 25, background: '#ccc', opacity: 0.3 }} />}
+            {i > 0 && <div style={{ width: 1, height: 25, background: 'rgba(29,29,27,0.12)' }} />}
             <div style={{
               flex: 1, textAlign: 'center',
               fontFamily: '-apple-system, system-ui', fontSize: 17,

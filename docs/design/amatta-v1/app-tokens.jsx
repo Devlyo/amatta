@@ -2,40 +2,47 @@
 // All variants pull from this so palettes/data stay in lockstep.
 
 // ─── Palette ────────────────────────────────────────────────────────────────
+// Synced to DESIGN_SYSTEM.md v1 (2026.05.25).
 const AMATTA = {
   // Surfaces
-  cream: '#FFFFFF', // off-white background (one shade brighter)
-  creamWarm: '#FAF8F2', // alt surface
-  softGray: '#F5F3EE', // kid grouping background
-  // Text — text_primary / text_secondary tokens
-  ink: '#1d1d1b', // text_primary
-  inkSub: '#7a756e', // text_secondary — warm gray
-  ink70: 'rgba(29,29,27,0.7)',
-  ink50: 'rgba(29,29,27,0.5)',
-  ink30: 'rgba(29,29,27,0.3)',
+  cream: '#FFFFFF', // surface — base background
+  creamWarm: '#FAF8F2', // surface-warm — alt surface
+  surfaceSoft: '#F5F3EE', // surface-soft — kid grouping background
+  softGray: '#F5F3EE', // back-compat alias (legacy consumers)
+  // Text — opacity-based ink scale on #1D1D1B
+  ink: '#1D1D1B', // text_primary
+  inkSub: '#7A756E', // text_secondary — warm gray
+  ink70: 'rgba(29,29,27,0.70)',
+  ink50: 'rgba(29,29,27,0.50)',
+  ink30: 'rgba(29,29,27,0.30)',
   ink12: 'rgba(29,29,27,0.12)',
   ink06: 'rgba(29,29,27,0.06)',
   ink04: 'rgba(29,29,27,0.04)',
   hair: '#ECEAE4',
   // Brand — Sunset Orange
   primary: '#FF7144', // Sunset Orange
-  primaryDeep: '#D8501F',
-  primaryTint: '#FFD8C2',
+  primaryDeep: '#D8501F', // hover / pressed
+  primaryTint: '#FFE2D0', // spec-correct tint (was #FFD8C2)
   fab: '#FF7144',
-  tint: '#FFE2D0',
-  mint: '#C0F0AA',
-  // Destructive / danger — brighter red so it reads as alert, not brick
-  danger: '#E84A2D'
+  tint: '#FFE2D0', // alias of primaryTint
+  // Semantic
+  success: '#00C951', // 완료 · 저장 · 픽업 완료
+  danger: '#FF4444', // 삭제 · 경고 (spec); was #E84A2D
+  warningDot: '#FFB000' // 일정 예외 6px dot (info-level)
 };
 
-// 4 kid palette sets — user can switch via Tweaks. Default 'earthy' is muted,
-// warm-leaning, low-chroma so it lives quietly behind the brand orange.
+// 4 kid palette sets — user can switch via Tweaks. Default 'hyflow' is now
+// 1:1 with DESIGN_SYSTEM.md §2-3 — 6 saturated source colors, bg derived as
+// color-mix(in srgb, source 15%, #FFFFFF), block ink always = AMATTA.ink.
 const KID_PALETTES = {
-  hyflow: { // ✨ 아마따 brand palette — muted bg + dot saturation lowered slightly
-    peach: { bg: '#FBF3F3', block: '#FBF3F3', ink: '#7A2B5A', dot: '#F596E5' }, // 민준
-    mint: { bg: '#F3F9F5', block: '#F3F9F5', ink: '#456A2A', dot: '#AFDE94' }, // 서윤
-    sky: { bg: '#F3F3FB', block: '#F3F3FB', ink: '#1F2D8A', dot: '#B0C9F0' }, // 지호
-    butter: { bg: '#FFF4E5', block: '#FFF4E5', ink: '#7A4220', dot: '#FFB28C' } // 서아
+  hyflow: { // ✨ 아마따 spec palette — Petunia/Mint/Glacier/Peach/Citrus/Lavender
+    // existing keys map to spec slots 0..3 (matches KIDS order: 민준/서윤/지호/서아)
+    peach: { bg: '#FFF2FF', block: '#FFF2FF', ink: '#1D1D1B', dot: '#FFA9FF' }, // 0 · Petunia Pink — 민준
+    mint: { bg: '#F6FDF2', block: '#F6FDF2', ink: '#1D1D1B', dot: '#C0F0AA' }, // 1 · Vibrant Mint — 서윤
+    sky: { bg: '#F9FBFF', block: '#F9FBFF', ink: '#1D1D1B', dot: '#D8E6FF' }, // 2 · Glacier Blue — 지호
+    butter: { bg: '#FFFCF8', block: '#FFFCF8', ink: '#1D1D1B', dot: '#FFE8D2' }, // 3 · Soft Peach — 서아
+    citrus: { bg: '#FAFBE3', block: '#FAFBE3', ink: '#1D1D1B', dot: '#E0E446' }, // 4 · Citrus Green
+    lavender: { bg: '#F7F3FF', block: '#F7F3FF', ink: '#1D1D1B', dot: '#C7B0FF' } // 5 · French Lavender
   },
   earthy: { // muted, warm-leaning
     peach: { bg: '#FAEADF', block: '#E9C8B0', ink: '#7B432A', dot: '#C77F56' },
@@ -65,7 +72,9 @@ const KID_PALETTE = {
   peach: { ...KID_PALETTES.hyflow.peach },
   mint: { ...KID_PALETTES.hyflow.mint },
   sky: { ...KID_PALETTES.hyflow.sky },
-  butter: { ...KID_PALETTES.hyflow.butter }
+  butter: { ...KID_PALETTES.hyflow.butter },
+  citrus: { ...KID_PALETTES.hyflow.citrus },
+  lavender: { ...KID_PALETTES.hyflow.lavender }
 };
 
 // ─── Sample data (KST, 2026-05-05 Tue) ─────────────────────────────────────

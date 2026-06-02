@@ -7,8 +7,7 @@
 
 const ONB_BG = '#FEF4F2';
 const ONB_MAX_KIDS = 4;
-// 주황이('face-happy')는 brand primary와 같은 색이라 자녀 색 후보에서 제외 — README §2.
-const ONB_AVATARS = ['face-wink', 'face-dizzy', 'face-cool', 'face-sleep', 'face-surprise', 'face-calm'];
+const ONB_AVATARS = ['face-wink', 'face-dizzy', 'face-cool', 'face-sleep', 'face-surprise', 'face-calm']; // 6개 — face-happy(주황)는 brand primary 전용이라 제외 (DS §10 Q7)
 const ONB_PALETTES = ['peach', 'mint', 'sky', 'butter'];
 const ONB_PAL_LABEL = { peach: '피치', mint: '민트', sky: '스카이', butter: '버터' };
 
@@ -186,7 +185,7 @@ function OnbAddKid() {
   const handleDone = () => {
     if (!canSubmit) return;
     commitCurrent();
-    // Demo: jump into the daily view as the home screen
+    // Demo: jump into the daily (day) view as the home screen
     window.location.href = 'Daily View B.html';
   };
 

@@ -9,8 +9,7 @@
 
 const MAX_KIDS = 4;
 
-// 주황이('face-happy')는 brand primary와 같은 색이라 자녀 색 후보에서 제외 — README §2.
-const AVATARS_AVAILABLE = ['face-wink', 'face-dizzy', 'face-cool', 'face-sleep', 'face-surprise', 'face-calm'];
+const AVATARS_AVAILABLE = ['face-wink', 'face-dizzy', 'face-cool', 'face-sleep', 'face-surprise', 'face-calm']; // 6개 — face-happy(주황) 제외 (DS §10 Q7)
 const PALETTE_KEYS = ['peach', 'mint', 'sky', 'butter'];
 const PALETTE_LABEL = { peach: '피치', mint: '민트', sky: '스카이', butter: '버터' };
 

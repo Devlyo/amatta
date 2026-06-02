@@ -257,7 +257,7 @@ function WeeklyB({ kidId: kidIdProp = 'minjun', onBack }) {
                       borderRadius: 6,
                       padding: '4px 5px', overflow: 'hidden', color: A.ink,
                       display: 'flex', flexDirection: 'column', gap: 1,
-                      boxShadow: 'none',
+                      boxShadow: `inset 0 0 0 1px ${pal.dot}`,
                       opacity: isCancelled ? 0.45 : 1,
                       border: 'none', cursor: 'pointer', textAlign: 'left',
                       fontFamily: 'inherit'

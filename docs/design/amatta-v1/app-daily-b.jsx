@@ -578,7 +578,7 @@ function ScheduleB({ primary: primaryProp, onEventClick }) {
 
                       padding: '6px 7px 5px', overflow: 'hidden', color: A.ink,
                       display: 'flex', flexDirection: 'column', gap: 1,
-                      boxShadow: 'none', borderRadius: "8px",
+                      boxShadow: `inset 0 0 0 1px ${pal.dot}`, borderRadius: "8px",
                       cursor: 'pointer'
                     }}>
                       <div style={{

@@ -285,7 +285,7 @@ function MultiKidGridB({ tab, setTab, onModeSwitch }) {
                               borderRadius: 6,
                               boxShadow: isOpen ?
                               `inset 0 0 0 1.5px ${pal.dot}, 0 4px 12px rgba(0,0,0,0.12)` :
-                              `inset 0 0 0 1px ${pal.dot}55`,
+                              `inset 0 0 0 1px ${pal.dot}`,
                               border: 'none', cursor: 'pointer', padding: 0,
                               transition: 'box-shadow .12s',
                               zIndex: isOpen ? 6 : 1
@@ -295,11 +295,12 @@ function MultiKidGridB({ tab, setTab, onModeSwitch }) {
                                 position: 'absolute', top: -9, left: '50%',
                                 transform: 'translateX(-50%)',
                                 width: 20, height: 20, borderRadius: 99,
-                                background: pal.dot, color: '#fff',
+                                background: pal.dot,
+                                color: '#fff',
                                 display: 'grid', placeItems: 'center',
                                 boxShadow: '0 1px 3px rgba(0,0,0,0.18)'
                               }}>
-                                <IconComp size={12} fill="#fff" stroke="#fff" />
+                                <IconComp size={15} fill="#fff" stroke="#fff" />
                               </div>
                             </button>);
 
