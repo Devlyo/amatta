@@ -96,6 +96,36 @@ describe('seedDevData', () => {
     });
   });
 
+  it('marks 3 schedules with needs_pickup=1 (v2)', async () => {
+    await seedDevData(db as never);
+    expect(
+      real.prepare('SELECT COUNT(*) AS c FROM schedules WHERE needs_pickup = 1').get(),
+    ).toEqual({ c: 3 });
+  });
+
+  it('inserts 7 checklist_items (v2)', async () => {
+    await seedDevData(db as never);
+    expect(real.prepare('SELECT COUNT(*) AS c FROM checklist_items').get()).toEqual({ c: 7 });
+  });
+
+  it('inserts 4 todos with deterministic NOW_MS timestamps (v2)', async () => {
+    await seedDevData(db as never);
+    expect(real.prepare('SELECT COUNT(*) AS c FROM todos').get()).toEqual({ c: 4 });
+    const rows = real
+      .prepare('SELECT created_at FROM todos')
+      .all() as { created_at: number }[];
+    for (const r of rows) {
+      expect(r.created_at).toBe(1717286400000);
+    }
+  });
+
+  it('leaves schedule_pickup_log empty (v2)', async () => {
+    await seedDevData(db as never);
+    expect(real.prepare('SELECT COUNT(*) AS c FROM schedule_pickup_log').get()).toEqual({
+      c: 0,
+    });
+  });
+
   it('produces children with valid color indices and distinct names', async () => {
     await seedDevData(db as never);
     const rows = real

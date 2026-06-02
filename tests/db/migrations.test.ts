@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 
 import { runMigrations, type TxMode } from '../../src/db/migrations';
+import { migration001 } from '../../src/db/migrations/001_init.sql';
 
 const TX_LOG_PATH = resolve(__dirname, '..', '..', '.omc', 'logs', 'phase1-tx-mode.txt');
 
@@ -75,6 +76,18 @@ function tableNames(db: DatabaseSync): string[] {
   return rows.map((r) => r.name);
 }
 
+function indexNames(db: DatabaseSync): string[] {
+  const rows = db
+    .prepare("SELECT name FROM sqlite_master WHERE type='index' ORDER BY name")
+    .all() as { name: string }[];
+  return rows.map((r) => r.name);
+}
+
+function columnNames(db: DatabaseSync, table: string): string[] {
+  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  return rows.map((r) => r.name);
+}
+
 function userVersion(db: DatabaseSync): number {
   const row = db.prepare('PRAGMA user_version').get() as { user_version: number } | undefined;
   return row?.user_version ?? -1;
@@ -103,12 +116,12 @@ describe('runMigrations', () => {
     return { real: new DatabaseSync(path), path };
   }
 
-  test('Test A: fresh DB → user_version=1 and all 4 tables exist', async () => {
+  test('Test A: fresh DB → user_version=2 and all 7 tables exist', async () => {
     const { real } = makeDb();
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(1);
+    expect(userVersion(real)).toBe(2);
     const tables = tableNames(real);
     expect(tables).toEqual(
       expect.arrayContaining([
@@ -116,12 +129,15 @@ describe('runMigrations', () => {
         'schedules',
         'schedule_exceptions',
         'notification_settings',
+        'checklist_items',
+        'todos',
+        'schedule_pickup_log',
       ]),
     );
     real.close();
   });
 
-  test('Test B: idempotent — running twice yields no error and version stays 1', async () => {
+  test('Test B: idempotent — running twice yields no error and version stays 2', async () => {
     const { real } = makeDb();
     const wrapped = wrap(real);
 
@@ -130,7 +146,7 @@ describe('runMigrations', () => {
       runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]),
     ).resolves.toBeUndefined();
 
-    expect(userVersion(real)).toBe(1);
+    expect(userVersion(real)).toBe(2);
     real.close();
   });
 
@@ -175,8 +191,8 @@ describe('runMigrations', () => {
       { logTxModeTo: (m) => modes.push(m) },
     );
 
-    expect(modes).toHaveLength(1);
-    expect(modes[0]).toBe('explicit-begin');
+    // Happy path now applies both v1 and v2 — one log per migration.
+    expect(modes).toEqual(['explicit-begin', 'explicit-begin']);
 
     // Persist the chosen tx-mode for team-lead per the task spec.
     mkdirSync(dirname(TX_LOG_PATH), { recursive: true });
@@ -187,6 +203,9 @@ describe('runMigrations', () => {
 
   test('Test D2: tx-mode logging — fallback path is exercised when BEGIN IMMEDIATE is rejected', async () => {
     const { real } = makeDb();
+    // execThrowOnce fires on the FIRST BEGIN IMMEDIATE (migration v1) and
+    // then disarms — so v1 takes the fallback path while v2 proceeds via
+    // explicit-begin. The test still asserts the fallback path is exercised.
     const wrapped = wrap(real, {
       execThrowOnce: {
         match: /^BEGIN IMMEDIATE$/,
@@ -200,9 +219,140 @@ describe('runMigrations', () => {
       { logTxModeTo: (m) => modes.push(m) },
     );
 
-    expect(modes).toEqual(['fallback-with-transaction']);
-    expect(userVersion(real)).toBe(1);
+    expect(modes).toEqual(['fallback-with-transaction', 'explicit-begin']);
+    expect(userVersion(real)).toBe(2);
     real.close();
+  });
+
+  test('Test E: fresh DB → v2 applied, all 7 tables + 3 new indexes exist', async () => {
+    const { real } = makeDb();
+    const wrapped = wrap(real);
+    await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
+
+    expect(userVersion(real)).toBe(2);
+
+    const tables = tableNames(real);
+    expect(tables).toEqual(
+      expect.arrayContaining([
+        'children',
+        'schedules',
+        'schedule_exceptions',
+        'notification_settings',
+        'checklist_items',
+        'todos',
+        'schedule_pickup_log',
+      ]),
+    );
+
+    const indexes = indexNames(real);
+    expect(indexes).toEqual(
+      expect.arrayContaining([
+        'idx_checklist_schedule',
+        'idx_todos_due',
+        'idx_pickup_schedule_date',
+      ]),
+    );
+
+    real.close();
+  });
+
+  test('Test F: v1-applied DB → runMigrations applies v2 only, ends at user_version=2', async () => {
+    const { real } = makeDb();
+
+    // Land at v1 first by execing migration001 directly + setting user_version=1.
+    real.exec('BEGIN');
+    real.exec(migration001);
+    real.exec('PRAGMA user_version = 1');
+    real.exec('COMMIT');
+    expect(userVersion(real)).toBe(1);
+
+    const wrapped = wrap(real);
+    await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
+
+    expect(userVersion(real)).toBe(2);
+    const tables = tableNames(real);
+    expect(tables).toEqual(
+      expect.arrayContaining(['checklist_items', 'todos', 'schedule_pickup_log']),
+    );
+    real.close();
+  });
+
+  test('Test G: schedules.needs_pickup column exists after v2, defaults to 0 on existing rows', async () => {
+    const { real } = makeDb();
+
+    // Land at v1 first and insert a child + schedule (pre-v2 row).
+    real.exec('BEGIN');
+    real.exec(migration001);
+    real.exec('PRAGMA user_version = 1');
+    real.exec('COMMIT');
+
+    real.exec(
+      `INSERT INTO children (name, color_index, created_at) VALUES ('민준', 0, '2026-06-02T00:00:00.000Z')`,
+    );
+    real.exec(
+      `INSERT INTO schedules (child_id, title, type, days_of_week, start_minutes, end_minutes, valid_from)
+       VALUES (1, '수영', 'academy', 64, 1080, 1140, '2026-06-01')`,
+    );
+
+    // Now migrate to v2.
+    const wrapped = wrap(real);
+    await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
+
+    expect(userVersion(real)).toBe(2);
+    expect(columnNames(real, 'schedules')).toEqual(
+      expect.arrayContaining(['needs_pickup']),
+    );
+
+    const row = real
+      .prepare('SELECT needs_pickup FROM schedules WHERE id = 1')
+      .get() as { needs_pickup: number } | undefined;
+    expect(row?.needs_pickup).toBe(0);
+    real.close();
+  });
+
+  test('Test H: crash-recovery v2 — throw during PRAGMA user_version=2 leaves v1 intact, no v2 artifacts', async () => {
+    const path = tmpDbPath();
+    created.push(path);
+
+    // Throw only on v2's PRAGMA (the v1 PRAGMA "= 1" won't match the "= 2" regex).
+    const first = new DatabaseSync(path);
+    const wrapped = wrap(first, {
+      execThrowOnce: {
+        match: /^PRAGMA user_version\s*=\s*2$/,
+        error: new Error('synthetic crash before v2 commit'),
+      },
+    });
+
+    await expect(
+      runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]),
+    ).rejects.toThrow('synthetic crash before v2 commit');
+
+    first.close();
+
+    // Re-open the same file. v1 must be fully committed; v2 must be entirely absent.
+    expect(existsSync(path)).toBe(true);
+    const second = new DatabaseSync(path);
+    expect(userVersion(second)).toBe(1);
+
+    const tables = tableNames(second);
+    // v1 tables present:
+    expect(tables).toEqual(
+      expect.arrayContaining([
+        'children',
+        'schedules',
+        'schedule_exceptions',
+        'notification_settings',
+      ]),
+    );
+    // v2 tables absent:
+    for (const t of ['checklist_items', 'todos', 'schedule_pickup_log']) {
+      expect(tables).not.toContain(t);
+    }
+    // needs_pickup column absent on schedules:
+    expect(columnNames(second, 'schedules')).not.toEqual(
+      expect.arrayContaining(['needs_pickup']),
+    );
+    second.close();
   });
 });
 

@@ -1,11 +1,14 @@
 import type {
+  ChecklistItem,
   Child,
   ColorIndex,
   ISODate,
   NotificationSetting,
   Schedule,
   ScheduleException,
+  SchedulePickupLog,
   ScheduleType,
+  Todo,
 } from '../domain/types';
 
 export interface ChildRow {
@@ -28,6 +31,7 @@ export interface ScheduleRow {
   valid_from: string;
   valid_until: string | null;
   notify_minutes_before: number | null;
+  needs_pickup: number;
 }
 
 export interface ScheduleExceptionRow {
@@ -70,6 +74,7 @@ export function rowToSchedule(r: ScheduleRow): Schedule {
     validFrom: r.valid_from as ISODate,
     validUntil: r.valid_until === null ? null : (r.valid_until as ISODate),
     notifyMinutesBefore: r.notify_minutes_before,
+    needsPickup: r.needs_pickup === 1,
   };
 }
 
@@ -91,5 +96,65 @@ export function rowToNotificationSetting(r: NotificationSettingRow): Notificatio
     defaultMinutesBefore: r.default_minutes_before,
     sound: r.sound !== 0,
     enabled: r.enabled !== 0,
+  };
+}
+
+export interface ChecklistItemRow {
+  id: number;
+  schedule_id: number;
+  label: string;
+  sort_order: number;
+  is_done: number;
+  done_at: number | null;
+}
+
+export interface TodoRow {
+  id: number;
+  child_id: number | null;
+  title: string;
+  due_at: number;
+  notify_minutes_before: number | null;
+  is_done: number;
+  done_at: number | null;
+  created_at: number;
+}
+
+export interface SchedulePickupLogRow {
+  id: number;
+  schedule_id: number;
+  occurrence_date: number;
+  completed_at: number;
+}
+
+export function rowToChecklistItem(r: ChecklistItemRow): ChecklistItem {
+  return {
+    id: r.id,
+    scheduleId: r.schedule_id,
+    label: r.label,
+    sortOrder: r.sort_order,
+    isDone: r.is_done === 1,
+    doneAt: r.done_at,
+  };
+}
+
+export function rowToTodo(r: TodoRow): Todo {
+  return {
+    id: r.id,
+    childId: r.child_id,
+    title: r.title,
+    dueAt: r.due_at,
+    notifyMinutesBefore: r.notify_minutes_before,
+    isDone: r.is_done === 1,
+    doneAt: r.done_at,
+    createdAt: r.created_at,
+  };
+}
+
+export function rowToSchedulePickupLog(r: SchedulePickupLogRow): SchedulePickupLog {
+  return {
+    id: r.id,
+    scheduleId: r.schedule_id,
+    occurrenceDate: r.occurrence_date,
+    completedAt: r.completed_at,
   };
 }

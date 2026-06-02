@@ -13,6 +13,9 @@ import { runMigrations } from '../src/db/migrations';
 import { seedDevData } from '../src/db/seed-dev';
 import { useChildrenStore } from '../src/state/children-store';
 import { useSchedulesStore } from '../src/state/schedules-store';
+import { useChecklistStore } from '../src/state/checklist-store';
+import { useTodosStore } from '../src/state/todos-store';
+import { usePickupLogStore } from '../src/state/pickup-log-store';
 import { ScheduleEditSheet } from '../src/ui/sheets/ScheduleEditSheet';
 
 export { ErrorBoundary } from 'expo-router';
@@ -66,6 +69,18 @@ export default function RootLayout() {
 
         await useChildrenStore.getState().load(db);
         await useSchedulesStore.getState().load(db);
+
+        // v2 stores: load in parallel; one failure should not block the others.
+        const v2Results = await Promise.allSettled([
+          useChecklistStore.getState().load(db),
+          useTodosStore.getState().load(db),
+          usePickupLogStore.getState().load(db),
+        ]);
+        for (const r of v2Results) {
+          if (r.status === 'rejected') {
+            console.warn('[boot] v2 store load failed:', r.reason);
+          }
+        }
 
         setBootState('ready');
       } catch (e) {

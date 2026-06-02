@@ -28,6 +28,7 @@ export interface Schedule {
   validFrom: ISODate;
   validUntil: ISODate | null;
   notifyMinutesBefore: number | null;
+  needsPickup: boolean;
 }
 
 export interface ScheduleException {
@@ -56,4 +57,31 @@ export interface Occurrence {
   title: string;
   type: ScheduleType;
   colorIndex: ColorIndex;
+}
+
+export interface ChecklistItem {
+  id: number;
+  scheduleId: number;
+  label: string;
+  sortOrder: number;
+  isDone: boolean;
+  doneAt: number | null;
+}
+
+export interface Todo {
+  id: number;
+  childId: number | null;
+  title: string;
+  dueAt: number;
+  notifyMinutesBefore: number | null;
+  isDone: boolean;
+  doneAt: number | null;
+  createdAt: number;
+}
+
+export interface SchedulePickupLog {
+  id: number;
+  scheduleId: number;
+  occurrenceDate: number;
+  completedAt: number;
 }

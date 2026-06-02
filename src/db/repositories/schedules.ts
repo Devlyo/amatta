@@ -3,14 +3,18 @@ import type { SQLiteDatabase, SQLiteBindValue } from 'expo-sqlite';
 import type { ISODate, Schedule } from '../../domain/types';
 import { rowToSchedule, type ScheduleRow } from '../row-mappers';
 
-export type NewSchedule = Omit<Schedule, 'id'>;
+export type NewSchedule = Omit<Schedule, 'id' | 'needsPickup'> & {
+  needsPickup?: boolean;
+};
+
+const SELECT_COLUMNS = `id, child_id, title, type, location, notes,
+                        days_of_week, start_minutes, end_minutes,
+                        valid_from, valid_until, notify_minutes_before,
+                        needs_pickup`;
 
 export async function getById(db: SQLiteDatabase, id: number): Promise<Schedule | null> {
   const row = await db.getFirstAsync<ScheduleRow>(
-    `SELECT id, child_id, title, type, location, notes,
-            days_of_week, start_minutes, end_minutes,
-            valid_from, valid_until, notify_minutes_before
-     FROM schedules WHERE id = ?`,
+    `SELECT ${SELECT_COLUMNS} FROM schedules WHERE id = ?`,
     [id],
   );
   return row ? rowToSchedule(row) : null;
@@ -18,20 +22,14 @@ export async function getById(db: SQLiteDatabase, id: number): Promise<Schedule 
 
 export async function list(db: SQLiteDatabase): Promise<Schedule[]> {
   const rows = await db.getAllAsync<ScheduleRow>(
-    `SELECT id, child_id, title, type, location, notes,
-            days_of_week, start_minutes, end_minutes,
-            valid_from, valid_until, notify_minutes_before
-     FROM schedules ORDER BY id ASC`,
+    `SELECT ${SELECT_COLUMNS} FROM schedules ORDER BY id ASC`,
   );
   return rows.map(rowToSchedule);
 }
 
 export async function listByChild(db: SQLiteDatabase, childId: number): Promise<Schedule[]> {
   const rows = await db.getAllAsync<ScheduleRow>(
-    `SELECT id, child_id, title, type, location, notes,
-            days_of_week, start_minutes, end_minutes,
-            valid_from, valid_until, notify_minutes_before
-     FROM schedules WHERE child_id = ? ORDER BY id ASC`,
+    `SELECT ${SELECT_COLUMNS} FROM schedules WHERE child_id = ? ORDER BY id ASC`,
     [childId],
   );
   return rows.map(rowToSchedule);
@@ -42,8 +40,8 @@ export async function create(db: SQLiteDatabase, input: NewSchedule): Promise<Sc
     `INSERT INTO schedules
        (child_id, title, type, location, notes,
         days_of_week, start_minutes, end_minutes,
-        valid_from, valid_until, notify_minutes_before)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        valid_from, valid_until, notify_minutes_before, needs_pickup)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.childId,
       input.title,
@@ -56,6 +54,7 @@ export async function create(db: SQLiteDatabase, input: NewSchedule): Promise<Sc
       input.validFrom as string,
       input.validUntil ? (input.validUntil as string) : null,
       input.notifyMinutesBefore ?? null,
+      input.needsPickup ? 1 : 0,
     ],
   );
   const schedule = await getById(db, result.lastInsertRowId);
@@ -114,6 +113,10 @@ export async function update(
   if (patch.notifyMinutesBefore !== undefined) {
     fields.push('notify_minutes_before = ?');
     values.push(patch.notifyMinutesBefore);
+  }
+  if (patch.needsPickup !== undefined) {
+    fields.push('needs_pickup = ?');
+    values.push(patch.needsPickup ? 1 : 0);
   }
 
   if (fields.length > 0) {

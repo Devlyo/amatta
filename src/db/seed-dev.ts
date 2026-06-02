@@ -55,6 +55,64 @@ export async function seedDevData(db: SQLiteDatabase): Promise<void> {
         [childId, 15, 1, 1],
       );
     }
+
+    // v2: pickup flags. Schedule ids 3 (민준 수영), 6 (서연 미술학원), 8 (도윤 발레).
+    await db.runAsync(
+      'UPDATE schedules SET needs_pickup = 1 WHERE id IN (?, ?, ?)',
+      [3, 6, 8],
+    );
+
+    // v2: ChecklistItems — preparation items per pickup-marked schedule.
+    await db.runAsync(
+      `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
+      [3, '수영가방', 0],
+    );
+    await db.runAsync(
+      `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
+      [3, '수건', 1],
+    );
+    await db.runAsync(
+      `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
+      [3, '간식', 2],
+    );
+    await db.runAsync(
+      `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
+      [6, '미술도구', 0],
+    );
+    await db.runAsync(
+      `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
+      [6, '앞치마', 1],
+    );
+    await db.runAsync(
+      `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
+      [8, '발레복', 0],
+    );
+    await db.runAsync(
+      `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
+      [8, '발레슈즈', 1],
+    );
+
+    // v2: Todos — mix of parent-level (child_id=NULL) + per-child.
+    const NOW_MS = 1717286400000; // 2026-06-02 00:00 KST (deterministic for tests)
+    const DAY = 86_400_000;
+    await db.runAsync(
+      `INSERT INTO todos (child_id, title, due_at, notify_minutes_before, created_at) VALUES (?, ?, ?, ?, ?)`,
+      [null, '영어학원 등록비 입금', NOW_MS + 3 * DAY, 60, NOW_MS],
+    );
+    await db.runAsync(
+      `INSERT INTO todos (child_id, title, due_at, notify_minutes_before, created_at) VALUES (?, ?, ?, ?, ?)`,
+      [null, '병원 예약', NOW_MS + 7 * DAY, null, NOW_MS],
+    );
+    await db.runAsync(
+      `INSERT INTO todos (child_id, title, due_at, notify_minutes_before, created_at) VALUES (?, ?, ?, ?, ?)`,
+      [minjun, '민준 학교 알림장 확인', NOW_MS + DAY, 30, NOW_MS],
+    );
+    await db.runAsync(
+      `INSERT INTO todos (child_id, title, due_at, notify_minutes_before, created_at) VALUES (?, ?, ?, ?, ?)`,
+      [seoyeon, '서연 미술 준비물 (붓)', NOW_MS + 4 * DAY, 30, NOW_MS],
+    );
+
+    // schedule_pickup_log starts empty; user marks completions via UI.
   });
 }
 

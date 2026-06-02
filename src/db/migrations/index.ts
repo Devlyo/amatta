@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { migration001 } from './001_init.sql';
+import { migration002 } from './002_v2_prep_todos_pickup.sql';
 
 export type TxMode = 'explicit-begin' | 'fallback-with-transaction';
 
@@ -14,6 +15,7 @@ export interface Migration {
 
 export const MIGRATIONS: ReadonlyArray<Migration> = [
   { version: 1, sql: migration001 },
+  { version: 2, sql: migration002 },
 ];
 
 export async function runMigrations(

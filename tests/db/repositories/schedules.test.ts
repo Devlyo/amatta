@@ -262,6 +262,37 @@ describe('schedulesRepo', () => {
     expect(updated.validUntil).toBeNull();
   });
 
+  test('needsPickup round-trip: create with true → list/get returns true', async () => {
+    const created = await schedulesRepo.create(db as never, {
+      childId, title: '수영', type: 'activity', location: null, notes: null,
+      daysOfWeek: 0b1000000, startMinutes: 900, endMinutes: 960, validFrom: VALID_FROM,
+      validUntil: null, notifyMinutesBefore: null,
+      needsPickup: true,
+    });
+    expect(created.needsPickup).toBe(true);
+
+    const fetched = await schedulesRepo.getById(db as never, created.id);
+    expect(fetched?.needsPickup).toBe(true);
+
+    const all = await schedulesRepo.list(db as never);
+    expect(all[0]?.needsPickup).toBe(true);
+  });
+
+  test('needsPickup defaults to false when omitted; update toggles true → false', async () => {
+    const created = await schedulesRepo.create(db as never, {
+      childId, title: '학교', type: 'school', location: null, notes: null,
+      daysOfWeek: 0b11111, startMinutes: 540, endMinutes: 870, validFrom: VALID_FROM,
+      validUntil: null, notifyMinutesBefore: null,
+    });
+    expect(created.needsPickup).toBe(false);
+
+    const toTrue = await schedulesRepo.update(db as never, created.id, { needsPickup: true });
+    expect(toTrue.needsPickup).toBe(true);
+
+    const toFalse = await schedulesRepo.update(db as never, created.id, { needsPickup: false });
+    expect(toFalse.needsPickup).toBe(false);
+  });
+
   test('listByChild() returns only schedules for given child', async () => {
     const child2 = await childrenRepo.create(db as never, { name: '두번째', colorIndex: 1 });
 
