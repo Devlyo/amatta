@@ -117,7 +117,16 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="child/[id]" options={{ title: '자녀 주간' }} />
-        <Stack.Screen name="multi" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="multi"
+          options={{
+            headerShown: false,
+            // Day↔Week is conceptually a tab toggle, not a navigation push,
+            // so suppress the slide-in/out and the fade. Push and pop both
+            // resolve to instant cuts.
+            animation: 'none',
+          }}
+        />
         <Stack.Screen name="schedule/edit" options={{ title: '일정 편집', presentation: 'modal' }} />
         <Stack.Screen name="settings/kids" options={{ headerShown: false }} />
         <Stack.Screen name="settings/data" options={{ headerShown: false }} />
