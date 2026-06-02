@@ -1,31 +1,22 @@
 // 1:1 port of docs/design/amatta-v1/app-event-form.jsx into a
-// BottomSheetModal-driven RN sheet. External API preserved:
+// RN-native Modal-driven sheet. External API preserved:
 // driven by useUiStore.editSheetState (create / editAll / editOccurrence)
 // and saves through useSchedulesStore.{add,update,applyException}.
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetTextInput,
-  BottomSheetView,
-  type BottomSheetBackdropProps,
-} from '@gorhom/bottom-sheet';
 
 import { useChildrenStore } from '../../state/children-store';
 import { useSchedulesStore } from '../../state/schedules-store';
@@ -57,8 +48,6 @@ import {
   type EditFormState,
 } from './edit-sheet-form';
 
-const SNAP_POINTS: string[] = ['92%'];
-
 // Sunday-first labels, matching the prototype's '일 월 화 수 목 금 토' order.
 // Our DaysOfWeekMask uses Monday-bit-0 (`domain/days-of-week.ts`), so we map
 // visual index → mask bit at the toggle/read sites.
@@ -78,8 +67,6 @@ export function ScheduleEditSheet(): React.ReactElement {
   const updateSchedule = useSchedulesStore((s) => s.updateSchedule);
   const removeSchedule = useSchedulesStore((s) => s.removeSchedule);
   const applyException = useSchedulesStore((s) => s.applyException);
-
-  const modalRef = useRef<BottomSheetModal>(null);
 
   const mode = editSheetState.mode;
   const sheetMode: 'create' | 'editAll' | 'editOccurrence' | null =
@@ -126,14 +113,6 @@ export function ScheduleEditSheet(): React.ReactElement {
     }
     setSubmitted(false);
   }, [sheetMode, existingSchedule, existingException, editSheetState.preFill]);
-
-  useEffect(() => {
-    if (sheetMode === null) {
-      modalRef.current?.dismiss();
-    } else {
-      modalRef.current?.present();
-    }
-  }, [sheetMode]);
 
   const validation = useMemo(
     () =>
@@ -283,10 +262,6 @@ export function ScheduleEditSheet(): React.ReactElement {
     });
   }, [existingSchedule, editSheetState.occurrenceDate]);
 
-  const handleDismiss = useCallback(() => {
-    if (sheetMode !== null) closeEditSheet();
-  }, [sheetMode, closeEditSheet]);
-
   const titleText =
     sheetMode === 'editAll'
       ? '일정 수정'
@@ -295,33 +270,27 @@ export function ScheduleEditSheet(): React.ReactElement {
         : '새 일정';
   const saveLabel = sheetMode === 'create' ? '추가' : '저장';
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-      />
-    ),
-    [],
-  );
-
   const showError = (key: keyof EditFormState): string | undefined =>
     submitted ? validation.errors[key] : undefined;
 
+  const open = sheetMode !== null;
+
   return (
-    <BottomSheetModal
-      ref={modalRef}
-      index={0}
-      snapPoints={SNAP_POINTS}
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      onDismiss={handleDismiss}
-      backdropComponent={renderBackdrop}
-      handleIndicatorStyle={styles.handleIndicator}
-      backgroundStyle={styles.sheetBackground}
+    <Modal
+      visible={open}
+      transparent
+      animationType="slide"
+      onRequestClose={closeEditSheet}
+      accessibilityViewIsModal
     >
-      <BottomSheetView style={styles.sheetContent}>
+      <Pressable style={styles.backdrop} onPress={closeEditSheet} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.sheet}
+      >
+        <View style={styles.handleArea}>
+          <View style={styles.handle} />
+        </View>
         {/* Top bar — 취소 · Title · 추가/저장 */}
         <View style={styles.headerBar}>
           <Pressable
@@ -401,7 +370,7 @@ export function ScheduleEditSheet(): React.ReactElement {
           {/* Group 2: 제목 + 위치 */}
           <Group>
             <Row label="제목" align="top">
-              <BottomSheetTextInput
+              <TextInput
                 value={form.title}
                 onChangeText={(v: string) => setForm({ ...form, title: v })}
                 placeholder="예) 영어학원"
@@ -414,7 +383,7 @@ export function ScheduleEditSheet(): React.ReactElement {
               <FieldError text={showError('title')} />
             </Row>
             <Row label="위치" align="top" hairline={false}>
-              <BottomSheetTextInput
+              <TextInput
                 value={form.location}
                 onChangeText={(v: string) => setForm({ ...form, location: v })}
                 placeholder="예) JLS어학원"
@@ -429,7 +398,7 @@ export function ScheduleEditSheet(): React.ReactElement {
           {/* Group 3: 날짜 + 시간 + 반복 */}
           <Group>
             <Row label="날짜">
-              <BottomSheetTextInput
+              <TextInput
                 value={form.validFrom}
                 onChangeText={(v: string) =>
                   setForm({ ...form, validFrom: v })
@@ -459,7 +428,7 @@ export function ScheduleEditSheet(): React.ReactElement {
             </Row>
             {sheetMode !== 'editOccurrence' ? (
               <Row label="종료일">
-                <BottomSheetTextInput
+                <TextInput
                   value={form.validUntil}
                   onChangeText={(v: string) =>
                     setForm({ ...form, validUntil: v })
@@ -550,7 +519,7 @@ export function ScheduleEditSheet(): React.ReactElement {
           {/* Group 5: 메모 */}
           <Group>
             <Row label="메모" align="top" hairline={false}>
-              <BottomSheetTextInput
+              <TextInput
                 value={form.notes}
                 onChangeText={(v: string) => setForm({ ...form, notes: v })}
                 placeholder="추가 정보"
@@ -597,8 +566,8 @@ export function ScheduleEditSheet(): React.ReactElement {
 
           <View style={styles.tail} />
         </ScrollView>
-      </BottomSheetView>
-    </BottomSheetModal>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 
@@ -874,10 +843,31 @@ export type { EditFormState } from './edit-sheet-form';
 void (null as unknown as ScheduleType);
 
 const styles = StyleSheet.create({
-  sheetBackground: { backgroundColor: TOKENS.surfaceWarm },
-  handleIndicator: { backgroundColor: TOKENS.ink12 },
-
-  sheetContent: { flex: 1 },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(29,29,27,0.45)',
+  },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: '8%',
+    backgroundColor: TOKENS.surfaceWarm,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  handleArea: {
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: TOKENS.ink12,
+  },
 
   headerBar: {
     flexDirection: 'row',

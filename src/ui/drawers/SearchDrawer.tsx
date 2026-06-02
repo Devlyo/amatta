@@ -12,15 +12,18 @@
 // only close the drawer — focusing them inside their respective list is left
 // for a follow-up (the corresponding sections don't yet support deep-linking).
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetTextInput,
-  BottomSheetView,
-  type BottomSheetBackdropProps,
-} from '@gorhom/bottom-sheet';
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { useChildrenStore } from '../../state/children-store';
 import { useChecklistStore } from '../../state/checklist-store';
@@ -38,8 +41,6 @@ import { FONT_FAMILIES } from '../fonts';
 import { IconCheck, IconSearch, IconXMark, KIND_ICON } from '../icons';
 import { TOKENS } from '../palette';
 import { todayIso } from '../utils/date';
-
-const SNAP_POINTS: string[] = ['78%'];
 
 type Result =
   | { kind: 'schedule'; key: string; schedule: Schedule; child: Child | undefined }
@@ -67,14 +68,10 @@ export function SearchDrawer(): React.ReactElement {
   const todos = useTodosStore((s) => s.todos);
   const itemsByScheduleId = useChecklistStore((s) => s.itemsByScheduleId);
 
-  const modalRef = useRef<BottomSheetModal>(null);
   const [query, setQuery] = useState('');
 
   useEffect(() => {
-    if (open) {
-      modalRef.current?.present();
-    } else {
-      modalRef.current?.dismiss();
+    if (!open) {
       // Clear the query when the sheet closes so re-opens start fresh — matches
       // the prototype's `setQ('')` on close.
       setQuery('');
@@ -139,10 +136,6 @@ export function SearchDrawer(): React.ReactElement {
     return out;
   }, [query, schedules, todos, itemsByScheduleId, childById, scheduleById]);
 
-  const handleDismiss = useCallback(() => {
-    if (open) closeSearch();
-  }, [open, closeSearch]);
-
   const handleSelectSchedule = useCallback(
     (schedule: Schedule) => {
       openEventDetail({
@@ -176,89 +169,88 @@ export function SearchDrawer(): React.ReactElement {
     [openEventDetail, closeSearch],
   );
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-      />
-    ),
-    [],
-  );
-
   const trimmed = query.trim();
   const showEmpty = trimmed === '';
 
   return (
-    <BottomSheetModal
-      ref={modalRef}
-      index={0}
-      snapPoints={SNAP_POINTS}
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      onDismiss={handleDismiss}
-      backdropComponent={renderBackdrop}
-      handleIndicatorStyle={styles.handleIndicator}
-      backgroundStyle={styles.sheetBackground}
+    <Modal
+      visible={open}
+      transparent
+      animationType="slide"
+      onRequestClose={closeSearch}
+      accessibilityViewIsModal
     >
-      <BottomSheetView style={styles.sheetContent} testID="search-drawer-content">
-        {/* Search input */}
-        <View style={styles.inputWrap}>
-          <View style={styles.inputBox}>
-            <IconSearch size={16} color={TOKENS.inkSub} />
-            <BottomSheetTextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="일정·장소·자녀 검색"
-              placeholderTextColor={TOKENS.inkSub}
-              style={styles.input}
-              autoCorrect={false}
-              autoCapitalize="none"
-              testID="search-drawer-input"
-              accessibilityLabel="검색어 입력"
-            />
-            {trimmed.length > 0 ? (
-              <Pressable
-                onPress={() => setQuery('')}
-                accessibilityRole="button"
-                accessibilityLabel="검색어 지우기"
-                hitSlop={6}
-                style={styles.clearBtn}
-              >
-                <IconXMark size={14} color={TOKENS.inkSub} />
-              </Pressable>
-            ) : null}
+      <Pressable style={styles.backdrop} onPress={closeSearch} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.sheet}
+      >
+        <View style={styles.handleArea}>
+          <View style={styles.handle} />
+        </View>
+        <ScrollView
+          style={styles.sheetScroll}
+          contentContainerStyle={styles.sheetContent}
+          keyboardShouldPersistTaps="handled"
+          testID="search-drawer-content"
+        >
+          {/* Search input */}
+          <View style={styles.inputWrap}>
+            <View style={styles.inputBox}>
+              <IconSearch size={16} color={TOKENS.inkSub} />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="일정·장소·자녀 검색"
+                placeholderTextColor={TOKENS.inkSub}
+                style={styles.input}
+                autoCorrect={false}
+                autoCapitalize="none"
+                testID="search-drawer-input"
+                accessibilityLabel="검색어 입력"
+              />
+              {trimmed.length > 0 ? (
+                <Pressable
+                  onPress={() => setQuery('')}
+                  accessibilityRole="button"
+                  accessibilityLabel="검색어 지우기"
+                  hitSlop={6}
+                  style={styles.clearBtn}
+                >
+                  <IconXMark size={14} color={TOKENS.inkSub} />
+                </Pressable>
+              ) : null}
+            </View>
           </View>
-        </View>
 
-        {/* Results / empty state */}
-        <View style={styles.resultsWrap}>
-          {showEmpty ? (
-            <Text style={styles.placeholder}>검색어를 입력하세요</Text>
-          ) : (
-            <>
-              <Text style={styles.resultsCount}>결과 {results.length}건</Text>
-              {results.length === 0 ? (
-                <Text style={styles.noResults}>검색 결과가 없습니다</Text>
-              ) : (
-                <View style={styles.resultList}>
-                  {results.map((r) => (
-                    <ResultRow
-                      key={r.key}
-                      result={r}
-                      onSelectSchedule={handleSelectSchedule}
-                      onSelectTodo={handleSelectTodo}
-                      onSelectChecklist={handleSelectChecklist}
-                    />
-                  ))}
-                </View>
-              )}
-            </>
-          )}
-        </View>
-      </BottomSheetView>
-    </BottomSheetModal>
+          {/* Results / empty state */}
+          <View style={styles.resultsWrap}>
+            {showEmpty ? (
+              <Text style={styles.placeholder}>검색어를 입력하세요</Text>
+            ) : (
+              <>
+                <Text style={styles.resultsCount}>결과 {results.length}건</Text>
+                {results.length === 0 ? (
+                  <Text style={styles.noResults}>검색 결과가 없습니다</Text>
+                ) : (
+                  <View style={styles.resultList}>
+                    {results.map((r) => (
+                      <ResultRow
+                        key={r.key}
+                        result={r}
+                        onSelectSchedule={handleSelectSchedule}
+                        onSelectTodo={handleSelectTodo}
+                        onSelectChecklist={handleSelectChecklist}
+                      />
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 
@@ -390,11 +382,35 @@ function ResultRow({
 }
 
 const styles = StyleSheet.create({
-  sheetBackground: { backgroundColor: TOKENS.surface },
-  handleIndicator: { backgroundColor: TOKENS.ink30 },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(29,29,27,0.45)',
+  },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: '22%',
+    backgroundColor: TOKENS.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  handleArea: {
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: TOKENS.ink30,
+  },
+  sheetScroll: { flex: 1 },
   sheetContent: {
-    flex: 1,
     paddingHorizontal: 16,
+    paddingBottom: 20,
   },
 
   inputWrap: {

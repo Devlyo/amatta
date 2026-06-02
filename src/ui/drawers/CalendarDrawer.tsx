@@ -11,14 +11,8 @@
 // fanning them out here would re-traverse the schedule expansion logic. If we
 // add them, expandOccurrences over the visible month is the right hook.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetView,
-  type BottomSheetBackdropProps,
-} from '@gorhom/bottom-sheet';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useUiStore } from '../../state/ui-store';
 import type { ISODate } from '../../domain/types';
@@ -26,8 +20,6 @@ import { FONT_FAMILIES } from '../fonts';
 import { IconChevronLeft, IconChevronRight } from '../icons';
 import { TOKENS } from '../palette';
 import { todayIso } from '../utils/date';
-
-const SNAP_POINTS: string[] = ['58%'];
 
 // Weekend tints from the prototype's DOW header (Sun=red-pink, Sat=blue).
 const WEEKEND_COLOR_SUN = '#D04580';
@@ -77,8 +69,6 @@ export function CalendarDrawer(): React.ReactElement {
   const currentDate = useUiStore((s) => s.currentDate);
   const setCurrentDate = useUiStore((s) => s.setCurrentDate);
 
-  const modalRef = useRef<BottomSheetModal>(null);
-
   // Anchor the visible month to the current date when (re)opening; this keeps
   // the user in context if they've already navigated to a different week/day.
   const initialAnchor = useMemo(() => parseYmd(currentDate), [currentDate]);
@@ -93,9 +83,6 @@ export function CalendarDrawer(): React.ReactElement {
       const { y, m } = parseYmd(useUiStore.getState().currentDate);
       setYear(y);
       setMonth(m);
-      modalRef.current?.present();
-    } else {
-      modalRef.current?.dismiss();
     }
   }, [open]);
 
@@ -121,11 +108,6 @@ export function CalendarDrawer(): React.ReactElement {
     }
   }, [month]);
 
-  const handleDismiss = useCallback(() => {
-    // Called by BottomSheetModal when the user drags the sheet down. Sync ui-store.
-    if (open) closeCalendar();
-  }, [open, closeCalendar]);
-
   const handlePickDate = useCallback(
     (d: number) => {
       setCurrentDate(isoFromYmd(year, month, d));
@@ -134,28 +116,19 @@ export function CalendarDrawer(): React.ReactElement {
     [year, month, setCurrentDate, closeCalendar],
   );
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-      />
-    ),
-    [],
-  );
-
   return (
-    <BottomSheetModal
-      ref={modalRef}
-      index={0}
-      snapPoints={SNAP_POINTS}
-      onDismiss={handleDismiss}
-      backdropComponent={renderBackdrop}
-      handleIndicatorStyle={styles.handleIndicator}
-      backgroundStyle={styles.sheetBackground}
+    <Modal
+      visible={open}
+      transparent
+      animationType="slide"
+      onRequestClose={closeCalendar}
+      accessibilityViewIsModal
     >
-      <BottomSheetView style={styles.sheetContent} testID="calendar-drawer-content">
+      <Pressable style={styles.backdrop} onPress={closeCalendar} />
+      <View style={styles.sheet} testID="calendar-drawer-content">
+        <View style={styles.handleArea}>
+          <View style={styles.handle} />
+        </View>
         {/* Month nav */}
         <View style={styles.monthNav}>
           <Pressable
@@ -244,18 +217,38 @@ export function CalendarDrawer(): React.ReactElement {
             );
           })}
         </View>
-      </BottomSheetView>
-    </BottomSheetModal>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  sheetBackground: { backgroundColor: TOKENS.surface },
-  handleIndicator: { backgroundColor: TOKENS.ink30 },
-  sheetContent: {
-    flex: 1,
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(29,29,27,0.45)',
+  },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: '42%',
+    backgroundColor: TOKENS.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     paddingHorizontal: 16,
     paddingBottom: 20,
+  },
+  handleArea: {
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: TOKENS.ink30,
   },
 
   monthNav: {

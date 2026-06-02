@@ -8,14 +8,16 @@
 // Top-right "수정" routes to ScheduleEditSheet via openEditSheet('editAll').
 // The lower action stack offers per-occurrence edit/cancel and full delete.
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo } from 'react';
 import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetView,
-  type BottomSheetBackdropProps,
-} from '@gorhom/bottom-sheet';
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { useChecklistStore } from '../../state/checklist-store';
 import { useChildrenStore } from '../../state/children-store';
@@ -36,8 +38,6 @@ import { IconCheck } from '../icons';
 import { TOKENS } from '../palette';
 import { fmtKoTime, formatKoreanDateLabel } from '../utils/date';
 import { TYPE_LABELS_KO } from '../sheets/edit-sheet-form';
-
-const SNAP_POINTS: string[] = ['85%'];
 
 // Sunday-first labels for the repeat-day display row. Our mask is
 // Monday-bit-0 — map visual index → bit at render time.
@@ -61,8 +61,6 @@ export function EventDetailDrawer(): React.ReactElement {
   const applyException = useSchedulesStore((s) => s.applyException);
   const children = useChildrenStore((s) => s.children);
   const itemsByScheduleId = useChecklistStore((s) => s.itemsByScheduleId);
-
-  const modalRef = useRef<BottomSheetModal>(null);
 
   const open = detail.mode === 'open';
 
@@ -108,15 +106,6 @@ export function EventDetailDrawer(): React.ReactElement {
         : schedule.title;
     return { startMinutes, endMinutes, title };
   }, [schedule, exception]);
-
-  useEffect(() => {
-    if (open) modalRef.current?.present();
-    else modalRef.current?.dismiss();
-  }, [open]);
-
-  const handleDismiss = useCallback(() => {
-    if (open) closeDetail();
-  }, [open, closeDetail]);
 
   const handleEditOccurrence = useCallback(() => {
     if (schedule === undefined || detail.occurrenceDate === undefined) return;
@@ -174,33 +163,24 @@ export function EventDetailDrawer(): React.ReactElement {
     );
   }, [schedule, removeSchedule, closeDetail]);
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-      />
-    ),
-    [],
-  );
-
   // The modal must still mount with a body even if the schedule was just
   // deleted (drawer closes the next tick). Render a minimal frame so the
-  // BottomSheetView lifecycle stays stable.
+  // sheet lifecycle stays stable.
   const ready = schedule !== undefined && child !== undefined && display !== null;
 
   return (
-    <BottomSheetModal
-      ref={modalRef}
-      index={0}
-      snapPoints={SNAP_POINTS}
-      onDismiss={handleDismiss}
-      backdropComponent={renderBackdrop}
-      handleIndicatorStyle={styles.handleIndicator}
-      backgroundStyle={styles.sheetBackground}
+    <Modal
+      visible={open}
+      transparent
+      animationType="slide"
+      onRequestClose={closeDetail}
+      accessibilityViewIsModal
     >
-      <BottomSheetView style={styles.sheetContent}>
+      <Pressable style={styles.backdrop} onPress={closeDetail} />
+      <View style={styles.sheet}>
+        <View style={styles.handleArea}>
+          <View style={styles.handle} />
+        </View>
         {/* Top bar — 취소 · 일정 · 수정 */}
         <View style={styles.headerBar}>
           <Pressable
@@ -246,14 +226,14 @@ export function EventDetailDrawer(): React.ReactElement {
             />
           </ScrollView>
         ) : null}
-      </BottomSheetView>
-    </BottomSheetModal>
+      </View>
+    </Modal>
   );
 }
 
 // -----------------------------------------------------------------------------
 // Inner body — split out so the test-target can mount it directly without the
-// BottomSheetModal lifecycle (we also export it for the test harness).
+// Modal lifecycle (we also export it for the test harness).
 // -----------------------------------------------------------------------------
 
 interface DetailBodyProps {
@@ -507,10 +487,31 @@ function ActionRow({
 }
 
 const styles = StyleSheet.create({
-  sheetBackground: { backgroundColor: TOKENS.surfaceWarm },
-  handleIndicator: { backgroundColor: TOKENS.ink12 },
-
-  sheetContent: { flex: 1 },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(29,29,27,0.45)',
+  },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: '15%',
+    backgroundColor: TOKENS.surfaceWarm,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  handleArea: {
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: TOKENS.ink12,
+  },
 
   headerBar: {
     flexDirection: 'row',

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Text, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
@@ -115,22 +114,20 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.flex}>
-      <BottomSheetModalProvider>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="child/[id]" options={{ title: '자녀 주간' }} />
-          <Stack.Screen name="schedule/edit" options={{ title: '일정 편집', presentation: 'modal' }} />
-          <Stack.Screen name="settings/kids" options={{ headerShown: false }} />
-          <Stack.Screen name="settings/data" options={{ headerShown: false }} />
-          <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
-        </Stack>
-        {/* Sheets + drawers mounted once at the layout level so daily/weekly
-            views can open them via ui-store without route navigation. */}
-        <ScheduleEditSheet />
-        <CalendarDrawer />
-        <SearchDrawer />
-        <EventDetailDrawer />
-      </BottomSheetModalProvider>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="child/[id]" options={{ title: '자녀 주간' }} />
+        <Stack.Screen name="schedule/edit" options={{ title: '일정 편집', presentation: 'modal' }} />
+        <Stack.Screen name="settings/kids" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/data" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
+      </Stack>
+      {/* Sheets + drawers mounted once at the layout level so daily/weekly
+          views can open them via ui-store without route navigation. */}
+      <ScheduleEditSheet />
+      <CalendarDrawer />
+      <SearchDrawer />
+      <EventDetailDrawer />
     </GestureHandlerRootView>
   );
 }
