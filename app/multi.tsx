@@ -23,7 +23,11 @@ import { ViewToggle } from '../src/ui/common/ViewToggle';
 import { TabStrip, type DailyTabKey } from '../src/ui/daily/TabStrip';
 import { TodoTabContent } from '../src/ui/daily/TodoTabContent';
 import { FONT_FAMILIES } from '../src/ui/fonts';
-import { IconChevronDown, IconSearch } from '../src/ui/icons';
+import {
+  IconChevronDown,
+  IconChevronLeft,
+  IconSearch,
+} from '../src/ui/icons';
 import { TOKENS } from '../src/ui/palette';
 import {
   shiftIsoDate,
@@ -222,11 +226,20 @@ function MultiViewScreenImpl(): React.ReactElement {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Top bar — mirrors daily TopBar layout: title pressable on the left,
-          ViewToggle + search on the right. The DAY segment of ViewToggle is
-          the back affordance (router.back); a separate chev-back would be
-          redundant. */}
+      {/* Top bar — chev-back (inline, next to 이번 주) + title pressable +
+          ViewToggle/search on the right. The default Stack header is
+          disabled in _layout for this route so the chev here is the only
+          back affordance the user sees. */}
       <View style={styles.topBar}>
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="뒤로"
+          hitSlop={8}
+          style={styles.backBtn}
+        >
+          <IconChevronLeft size={22} color={TOKENS.ink} />
+        </Pressable>
         <Pressable
           onPress={handlePressTitle}
           accessibilityRole="button"
@@ -354,7 +367,14 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 4,
     paddingHorizontal: 14,
-    gap: 10,
+    gap: 6,
+  },
+  backBtn: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -4,
   },
   leftBtn: {
     flex: 1,

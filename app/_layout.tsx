@@ -117,6 +117,7 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="child/[id]" options={{ title: '자녀 주간' }} />
+        <Stack.Screen name="multi" options={{ headerShown: false }} />
         <Stack.Screen name="schedule/edit" options={{ title: '일정 편집', presentation: 'modal' }} />
         <Stack.Screen name="settings/kids" options={{ headerShown: false }} />
         <Stack.Screen name="settings/data" options={{ headerShown: false }} />
