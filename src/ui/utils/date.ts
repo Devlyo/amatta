@@ -84,3 +84,67 @@ export function formatKoreanWeekRange(weekStart: ISODate): string {
   const ed = Number(e.slice(8, 10));
   return `${sm}월 ${sd}일 — ${em}월 ${ed}일`;
 }
+
+/**
+ * Formats minutes-from-midnight as a compact 12-hour amatta-v1 block string:
+ *   `9 * 60 + 0` → "9:00AM"
+ *   `15 * 60 + 30` → "3:30PM"
+ *   `0` → "12:00AM"
+ *
+ * Mirrors `fmt12hrShort(hhmm)` from docs/design/amatta-v1/app-tokens.jsx but
+ * takes the domain's minute-of-day representation so we don't shuttle strings.
+ */
+export function fmt12hrShort(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  const ap = h < 12 ? 'AM' : 'PM';
+  return `${h12}:${String(m).padStart(2, '0')}${ap}`;
+}
+
+/**
+ * Formats minutes-from-midnight as a Korean hero-card string:
+ *   `9 * 60` → "오전 9:00"
+ *   `15 * 60 + 30` → "오후 3:30"
+ *   `0` → "오전 12:00"
+ *
+ * Mirrors `fmtKo(hhmm)` from amatta-v1.
+ */
+export function fmtKoTime(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  const ap = h < 12 ? '오전' : '오후';
+  return `${ap} ${h12}:${String(m).padStart(2, '0')}`;
+}
+
+/**
+ * Korean weekday label for an ISO date (in local time). Mirrors the prototype's
+ * `5월 5일 · 화` short-form — caller composes the month/day side.
+ */
+export function weekdayKo(iso: ISODate): string {
+  const s = iso as unknown as string;
+  const y = Number(s.slice(0, 4));
+  const m = Number(s.slice(5, 7));
+  const d = Number(s.slice(8, 10));
+  const date = new Date(y, m - 1, d);
+  return KOREAN_DAY_LABELS[date.getDay()] ?? '';
+}
+
+/**
+ * "5월 5일 · 화" short form for the top-bar caption next to the big "오늘".
+ */
+export function formatKoreanShortDate(iso: ISODate): string {
+  const s = iso as unknown as string;
+  const m = Number(s.slice(5, 7));
+  const d = Number(s.slice(8, 10));
+  return `${m}월 ${d}일 · ${weekdayKo(iso)}`;
+}
+
+/**
+ * `true` iff `iso` represents today's local-time date. Used to swap the
+ * "오늘로" pill into a faint state when there's no jump to make.
+ */
+export function isToday(iso: ISODate): boolean {
+  return (iso as unknown as string) === (todayIso() as unknown as string);
+}

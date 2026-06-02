@@ -4,8 +4,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ROW_HEIGHT } from '../../domain/constants';
 import type { BlockLayout } from '../../domain/grid';
 import type { ScheduleType } from '../../domain/types';
+import { FONT_FAMILIES } from '../fonts';
+import { KIND_ICON } from '../icons';
 import { getKidPalette, TOKENS } from '../palette';
-import { TypeIcon } from '../common/TypeIcon';
+import { fmt12hrShort } from '../utils/date';
 
 interface Props {
   block: BlockLayout;
@@ -13,15 +15,15 @@ interface Props {
   columnWidth: number;
   onPress?: () => void;
   /**
-   * TODO (Phase 4 polish): wire cancel-exception data through layoutDay so
-   * the block can render with `opacity: 0.3 + strike-through`. For now
-   * `expandOccurrences` already drops cancelled dates so this stays false
-   * in the daily-view happy path.
+   * TODO (Phase 4 polish): wire cancel-exception data through layoutDay so the
+   * block renders with `opacity: 0.3` + center strike-through. For now
+   * `expandOccurrences` drops cancelled dates so this stays false in the
+   * daily-view happy path.
    */
   isCancelled?: boolean;
   /**
-   * TODO (Phase 4): a small warning-dot in the corner when the block is
-   * backed by a `modify` exception.
+   * TODO (Phase 4): a small warning-dot in the corner when the block is backed
+   * by a `modify` exception.
    */
   isModified?: boolean;
 }
@@ -35,12 +37,15 @@ function ScheduleBlockImpl({
   isModified = false,
 }: Props): React.ReactElement {
   const palette = getKidPalette(block.colorIndex);
+  const Icon = KIND_ICON[type];
   const top = block.topSlot * ROW_HEIGHT;
-  const height = Math.max(1, block.heightSlots * ROW_HEIGHT - 2); // 2px gap
-  const left = block.childIdx * columnWidth + 2;
-  const width = Math.max(0, columnWidth - 4);
+  const height = Math.max(1, block.heightSlots * ROW_HEIGHT - 2); // 2px gap between consecutive blocks
+  const left = block.childIdx * columnWidth + 3;
+  const width = Math.max(0, columnWidth - 6);
 
-  const showSecondaryRow = block.heightSlots >= 3;
+  // Per design §6 — show time pill once there's enough vertical room.
+  // ≥ 2 slots (60 min) gives us two text rows comfortably.
+  const showTimePill = block.heightSlots >= 2;
 
   return (
     <Pressable
@@ -60,31 +65,21 @@ function ScheduleBlockImpl({
         },
       ]}
     >
-      <View style={styles.row}>
-        <TypeIcon type={type} size={12} color={TOKENS.ink} />
+      <View style={styles.titleRow}>
+        <Icon size={12} color={TOKENS.ink} />
         <Text numberOfLines={1} style={styles.title}>
           {block.title}
         </Text>
       </View>
-      {showSecondaryRow ? (
-        <Text numberOfLines={1} style={styles.secondary}>
-          {formatRange(block.startMinutes, block.endMinutes)}
+      {showTimePill ? (
+        <Text numberOfLines={1} style={styles.timePill}>
+          {fmt12hrShort(block.startMinutes)}–{fmt12hrShort(block.endMinutes)}
         </Text>
       ) : null}
       {isCancelled ? <View style={styles.strike} /> : null}
       {isModified ? <View style={styles.modifiedDot} /> : null}
     </Pressable>
   );
-}
-
-function formatRange(startMinutes: number, endMinutes: number): string {
-  return `${formatHHMM(startMinutes)} – ${formatHHMM(endMinutes)}`;
-}
-
-function formatHHMM(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 export const ScheduleBlock = memo(ScheduleBlockImpl);
@@ -94,26 +89,29 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+    paddingHorizontal: 7,
+    paddingTop: 5,
+    paddingBottom: 4,
     overflow: 'hidden',
   },
-  row: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
   title: {
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.ink,
+    letterSpacing: -0.2,
     flexShrink: 1,
   },
-  secondary: {
-    fontSize: 10,
-    fontWeight: '400',
-    color: TOKENS.inkSub,
+  timePill: {
     marginTop: 2,
+    fontSize: 10,
+    fontFamily: FONT_FAMILIES.mono,
+    color: TOKENS.inkSub,
+    letterSpacing: -0.1,
   },
   strike: {
     position: 'absolute',

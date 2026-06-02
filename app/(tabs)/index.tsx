@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  Image,
   LayoutChangeEvent,
   Pressable,
   StyleSheet,
@@ -8,7 +9,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 
 import {
@@ -25,17 +25,26 @@ import type { Child } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useUiStore } from '../../src/state/ui-store';
-import { ColorDot } from '../../src/ui/common/ColorDot';
+import { LOGOS } from '../../src/ui/assets';
 import { EmptyChildrenState } from '../../src/ui/common/EmptyChildrenState';
+import { KidAvatar } from '../../src/ui/common/KidAvatar';
+import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { DailyGrid, type EmptySlotEvent } from '../../src/ui/grid/DailyGrid';
+import {
+  IconChevronLeft,
+  IconChevronRight,
+} from '../../src/ui/icons';
 import { TOKENS } from '../../src/ui/palette';
 import {
   formatKoreanDateLabel,
+  formatKoreanShortDate,
+  isToday,
   shiftIsoDate,
   todayIso,
 } from '../../src/ui/utils/date';
 
 const SWIPE_THRESHOLD = 60;
+const HORIZONTAL_PAD = 16;
 
 export default function DailyViewScreen(): React.ReactElement {
   const children = useChildrenStore((s) => s.children);
@@ -47,6 +56,9 @@ export default function DailyViewScreen(): React.ReactElement {
   const router = useRouter();
 
   const [gridSurfaceWidth, setGridSurfaceWidth] = useState(0);
+  // TODO(v2-schema): 할일(Todo) entity ships in v2 migration. The tab strip
+  // below renders the disabled 할일 tab visual; for R2 the 일정 tab is
+  // hard-active so we don't need any state here.
 
   // First 4 children, sorted by id ASC (stable insertion order).
   // All hooks must run unconditionally — the empty-state branch happens below.
@@ -83,6 +95,7 @@ export default function DailyViewScreen(): React.ReactElement {
       ? Math.max(CHILD_COL_MIN, gridSurfaceWidth / columnCount)
       : CHILD_COL_MIN;
 
+  const onToday = isToday(currentDate);
   const goPrev = (): void => setCurrentDate(shiftIsoDate(currentDate, -1));
   const goNext = (): void => setCurrentDate(shiftIsoDate(currentDate, 1));
   const goToday = (): void => setCurrentDate(todayIso());
@@ -95,7 +108,6 @@ export default function DailyViewScreen(): React.ReactElement {
     .failOffsetY([-12, 12])
     .onEnd((e) => {
       if (e.translationX <= -SWIPE_THRESHOLD) {
-        // swipe left → next day
         setCurrentDate(shiftIsoDate(currentDate, 1));
       } else if (e.translationX >= SWIPE_THRESHOLD) {
         setCurrentDate(shiftIsoDate(currentDate, -1));
@@ -130,28 +142,29 @@ export default function DailyViewScreen(): React.ReactElement {
     );
   }
 
+  const isSingleChild = visibleChildren.length === 1;
+  const hasOccurrencesToday = occurrences.length > 0;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* ── Top bar: logo wordmark + chevrons + 오늘로 + (settings handled via tab) ── */}
+      <View style={styles.topBar}>
+        <Image
+          source={LOGOS.wordmark}
+          style={styles.wordmark}
+          resizeMode="contain"
+          accessibilityLabel="아마따"
+        />
+        <View style={styles.topBarSpacer} />
         <Pressable
           onPress={goPrev}
           accessibilityRole="button"
           accessibilityLabel="이전 날짜"
-          hitSlop={8}
+          hitSlop={10}
+          style={styles.chevronBtn}
         >
-          <Ionicons name="chevron-back" size={24} color={TOKENS.ink} />
+          <IconChevronLeft size={22} color={TOKENS.ink} />
         </Pressable>
-        <Text style={styles.dateLabel}>{formatKoreanDateLabel(currentDate)}</Text>
-        <Pressable
-          onPress={goNext}
-          accessibilityRole="button"
-          accessibilityLabel="다음 날짜"
-          hitSlop={8}
-        >
-          <Ionicons name="chevron-forward" size={24} color={TOKENS.ink} />
-        </Pressable>
-        <View style={styles.headerSpacer} />
         <Pressable
           onPress={goToday}
           accessibilityRole="button"
@@ -159,15 +172,61 @@ export default function DailyViewScreen(): React.ReactElement {
           style={({ pressed }) => [
             styles.todayPill,
             {
-              backgroundColor: pressed ? TOKENS.primaryDeep : TOKENS.primary,
+              backgroundColor: onToday
+                ? TOKENS.ink04
+                : pressed
+                  ? TOKENS.primaryDeep
+                  : TOKENS.primary,
             },
           ]}
         >
-          <Text style={styles.todayLabel}>오늘로</Text>
+          <Text
+            style={[
+              styles.todayLabel,
+              { color: onToday ? TOKENS.inkSub : TOKENS.surface },
+            ]}
+          >
+            오늘로
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={goNext}
+          accessibilityRole="button"
+          accessibilityLabel="다음 날짜"
+          hitSlop={10}
+          style={styles.chevronBtn}
+        >
+          <IconChevronRight size={22} color={TOKENS.ink} />
         </Pressable>
       </View>
 
-      {/* Children header row */}
+      {/* ── Hero date line ── mirrors amatta-v1: big "오늘" (or M월 D일) + caption */}
+      <View style={styles.dateBlock}>
+        <Text style={styles.dateTitle} accessibilityRole="header">
+          {onToday ? '오늘' : formatKoreanDateLabel(currentDate)}
+          {'  '}
+          <Text style={styles.dateTitleCaption}>
+            {onToday ? formatKoreanShortDate(currentDate) : null}
+          </Text>
+        </Text>
+      </View>
+
+      {/* ── 일정 / 할일 tabs ── */}
+      <View style={styles.tabStrip}>
+        <View style={styles.tabBtnActive}>
+          <Text style={styles.tabLabelActive}>일정</Text>
+          <View style={styles.tabUnderline} />
+        </View>
+        {/* TODO(v2-schema): Todo entity ships in v2 migration. Disabled for now. */}
+        <View style={[styles.tabBtnInactive, { opacity: 0.4 }]}>
+          <Text style={styles.tabLabelInactive}>준비물 & 할일</Text>
+        </View>
+      </View>
+
+      {/* TODO(v2-schema): NEXT_PICKUP hero card requires `needs_pickup` column.
+          Placeholder skipped intentionally — keep the layout tight. */}
+
+      {/* ── Children header row ── */}
       <View style={styles.childrenHeader}>
         <View style={{ width: TIME_COL_WIDTH }} />
         <View style={styles.childrenRow}>
@@ -177,21 +236,32 @@ export default function DailyViewScreen(): React.ReactElement {
               onPress={() => router.push(`/child/${c.id}`)}
               accessibilityRole="button"
               accessibilityLabel={`${c.name} 주간 보기`}
-              style={[styles.childCell, { minWidth: CHILD_COL_MIN }]}
+              style={[
+                styles.childCell,
+                isSingleChild ? styles.childCellHero : null,
+              ]}
             >
-              <ColorDot colorIndex={c.colorIndex} size={12} />
-              <Text style={styles.childName} numberOfLines={1}>
+              <KidAvatar child={c} size={isSingleChild ? 48 : 30} ring />
+              <Text
+                style={[
+                  styles.childName,
+                  isSingleChild ? styles.childNameHero : null,
+                ]}
+                numberOfLines={1}
+              >
                 {c.name}
               </Text>
+              {/* TODO(v2-schema): amatta-v1 shows grade caption ("초3").
+                  Our domain Child has no grade field — defer to v2. */}
             </Pressable>
           ))}
         </View>
       </View>
 
-      {/* Time column + Grid (swipeable area) */}
+      {/* ── Grid (swipeable) ── */}
       <GestureDetector gesture={panGesture}>
         <View style={styles.body}>
-          {/* Time labels: 06:00 .. 22:00 at each hour boundary */}
+          {/* Time labels: 06:00 .. 22:00 at each hour boundary (mono) */}
           <View
             style={[styles.timeCol, { width: TIME_COL_WIDTH }]}
             pointerEvents="none"
@@ -199,9 +269,12 @@ export default function DailyViewScreen(): React.ReactElement {
             {Array.from({ length: GRID_SLOTS }, (_, i) => {
               if (i % 2 !== 0) return <View key={i} style={styles.timeSpacer} />;
               const hour = GRID_START_HOUR + i / 2;
+              const h12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+              const ap = hour < 12 ? 'AM' : 'PM';
               return (
                 <View key={i} style={styles.timeLabelRow}>
-                  <Text style={styles.timeLabel}>{`${String(hour).padStart(2, '0')}:00`}</Text>
+                  <Text style={styles.timeLabelHour}>{h12}</Text>
+                  <Text style={styles.timeLabelAp}>{ap}</Text>
                 </View>
               );
             })}
@@ -220,6 +293,11 @@ export default function DailyViewScreen(): React.ReactElement {
               onEmptySlotPress={handleEmptySlotPress}
               onBlockPress={handleBlockPress}
             />
+            {!hasOccurrencesToday ? (
+              <View pointerEvents="none" style={styles.emptyDay}>
+                <Text style={styles.emptyDayLabel}>오늘은 일정이 없어요</Text>
+              </View>
+            ) : null}
           </View>
         </View>
       </GestureDetector>
@@ -229,35 +307,97 @@ export default function DailyViewScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKENS.surface },
-  header: {
+
+  // ── Top bar
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-    borderBottomColor: TOKENS.hair,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: HORIZONTAL_PAD,
+    paddingVertical: 8,
+    gap: 6,
   },
-  dateLabel: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: TOKENS.ink,
+  wordmark: { width: 84, height: 24 },
+  topBarSpacer: { flex: 1 },
+  chevronBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerSpacer: { flex: 1 },
   todayPill: {
     paddingVertical: 6,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     borderRadius: 9999,
   },
   todayLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: TOKENS.surface,
+    fontSize: 12,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    letterSpacing: -0.2,
   },
+
+  // ── Date hero
+  dateBlock: {
+    paddingHorizontal: HORIZONTAL_PAD,
+    paddingTop: 2,
+    paddingBottom: 10,
+  },
+  dateTitle: {
+    fontSize: 24,
+    fontFamily: FONT_FAMILIES.pretendardBold,
+    color: TOKENS.ink,
+    letterSpacing: -0.4,
+  },
+  dateTitleCaption: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+    color: TOKENS.inkSub,
+    letterSpacing: -0.2,
+  },
+
+  // ── Tabs
+  tabStrip: {
+    flexDirection: 'row',
+    paddingHorizontal: HORIZONTAL_PAD,
+    borderBottomColor: TOKENS.hair,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  tabBtnActive: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    position: 'relative',
+  },
+  tabBtnInactive: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  tabLabelActive: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    color: TOKENS.ink,
+    letterSpacing: -0.3,
+  },
+  tabLabelInactive: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.inkSub,
+    letterSpacing: -0.3,
+  },
+  tabUnderline: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: -1,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: TOKENS.primary,
+  },
+
+  // ── Children header row
   childrenHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomColor: TOKENS.hair,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
@@ -267,17 +407,29 @@ const styles = StyleSheet.create({
   },
   childCell: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 8,
+    gap: 4,
+    paddingHorizontal: 4,
+  },
+  childCellHero: {
+    flexDirection: 'column',
+    paddingVertical: 6,
+    gap: 8,
   },
   childName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 13,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.ink,
+    letterSpacing: -0.2,
     flexShrink: 1,
   },
+  childNameHero: {
+    fontSize: 16,
+    letterSpacing: -0.3,
+  },
+
+  // ── Body / grid
   body: {
     flex: 1,
     flexDirection: 'row',
@@ -288,16 +440,45 @@ const styles = StyleSheet.create({
   timeSpacer: { height: ROW_HEIGHT },
   timeLabelRow: {
     height: ROW_HEIGHT,
-    justifyContent: 'flex-start',
-    paddingLeft: 8,
+    alignItems: 'flex-end',
+    paddingRight: 6,
     paddingTop: 2,
   },
-  timeLabel: {
+  timeLabelHour: {
     fontSize: 12,
+    fontFamily: FONT_FAMILIES.mono,
     color: TOKENS.inkSub,
-    fontVariant: ['tabular-nums'],
+    lineHeight: 14,
+  },
+  timeLabelAp: {
+    fontSize: 8,
+    fontFamily: FONT_FAMILIES.mono,
+    color: TOKENS.ink30,
+    letterSpacing: 0.4,
+    lineHeight: 9,
   },
   gridSurface: {
     flex: 1,
+    position: 'relative',
+  },
+
+  // ── Empty-day overlay (sits over the grid)
+  emptyDay: {
+    position: 'absolute',
+    top: 80,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  emptyDayLabel: {
+    fontSize: 13,
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+    color: TOKENS.inkSub,
+    backgroundColor: TOKENS.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 9999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: TOKENS.hair,
   },
 });

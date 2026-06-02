@@ -1,6 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
+import { MASCOTS } from '../assets';
+import { FONT_FAMILIES } from '../fonts';
 import { TOKENS } from '../palette';
 
 export function EmptyChildrenState(): React.ReactElement {
@@ -8,8 +10,17 @@ export function EmptyChildrenState(): React.ReactElement {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.message} accessibilityRole="text">
-        자녀를 등록해 일정을 시작하세요.
+      <Image
+        source={MASCOTS.pink}
+        style={styles.mascot}
+        resizeMode="contain"
+        accessibilityLabel="아마따 캐릭터"
+      />
+      <Text style={styles.title} accessibilityRole="header">
+        자녀를 추가하고 시작해요
+      </Text>
+      <Text style={styles.body} accessibilityRole="text">
+        자녀별 일정을 한눈에 관리할 수 있어요.
       </Text>
       <Pressable
         accessibilityRole="button"
@@ -32,25 +43,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    backgroundColor: TOKENS.surface,
+    backgroundColor: TOKENS.surfaceWarm,
   },
-  message: {
-    fontSize: 16,
-    lineHeight: 24,
+  mascot: {
+    width: 180,
+    height: 180,
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontFamily: FONT_FAMILIES.pretendardBold,
     color: TOKENS.ink,
     textAlign: 'center',
-    marginBottom: 24,
+    letterSpacing: -0.4,
+    marginBottom: 8,
+  },
+  body: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.inkSub,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 28,
   },
   cta: {
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 12,
-    minWidth: 160,
+    minWidth: 180,
     alignItems: 'center',
   },
   ctaLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.surface,
   },
 });

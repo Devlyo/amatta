@@ -1,9 +1,14 @@
 import {
+  fmt12hrShort,
+  fmtKoTime,
   formatKoreanDateLabel,
+  formatKoreanShortDate,
   formatKoreanWeekRange,
+  isToday,
   shiftIsoDate,
   todayIso,
   weekDatesIso,
+  weekdayKo,
   weekStartIso,
 } from '../../../src/ui/utils/date';
 import type { ISODate } from '../../../src/domain/types';
@@ -83,5 +88,57 @@ describe('formatKoreanWeekRange', () => {
   });
   test('formats a week that crosses a month boundary', () => {
     expect(formatKoreanWeekRange(iso('2026-06-29'))).toBe('6월 29일 — 7월 5일');
+  });
+});
+
+describe('fmt12hrShort', () => {
+  test('midnight is 12:00AM', () => {
+    expect(fmt12hrShort(0)).toBe('12:00AM');
+  });
+  test('9:00 → 9:00AM', () => {
+    expect(fmt12hrShort(9 * 60)).toBe('9:00AM');
+  });
+  test('noon is 12:00PM', () => {
+    expect(fmt12hrShort(12 * 60)).toBe('12:00PM');
+  });
+  test('15:30 → 3:30PM', () => {
+    expect(fmt12hrShort(15 * 60 + 30)).toBe('3:30PM');
+  });
+  test('zero-pads single-digit minutes', () => {
+    expect(fmt12hrShort(17 * 60 + 5)).toBe('5:05PM');
+  });
+});
+
+describe('fmtKoTime', () => {
+  test('midnight is 오전 12:00', () => {
+    expect(fmtKoTime(0)).toBe('오전 12:00');
+  });
+  test('9:00 → 오전 9:00', () => {
+    expect(fmtKoTime(9 * 60)).toBe('오전 9:00');
+  });
+  test('noon is 오후 12:00', () => {
+    expect(fmtKoTime(12 * 60)).toBe('오후 12:00');
+  });
+  test('15:30 → 오후 3:30', () => {
+    expect(fmtKoTime(15 * 60 + 30)).toBe('오후 3:30');
+  });
+});
+
+describe('weekdayKo / formatKoreanShortDate', () => {
+  test('weekdayKo for 2026-06-02 is 화', () => {
+    expect(weekdayKo(iso('2026-06-02'))).toBe('화');
+  });
+  test('formatKoreanShortDate uses middle dot separator', () => {
+    expect(formatKoreanShortDate(iso('2026-06-02'))).toBe('6월 2일 · 화');
+  });
+});
+
+describe('isToday', () => {
+  test('todayIso() round-trips as today', () => {
+    expect(isToday(todayIso())).toBe(true);
+  });
+  test('a different ISO date is not today', () => {
+    // Far-future date — guaranteed not today.
+    expect(isToday(iso('2099-12-31'))).toBe(false);
   });
 });

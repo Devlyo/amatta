@@ -14,9 +14,14 @@ describe('EmptyChildrenState', () => {
     mockPush.mockClear();
   });
 
-  test('renders the onboarding message', () => {
+  test('renders the amatta-v1 onboarding title', () => {
     const { queryByText } = render(<EmptyChildrenState />);
-    expect(queryByText('자녀를 등록해 일정을 시작하세요.')).not.toBeNull();
+    expect(queryByText('자녀를 추가하고 시작해요')).not.toBeNull();
+  });
+
+  test('renders the body copy', () => {
+    const { queryByText } = render(<EmptyChildrenState />);
+    expect(queryByText('자녀별 일정을 한눈에 관리할 수 있어요.')).not.toBeNull();
   });
 
   test('CTA is present and labeled', () => {
