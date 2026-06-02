@@ -70,9 +70,8 @@ describe('TodoSection', () => {
     expect(getByTestId('todo-item-2')).toBeTruthy();
     expect(getByText('서연 약 챙기기')).toBeTruthy();
     expect(getByText('준비물 사기')).toBeTruthy();
-    // Due caption: earlier is on TODAY → "오늘"; later is 6/4
-    expect(getByText('오늘')).toBeTruthy();
-    expect(getByText('6/4')).toBeTruthy();
+    // Date pill removed — new todos always bind to the viewed date so
+    // a relative "오늘 / 내일 / M/D" caption became redundant clutter.
   });
 
   test('inline add flow: tap + → type → submit → add() invoked with childId null', async () => {

@@ -1,5 +1,6 @@
 import { memo, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 
 import { useTodosStore, useUiStore } from '../../state';
 import { getDb } from '../../db/client';
@@ -7,7 +8,6 @@ import type { ISODate, Todo } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
 import { IconCheck, IconPlus } from '../icons';
 import { TOKENS } from '../palette';
-import { formatTodoDue } from '../utils/date';
 
 // Build a local-time epoch-ms anchor for the given calendar date at 12:00,
 // so the resulting `dueAt` falls cleanly inside that day regardless of the
@@ -54,6 +54,23 @@ function TodoSectionImpl(): React.ReactElement {
     await useTodosStore.getState().toggleDone(db, id);
   };
 
+  const onDelete = (id: number, title: string): void => {
+    // Confirm before destroying so an accidental swipe-fling doesn't nuke
+    // a todo. Matches the destructive-action pattern used elsewhere in the
+    // app (ScheduleEditSheet → 전체 삭제).
+    Alert.alert('할일 삭제', `"${title}" 항목을 삭제할까요?`, [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: async () => {
+          const db = await getDb();
+          await useTodosStore.getState().removeOne(db, id);
+        },
+      },
+    ]);
+  };
+
   const commitDraft = async (): Promise<void> => {
     const title = draft.trim();
     setDraft('');
@@ -89,31 +106,45 @@ function TodoSectionImpl(): React.ReactElement {
         {sorted.map((todo) => {
           const isDone = todo.isDone;
           return (
-            <Pressable
+            <Swipeable
               key={todo.id}
-              onPress={() => {
-                void onToggle(todo.id);
-              }}
-              style={[styles.itemRow, isDone ? styles.itemRowDone : null]}
-              testID={`todo-item-${todo.id}`}
+              renderRightActions={() => (
+                <Pressable
+                  onPress={() => onDelete(todo.id, todo.title)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${todo.title} 삭제`}
+                  style={styles.swipeDeleteAction}
+                  testID={`todo-delete-${todo.id}`}
+                >
+                  <Text style={styles.swipeDeleteLabel}>삭제</Text>
+                </Pressable>
+              )}
+              rightThreshold={40}
+              friction={2}
+              overshootRight={false}
             >
-              <View
-                style={[
-                  styles.checkbox,
-                  isDone
-                    ? { backgroundColor: TOKENS.primary, borderColor: TOKENS.primary }
-                    : styles.checkboxIdle,
-                ]}
+              <Pressable
+                onPress={() => {
+                  void onToggle(todo.id);
+                }}
+                style={[styles.itemRow, isDone ? styles.itemRowDone : null]}
+                testID={`todo-item-${todo.id}`}
               >
-                {isDone ? <IconCheck size={12} color="#fff" /> : null}
-              </View>
-              <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null]}>
-                {todo.title}
-              </Text>
-              <View style={styles.duePill}>
-                <Text style={styles.duePillText}>{formatTodoDue(todo.dueAt, currentDate)}</Text>
-              </View>
-            </Pressable>
+                <View
+                  style={[
+                    styles.checkbox,
+                    isDone
+                      ? { backgroundColor: TOKENS.primary, borderColor: TOKENS.primary }
+                      : styles.checkboxIdle,
+                  ]}
+                >
+                  {isDone ? <IconCheck size={12} color="#fff" /> : null}
+                </View>
+                <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null]}>
+                  {todo.title}
+                </Text>
+              </Pressable>
+            </Swipeable>
           );
         })}
 
@@ -222,17 +253,20 @@ const styles = StyleSheet.create({
   itemLabelDone: {
     textDecorationLine: 'line-through',
   },
-  duePill: {
-    backgroundColor: TOKENS.ink04,
-    paddingVertical: 2,
-    paddingHorizontal: 7,
-    borderRadius: 99,
+  swipeDeleteAction: {
+    backgroundColor: TOKENS.danger,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    marginVertical: 0,
+    borderRadius: 12,
+    marginLeft: 4,
   },
-  duePillText: {
-    fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 10,
-    fontWeight: '400',
-    color: TOKENS.inkSub,
+  swipeDeleteLabel: {
+    color: '#fff',
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    fontSize: 13,
+    letterSpacing: -0.2,
   },
   addRow: {
     flexDirection: 'row',

@@ -541,42 +541,8 @@ export function ScheduleEditSheet(): React.ReactElement {
                 ariaLabel="끝 시간"
               />
             </Row>
-            {sheetMode !== 'editOccurrence' ? (
-              <Row label="종료일">
-                <NativeField
-                  displayText={
-                    form.validUntil.length > 0
-                      ? formatKoDateFull(form.validUntil)
-                      : '선택 (없음)'
-                  }
-                  onPress={() =>
-                    setPicker({
-                      field: 'validUntil',
-                      mode: 'date',
-                      value: isoToDate(
-                        form.validUntil.length > 0
-                          ? form.validUntil
-                          : form.validFrom,
-                      ),
-                    })
-                  }
-                  ariaLabel="종료 날짜"
-                  trailing={
-                    form.validUntil.length > 0 ? (
-                      <Pressable
-                        onPress={() => setForm({ ...form, validUntil: '' })}
-                        hitSlop={6}
-                        accessibilityLabel="종료 날짜 지우기"
-                        accessibilityRole="button"
-                        style={styles.clearBtn}
-                      >
-                        <IconXMark size={12} color={TOKENS.inkSub} />
-                      </Pressable>
-                    ) : null
-                  }
-                />
-              </Row>
-            ) : null}
+{/* 종료일 row dropped — schedules are open-ended by default; users
+                rely on per-occurrence cancellations or 전체 삭제 instead. */}
             {sheetMode !== 'editOccurrence' ? (
               <Row label="반복" align="top" hairline={false}>
                 <View style={styles.dayCircleRow}>
@@ -605,7 +571,7 @@ export function ScheduleEditSheet(): React.ReactElement {
               </Row>
             ) : null}
             {sheetMode !== 'editOccurrence' ? (
-              <FieldError text={showError('validFrom') ?? showError('validUntil')} />
+              <FieldError text={showError('validFrom')} />
             ) : null}
             <FieldError
               text={showError('startMinutes') ?? showError('endMinutes')}
@@ -1047,27 +1013,29 @@ function NativeField({
   displayText,
   onPress,
   ariaLabel,
-  trailing,
 }: {
   displayText: string;
   onPress: () => void;
   ariaLabel: string;
-  trailing?: React.ReactNode;
 }): React.ReactElement {
+  // Bumped tap area: visible padding 6/8 + an extra 12px hitSlop on every
+  // edge. Before this the Pressable bounds were the literal text + chev so
+  // taps near the text would slip into the surrounding Row whitespace and
+  // do nothing. Now the entire field reads as "obvious touch target".
   return (
-    <View style={styles.nativeFieldWrap}>
-      <Pressable
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={ariaLabel}
-        hitSlop={6}
-        style={styles.nativeField}
-      >
-        <Text style={styles.nativeFieldText}>{displayText}</Text>
-        <IconChevronDown size={14} color={TOKENS.inkSub} />
-      </Pressable>
-      {trailing}
-    </View>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={ariaLabel}
+      hitSlop={12}
+      style={({ pressed }) => [
+        styles.nativeField,
+        pressed ? styles.nativeFieldPressed : null,
+      ]}
+    >
+      <Text style={styles.nativeFieldText}>{displayText}</Text>
+      <IconChevronDown size={14} color={TOKENS.inkSub} />
+    </Pressable>
   );
 }
 
@@ -1295,30 +1263,21 @@ const styles = StyleSheet.create({
   notesInput: { minHeight: 64, textAlignVertical: 'top' },
 
   // --- Native date/time field ------------------------------------------
-  nativeFieldWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
   nativeField: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 2,
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: TOKENS.ink04,
   },
+  nativeFieldPressed: { opacity: 0.6 },
   nativeFieldText: {
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     letterSpacing: -0.2,
-  },
-  clearBtn: {
-    width: 18,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 9,
-    backgroundColor: TOKENS.ink04,
   },
 
   // --- Picker overlay (iOS centred card + Android dialog auto-shows) ----
