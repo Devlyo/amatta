@@ -1,7 +1,12 @@
+// Thin shim — the real implementation now lives in `src/ui/icons.tsx`
+// (hand-drafted SVGs ported from amatta-v1). Kept here so existing
+// `import { TypeIcon } from '../common/TypeIcon'` call sites keep compiling
+// during R1; R2 will rewrite consumers to import from `icons` directly.
+
 import { memo } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
 
 import type { ScheduleType } from '../../domain/types';
+import { KIND_ICON } from '../icons';
 import { TOKENS } from '../palette';
 
 interface Props {
@@ -10,18 +15,9 @@ interface Props {
   color?: string;
 }
 
-// Design §5 — 4 fixed schedule types. lucide icons are referenced in the
-// design doc, but the project uses @expo/vector-icons; we map to the
-// closest Ionicons equivalents. Adjust if a lucide-rn dep is later added.
-const ICON_BY_TYPE: Record<ScheduleType, keyof typeof Ionicons.glyphMap> = {
-  school: 'school',
-  academy: 'book',
-  activity: 'barbell',
-  other: 'ellipsis-horizontal',
-};
-
 function TypeIconImpl({ type, size = 12, color = TOKENS.ink }: Props): React.ReactElement {
-  return <Ionicons name={ICON_BY_TYPE[type]} size={size} color={color} />;
+  const Cmp = KIND_ICON[type];
+  return <Cmp size={size} color={color} />;
 }
 
 export const TypeIcon = memo(TypeIconImpl);

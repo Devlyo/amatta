@@ -4,6 +4,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
+import { useFonts } from 'expo-font';
+import { GeistMono_400Regular } from '@expo-google-fonts/geist-mono';
 import 'react-native-reanimated';
 
 import { getDb } from '../src/db/client';
@@ -22,12 +24,26 @@ export const unstable_settings = {
 type BootState = 'booting' | 'ready' | 'error';
 
 export default function RootLayout() {
+  // Hooks must be declared at the top — above any conditional return — so
+  // the call order is stable across renders. expo-font's `useFonts` returns
+  // [loaded, error]; we block boot until `fontsLoaded` is true.
+  const [fontsLoaded] = useFonts({
+    'Pretendard-Regular': require('../assets/fonts/Pretendard-Regular.ttf'),
+    'Pretendard-Medium': require('../assets/fonts/Pretendard-Medium.ttf'),
+    'Pretendard-SemiBold': require('../assets/fonts/Pretendard-SemiBold.ttf'),
+    'Pretendard-Bold': require('../assets/fonts/Pretendard-Bold.ttf'),
+    GeistMono_400Regular,
+  });
+
   const [bootState, setBootState] = useState<BootState>('booting');
   const [bootError, setBootError] = useState<string | null>(null);
   const hasBooted = useRef(false);
 
   useEffect(() => {
-    // Guard against double-invocation in strict mode / app resume
+    // Wait for fonts before kicking off DB migrations + store hydration.
+    // The useRef guard ensures a single boot even if fontsLoaded flips
+    // false→true→false during fast-refresh.
+    if (!fontsLoaded) return;
     if (hasBooted.current) return;
     hasBooted.current = true;
 
@@ -52,9 +68,9 @@ export default function RootLayout() {
     }
 
     void boot();
-  }, []);
+  }, [fontsLoaded]);
 
-  if (bootState === 'booting') {
+  if (!fontsLoaded || bootState === 'booting') {
     return (
       <SafeAreaView style={styles.center}>
         <Text style={styles.text}>준비 중...</Text>
