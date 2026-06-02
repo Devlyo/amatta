@@ -47,7 +47,8 @@ import {
   View,
 } from 'react-native';
 
-import type { Child, Occurrence } from '../../domain/types';
+import { GRID_END_HOUR, GRID_START_HOUR, SLOT_MIN } from '../../domain/constants';
+import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
 import { KIND_ICON } from '../icons';
 import {
@@ -55,22 +56,27 @@ import {
   TOKENS,
   type KidPalette,
 } from '../palette';
-import { fmt12hrShort } from '../utils/date';
+import { fmt12hrShort, todayIso } from '../utils/date';
 
 const SLOT_H = 32;
-const SLOT_MIN = 30;
-const TIME_START_MIN = 6 * 60;
-const TIME_END_MIN = 23 * 60;
-const TOTAL_SLOTS = (TIME_END_MIN - TIME_START_MIN) / SLOT_MIN; // 34
-const GRID_H = SLOT_H * TOTAL_SLOTS; // 1088
+// Derived from domain constants — GRID_END_HOUR may exceed 23 (e.g. 25 =
+// 1 AM next day) so the gutter wraps via `hour % 24` at render time.
+const TIME_START_MIN = GRID_START_HOUR * 60;
+const TIME_END_MIN = GRID_END_HOUR * 60;
+const TOTAL_SLOTS = (TIME_END_MIN - TIME_START_MIN) / SLOT_MIN;
+const GRID_H = SLOT_H * TOTAL_SLOTS;
 const GUTTER = 40;
-const HOUR_COUNT = 18; // 06:00 .. 23:00 inclusive in the gutter
+const HOUR_COUNT = GRID_END_HOUR - GRID_START_HOUR; // hour-label rows
 const HOUR_H = SLOT_H * 2; // 64
+// Pad the bottom of the scroll surface so the last hours don't sit
+// underneath the floating BottomDock (height ~56 + 22 bottom inset).
+const SCROLL_BOTTOM_PAD = 120;
 
 interface Props {
   kids: Child[]; // ordered left-to-right
   occurrences: Occurrence[]; // already filtered to today
   nowMinutes: number; // minutes since midnight, local time
+  currentDate: ISODate; // for today-vs-other-day smart-scroll branching
   onBlockPress: (occ: Occurrence) => void;
 }
 
@@ -78,6 +84,7 @@ export function ScheduleGrid({
   kids,
   occurrences,
   nowMinutes,
+  currentDate,
   onBlockPress,
 }: Props): React.ReactElement {
   const scrollRef = useRef<ScrollView | null>(null);
@@ -95,31 +102,51 @@ export function ScheduleGrid({
     return map;
   }, [occurrences]);
 
-  // Smart-scroll on mount: top - 110 (mirrors the prototype's first effect).
+  // Smart-scroll: today → keep NOW visible. Other dates → bring the first
+  // occurrence of the day into view. Re-fires on currentDate change so a
+  // swipe to a new day jumps to that day's first event.
   useEffect(() => {
-    if (!showNow || scrollRef.current === null) return;
-    scrollRef.current.scrollTo({ y: Math.max(0, nowTop - 110), animated: false });
+    if (scrollRef.current === null) return;
+    const isToday = (currentDate as unknown as string) === (todayIso() as unknown as string);
+    let targetY = 0;
+    if (isToday && showNow) {
+      targetY = Math.max(0, nowTop - 110);
+    } else if (occurrences.length > 0) {
+      // Earliest start time of the day. Subtract 60px so the first event has
+      // a little breathing room above it.
+      let earliest = Number.POSITIVE_INFINITY;
+      for (const occ of occurrences) {
+        if (occ.startMinutes < earliest) earliest = occ.startMinutes;
+      }
+      if (Number.isFinite(earliest)) {
+        const firstTop = ((earliest - TIME_START_MIN) / SLOT_MIN) * SLOT_H;
+        targetY = Math.max(0, firstTop - 60);
+      }
+    }
+    scrollRef.current.scrollTo({ y: targetY, animated: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentDate]);
 
   return (
     <View style={styles.outer}>
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
-        contentContainerStyle={{ height: GRID_H }}
+        contentContainerStyle={{ height: GRID_H + SCROLL_BOTTOM_PAD }}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.grid}>
           {/* ── Gutter ─────────────────────────────────────────────── */}
           <View style={styles.gutter}>
             {Array.from({ length: HOUR_COUNT }).map((_, i) => {
-              const hour = 6 + i;
+              const rawHour = GRID_START_HOUR + i;
+              // Wrap past midnight: 24 → 0 (AM), 25 → 1 (AM).
+              const hour = rawHour % 24;
               const h12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
               const ap = hour < 12 ? 'AM' : 'PM';
               return (
                 <View
-                  key={hour}
+                  key={rawHour}
                   style={[styles.hourLabel, { top: i * HOUR_H - 6 }]}
                 >
                   <Text style={styles.hourNum}>{h12}</Text>

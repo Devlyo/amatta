@@ -237,6 +237,7 @@ export default function DailyViewScreen(): React.ReactElement {
               kids={visibleChildren}
               occurrences={occurrences}
               nowMinutes={nowMinutes}
+              currentDate={currentDate}
               onBlockPress={handleBlockPress}
             />
           </View>
