@@ -118,7 +118,12 @@ export interface ValidationResult {
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
 const GRID_START_MIN = GRID_START_HOUR * 60;
-const GRID_END_MIN = GRID_END_HOUR * 60 + 30; // accept up to 23:30 inclusive
+// Editor caps stay tied to a single calendar day (06:00 .. 24:00) regardless
+// of the daily-grid VIEW range extending past midnight to 25:00. Schedule
+// entities live within one day; the grid extension is purely for letting
+// users see late-night events.
+const EDIT_MAX_END_MIN = 24 * 60;        // 1440 — exclusive end of day
+const GRID_END_MIN = EDIT_MAX_END_MIN;   // back-compat alias used downstream
 
 /**
  * @param requireChildId when true, the form is in `create` mode and a child
@@ -188,7 +193,7 @@ export function stepMinutes(current: Minutes, deltaSlots: number): Minutes {
   // 30-min step; clamp 06:00..24:00.
   const next = current + deltaSlots * 30;
   if (next < GRID_START_MIN) return GRID_START_MIN;
-  if (next > GRID_END_MIN + 30) return GRID_END_MIN + 30;
+  if (next > GRID_END_MIN) return GRID_END_MIN;
   return next;
 }
 

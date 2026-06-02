@@ -86,19 +86,21 @@ describe('layoutWeek', () => {
   });
 
   test('clamps overflow past GRID_SLOTS', () => {
+    // GRID now covers 06:00–25:00 (38 slots). Use a block well past 25:00
+    // (24:30–26:00) so the overflow clamp still fires under the new range.
     const blocks = layoutWeek(
       [
         occ({
           childId: 1,
           date: iso('2026-06-04'),
-          startMinutes: 22 * 60 + 30,
-          endMinutes: 24 * 60 + 30,
+          startMinutes: 24 * 60 + 30,
+          endMinutes: 26 * 60,
         }),
       ],
       WEEK,
     );
     expect(blocks).toHaveLength(1);
-    expect(blocks[0]?.topSlot).toBe(33);
+    expect(blocks[0]?.topSlot).toBe(37);
     expect(blocks[0]?.heightSlots).toBe(1);
     expect((blocks[0]?.topSlot ?? 0) + (blocks[0]?.heightSlots ?? 0)).toBeLessThanOrEqual(
       GRID_SLOTS,

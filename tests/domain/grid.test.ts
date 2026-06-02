@@ -42,16 +42,17 @@ describe('layoutDay', () => {
     expect(blocks[0]?.topSlot).toBe(0);
   });
 
-  test('end past grid end (22:30–00:30) clamps height to fit GRID_SLOTS', () => {
-    // GRID covers 06:00–23:00 (34 slots @ 30min). A block starting at 22:30
-    // sits in the last slot; an end at 00:30 next-day would overflow → clamp.
+  test('end past grid end (24:30–26:00) clamps height to fit GRID_SLOTS', () => {
+    // GRID now covers 06:00–25:00 (38 slots @ 30min). A block starting at
+    // 24:30 sits in the last slot; an end at 26:00 (= 2 AM next-next-day in
+    // raw minutes) would overflow → clamp.
     const blocks = layoutDay(
-      [occ({ childId: 1, startMinutes: 22 * 60 + 30, endMinutes: 24 * 60 + 30 })],
+      [occ({ childId: 1, startMinutes: 24 * 60 + 30, endMinutes: 26 * 60 })],
       [1],
     );
     expect(blocks).toHaveLength(1);
     const b = blocks[0]!;
-    expect(b.topSlot).toBe(33);
+    expect(b.topSlot).toBe(37);
     expect(b.heightSlots).toBe(1);
     expect(b.topSlot + b.heightSlots).toBeLessThanOrEqual(GRID_SLOTS);
   });
@@ -87,9 +88,10 @@ describe('layoutDay', () => {
   });
 
   test('block fully past grid end is dropped (zero-height after clamp)', () => {
-    // 24:00–24:30: rawTop = (24*60 - 6*60)/30 = 36, > GRID_SLOTS so heightSlots would be ≤ 0 → drop
+    // GRID_SLOTS = 38 (06:00–25:00). 26:00–26:30 has rawTop = (26*60 -
+    // 6*60)/30 = 40 > 38 so heightSlots would be ≤ 0 → drop.
     const blocks = layoutDay(
-      [occ({ childId: 1, startMinutes: 24 * 60, endMinutes: 24 * 60 + 30 })],
+      [occ({ childId: 1, startMinutes: 26 * 60, endMinutes: 26 * 60 + 30 })],
       [1],
     );
     expect(blocks).toEqual([]);
