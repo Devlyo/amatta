@@ -28,15 +28,15 @@ export default function RootLayout() {
   // the call order is stable across renders. expo-font's `useFonts` returns
   // [loaded, error]; we block boot until `fontsLoaded` is true.
   const [fontsLoaded, fontError] = useFonts({
-    'Pretendard-Regular': require('../assets/fonts/Pretendard-Regular.ttf'),
-    'Pretendard-Medium': require('../assets/fonts/Pretendard-Medium.ttf'),
-    'Pretendard-SemiBold': require('../assets/fonts/Pretendard-SemiBold.ttf'),
-    'Pretendard-Bold': require('../assets/fonts/Pretendard-Bold.ttf'),
+    PretendardKR_Regular: require('../assets/fonts/PretendardStd-Regular.otf'),
+    PretendardKR_Medium: require('../assets/fonts/PretendardStd-Medium.otf'),
+    PretendardKR_SemiBold: require('../assets/fonts/PretendardStd-SemiBold.otf'),
+    PretendardKR_Bold: require('../assets/fonts/PretendardStd-Bold.otf'),
     GeistMono_400Regular,
   });
 
   // Surface font loader errors instead of silently falling back to system font.
-  // expo-font emits an error here if a .ttf file is missing or invalid.
+  // expo-font emits an error here if a .otf file is missing or invalid.
   useEffect(() => {
     if (fontError) {
       console.warn('[fonts] expo-font load error:', fontError);
