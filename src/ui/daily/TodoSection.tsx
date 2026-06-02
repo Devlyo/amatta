@@ -6,7 +6,7 @@ import { useTodosStore, useUiStore } from '../../state';
 import { getDb } from '../../db/client';
 import type { ISODate, Todo } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
-import { IconCheck, IconPlus } from '../icons';
+import { IconCheck, IconPlus, IconTrash } from '../icons';
 import { TOKENS } from '../palette';
 
 // Build a local-time epoch-ms anchor for the given calendar date at 12:00,
@@ -116,7 +116,7 @@ function TodoSectionImpl(): React.ReactElement {
                   style={styles.swipeDeleteAction}
                   testID={`todo-delete-${todo.id}`}
                 >
-                  <Text style={styles.swipeDeleteLabel}>삭제</Text>
+                  <IconTrash size={18} color="#fff" />
                 </Pressable>
               )}
               rightThreshold={40}
@@ -261,12 +261,6 @@ const styles = StyleSheet.create({
     marginVertical: 0,
     borderRadius: 12,
     marginLeft: 4,
-  },
-  swipeDeleteLabel: {
-    color: '#fff',
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    fontSize: 13,
-    letterSpacing: -0.2,
   },
   addRow: {
     flexDirection: 'row',

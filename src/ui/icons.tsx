@@ -81,6 +81,10 @@ export const IconXMark = memo(function IconXMark({ size = 16, color = TOKENS.ink
   return <Ionicons name="close" size={size} color={color} />;
 });
 
+export const IconTrash = memo(function IconTrash({ size = 18, color = TOKENS.ink }: IconProps) {
+  return <Ionicons name="trash-outline" size={size} color={color} />;
+});
+
 // ── Category icons (학교/학원/활동/기타) — Material Community for the closer
 // shapes to amatta's hand-drafted set ──────────────────────────────────────
 
