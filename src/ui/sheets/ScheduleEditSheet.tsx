@@ -1086,6 +1086,13 @@ function PickerOverlay({
           mode={state.mode}
           display="spinner"
           minuteInterval={5}
+          /* textColor + themeVariant force visible dark glyphs on our
+           * light card regardless of the device's dark-mode setting.
+           * Without these, iOS picks the system style and the wheel
+           * digits can render near-white-on-white when the user is
+           * in dark mode. */
+          textColor={TOKENS.ink}
+          themeVariant="light"
           onChange={(_event: DateTimePickerEvent, selectedDate?: Date) => {
             if (selectedDate !== undefined) onChange(selectedDate);
           }}
@@ -1296,7 +1303,10 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     overflow: 'hidden',
   },
-  pickerSpinner: { width: '100%' },
+  // Spinner needs an explicit height — without it, the iOS wheel can
+  // collapse to 0pt and the digits become invisible. 216 matches the
+  // native UIPickerView default row count × row height.
+  pickerSpinner: { width: '100%', height: 216, backgroundColor: TOKENS.surface },
   pickerDoneBtn: {
     alignItems: 'center',
     paddingVertical: 12,
