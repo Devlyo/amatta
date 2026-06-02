@@ -42,9 +42,19 @@ function TopBarImpl({
         accessibilityLabel={isToday ? '오늘 — 날짜 선택' : `${caption} — 날짜 선택`}
         style={styles.leftBtn}
       >
-        <Text style={styles.title}>{isToday ? '오늘' : caption.split(' · ')[0]}</Text>
+        {/*
+         * Two display modes for the same caption ("6월 3일 · 수"):
+         *  · isToday=true  → title "오늘", caption shows the full short date.
+         *  · isToday=false → title shows "M월 D일" (left of the dot), caption
+         *    shows only the weekday so the day-portion isn't duplicated.
+         */}
+        <Text style={styles.title}>
+          {isToday ? '오늘' : (caption.split(' · ')[0] ?? caption)}
+        </Text>
         <View style={styles.captionWrap}>
-          <Text style={styles.caption}>{caption}</Text>
+          <Text style={styles.caption}>
+            {isToday ? caption : (caption.split(' · ')[1] ?? caption)}
+          </Text>
           <IconChevronDown size={16} color={TOKENS.inkSub} />
         </View>
       </Pressable>

@@ -29,7 +29,10 @@ function buildGroups(
   for (const [scheduleId, occ] of scheduleOccurrencesToday) {
     const items = itemsByScheduleId.get(scheduleId);
     if (!items || items.length === 0) continue;
-    const dueLabel = formatHhmm(occ.endMinutes);
+    // Show the schedule's START time — that's when the parent needs the
+    // checklist items in hand. (End-time was the previous default; users
+    // read it as "how long until pickup" which doesn't match the eyebrow.)
+    const dueLabel = formatHhmm(occ.startMinutes);
     const bucket = childIdToItems.get(occ.childId) ?? [];
     for (const item of items) {
       bucket.push({ item, dueLabel });

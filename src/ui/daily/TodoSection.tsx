@@ -3,13 +3,22 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useTodosStore, useUiStore } from '../../state';
 import { getDb } from '../../db/client';
-import type { Todo } from '../../domain/types';
+import type { ISODate, Todo } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
 import { IconCheck, IconPlus } from '../icons';
 import { TOKENS } from '../palette';
 import { formatTodoDue } from '../utils/date';
 
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+// Build a local-time epoch-ms anchor for the given calendar date at 12:00,
+// so the resulting `dueAt` falls cleanly inside that day regardless of the
+// device's timezone (avoids the midnight-boundary off-by-one).
+function isoToNoonEpoch(iso: ISODate): number {
+  const s = iso as unknown as string;
+  const y = Number(s.slice(0, 4));
+  const m = Number(s.slice(5, 7));
+  const d = Number(s.slice(8, 10));
+  return new Date(y, m - 1, d, 12, 0, 0, 0).getTime();
+}
 
 function SectionHeader({ label, done, total }: { label: string; done: number; total: number }) {
   return (
@@ -51,10 +60,13 @@ function TodoSectionImpl(): React.ReactElement {
     setAdding(false);
     if (title.length === 0) return;
     const db = await getDb();
+    // Bind the new todo to the date the user is currently viewing. This is
+    // what the date pill above the grid implies — a todo added on June 3 is
+    // a June 3 todo, not a "tomorrow" todo.
     await useTodosStore.getState().add(db, {
       childId: null,
       title,
-      dueAt: Date.now() + ONE_DAY_MS,
+      dueAt: isoToNoonEpoch(currentDate),
       notifyMinutesBefore: null,
     });
   };
