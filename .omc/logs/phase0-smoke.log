@@ -1,0 +1,32 @@
+=== [1/5] expo-doctor ===
+Running 18 checks on your project...
+18/18 checks passed. No issues detected!
+[1/5] exit=0
+=== [2/5] expo export --platform web ===
+Starting Metro Bundler
+Static rendering is enabled. Learn more: https://docs.expo.dev/router/reference/static-rendering/
+λ Bundled 976ms node_modules/expo-router/node/render.js (1015 modules)
+Web Bundled 1176ms node_modules/expo-router/entry.js (1025 modules)
+
+› web bundles (1):
+_expo/static/js/web/entry-41424820b4d8d9df5ab9fd5f65b9843b.js (1.79 MB)
+
+› Static routes (8):
+/ (index) (21.5 kB)
+/_sitemap (17.4 kB)
+/settings (21.5 kB)
+/+not-found (17.4 kB)
+/child/[id] (24 kB)
+/(tabs) (21.5 kB)
+/schedule/edit (23.9 kB)
+/(tabs)/settings (21.5 kB)
+
+Exported: /tmp/__schedulapp_smoke
+[2/5] exit=0
+=== [3/5] tsc --noEmit ===
+[3/5] exit=0
+=== [4/5] eslint . ===
+[4/5] exit=0
+=== [5/5] jest --passWithNoTests ===
+No tests found, exiting with code 0
+[5/5] exit=0

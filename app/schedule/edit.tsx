@@ -1,11 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function DailyGridScreen() {
+export default function ScheduleEditScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <Text style={styles.text}>일간 그리드 (Phase 3에서 구현)</Text>
+        <Text style={styles.text}>일정 편집 (Phase 4)</Text>
       </View>
     </SafeAreaView>
   );

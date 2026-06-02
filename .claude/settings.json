@@ -1,4 +1,22 @@
 {
+  "permissions": {
+    "allow": [
+      "TaskCreate",
+      "TaskUpdate",
+      "TaskList",
+      "TaskGet",
+      "TaskStop",
+      "SendMessage",
+      "TeamCreate",
+      "ToolSearch",
+      "Skill",
+      "mcp__plugin_oh-my-claudecode_t__state_read",
+      "Bash(open *)",
+      "Bash(npx jest --passWithNoTests)",
+      "Bash(EXPO_NO_TELEMETRY=1 npx jest --passWithNoTests)",
+      "Bash(EXPO_NO_TELEMETRY=1 npx eslint .)"
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {

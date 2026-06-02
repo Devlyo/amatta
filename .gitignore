@@ -32,6 +32,7 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env.local
 
 # typescript
 *.tsbuildinfo
@@ -44,6 +45,7 @@ yarn-error.*
 # OMC scratch (specs and plans are tracked, everything else is per-session noise)
 .omc/logs/
 .omc/state/
+.omc/sessions/
 .omc/notepad.md
 .omc/project-memory.json
 .omc/research/
