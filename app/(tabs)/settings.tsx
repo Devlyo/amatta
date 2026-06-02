@@ -17,7 +17,7 @@ import { MAX_CHILDREN } from '../../src/domain/constants';
 import { useChildrenStore } from '../../src/state/children-store';
 import { ColorDot } from '../../src/ui/common/ColorDot';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
-import { IconChevronRight } from '../../src/ui/icons';
+import { IconChevronLeft, IconChevronRight } from '../../src/ui/icons';
 import { TOKENS } from '../../src/ui/palette';
 
 const APP_VERSION = '1.0.0';
@@ -35,7 +35,15 @@ export default function SettingsScreen(): React.ReactElement {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.topBar}>
-        <View style={styles.topBarSide} />
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="뒤로"
+          hitSlop={8}
+          style={styles.topBarBack}
+        >
+          <IconChevronLeft size={22} color={TOKENS.ink} />
+        </Pressable>
         <Text style={styles.topBarTitle}>설정</Text>
         <View style={styles.topBarSide} />
       </View>
@@ -233,6 +241,12 @@ const styles = StyleSheet.create({
     backgroundColor: TOKENS.surfaceSoft,
   },
   topBarSide: { flex: 1 },
+  topBarBack: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
   topBarTitle: {
     fontSize: 17,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
