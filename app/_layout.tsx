@@ -16,6 +16,9 @@ import { useSchedulesStore } from '../src/state/schedules-store';
 import { useChecklistStore } from '../src/state/checklist-store';
 import { useTodosStore } from '../src/state/todos-store';
 import { usePickupLogStore } from '../src/state/pickup-log-store';
+import { CalendarDrawer } from '../src/ui/drawers/CalendarDrawer';
+import { SearchDrawer } from '../src/ui/drawers/SearchDrawer';
+import { EventDetailDrawer } from '../src/ui/drawers/EventDetailDrawer';
 import { ScheduleEditSheet } from '../src/ui/sheets/ScheduleEditSheet';
 
 export { ErrorBoundary } from 'expo-router';
@@ -117,10 +120,16 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="child/[id]" options={{ title: '자녀 주간' }} />
           <Stack.Screen name="schedule/edit" options={{ title: '일정 편집', presentation: 'modal' }} />
+          <Stack.Screen name="settings/kids" options={{ headerShown: false }} />
+          <Stack.Screen name="settings/data" options={{ headerShown: false }} />
+          <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
         </Stack>
-        {/* Sheet mounted once at the layout level so daily/weekly views can
-            open it via ui-store without route navigation. */}
+        {/* Sheets + drawers mounted once at the layout level so daily/weekly
+            views can open them via ui-store without route navigation. */}
         <ScheduleEditSheet />
+        <CalendarDrawer />
+        <SearchDrawer />
+        <EventDetailDrawer />
       </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );

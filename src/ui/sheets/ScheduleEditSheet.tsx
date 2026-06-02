@@ -1,3 +1,8 @@
+// 1:1 port of docs/design/amatta-v1/app-event-form.jsx into a
+// BottomSheetModal-driven RN sheet. External API preserved:
+// driven by useUiStore.editSheetState (create / editAll / editOccurrence)
+// and saves through useSchedulesStore.{add,update,applyException}.
+
 import {
   useCallback,
   useEffect,
@@ -33,24 +38,35 @@ import type {
   ScheduleException,
   ScheduleType,
 } from '../../domain/types';
-import { ColorDot } from '../common/ColorDot';
+import { KidAvatar } from '../common/KidAvatar';
 import { TypeIcon } from '../common/TypeIcon';
+import { FONT_FAMILIES } from '../fonts';
 import { TOKENS } from '../palette';
+import { fmtKoTime } from '../utils/date';
 import {
   DOW_LABELS_KO,
   NOTIFY_OPTIONS,
+  TYPE_LABELS_KO,
   TYPE_OPTIONS,
   defaultFormState,
   formFromOccurrence,
   formFromSchedule,
-  formatHHMM,
   stepMinutes,
   toggleDayMask,
   validate,
   type EditFormState,
 } from './edit-sheet-form';
 
-const SNAP_POINTS: string[] = ['85%'];
+const SNAP_POINTS: string[] = ['92%'];
+
+// Sunday-first labels, matching the prototype's '일 월 화 수 목 금 토' order.
+// Our DaysOfWeekMask uses Monday-bit-0 (`domain/days-of-week.ts`), so we map
+// visual index → mask bit at the toggle/read sites.
+const DOW_LABELS_SUN_FIRST = ['일', '월', '화', '수', '목', '금', '토'] as const;
+const VISUAL_TO_MASK_BIT: readonly number[] = [6, 0, 1, 2, 3, 4, 5];
+// Sanity guard: keep DOW_LABELS_KO referenced so its `as const` doesn't
+// become dead-import noise — both shapes ship from edit-sheet-form.
+void DOW_LABELS_KO;
 
 export function ScheduleEditSheet(): React.ReactElement {
   const editSheetState = useUiStore((s) => s.editSheetState);
@@ -65,8 +81,6 @@ export function ScheduleEditSheet(): React.ReactElement {
 
   const modalRef = useRef<BottomSheetModal>(null);
 
-  // Drive the modal from ui-store. The mode in editSheetState is the source
-  // of truth; present/dismiss follow.
   const mode = editSheetState.mode;
   const sheetMode: 'create' | 'editAll' | 'editOccurrence' | null =
     mode === 'closed' ? null : mode;
@@ -85,14 +99,9 @@ export function ScheduleEditSheet(): React.ReactElement {
     }
     const sid = editSheetState.scheduleId;
     const date = editSheetState.occurrenceDate;
-    return exceptions.find(
-      (x) => x.scheduleId === sid && x.date === date,
-    );
+    return exceptions.find((x) => x.scheduleId === sid && x.date === date);
   }, [exceptions, editSheetState.scheduleId, editSheetState.occurrenceDate]);
 
-  // -------------------------------------------------------------------------
-  // Local form state. Reset whenever the sheet (re)opens or mode changes.
-  // -------------------------------------------------------------------------
   const [form, setForm] = useState<EditFormState>(() =>
     defaultFormState(null, null),
   );
@@ -118,7 +127,6 @@ export function ScheduleEditSheet(): React.ReactElement {
     setSubmitted(false);
   }, [sheetMode, existingSchedule, existingException, editSheetState.preFill]);
 
-  // Present / dismiss the underlying modal in response to ui-store.
   useEffect(() => {
     if (sheetMode === null) {
       modalRef.current?.dismiss();
@@ -127,9 +135,6 @@ export function ScheduleEditSheet(): React.ReactElement {
     }
   }, [sheetMode]);
 
-  // -------------------------------------------------------------------------
-  // Validation
-  // -------------------------------------------------------------------------
   const validation = useMemo(
     () =>
       validate(form, {
@@ -163,6 +168,7 @@ export function ScheduleEditSheet(): React.ReactElement {
             ? (form.validUntil as unknown as ISODate)
             : null,
         notifyMinutesBefore: form.notifyMinutesBefore,
+        needsPickup: form.needsPickup,
       });
     } else if (sheetMode === 'editAll' && existingSchedule !== undefined) {
       await updateSchedule(db, existingSchedule.id, {
@@ -179,6 +185,7 @@ export function ScheduleEditSheet(): React.ReactElement {
             ? (form.validUntil as unknown as ISODate)
             : null,
         notifyMinutesBefore: form.notifyMinutesBefore,
+        needsPickup: form.needsPickup,
       });
     } else if (
       sheetMode === 'editOccurrence' &&
@@ -268,11 +275,8 @@ export function ScheduleEditSheet(): React.ReactElement {
 
   const handleSwitchToOccurrenceMode = useCallback(() => {
     if (existingSchedule === undefined) return;
-    // Use today's anchor date if the caller didn't pass one (e.g., opened
-    // from the daily view's block tap).
     const date =
-      editSheetState.occurrenceDate ??
-      (useUiStore.getState().currentDate);
+      editSheetState.occurrenceDate ?? useUiStore.getState().currentDate;
     useUiStore.getState().openEditSheet('editOccurrence', {
       scheduleId: existingSchedule.id,
       occurrenceDate: date,
@@ -280,19 +284,16 @@ export function ScheduleEditSheet(): React.ReactElement {
   }, [existingSchedule, editSheetState.occurrenceDate]);
 
   const handleDismiss = useCallback(() => {
-    // Called by BottomSheetModal when the user drags it down. Sync ui-store.
     if (sheetMode !== null) closeEditSheet();
   }, [sheetMode, closeEditSheet]);
 
-  // -------------------------------------------------------------------------
-  // Render
-  // -------------------------------------------------------------------------
   const titleText =
     sheetMode === 'editAll'
       ? '일정 수정'
       : sheetMode === 'editOccurrence'
         ? '이 회차만 수정'
-        : '일정 추가';
+        : '새 일정';
+  const saveLabel = sheetMode === 'create' ? '추가' : '저장';
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -305,9 +306,7 @@ export function ScheduleEditSheet(): React.ReactElement {
     [],
   );
 
-  const showError = (
-    key: keyof EditFormState,
-  ): string | undefined =>
+  const showError = (key: keyof EditFormState): string | undefined =>
     submitted ? validation.errors[key] : undefined;
 
   return (
@@ -323,24 +322,26 @@ export function ScheduleEditSheet(): React.ReactElement {
       backgroundStyle={styles.sheetBackground}
     >
       <BottomSheetView style={styles.sheetContent}>
-        {/* Header bar */}
+        {/* Top bar — 취소 · Title · 추가/저장 */}
         <View style={styles.headerBar}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="취소"
             onPress={closeEditSheet}
             hitSlop={8}
+            style={styles.headerSlotStart}
           >
             <Text style={styles.cancelLabel}>취소</Text>
           </Pressable>
           <Text style={styles.headerTitle}>{titleText}</Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="저장"
+            accessibilityLabel={saveLabel}
             accessibilityState={{ disabled: !validation.ok }}
             onPress={() => void handleSave()}
             disabled={!validation.ok}
             hitSlop={8}
+            style={styles.headerSlotEnd}
           >
             <Text
               style={[
@@ -348,7 +349,7 @@ export function ScheduleEditSheet(): React.ReactElement {
                 !validation.ok ? styles.saveLabelDisabled : null,
               ]}
             >
-              저장
+              {saveLabel}
             </Text>
           </Pressable>
         </View>
@@ -358,235 +359,239 @@ export function ScheduleEditSheet(): React.ReactElement {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Child picker — create mode only */}
-          {sheetMode === 'create' ? (
-            <Section title="자녀">
-              <View style={styles.chipRow}>
-                {children.map((c) => {
-                  const selected = c.id === form.childId;
-                  return (
-                    <Pressable
-                      key={c.id}
-                      onPress={() => setForm({ ...form, childId: c.id })}
-                      style={[
-                        styles.chip,
-                        selected ? styles.chipSelected : null,
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`자녀: ${c.name}`}
-                      accessibilityState={{ selected }}
-                    >
-                      <ColorDot colorIndex={c.colorIndex} size={10} />
-                      <Text style={styles.chipText}>{c.name}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+          {/* Group 1: 자녀 + 종류 (create only shows the kid picker; editAll/
+              editOccurrence display the bound kid as a read-only chip) */}
+          <Group>
+            <Row label="자녀" align="top">
+              <KidPillRow
+                kids={children}
+                selectedId={form.childId}
+                onPick={
+                  sheetMode === 'create'
+                    ? (id) => setForm({ ...form, childId: id })
+                    : null
+                }
+              />
               <FieldError text={showError('childId')} />
-            </Section>
-          ) : null}
-
-          {/* Title */}
-          <Section title="제목">
-            <BottomSheetTextInput
-              value={form.title}
-              onChangeText={(v: string) => setForm({ ...form, title: v })}
-              placeholder="예: 영어학원"
-              placeholderTextColor={TOKENS.inkSub}
-              style={styles.input}
-              maxLength={60}
-              testID="sheet-title-input"
-              accessibilityLabel="제목 입력"
-            />
-            <FieldError text={showError('title')} />
-          </Section>
-
-          {/* Type */}
-          <Section title="종류">
-            <View style={styles.chipRow}>
-              {TYPE_OPTIONS.map((t) => (
-                <TypeChip
-                  key={t}
-                  type={t}
-                  selected={form.type === t}
-                  onPress={() => setForm({ ...form, type: t })}
-                />
-              ))}
-            </View>
-          </Section>
-
-          {/* Days of week — hidden for editOccurrence */}
-          {sheetMode !== 'editOccurrence' ? (
-            <Section title="반복 요일">
-              <View style={styles.chipRow}>
-                {DOW_LABELS_KO.map((label, idx) => {
-                  const on = (form.daysOfWeek & (1 << idx)) !== 0;
+            </Row>
+            <Row label="종류" align="top" hairline={false}>
+              <View style={styles.pillRowGrow}>
+                {TYPE_OPTIONS.map((t) => {
+                  const selected = form.type === t;
                   return (
-                    <Pressable
-                      key={label}
-                      onPress={() =>
-                        setForm({
-                          ...form,
-                          daysOfWeek: toggleDayMask(form.daysOfWeek, idx) as DaysOfWeekMask,
-                        })
+                    <Pill
+                      key={t}
+                      active={selected}
+                      onPress={() => setForm({ ...form, type: t })}
+                      label={TYPE_LABELS_KO[t]}
+                      leading={
+                        <TypeIcon
+                          type={t}
+                          size={12}
+                          color={selected ? TOKENS.surface : TOKENS.inkSub}
+                        />
                       }
-                      style={[
-                        styles.dowPill,
-                        on ? styles.dowPillOn : null,
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`요일 ${label}`}
-                      accessibilityState={{ selected: on }}
-                    >
-                      <Text
-                        style={[
-                          styles.dowText,
-                          on ? styles.dowTextOn : null,
-                        ]}
-                      >
-                        {label}
-                      </Text>
-                    </Pressable>
+                    />
                   );
                 })}
               </View>
-              <FieldError text={showError('daysOfWeek')} />
-            </Section>
-          ) : null}
+            </Row>
+          </Group>
 
-          {/* Time */}
-          <Section title="시간">
-            <View style={styles.timeRow}>
+          {/* Group 2: 제목 + 위치 */}
+          <Group>
+            <Row label="제목" align="top">
+              <BottomSheetTextInput
+                value={form.title}
+                onChangeText={(v: string) => setForm({ ...form, title: v })}
+                placeholder="예) 영어학원"
+                placeholderTextColor={TOKENS.ink30}
+                style={styles.bigInput}
+                maxLength={60}
+                testID="sheet-title-input"
+                accessibilityLabel="제목 입력"
+              />
+              <FieldError text={showError('title')} />
+            </Row>
+            <Row label="위치" align="top" hairline={false}>
+              <BottomSheetTextInput
+                value={form.location}
+                onChangeText={(v: string) => setForm({ ...form, location: v })}
+                placeholder="예) JLS어학원"
+                placeholderTextColor={TOKENS.ink30}
+                style={styles.bigInput}
+                maxLength={60}
+                accessibilityLabel="위치 입력"
+              />
+            </Row>
+          </Group>
+
+          {/* Group 3: 날짜 + 시간 + 반복 */}
+          <Group>
+            <Row label="날짜">
+              <BottomSheetTextInput
+                value={form.validFrom}
+                onChangeText={(v: string) =>
+                  setForm({ ...form, validFrom: v })
+                }
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={TOKENS.ink30}
+                style={styles.dateInput}
+                maxLength={10}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="numbers-and-punctuation"
+                accessibilityLabel="시작 날짜"
+              />
+            </Row>
+            <Row label="시간">
               <TimeStepper
-                label="시작"
+                ariaLabel="시작 시간"
                 minutes={form.startMinutes}
                 onChange={(m) => setForm({ ...form, startMinutes: m })}
               />
+              <Text style={styles.timeDash}>–</Text>
               <TimeStepper
-                label="종료"
+                ariaLabel="끝 시간"
                 minutes={form.endMinutes}
                 onChange={(m) => setForm({ ...form, endMinutes: m })}
               />
-            </View>
-            <FieldError text={showError('startMinutes') ?? showError('endMinutes')} />
-          </Section>
-
-          {/* Recurrence range — hidden for editOccurrence */}
-          {sheetMode !== 'editOccurrence' ? (
-            <Section title="기간">
-              <View style={styles.dateRow}>
-                <DateInput
-                  label="시작일"
-                  value={form.validFrom}
-                  onChangeText={(v) => setForm({ ...form, validFrom: v })}
-                />
-                <DateInput
-                  label="종료일 (선택)"
+            </Row>
+            {sheetMode !== 'editOccurrence' ? (
+              <Row label="종료일">
+                <BottomSheetTextInput
                   value={form.validUntil}
-                  onChangeText={(v) => setForm({ ...form, validUntil: v })}
+                  onChangeText={(v: string) =>
+                    setForm({ ...form, validUntil: v })
+                  }
+                  placeholder="YYYY-MM-DD (선택)"
+                  placeholderTextColor={TOKENS.ink30}
+                  style={styles.dateInput}
+                  maxLength={10}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="numbers-and-punctuation"
+                  accessibilityLabel="종료 날짜"
                 />
-              </View>
+              </Row>
+            ) : null}
+            {sheetMode !== 'editOccurrence' ? (
+              <Row label="반복" align="top" hairline={false}>
+                <View style={styles.dayCircleRow}>
+                  {DOW_LABELS_SUN_FIRST.map((label, visualIdx) => {
+                    const maskBit = VISUAL_TO_MASK_BIT[visualIdx] ?? 0;
+                    const on = (form.daysOfWeek & (1 << maskBit)) !== 0;
+                    return (
+                      <DayCircle
+                        key={label}
+                        active={on}
+                        label={label}
+                        onPress={() =>
+                          setForm({
+                            ...form,
+                            daysOfWeek: toggleDayMask(
+                              form.daysOfWeek,
+                              maskBit,
+                            ) as DaysOfWeekMask,
+                          })
+                        }
+                      />
+                    );
+                  })}
+                </View>
+                <FieldError text={showError('daysOfWeek')} />
+              </Row>
+            ) : null}
+            {sheetMode !== 'editOccurrence' ? (
               <FieldError text={showError('validFrom') ?? showError('validUntil')} />
-            </Section>
-          ) : null}
-
-          {/* Location */}
-          <Section title="장소 (선택)">
-            <BottomSheetTextInput
-              value={form.location}
-              onChangeText={(v: string) => setForm({ ...form, location: v })}
-              placeholder="예: 학원 1관"
-              placeholderTextColor={TOKENS.inkSub}
-              style={styles.input}
-              maxLength={60}
-              accessibilityLabel="장소 입력"
+            ) : null}
+            <FieldError
+              text={showError('startMinutes') ?? showError('endMinutes')}
             />
-          </Section>
+          </Group>
 
-          {/* Notes */}
-          <Section title="메모 (선택)">
-            <BottomSheetTextInput
-              value={form.notes}
-              onChangeText={(v: string) => setForm({ ...form, notes: v })}
-              placeholder="필요한 메모를 적어주세요"
-              placeholderTextColor={TOKENS.inkSub}
-              style={[styles.input, styles.notesInput]}
-              multiline
-              maxLength={500}
-              accessibilityLabel="메모 입력"
-            />
-          </Section>
+          {/* Group 4: 알림 + 픽업 */}
+          <Group>
+            <Row label="알림" align="top">
+              <View style={styles.pillWrapRow}>
+                {NOTIFY_OPTIONS.map((opt) => {
+                  const selected = form.notifyMinutesBefore === opt;
+                  const label = opt === null ? '없음' : `${opt}분 전`;
+                  return (
+                    <Pill
+                      key={String(opt)}
+                      active={selected}
+                      onPress={() =>
+                        setForm({ ...form, notifyMinutesBefore: opt })
+                      }
+                      label={label}
+                    />
+                  );
+                })}
+              </View>
+            </Row>
+            <Row label="픽업" hairline={false}>
+              {form.needsPickup ? (
+                <View style={styles.pickupBadge}>
+                  <View style={styles.pickupDot} />
+                  <Text style={styles.pickupText}>
+                    {fmtKoTime(form.endMinutes)} 픽업
+                  </Text>
+                </View>
+              ) : null}
+              <ToggleSwitch
+                value={form.needsPickup}
+                onChange={(v) => setForm({ ...form, needsPickup: v })}
+                ariaLabel="픽업"
+              />
+            </Row>
+          </Group>
 
-          {/* Notify */}
-          <Section title="알림">
-            <View style={styles.chipRow}>
-              {NOTIFY_OPTIONS.map((opt) => {
-                const selected = form.notifyMinutesBefore === opt;
-                return (
-                  <Pressable
-                    key={String(opt)}
-                    onPress={() =>
-                      setForm({ ...form, notifyMinutesBefore: opt })
-                    }
-                    style={[
-                      styles.chip,
-                      selected ? styles.chipSelected : null,
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      opt === null ? '알림 없음' : `${opt}분 전 알림`
-                    }
-                    accessibilityState={{ selected }}
-                  >
-                    <Text style={styles.chipText}>
-                      {opt === null ? '없음' : `${opt}분 전`}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </Section>
+          {/* Group 5: 메모 */}
+          <Group>
+            <Row label="메모" align="top" hairline={false}>
+              <BottomSheetTextInput
+                value={form.notes}
+                onChangeText={(v: string) => setForm({ ...form, notes: v })}
+                placeholder="추가 정보"
+                placeholderTextColor={TOKENS.ink30}
+                style={[styles.bigInput, styles.notesInput]}
+                multiline
+                maxLength={500}
+                accessibilityLabel="메모 입력"
+              />
+            </Row>
+          </Group>
 
-          {/* Mode-specific actions */}
-          {sheetMode === 'editAll' ? (
-            <View style={styles.actionStack}>
-              <Pressable
+          {/* Destructive actions — editAll only. editOccurrence shows a single
+              "이 회차 취소" ghost action. */}
+          {sheetMode === 'editAll' && existingSchedule !== undefined ? (
+            <View style={styles.actionGroup}>
+              <ActionRow
+                label="이 회차만 수정"
                 onPress={handleSwitchToOccurrenceMode}
-                style={styles.ghostButton}
-                accessibilityRole="button"
-                accessibilityLabel="이 회차만 수정"
-              >
-                <Text style={styles.ghostButtonLabel}>이 회차만 수정</Text>
-              </Pressable>
-              <Pressable
+                hairline
+              />
+              <ActionRow
+                label="이 회차만 삭제"
                 onPress={handleDeleteOccurrence}
-                style={styles.ghostButton}
-                accessibilityRole="button"
-                accessibilityLabel="이 회차만 삭제"
-              >
-                <Text style={styles.ghostButtonLabel}>이 회차만 삭제</Text>
-              </Pressable>
-              <Pressable
+                hairline
+              />
+              <ActionRow
+                label="전체 삭제"
                 onPress={handleDeleteAll}
-                style={styles.dangerButton}
-                accessibilityRole="button"
-                accessibilityLabel="전체 삭제"
-              >
-                <Text style={styles.dangerButtonLabel}>전체 삭제</Text>
-              </Pressable>
+                tone="danger"
+              />
             </View>
           ) : null}
 
           {sheetMode === 'editOccurrence' && existingSchedule !== undefined ? (
-            <View style={styles.actionStack}>
-              <Pressable
+            <View style={styles.actionGroup}>
+              <ActionRow
+                label="이 회차만 삭제"
                 onPress={handleDeleteOccurrence}
-                style={styles.ghostButton}
-                accessibilityRole="button"
-                accessibilityLabel="이 회차 취소"
-              >
-                <Text style={styles.ghostButtonLabel}>이 회차 취소</Text>
-              </Pressable>
+                tone="danger"
+              />
             </View>
           ) : null}
 
@@ -598,265 +603,549 @@ export function ScheduleEditSheet(): React.ReactElement {
 }
 
 // -----------------------------------------------------------------------------
-// Sub-components
+// Layout primitives — Group / Row mirror app-event-form.jsx Group + Row.
 // -----------------------------------------------------------------------------
-function Section({
-  title,
+
+function Group({
   children,
 }: {
-  title: string;
   children: React.ReactNode;
 }): React.ReactElement {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {children}
-    </View>
-  );
+  return <View style={styles.group}>{children}</View>;
 }
 
-function FieldError({ text }: { text: string | undefined }): React.ReactElement | null {
-  if (text === undefined) return null;
-  return <Text style={styles.fieldError}>{text}</Text>;
-}
-
-function TypeChip({
-  type,
-  selected,
-  onPress,
-}: {
-  type: ScheduleType;
-  selected: boolean;
-  onPress: () => void;
-}): React.ReactElement {
-  const LABEL: Record<ScheduleType, string> = {
-    school: '학교',
-    academy: '학원',
-    activity: '활동',
-    other: '기타',
-  };
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.chip, selected ? styles.chipSelected : null]}
-      accessibilityRole="button"
-      accessibilityLabel={`종류: ${LABEL[type]}`}
-      accessibilityState={{ selected }}
-    >
-      <TypeIcon type={type} size={12} color={selected ? TOKENS.surface : TOKENS.ink} />
-      <Text style={[styles.chipText, selected ? styles.chipTextSelected : null]}>
-        {LABEL[type]}
-      </Text>
-    </Pressable>
-  );
-}
-
-function TimeStepper({
-  label,
-  minutes,
-  onChange,
-}: {
+interface RowProps {
   label: string;
-  minutes: number;
-  onChange: (m: number) => void;
-}): React.ReactElement {
+  children: React.ReactNode;
+  hairline?: boolean;
+  align?: 'center' | 'top';
+}
+
+function Row({
+  label,
+  children,
+  hairline = true,
+  align = 'center',
+}: RowProps): React.ReactElement {
   return (
-    <View style={styles.timeStepper}>
-      <Text style={styles.timeStepperLabel}>{label}</Text>
-      <View style={styles.timeStepperRow}>
-        <Pressable
-          onPress={() => onChange(stepMinutes(minutes, -1))}
-          style={styles.timeStepperBtn}
-          accessibilityRole="button"
-          accessibilityLabel={`${label} 30분 빼기`}
-          hitSlop={6}
-        >
-          <Text style={styles.timeStepperBtnLabel}>−</Text>
-        </Pressable>
-        <Text style={styles.timeStepperValue}>{formatHHMM(minutes)}</Text>
-        <Pressable
-          onPress={() => onChange(stepMinutes(minutes, 1))}
-          style={styles.timeStepperBtn}
-          accessibilityRole="button"
-          accessibilityLabel={`${label} 30분 더하기`}
-          hitSlop={6}
-        >
-          <Text style={styles.timeStepperBtnLabel}>＋</Text>
-        </Pressable>
+    <View
+      style={[
+        styles.row,
+        hairline ? styles.rowHairline : null,
+        align === 'top' ? styles.rowTop : styles.rowCenter,
+      ]}
+    >
+      <Text
+        style={[
+          styles.rowLabel,
+          align === 'top' ? styles.rowLabelTop : null,
+        ]}
+      >
+        {label}
+      </Text>
+      <View
+        style={[
+          styles.rowContent,
+          align === 'top' ? styles.rowContentTop : styles.rowContentCenter,
+        ]}
+      >
+        {children}
       </View>
     </View>
   );
 }
 
-function DateInput({
-  label,
-  value,
-  onChangeText,
+function FieldError({
+  text,
 }: {
+  text: string | undefined;
+}): React.ReactElement | null {
+  if (text === undefined) return null;
+  return <Text style={styles.fieldError}>{text}</Text>;
+}
+
+interface PillProps {
+  active: boolean;
+  onPress: () => void;
   label: string;
-  value: string;
-  onChangeText: (v: string) => void;
+  leading?: React.ReactNode;
+}
+
+function Pill({
+  active,
+  onPress,
+  label,
+  leading,
+}: PillProps): React.ReactElement {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}
+      style={[styles.pill, active ? styles.pillActive : null]}
+    >
+      {leading}
+      <Text
+        style={[
+          styles.pillLabel,
+          active ? styles.pillLabelActive : null,
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function DayCircle({
+  active,
+  onPress,
+  label,
+}: {
+  active: boolean;
+  onPress: () => void;
+  label: string;
 }): React.ReactElement {
   return (
-    <View style={styles.dateInputBlock}>
-      <Text style={styles.dateInputLabel}>{label}</Text>
-      <BottomSheetTextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder="YYYY-MM-DD"
-        placeholderTextColor={TOKENS.inkSub}
-        style={styles.input}
-        maxLength={10}
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType="numbers-and-punctuation"
-        accessibilityLabel={`${label} 입력`}
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`요일 ${label}`}
+      accessibilityState={{ selected: active }}
+      style={[styles.dayCircle, active ? styles.dayCircleActive : null]}
+    >
+      <Text
+        style={[
+          styles.dayCircleLabel,
+          active ? styles.dayCircleLabelActive : null,
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function ToggleSwitch({
+  value,
+  onChange,
+  ariaLabel,
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+  ariaLabel: string;
+}): React.ReactElement {
+  return (
+    <Pressable
+      onPress={() => onChange(!value)}
+      accessibilityRole="switch"
+      accessibilityLabel={ariaLabel}
+      accessibilityState={{ checked: value }}
+      style={[styles.switchTrack, value ? styles.switchTrackOn : null]}
+    >
+      <View
+        style={[
+          styles.switchKnob,
+          value ? styles.switchKnobOn : styles.switchKnobOff,
+        ]}
       />
+    </Pressable>
+  );
+}
+
+function KidPillRow({
+  kids,
+  selectedId,
+  onPick,
+}: {
+  kids: { id: number; name: string; colorIndex: 0 | 1 | 2 | 3 | 4 | 5 }[];
+  selectedId: number | null;
+  onPick: ((id: number) => void) | null;
+}): React.ReactElement {
+  return (
+    <View style={styles.kidPillRow}>
+      {kids.map((k) => {
+        const active = k.id === selectedId;
+        const interactive = onPick !== null;
+        return (
+          <Pressable
+            key={k.id}
+            disabled={!interactive}
+            onPress={() => onPick?.(k.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`자녀: ${k.name}`}
+            accessibilityState={{ selected: active }}
+            style={[styles.kidPill, active ? styles.kidPillActive : null]}
+          >
+            {/* Cast: KidAvatar accepts `Child` but only reads `name`+`colorIndex`. */}
+            <KidAvatar
+              child={k as unknown as import('../../domain/types').Child}
+              size={22}
+            />
+            <Text
+              style={[
+                styles.kidPillLabel,
+                active ? styles.kidPillLabelActive : null,
+              ]}
+            >
+              {k.name}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
 
+function TimeStepper({
+  minutes,
+  onChange,
+  ariaLabel,
+}: {
+  minutes: number;
+  onChange: (m: number) => void;
+  ariaLabel: string;
+}): React.ReactElement {
+  return (
+    <View style={styles.timeStepper}>
+      <Pressable
+        onPress={() => onChange(stepMinutes(minutes, -1))}
+        accessibilityRole="button"
+        accessibilityLabel={`${ariaLabel} 30분 빼기`}
+        hitSlop={6}
+        style={styles.timeStepperBtn}
+      >
+        <Text style={styles.timeStepperBtnLabel}>−</Text>
+      </Pressable>
+      <Text style={styles.timeStepperValue}>{fmtKoTime(minutes)}</Text>
+      <Pressable
+        onPress={() => onChange(stepMinutes(minutes, 1))}
+        accessibilityRole="button"
+        accessibilityLabel={`${ariaLabel} 30분 더하기`}
+        hitSlop={6}
+        style={styles.timeStepperBtn}
+      >
+        <Text style={styles.timeStepperBtnLabel}>＋</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function ActionRow({
+  label,
+  onPress,
+  tone,
+  hairline = false,
+}: {
+  label: string;
+  onPress: () => void;
+  tone?: 'danger';
+  hairline?: boolean;
+}): React.ReactElement {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={[
+        styles.actionRow,
+        hairline ? styles.actionRowHairline : null,
+      ]}
+    >
+      <Text
+        style={[
+          styles.actionLabel,
+          tone === 'danger' ? styles.actionLabelDanger : null,
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+// Re-export the form type to match the prior public surface — other modules
+// (tests, future drawer wiring) import `EditFormState` from here OR from the
+// `edit-sheet-form` module; keep both paths working.
+export type { EditFormState } from './edit-sheet-form';
+// Keep ScheduleType import from triggering "imported but unused" — referenced
+// by future TypeChip props.
+void (null as unknown as ScheduleType);
+
 const styles = StyleSheet.create({
-  sheetBackground: { backgroundColor: TOKENS.surface },
-  handleIndicator: { backgroundColor: TOKENS.ink30 },
+  sheetBackground: { backgroundColor: TOKENS.surfaceWarm },
+  handleIndicator: { backgroundColor: TOKENS.ink12 },
 
   sheetContent: { flex: 1 },
 
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomColor: TOKENS.hair,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14,
+    paddingTop: 4,
+    paddingBottom: 8,
   },
-  headerTitle: { fontSize: 16, fontWeight: '600', color: TOKENS.ink },
-  cancelLabel: { fontSize: 14, color: TOKENS.inkSub },
-  saveLabel: { fontSize: 14, fontWeight: '600', color: TOKENS.primary },
+  headerSlotStart: { flex: 1, alignItems: 'flex-start' },
+  headerSlotEnd: { flex: 1, alignItems: 'flex-end' },
+  headerTitle: {
+    fontSize: 17,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    color: TOKENS.ink,
+    letterSpacing: -0.4,
+  },
+  cancelLabel: {
+    fontSize: 15,
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+    color: TOKENS.ink,
+    letterSpacing: -0.3,
+  },
+  saveLabel: {
+    fontSize: 15,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    color: TOKENS.primary,
+    letterSpacing: -0.3,
+  },
   saveLabelDisabled: { color: TOKENS.ink30 },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 12 },
+  scrollContent: { paddingTop: 4, paddingBottom: 8 },
 
-  section: { marginBottom: 16 },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: TOKENS.inkSub,
-    marginBottom: 8,
+  // --- Group / Row -----------------------------------------------------
+  group: {
+    backgroundColor: TOKENS.surface,
+    borderRadius: 14,
+    marginHorizontal: 14,
+    marginBottom: 10,
+    overflow: 'hidden',
   },
-
-  chipRow: {
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    minHeight: 40,
+  },
+  rowHairline: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: TOKENS.ink04,
+  },
+  rowCenter: { alignItems: 'center' },
+  rowTop: { alignItems: 'flex-start' },
+  rowLabel: {
+    width: 56,
+    fontSize: 13,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.inkSub,
+    letterSpacing: -0.2,
+  },
+  rowLabelTop: { paddingTop: 5 },
+  rowContent: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
-  chip: {
+  rowContentCenter: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  rowContentTop: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+
+  // --- Inputs ----------------------------------------------------------
+  bigInput: {
+    width: '100%',
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.ink,
+    letterSpacing: -0.2,
+    padding: 0,
+    margin: 0,
+    lineHeight: 18,
+  },
+  notesInput: { minHeight: 64, textAlignVertical: 'top' },
+  dateInput: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.ink,
+    letterSpacing: -0.2,
+    padding: 0,
+    margin: 0,
+    minWidth: 120,
+    textAlign: 'right',
+  },
+
+  // --- Pills -----------------------------------------------------------
+  pillRowGrow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, width: '100%' },
+  pillWrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+    backgroundColor: '#EBEAE9',
+    borderRadius: 9999,
+  },
+  pillActive: { backgroundColor: '#2A2A29' },
+  pillLabel: {
+    fontSize: 12.5,
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+    color: TOKENS.inkSub,
+    letterSpacing: -0.2,
+    lineHeight: 14,
+  },
+  pillLabelActive: { color: TOKENS.surface },
+
+  // --- Kid pill row ----------------------------------------------------
+  kidPillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  kidPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 3,
+    paddingLeft: 3,
+    paddingRight: 11,
+    backgroundColor: '#EBEAE9',
     borderRadius: 9999,
-    backgroundColor: TOKENS.surfaceWarm,
-    borderWidth: 1,
-    borderColor: TOKENS.hair,
   },
-  chipSelected: {
-    backgroundColor: TOKENS.primary,
-    borderColor: TOKENS.primary,
-  },
-  chipText: { fontSize: 13, fontWeight: '500', color: TOKENS.ink },
-  chipTextSelected: { color: TOKENS.surface },
-
-  input: {
-    borderWidth: 1,
-    borderColor: TOKENS.hair,
-    borderRadius: 12,
-    backgroundColor: TOKENS.surfaceWarm,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: TOKENS.ink,
-    fontSize: 14,
-  },
-  notesInput: { minHeight: 80, textAlignVertical: 'top' },
-
-  dowPill: {
-    width: 36,
-    height: 36,
-    borderRadius: 9999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: TOKENS.surfaceWarm,
-    borderWidth: 1,
-    borderColor: TOKENS.hair,
-  },
-  dowPillOn: {
-    backgroundColor: TOKENS.primary,
-    borderColor: TOKENS.primary,
-  },
-  dowText: { fontSize: 12, fontWeight: '600', color: TOKENS.ink },
-  dowTextOn: { color: TOKENS.surface },
-
-  timeRow: { flexDirection: 'row', gap: 12 },
-  timeStepper: { flex: 1 },
-  timeStepperLabel: {
-    fontSize: 12,
+  kidPillActive: { backgroundColor: '#2A2A29' },
+  kidPillLabel: {
+    fontSize: 12.5,
+    fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.inkSub,
-    marginBottom: 6,
+    letterSpacing: -0.2,
+    lineHeight: 14,
   },
-  timeStepperRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: TOKENS.hair,
-    borderRadius: 12,
-    backgroundColor: TOKENS.surfaceWarm,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  timeStepperBtn: {
+  kidPillLabelActive: { color: TOKENS.surface },
+
+  // --- Day circles -----------------------------------------------------
+  dayCircleRow: { flexDirection: 'row', gap: 6 },
+  dayCircle: {
     width: 28,
     height: 28,
+    borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 14,
+    backgroundColor: '#EBEAE9',
   },
-  timeStepperBtnLabel: { fontSize: 20, color: TOKENS.ink },
-  timeStepperValue: {
-    fontSize: 16,
-    fontWeight: '600',
+  dayCircleActive: { backgroundColor: '#2A2A29' },
+  dayCircleLabel: {
+    fontSize: 12.5,
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+    color: TOKENS.inkSub,
+    letterSpacing: -0.2,
+  },
+  dayCircleLabelActive: { color: TOKENS.surface },
+
+  // --- Time stepper ----------------------------------------------------
+  timeStepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  timeStepperBtn: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    backgroundColor: TOKENS.ink04,
+  },
+  timeStepperBtnLabel: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.ink,
-    fontVariant: ['tabular-nums'],
+  },
+  timeStepperValue: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.ink,
+    letterSpacing: -0.2,
+    minWidth: 64,
+    textAlign: 'center',
+  },
+  timeDash: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.ink30,
   },
 
-  dateRow: { flexDirection: 'row', gap: 12 },
-  dateInputBlock: { flex: 1 },
-  dateInputLabel: { fontSize: 12, color: TOKENS.inkSub, marginBottom: 4 },
-
-  fieldError: { fontSize: 12, color: TOKENS.danger, marginTop: 4 },
-
-  actionStack: { gap: 8, marginTop: 8 },
-  ghostButton: {
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: TOKENS.ink30,
-    alignItems: 'center',
+  // --- Switch ----------------------------------------------------------
+  switchTrack: {
+    width: 36,
+    height: 22,
+    borderRadius: 9999,
+    backgroundColor: '#D6D8DD',
+    padding: 2,
+  },
+  switchTrackOn: { backgroundColor: '#2A2A29' },
+  switchKnob: {
+    width: 18,
+    height: 18,
+    borderRadius: 9999,
     backgroundColor: TOKENS.surface,
   },
-  ghostButtonLabel: { fontSize: 14, fontWeight: '500', color: TOKENS.ink },
-  dangerButton: {
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: TOKENS.danger,
+  switchKnobOff: { alignSelf: 'flex-start' },
+  switchKnobOn: { alignSelf: 'flex-end' },
+
+  // --- Pickup badge ----------------------------------------------------
+  pickupBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: TOKENS.surface,
+    gap: 6,
+    marginRight: 2,
   },
-  dangerButtonLabel: { fontSize: 14, fontWeight: '600', color: TOKENS.danger },
+  pickupDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 9999,
+    backgroundColor: TOKENS.primary,
+  },
+  pickupText: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.ink,
+    letterSpacing: -0.2,
+  },
+
+  // --- Errors ----------------------------------------------------------
+  fieldError: {
+    fontSize: 12,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.danger,
+    marginTop: 4,
+    width: '100%',
+  },
+
+  // --- Destructive actions --------------------------------------------
+  actionGroup: {
+    backgroundColor: TOKENS.surface,
+    borderRadius: 14,
+    marginHorizontal: 14,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  actionRow: {
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  actionRowHairline: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: TOKENS.ink04,
+  },
+  actionLabel: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.ink,
+    letterSpacing: -0.2,
+  },
+  actionLabelDanger: { color: TOKENS.danger },
 
   tail: { height: 32 },
 });

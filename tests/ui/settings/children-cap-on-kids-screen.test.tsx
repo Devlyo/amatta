@@ -1,6 +1,7 @@
-// Tests for the children-cap behavior on the Settings screen.
-// The screen depends on expo-file-system / expo-sharing / repos; we mock the
-// modules so the test exercises only the UI cap logic.
+// Tests for the children-cap behavior on /settings/kids.
+// The 5 cap assertions were originally on the inline settings tab; with the
+// D-screens refactor the children CRUD belt moved to app/settings/kids.tsx,
+// so the same assertions now target that screen.
 
 import { fireEvent, render } from '@testing-library/react-native';
 
@@ -41,6 +42,14 @@ jest.mock('expo-sharing', () => ({
   shareAsync: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('expo-router', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    back: jest.fn(),
+    replace: jest.fn(),
+  }),
+}));
+
 jest.mock('react-native-safe-area-context', () => {
   const React = jest.requireActual('react') as typeof import('react');
   const { View } = jest.requireActual('react-native') as typeof import('react-native');
@@ -53,7 +62,7 @@ jest.mock('react-native-safe-area-context', () => {
 
 // Now import the screen.
 // eslint-disable-next-line import/first
-import SettingsScreen from '../../../app/(tabs)/settings';
+import KidsScreen from '../../../app/settings/kids';
 
 // ---- Helpers --------------------------------------------------------------
 function seedChildren(count: number): Child[] {
@@ -70,29 +79,28 @@ function setChildren(children: Child[]): void {
 }
 
 // ---- Tests ----------------------------------------------------------------
-describe('Settings — children cap', () => {
+describe('Settings — children cap (kids screen)', () => {
   beforeEach(() => {
     setChildren([]);
   });
 
   test('cap message is NOT visible when children.length < 4', () => {
     setChildren(seedChildren(3));
-    const { queryByTestId } = render(<SettingsScreen />);
+    const { queryByTestId } = render(<KidsScreen />);
     expect(queryByTestId('cap-message')).toBeNull();
   });
 
   test('add button is enabled when under cap', () => {
     setChildren(seedChildren(2));
-    const { getByTestId } = render(<SettingsScreen />);
+    const { getByTestId } = render(<KidsScreen />);
     const btn = getByTestId('add-child-button');
-    // accessibilityState.disabled === false (or undefined) when enabled.
     const accState = btn.props.accessibilityState as { disabled?: boolean };
     expect(accState.disabled).toBe(false);
   });
 
   test('add button is disabled when at cap (4 children)', () => {
     setChildren(seedChildren(4));
-    const { getByTestId } = render(<SettingsScreen />);
+    const { getByTestId } = render(<KidsScreen />);
     const btn = getByTestId('add-child-button');
     const accState = btn.props.accessibilityState as { disabled?: boolean };
     expect(accState.disabled).toBe(true);
@@ -100,7 +108,7 @@ describe('Settings — children cap', () => {
 
   test('cap message appears only after tapping the disabled add button', () => {
     setChildren(seedChildren(4));
-    const { getByTestId, queryByTestId } = render(<SettingsScreen />);
+    const { getByTestId, queryByTestId } = render(<KidsScreen />);
     expect(queryByTestId('cap-message')).toBeNull();
     fireEvent.press(getByTestId('add-child-button'));
     expect(queryByTestId('cap-message')).not.toBeNull();
@@ -108,7 +116,7 @@ describe('Settings — children cap', () => {
 
   test('cap message text matches spec', () => {
     setChildren(seedChildren(4));
-    const { getByTestId, queryByText } = render(<SettingsScreen />);
+    const { getByTestId, queryByText } = render(<KidsScreen />);
     fireEvent.press(getByTestId('add-child-button'));
     expect(queryByText('최대 4명까지 등록할 수 있습니다.')).not.toBeNull();
   });

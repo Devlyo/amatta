@@ -24,7 +24,17 @@ export interface EditFormState {
   location: string;
   notes: string;
   notifyMinutesBefore: number | null; // null = no notification
+  needsPickup: boolean;
 }
+
+// Korean labels for the type pill row in the amatta-v1 edit form. Order
+// matches `TYPE_OPTIONS` so the visual sequence in the sheet is stable.
+export const TYPE_LABELS_KO: Readonly<Record<ScheduleType, string>> = {
+  school: '학교',
+  academy: '학원',
+  activity: '운동',
+  other: '기타',
+} as const;
 
 export const NOTIFY_OPTIONS: readonly (number | null)[] = [
   null,
@@ -58,6 +68,7 @@ export function defaultFormState(childId: number | null, date: ISODate | null): 
     location: '',
     notes: '',
     notifyMinutesBefore: 15,
+    needsPickup: false,
   };
 }
 
@@ -74,6 +85,7 @@ export function formFromSchedule(s: Schedule): EditFormState {
     location: s.location ?? '',
     notes: s.notes ?? '',
     notifyMinutesBefore: s.notifyMinutesBefore,
+    needsPickup: s.needsPickup,
   };
 }
 

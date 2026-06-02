@@ -178,11 +178,11 @@ export default function DailyViewScreen(): React.ReactElement {
   };
 
   const handlePressDate = (): void => {
-    // TODO(R3-drawers): open CalendarDrawer (date picker) — no-op for R2.
+    useUiStore.getState().openCalendar();
   };
 
   const handlePressSearch = (): void => {
-    // TODO(R3-drawers): open SearchDrawer — no-op for R2.
+    useUiStore.getState().openSearch();
   };
 
   const handlePressWeek = (): void => {

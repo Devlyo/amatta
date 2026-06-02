@@ -1,3 +1,23 @@
+// 1:1 port of WeeklyB (docs/design/amatta-v1/app-weekly.jsx) into the
+// schedule app's single-kid weekly drill-down screen.
+//
+// Sections (in render order):
+//   1. SafeAreaView edges=['top'].
+//   2. Top bar — back chev + "이번 주" pill + week range caption (calendar
+//      drawer trigger via chev-down — currently TODO no-op; Batch D
+//      worker-drawers wires this once CalendarDrawer mounts).
+//   3. Kid header row — KidAvatar(30) + name + "이번 주 일정" + active count.
+//      Grade caption from the prototype is omitted (schema has no grade —
+//      TODO if we ever add one).
+//   4. WeeklyGrid — week strip + scrollable body with 56px gutter + 7 day
+//      columns × 34 30-min rows.
+//   5. Swipe ±7 days via Gesture.Pan (same activeOffsetX/failOffsetY pattern
+//      as daily index.tsx — see commit 1cbfd81).
+//
+// Block tap → useUiStore.openEventDetail({scheduleId, occurrenceDate}).
+// Empty-slot tap → useUiStore.openEditSheet('create', {preFill: {childId,
+// date}}).
+
 import { useMemo, useState } from 'react';
 import {
   LayoutChangeEvent,
@@ -8,23 +28,22 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import {
-  GRID_START_HOUR,
-  SLOT_MIN,
-  TIME_COL_WIDTH,
-} from '../../src/domain/constants';
 import { expandOccurrences } from '../../src/domain/occurrences';
 import type { Child, ISODate } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useUiStore } from '../../src/state/ui-store';
-import { ColorDot } from '../../src/ui/common/ColorDot';
+import { KidAvatar } from '../../src/ui/common/KidAvatar';
+import { FONT_FAMILIES } from '../../src/ui/fonts';
+import {
+  IconChevronDown,
+  IconChevronLeft,
+  IconChevronRight,
+} from '../../src/ui/icons';
 import { TOKENS } from '../../src/ui/palette';
 import {
-  formatKoreanWeekRange,
   shiftIsoDate,
   todayIso,
   weekDatesIso,
@@ -37,6 +56,22 @@ import {
 } from '../../src/ui/weekly/WeeklyGrid';
 
 const SWIPE_THRESHOLD = 60;
+const TIME_GUTTER = 56;
+
+const KOREAN_MONTH = (month: number, day: number): string =>
+  `${month}월 ${day}일`;
+
+/** "5월 3일 – 9일" or "5월 31일 – 6월 6일". */
+function formatWeekRange(start: ISODate, end: ISODate): string {
+  const s = start as unknown as string;
+  const e = end as unknown as string;
+  const sm = Number(s.slice(5, 7));
+  const sd = Number(s.slice(8, 10));
+  const em = Number(e.slice(5, 7));
+  const ed = Number(e.slice(8, 10));
+  if (sm === em) return `${KOREAN_MONTH(sm, sd)} – ${ed}일`;
+  return `${KOREAN_MONTH(sm, sd)} – ${KOREAN_MONTH(em, ed)}`;
+}
 
 export default function ChildWeeklyScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ id: string }>();
@@ -45,14 +80,15 @@ export default function ChildWeeklyScreen(): React.ReactElement {
   const schedules = useSchedulesStore((s) => s.schedules);
   const exceptions = useSchedulesStore((s) => s.exceptions);
   const openEditSheet = useUiStore((s) => s.openEditSheet);
+  const openEventDetail = useUiStore((s) => s.openEventDetail);
+  // TODO(worker-drawers): wire to useUiStore.openCalendar() once
+  // CalendarDrawer mounts in app/_layout.tsx.
 
   // Anchor week to the child screen's own date (independent of the daily
   // view's currentDate so navigation doesn't snap them together).
   const [anchorDate, setAnchorDate] = useState<ISODate>(todayIso());
   const [bodyWidth, setBodyWidth] = useState(0);
 
-  // Parse id. Note: hooks above MUST run unconditionally; the invalid-id
-  // branch happens below.
   const childId = useMemo(() => {
     const raw = params.id;
     if (typeof raw !== 'string') return null;
@@ -67,9 +103,8 @@ export default function ChildWeeklyScreen(): React.ReactElement {
 
   const weekStart = useMemo(() => weekStartIso(anchorDate), [anchorDate]);
   const weekDates = useMemo(() => weekDatesIso(anchorDate), [anchorDate]);
+  const weekEnd = useMemo(() => shiftIsoDate(weekStart, 6), [weekStart]);
 
-  // Filter schedules + exceptions to this child only. expandOccurrences is the
-  // pure path; we feed it a single-child map so unrelated occurrences vanish.
   const childrenById = useMemo(() => {
     const m = new Map<number, Child>();
     if (child !== undefined) m.set(child.id, child);
@@ -93,7 +128,9 @@ export default function ChildWeeklyScreen(): React.ReactElement {
     );
   }, [child, childSchedules, exceptions, weekStart, weekDates, childrenById]);
 
-  // Horizontal pan: ±7 days.
+  const activeCount = occurrences.length;
+
+  // Horizontal pan: ±7 days. Mirrors daily/index.tsx commit 1cbfd81.
   const panGesture = Gesture.Pan()
     .activeOffsetX([-12, 12])
     .failOffsetY([-12, 12])
@@ -106,26 +143,17 @@ export default function ChildWeeklyScreen(): React.ReactElement {
     })
     .runOnJS(true);
 
-  const goPrev = (): void => setAnchorDate(shiftIsoDate(weekStart, -7));
-  const goNext = (): void => setAnchorDate(shiftIsoDate(weekStart, 7));
   const goThisWeek = (): void => setAnchorDate(todayIso());
 
   const handleEmpty = (e: WeeklyEmptySlotEvent): void => {
     if (child === undefined) return;
-    const startMinutes = GRID_START_HOUR * 60 + e.slotIndex * SLOT_MIN;
     openEditSheet('create', {
       preFill: { childId: child.id, date: e.date },
     });
-    // TODO: thread startMinutes through preFill once schema is extended; for
-    // now the sheet picks a sensible default and the user adjusts.
-    void startMinutes;
   };
 
   const handleBlock = (e: WeeklyBlockPressEvent): void => {
-    openEditSheet('editAll', {
-      scheduleId: e.scheduleId,
-      occurrenceDate: e.date,
-    });
+    openEventDetail({ scheduleId: e.scheduleId, occurrenceDate: e.date });
   };
 
   // ---------- Render branches (hooks above ran unconditionally) ----------
@@ -154,52 +182,63 @@ export default function ChildWeeklyScreen(): React.ReactElement {
     );
   }
 
+  // Column width must keep WeeklyGrid happy (it positions blocks absolutely
+  // off this width). 56px gutter on the left, 7 columns share the rest.
   const columnWidth =
-    bodyWidth > 0 ? Math.floor((bodyWidth - TIME_COL_WIDTH) / 7) : 0;
+    bodyWidth > 0 ? Math.floor((bodyWidth - TIME_GUTTER) / 7) : 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <ColorDot colorIndex={child.colorIndex} size={14} />
-          <Text style={styles.title}>{child.name}</Text>
-        </View>
-        <View style={styles.headerSpacer} />
+      {/* Top bar — back chev + "이번 주" pill + range caption + chev-down. */}
+      <View style={styles.topBar}>
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="뒤로"
+          hitSlop={8}
+          style={styles.topBtn}
+        >
+          <IconChevronLeft size={20} color={TOKENS.ink} />
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            // TODO(worker-drawers): open CalendarDrawer.
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="주 선택"
+          style={styles.topTitleRow}
+        >
+          <Text style={styles.topTitle}>이번 주</Text>
+          <View style={styles.topCaptionRow}>
+            <Text style={styles.topCaption}>
+              {formatWeekRange(weekStart, weekEnd)}
+            </Text>
+            <IconChevronDown size={16} color={TOKENS.inkSub} />
+          </View>
+        </Pressable>
         <Pressable
           onPress={goThisWeek}
           accessibilityRole="button"
           accessibilityLabel="이번 주로 이동"
-          style={({ pressed }) => [
-            styles.thisWeekPill,
-            {
-              backgroundColor: pressed ? TOKENS.primaryDeep : TOKENS.primary,
-            },
-          ]}
+          style={styles.topBtn}
+          hitSlop={8}
         >
-          <Text style={styles.thisWeekLabel}>이번 주</Text>
+          <IconChevronRight size={20} color={TOKENS.ink} />
         </Pressable>
       </View>
 
-      <View style={styles.subHeader}>
-        <Pressable
-          onPress={goPrev}
-          accessibilityRole="button"
-          accessibilityLabel="이전 주"
-          hitSlop={8}
-        >
-          <Ionicons name="chevron-back" size={22} color={TOKENS.ink} />
-        </Pressable>
-        <Text style={styles.weekLabel} accessibilityRole="text">
-          {formatKoreanWeekRange(weekStart)}
-        </Text>
-        <Pressable
-          onPress={goNext}
-          accessibilityRole="button"
-          accessibilityLabel="다음 주"
-          hitSlop={8}
-        >
-          <Ionicons name="chevron-forward" size={22} color={TOKENS.ink} />
-        </Pressable>
+      {/* Kid header row — avatar + name + "이번 주 일정" + count. */}
+      <View style={styles.kidHeaderWrap}>
+        <View style={styles.kidHeader}>
+          <KidAvatar child={child} size={30} />
+          <View style={styles.kidHeaderTextRow}>
+            <Text style={styles.kidName}>{child.name}</Text>
+            <Text style={styles.kidWeekLabel}>이번 주 일정</Text>
+            <Text style={styles.kidCount}>{activeCount}건</Text>
+            {/* TODO(schema-grade): kid grade caption is in app-weekly.jsx but
+                our schema has no grade column — show nothing for now. */}
+          </View>
+        </View>
       </View>
 
       <GestureDetector gesture={panGesture}>
@@ -214,6 +253,7 @@ export default function ChildWeeklyScreen(): React.ReactElement {
               occurrences={occurrences}
               weekDates={weekDates}
               columnWidth={columnWidth}
+              todayColorIndex={child.colorIndex}
               onEmptySlotPress={handleEmpty}
               onBlockPress={handleBlock}
             />
@@ -226,33 +266,89 @@ export default function ChildWeeklyScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKENS.surface },
-  header: {
+
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontSize: 20, fontWeight: '700', color: TOKENS.ink },
-  headerSpacer: { flex: 1 },
-  thisWeekPill: {
-    paddingVertical: 6,
+    paddingTop: 8,
+    paddingBottom: 4,
     paddingHorizontal: 14,
-    borderRadius: 9999,
+    gap: 10,
   },
-  thisWeekLabel: { fontSize: 13, fontWeight: '600', color: TOKENS.surface },
-
-  subHeader: {
-    flexDirection: 'row',
+  topBtn: {
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
-    paddingBottom: 8,
-    borderBottomColor: TOKENS.hair,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderRadius: 9999,
+    backgroundColor: TOKENS.ink04,
   },
-  weekLabel: { fontSize: 15, fontWeight: '600', color: TOKENS.ink },
+  topTitleRow: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  topTitle: {
+    fontSize: 22,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    letterSpacing: -0.4,
+    color: TOKENS.ink,
+  },
+  topCaptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  topCaption: {
+    fontSize: 13,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.inkSub,
+    letterSpacing: -0.2,
+  },
+
+  kidHeaderWrap: {
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  kidHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    backgroundColor: TOKENS.ink04,
+    borderRadius: 9999,
+  },
+  kidHeaderTextRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 5,
+    flexWrap: 'wrap',
+    minWidth: 0,
+  },
+  kidName: {
+    fontSize: 13,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    color: TOKENS.ink,
+    letterSpacing: -0.3,
+  },
+  kidWeekLabel: {
+    fontSize: 11,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.inkSub,
+  },
+  kidCount: {
+    fontSize: 11,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    color: TOKENS.ink,
+  },
 
   body: { flex: 1 },
 
@@ -263,7 +359,11 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 16,
   },
-  errorTitle: { fontSize: 16, color: TOKENS.ink, fontWeight: '500' },
+  errorTitle: {
+    fontSize: 16,
+    color: TOKENS.ink,
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+  },
   backCta: {
     paddingVertical: 12,
     paddingHorizontal: 20,
@@ -271,5 +371,9 @@ const styles = StyleSheet.create({
     minWidth: 160,
     alignItems: 'center',
   },
-  backCtaLabel: { fontSize: 14, fontWeight: '600', color: TOKENS.surface },
+  backCtaLabel: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    color: TOKENS.surface,
+  },
 });
