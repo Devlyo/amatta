@@ -117,6 +117,7 @@ export function expandOccurrences(
         title,
         type: sch.type,
         colorIndex: child.colorIndex,
+        needsPickup: sch.needsPickup,
       });
     }
   }

@@ -4,6 +4,7 @@ import {
   formatKoreanDateLabel,
   formatKoreanShortDate,
   formatKoreanWeekRange,
+  formatTodoDue,
   isToday,
   shiftIsoDate,
   todayIso,
@@ -140,5 +141,30 @@ describe('isToday', () => {
   test('a different ISO date is not today', () => {
     // Far-future date — guaranteed not today.
     expect(isToday(iso('2099-12-31'))).toBe(false);
+  });
+});
+
+describe('formatTodoDue', () => {
+  // currentDate = 2026-06-02 (Tuesday).
+  const today = iso('2026-06-02');
+
+  test('same calendar day → 오늘', () => {
+    const dueAt = new Date(2026, 5, 2, 9, 30).getTime();
+    expect(formatTodoDue(dueAt, today)).toBe('오늘');
+  });
+
+  test('next calendar day → 내일', () => {
+    const dueAt = new Date(2026, 5, 3, 0, 1).getTime();
+    expect(formatTodoDue(dueAt, today)).toBe('내일');
+  });
+
+  test('future date returns M/D form', () => {
+    const dueAt = new Date(2026, 5, 8, 17, 0).getTime();
+    expect(formatTodoDue(dueAt, today)).toBe('6/8');
+  });
+
+  test('past date also returns M/D form', () => {
+    const dueAt = new Date(2026, 4, 28, 12, 0).getTime();
+    expect(formatTodoDue(dueAt, today)).toBe('5/28');
   });
 });

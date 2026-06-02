@@ -48,6 +48,7 @@ describe('WeeklyGrid', () => {
         title: '학교',
         type: 'school',
         colorIndex: 0,
+        needsPickup: false,
       },
       {
         scheduleId: 2,
@@ -58,6 +59,7 @@ describe('WeeklyGrid', () => {
         title: '피아노',
         type: 'activity',
         colorIndex: 2,
+        needsPickup: false,
       },
     ];
     const { queryByText } = render(
@@ -84,6 +86,7 @@ describe('WeeklyGrid', () => {
             title: 'last week',
             type: 'other',
             colorIndex: 0,
+            needsPickup: false,
           },
         ]}
         weekDates={WEEK}

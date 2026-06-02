@@ -210,8 +210,9 @@ function ScheduleBlockDaily({ occ, palette, onPress }: BlockProps): React.ReactE
         <Text style={styles.blockTitle} numberOfLines={1} ellipsizeMode="tail">
           {occ.title}
         </Text>
-        {/* TODO(v2-schema): pickup pill (7px primary dot with 2px halo
-            shadow) requires `needs_pickup` boolean which lands in v2. */}
+        {occ.needsPickup ? <View style={styles.pickupDot} /> : null}
+        {/* TODO(EAS-dev-build): add 2px white outline ring (boxShadow inset)
+            when react-native-svg works in our Expo Go binary. */}
       </View>
       <Text style={styles.blockTime}>
         {fmt12hrShort(occ.startMinutes)}–{fmt12hrShort(occ.endMinutes)}
@@ -347,6 +348,13 @@ const styles = StyleSheet.create({
     color: TOKENS.ink,
     letterSpacing: -0.2,
     lineHeight: 14,
+  },
+  pickupDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 9999,
+    backgroundColor: TOKENS.primary,
+    marginLeft: 4,
   },
   blockTime: {
     fontSize: 10,

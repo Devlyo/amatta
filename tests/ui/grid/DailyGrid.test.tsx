@@ -33,6 +33,7 @@ describe('DailyGrid', () => {
         title: '학교',
         type: 'school',
         colorIndex: 0,
+        needsPickup: false,
       },
       {
         scheduleId: 2,
@@ -43,6 +44,7 @@ describe('DailyGrid', () => {
         title: '피아노',
         type: 'activity',
         colorIndex: 2,
+        needsPickup: false,
       },
     ];
 
@@ -69,6 +71,7 @@ describe('DailyGrid', () => {
         title: 'orphan',
         type: 'school',
         colorIndex: 0,
+        needsPickup: false,
       },
     ];
 

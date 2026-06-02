@@ -14,6 +14,7 @@ function occ(partial: Partial<Occurrence> & { childId: number; startMinutes: num
     title: partial.title ?? 'Block',
     type: partial.type ?? 'academy',
     colorIndex: (partial.colorIndex ?? 0) as ColorIndex,
+    needsPickup: partial.needsPickup ?? false,
   };
 }
 

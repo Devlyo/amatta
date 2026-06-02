@@ -14,24 +14,28 @@
 // in R2; '+' falls back to the existing useUiStore.openEditSheet flow until
 // the form port lands in R3.
 
-import { useEffect, useMemo, useState } from 'react';
-import { AppState, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AppState, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { MAX_CHILDREN } from '../../src/domain/constants';
 import { expandOccurrences } from '../../src/domain/occurrences';
 import type { Child, Occurrence } from '../../src/domain/types';
+import { useChecklistStore } from '../../src/state/checklist-store';
 import { useChildrenStore } from '../../src/state/children-store';
+import { usePickupLogStore } from '../../src/state/pickup-log-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
+import { useTodosStore } from '../../src/state/todos-store';
 import { useUiStore } from '../../src/state/ui-store';
 import { BottomDock } from '../../src/ui/common/BottomDock';
 import { EmptyChildrenState } from '../../src/ui/common/EmptyChildrenState';
 import { KidPillsHeader } from '../../src/ui/daily/KidPillsHeader';
+import { PickupCarousel } from '../../src/ui/daily/PickupCarousel';
 import { ScheduleGrid } from '../../src/ui/daily/ScheduleGrid';
 import { TabStrip, type DailyTabKey } from '../../src/ui/daily/TabStrip';
+import { TodoTabContent } from '../../src/ui/daily/TodoTabContent';
 import { TopBar } from '../../src/ui/daily/TopBar';
-import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { TOKENS } from '../../src/ui/palette';
 import { formatKoreanShortDate, isToday } from '../../src/ui/utils/date';
 
@@ -114,6 +118,25 @@ export default function DailyViewScreen(): React.ReactElement {
     [schedules, exceptions, currentDate, childrenById],
   );
 
+  const completionMap = usePickupLogStore((s) => s.completionMap);
+  const pickupLogIsComplete = useCallback(
+    (scheduleId: number, occurrenceDateInt: number): boolean =>
+      completionMap.has(`${scheduleId}|${occurrenceDateInt}`),
+    [completionMap],
+  );
+
+  const undoneTodos = useTodosStore(
+    (s) => s.todos.filter((t) => !t.isDone).length,
+  );
+  const undoneChecklist = useChecklistStore((s) => {
+    let n = 0;
+    for (const items of s.itemsByScheduleId.values()) {
+      for (const item of items) if (!item.isDone) n += 1;
+    }
+    return n;
+  });
+  const todoCount = undoneTodos + undoneChecklist;
+
   const handleBlockPress = (occ: Occurrence): void => {
     // TODO(R3-drawers): the prototype routes to EventDetailDrawer. Until R3
     // ports app-event-form.jsx into ScheduleEditSheet, we open the existing
@@ -168,17 +191,17 @@ export default function DailyViewScreen(): React.ReactElement {
         onPressWeek={handlePressWeek}
       />
 
-      {/* Section 3 — Pickup carousel — TODO(v2-schema): needs `needs_pickup`
-          column on the Schedule row (see ADR-002). Intentionally skipped in
-          R2; the layout collapses tight, with TabStrip flowing directly under
-          the top bar — matches the prototype when there's no pickup. */}
+      {/* Section 3 — Pickup carousel (returns null when no cards) */}
+      <PickupCarousel
+        occurrences={occurrences}
+        childrenById={childrenById}
+        nowMinutes={nowMinutes}
+        currentDate={currentDate}
+        pickupLogIsComplete={pickupLogIsComplete}
+      />
 
       {/* Section 4 — Tabs */}
-      <TabStrip
-        active={tab}
-        onChange={setTab}
-        todoCount={0 /* TODO(v2-schema): TODOS + TASKS entities */}
-      />
+      <TabStrip active={tab} onChange={setTab} todoCount={todoCount} />
 
       {tab === 'schedule' ? (
         <>
@@ -196,12 +219,7 @@ export default function DailyViewScreen(): React.ReactElement {
           />
         </>
       ) : (
-        // TODO(v2-schema): the 준비물 & 할일 tab needs ChecklistItem + Todo
-        // entities (ADR-002). For R2 we render a placeholder so the tab is
-        // tappable without crashing.
-        <View style={styles.todoPlaceholder}>
-          <Text style={styles.todoPlaceholderText}>v1.1에서 출시 예정</Text>
-        </View>
+        <TodoTabContent />
       )}
 
       {/* Section 7 — Floating bottom dock */}
@@ -215,16 +233,4 @@ export default function DailyViewScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKENS.surface },
-  todoPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-  },
-  todoPlaceholderText: {
-    fontFamily: FONT_FAMILIES.pretendardMedium,
-    fontSize: 14,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.2,
-  },
 });

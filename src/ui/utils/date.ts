@@ -148,3 +148,27 @@ export function formatKoreanShortDate(iso: ISODate): string {
 export function isToday(iso: ISODate): boolean {
   return (iso as unknown as string) === (todayIso() as unknown as string);
 }
+
+/**
+ * Formats a Todo's `dueAt` epoch-ms relative to `currentDate` (the
+ * day the daily-view is anchored to). Returns "오늘"/"내일"/"M/D".
+ * Matches amatta-v1 TodoB caption convention.
+ */
+export function formatTodoDue(dueAt: number, currentDate: ISODate): string {
+  const d = new Date(dueAt);
+  const dueY = d.getFullYear();
+  const dueM = d.getMonth() + 1;
+  const dueD = d.getDate();
+  const curS = currentDate as unknown as string;
+  const curY = Number(curS.slice(0, 4));
+  const curM = Number(curS.slice(5, 7));
+  const curD = Number(curS.slice(8, 10));
+  // Build local-time anchors for an exact day-diff in calendar days.
+  const dueAnchor = new Date(dueY, dueM - 1, dueD).getTime();
+  const curAnchor = new Date(curY, curM - 1, curD).getTime();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const diff = Math.round((dueAnchor - curAnchor) / dayMs);
+  if (diff === 0) return '오늘';
+  if (diff === 1) return '내일';
+  return `${dueM}/${dueD}`;
+}

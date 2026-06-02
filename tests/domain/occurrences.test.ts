@@ -47,6 +47,7 @@ function schedule(partial: Partial<Schedule> & { id: number; childId: number; da
     validFrom: partial.validFrom ?? D(2020, 1, 1),
     validUntil: partial.validUntil ?? null,
     notifyMinutesBefore: partial.notifyMinutesBefore ?? null,
+    needsPickup: partial.needsPickup ?? false,
   };
 }
 
@@ -260,6 +261,21 @@ describe('expandOccurrences', () => {
     const sched = schedule({ id: 1, childId: 2, daysOfWeek: DOW.MON });
     const occs = expandOccurrences([sched], [], { from: D(2026, 6, 1), to: D(2026, 6, 1) }, childrenById);
     expect(occs[0]?.colorIndex).toBe(3);
+  });
+
+  test('occurrence carries needsPickup from the source schedule', () => {
+    const schedYes = schedule({ id: 1, childId: 1, daysOfWeek: DOW.MON, needsPickup: true });
+    const schedNo = schedule({ id: 2, childId: 1, daysOfWeek: DOW.MON, needsPickup: false });
+    const occs = expandOccurrences(
+      [schedYes, schedNo],
+      [],
+      { from: D(2026, 6, 1), to: D(2026, 6, 1) },
+      childrenById,
+    );
+    expect(occs).toHaveLength(2);
+    const byId = new Map(occs.map((o) => [o.scheduleId, o.needsPickup]));
+    expect(byId.get(1)).toBe(true);
+    expect(byId.get(2)).toBe(false);
   });
 
   test('cancel exception only affects the matching schedule, not siblings on same date', () => {

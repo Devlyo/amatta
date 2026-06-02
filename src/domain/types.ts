@@ -57,6 +57,7 @@ export interface Occurrence {
   title: string;
   type: ScheduleType;
   colorIndex: ColorIndex;
+  needsPickup: boolean;
 }
 
 export interface ChecklistItem {
