@@ -210,7 +210,6 @@ export default function OnbAddKidScreen(): React.ReactElement {
             placeholder="자녀 이름"
             placeholderTextColor={TOKENS.inkSub}
             maxLength={NAME_MAX}
-            autoFocus={isFirst}
             style={styles.nameInput}
             accessibilityLabel="자녀 이름"
             testID="onb-name-input"
@@ -434,8 +433,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
   },
+  // 3-per-row to match /settings/kid-edit and fill the 6-avatar pool in
+  // exactly two rows of three (per user direction).
   avatarSwatch: {
-    flexBasis: '23%',
+    flexBasis: '31%',
     flexGrow: 1,
     paddingVertical: 12,
     borderRadius: 14,

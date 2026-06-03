@@ -82,21 +82,21 @@ export default memo(OnbWelcomeImpl);
 
 const MASCOT_PINK_SIZE = 120;
 const MASCOT_ORANGE_SIZE = 130;
-// Approximated dimensions of the spec's <svg viewBox="0 0 280 120"> tray
-// rendered at width 270 / height 116. Oval fallback keeps the same
-// horizontal centre + the spec's translate offsets.
-const BLOB_W = 270;
-const BLOB_H = 70;
+// User override: the View-oval approximation read as a flat dome that
+// didn't match the spec's organic blob anyway, so swap to a plain 2px
+// horizontal line in the same NOW_YELLOW. Same centre + spec offsets.
+const BLOB_W = 230;
+const BLOB_H = 2;
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKENS.surface },
 
-  // Pulls the group ~100px above the vertical centre, matching the
-  // spec's translateY(-50% - 100px).
+  // Group sits just below screen vertical centre per user direction.
+  // Previously paddingBottom:200 was pulling it well above centre.
   heroContainer: {
     flex: 1,
     justifyContent: 'center',
-    paddingBottom: 200,
+    paddingBottom: 40,
   },
   heroGroup: {
     alignSelf: 'stretch',
@@ -117,9 +117,9 @@ const styles = StyleSheet.create({
     left: '50%',
     top: '50%',
     marginLeft: -BLOB_W / 2 + 6, // spec: translate(calc(-50% + 6px), ...)
-    marginTop: -BLOB_H / 2 + 30,  // spec: translate(..., calc(-50% + 30px))
-    backgroundColor: '#E0E446', // matches NOW_YELLOW; see header note.
-    borderRadius: 9999,
+    marginTop: -BLOB_H / 2 + 38, // a touch below the mascot feet line.
+    backgroundColor: '#E0E446', // NOW_YELLOW.
+    borderRadius: 1,
   },
   mascotPink: {
     width: MASCOT_PINK_SIZE,
