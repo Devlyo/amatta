@@ -15,7 +15,8 @@ import { useRouter } from 'expo-router';
 
 import { MAX_CHILDREN } from '../../src/domain/constants';
 import { useChildrenStore } from '../../src/state/children-store';
-import { ColorDot } from '../../src/ui/common/ColorDot';
+import { KidAvatar } from '../../src/ui/common/KidAvatar';
+import type { Child } from '../../src/domain/types';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { IconChevronLeft, IconChevronRight } from '../../src/ui/icons';
 import { TOKENS } from '../../src/ui/palette';
@@ -205,7 +206,7 @@ function KidStack({
   shown,
   total,
 }: {
-  shown: readonly { id: number; colorIndex: 0 | 1 | 2 | 3 | 4 | 5 }[];
+  shown: readonly Child[];
   total: number;
 }): React.ReactElement {
   return (
@@ -220,7 +221,7 @@ function KidStack({
               { zIndex: shown.length - i },
             ]}
           >
-            <ColorDot colorIndex={k.colorIndex} size={20} />
+            <KidAvatar child={k} size={20} />
           </View>
         ))}
       </View>
