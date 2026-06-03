@@ -7,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   View,
 } from 'react-native';
@@ -28,6 +27,7 @@ import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { IconChevronLeft, IconChevronRight } from '../../src/ui/icons';
 import { TOKENS } from '../../src/ui/palette';
 import { ResetConfirmSheet } from '../../src/ui/settings/ResetConfirmSheet';
+import { SwitchPill } from '../../src/ui/settings/SwitchPill';
 
 const APP_VERSION = '1.0.0';
 const APP_BUILD = '(build 1)';
@@ -263,20 +263,30 @@ function ToggleRow({
   accessibilityLabel: string;
   testID?: string;
 }): React.ReactElement {
+  // Spec line 252-258: the whole row is the touch target (tap anywhere
+  // toggles), with the Switch component sitting on the right.
   return (
-    <View
-      style={styles.row}
+    <Pressable
+      onPress={() => onChange(!value)}
       accessibilityRole="switch"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ checked: value }}
       testID={testID}
+      style={({ pressed }) => [
+        styles.row,
+        pressed ? styles.rowPressed : null,
+      ]}
     >
       <View style={styles.rowText}>
         <Text style={styles.rowLabel}>{label}</Text>
         {sub !== undefined ? <Text style={styles.rowSub}>{sub}</Text> : null}
       </View>
-      <Switch value={value} onValueChange={onChange} />
-    </View>
+      <SwitchPill
+        value={value}
+        onChange={onChange}
+        accessibilityLabel={`${accessibilityLabel} switch`}
+      />
+    </Pressable>
   );
 }
 
@@ -301,9 +311,16 @@ function SegmentedRow<T>({
   accessibilityLabel: string;
   testID?: string;
 }): React.ReactElement {
+  // Spec line 285-320: label/sub on top, the segmented track BELOW at
+  // full width. Track is an ink04 pill with 3px inner padding; each
+  // segment flex:1 (equal width). Active segment fills with surface,
+  // gets a 1px hair border + soft shadow; inactive is transparent.
   return (
     <View
-      style={[styles.row, styles.segmentedRow, disabled ? styles.rowDisabled : null]}
+      style={[
+        styles.segmentedRow,
+        disabled ? styles.rowDisabled : null,
+      ]}
       accessibilityLabel={accessibilityLabel}
       testID={testID}
     >
@@ -508,27 +525,58 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  // --- Segmented row ---------------------------------------------------
-  segmentedRow: { alignItems: 'flex-start', gap: 8 },
+  // --- Segmented row — spec line 287-318 -------------------------------
+  // Row card paddings ('8px 10px 10px') so the label sits hugging the
+  // top-left and the track has 10px before the bottom edge.
+  segmentedRow: {
+    paddingTop: 8,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    borderRadius: 12,
+  },
+  // Track: ink04 pill below the label, 3px inner padding, 2px between
+  // segments, full-row width.
   segmentedTrack: {
     flexDirection: 'row',
-    gap: 4,
-    flexShrink: 0,
+    backgroundColor: TOKENS.ink04,
+    borderRadius: 9999,
+    padding: 3,
+    gap: 2,
+    marginTop: 10,
+    width: '100%',
   },
+  // Each segment equal-width.
   segment: {
-    paddingVertical: 6,
+    flex: 1,
+    paddingVertical: 7,
     paddingHorizontal: 10,
     borderRadius: 9999,
-    backgroundColor: TOKENS.ink04,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  segmentActive: { backgroundColor: TOKENS.ink },
+  // Active: white pill + 1px hair inset border + soft shadow.
+  segmentActive: {
+    backgroundColor: TOKENS.surface,
+    borderWidth: 1,
+    borderColor: TOKENS.hair,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
+  },
   segmentLabel: {
-    fontSize: 12.5,
-    fontFamily: FONT_FAMILIES.pretendardMedium,
+    fontSize: 13,
+    fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
   },
-  segmentLabelActive: { color: TOKENS.surface },
+  // Active text gets the SemiBold weight per spec (fontWeight 600).
+  segmentLabelActive: {
+    color: TOKENS.ink,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+  },
 
   // --- Destructive row -------------------------------------------------
   destructiveSpacer: { height: 8 },
