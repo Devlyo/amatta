@@ -65,4 +65,20 @@
 ## Discovered later
 (작업 중 새로 발견되면 여기 추가, 우선순위 합의 후 위로 이동)
 
-- (none yet)
+### Tracked 2026-06-03 (after onboarding + settings + avatar pass)
+
+**Big unfinished feature**
+- [ ] [NOTIF-WIRE] expo-notifications 본격 wiring — 일정/할일 추가해도 푸시가 안 울리는 상태.
+  ADR-002 정책은 정해놨지만 실제 스케줄링 코드 0줄. P0 우선순위 후보.
+- [ ] [NOTIF-PERSIST] 설정 상단의 '시스템 알림' + '기본 알림 시점' 영구 저장.
+  현재 useState 만 → 앱 재시작 시 default 로 리셋. app_settings 테이블 추가 또는 AsyncStorage slice.
+
+**시안 fidelity 점검 안 한 surface**
+- [ ] [SEARCH-DRAWER-PASS] SearchDrawer 시안 픽셀 매칭 점검. 동작은 함.
+- [ ] [DATA-LEGAL-PASS] 설정 → 데이터 / 약관 페이지 시안 비교 (사용자가 "그대로 둬" 했지만 한 번 훑긴 필요).
+- [ ] [WELCOME-BLOB-SVG] 온보딩 Welcome 스크린의 라임 트레이 — 현재 2px 직선 합의 상태,
+  EAS dev-build 전환 시 react-native-svg bezier 로 정확한 organic 블롭 교체 가능.
+
+**기술 부채 / 정리**
+- [ ] [REF-IMAGES-AUDIT] docs/design/references/char_pack*.jpg + sub_colors.webp — git 에 올라가 있는데
+  코드에서 안 씀. 사용 여부 확정 후 ref-only 디렉토리로 옮기거나 .gitignore.
