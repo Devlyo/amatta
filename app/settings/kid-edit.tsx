@@ -18,7 +18,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -28,20 +27,18 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { getDb } from '../../src/db/client';
 import { MAX_CHILDREN, PALETTE } from '../../src/domain/constants';
-import type {
-  Child,
-  ColorIndex,
-  NotificationSetting,
-} from '../../src/domain/types';
-import { notificationSettingsRepo } from '../../src/db/repositories';
+import type { Child, ColorIndex } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
 import { ColorDot } from '../../src/ui/common/ColorDot';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
-import { IconCheck, IconChevronLeft } from '../../src/ui/icons';
+import {
+  IconCheck,
+  IconChevronLeft,
+  IconChevronRight,
+} from '../../src/ui/icons';
 import { getKidPalette, TOKENS } from '../../src/ui/palette';
 
 const NAME_MAX = 20;
-const NOTIFY_OPTIONS: readonly number[] = [5, 10, 15, 30, 60] as const;
 
 export default function KidEditScreen(): React.ReactElement {
   const router = useRouter();
@@ -77,10 +74,6 @@ export default function KidEditScreen(): React.ReactElement {
   const [colorIndex, setColorIndex] = useState<ColorIndex>(
     existing?.colorIndex ?? 0,
   );
-  const [notifyMinutesBefore, setNotifyMinutesBefore] = useState<number>(15);
-  const [notifySound, setNotifySound] = useState<boolean>(true);
-  const [notifyEnabled, setNotifyEnabled] = useState<boolean>(true);
-  const [notifyLoaded, setNotifyLoaded] = useState<boolean>(isNew);
 
   // Sync local state once existing child becomes available (store may load
   // after the screen mounts).
@@ -90,83 +83,19 @@ export default function KidEditScreen(): React.ReactElement {
     setColorIndex(existing.colorIndex);
   }, [existing]);
 
-  // Load notification settings for edit mode.
-  useEffect(() => {
-    if (existing === undefined) return;
-    let cancelled = false;
-    void (async () => {
-      const db = await getDb();
-      const setting: NotificationSetting | null =
-        await notificationSettingsRepo.getByChildId(db, existing.id);
-      if (cancelled) return;
-      if (setting !== null) {
-        setNotifyMinutesBefore(setting.defaultMinutesBefore);
-        setNotifySound(setting.sound);
-        setNotifyEnabled(setting.enabled);
-      }
-      setNotifyLoaded(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [existing]);
-
   const trimmedName = name.trim();
   const canSave = trimmedName.length > 0 && trimmedName.length <= NAME_MAX;
 
   const handleSave = useCallback(async (): Promise<void> => {
     if (!canSave) return;
     const db = await getDb();
-    let savedId: number;
     if (existing === undefined) {
-      const created = await addChild(db, {
-        name: trimmedName,
-        colorIndex,
-      });
-      savedId = created.id;
+      await addChild(db, { name: trimmedName, colorIndex });
     } else {
-      await updateChild(db, existing.id, {
-        name: trimmedName,
-        colorIndex,
-      });
-      savedId = existing.id;
-    }
-    // Persist notification settings — only write once they've finished
-    // loading (avoids stomping defaults during the initial async fetch).
-    if (notifyLoaded) {
-      const existingSetting = await notificationSettingsRepo.getByChildId(
-        db,
-        savedId,
-      );
-      if (existingSetting === null) {
-        await notificationSettingsRepo.create(db, {
-          childId: savedId,
-          defaultMinutesBefore: notifyMinutesBefore,
-          sound: notifySound,
-          enabled: notifyEnabled,
-        });
-      } else {
-        await notificationSettingsRepo.update(db, savedId, {
-          defaultMinutesBefore: notifyMinutesBefore,
-          sound: notifySound,
-          enabled: notifyEnabled,
-        });
-      }
+      await updateChild(db, existing.id, { name: trimmedName, colorIndex });
     }
     router.back();
-  }, [
-    canSave,
-    existing,
-    addChild,
-    updateChild,
-    trimmedName,
-    colorIndex,
-    notifyLoaded,
-    notifyMinutesBefore,
-    notifySound,
-    notifyEnabled,
-    router,
-  ]);
+  }, [canSave, existing, addChild, updateChild, trimmedName, colorIndex, router]);
 
   const handleDelete = useCallback((): void => {
     if (existing === undefined) return;
@@ -238,26 +167,37 @@ export default function KidEditScreen(): React.ReactElement {
             />
           </View>
 
-          {/* ── 색상 (시안의 '아바타' 자리; avatar 도입 전까지 색상 그리드) */}
-          <SectionHeader label="색상" />
-          <View style={styles.card}>
+          {/* ── 아바타 (avatar 도입 전까지 6-color 시각 picker 유지) ── */}
+          <SectionHeader label="아바타" />
+          <View style={styles.cardTight}>
             <View style={styles.colorGrid}>
               {PALETTE.map((_hex, idx) => {
                 const i = idx as ColorIndex;
                 const active = i === colorIndex;
-                const pal = getKidPalette(i);
+                // Sibling kids occupying this color (excluding the one
+                // being edited) — those swatches are disabled.
+                const takenByOther = children.some(
+                  (c) =>
+                    c.colorIndex === i &&
+                    (existing === undefined || c.id !== existing.id),
+                );
+                const disabled = takenByOther && !active;
                 return (
                   <Pressable
                     key={i}
-                    onPress={() => setColorIndex(i)}
+                    onPress={() => {
+                      if (disabled) return;
+                      setColorIndex(i);
+                    }}
                     accessibilityRole="button"
-                    accessibilityLabel={`색상 ${i + 1}`}
-                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`아바타 ${i + 1}`}
+                    accessibilityState={{ selected: active, disabled }}
                     style={[
                       styles.colorSwatch,
                       active
                         ? styles.colorSwatchActive
                         : styles.colorSwatchIdle,
+                      disabled ? styles.colorSwatchDisabled : null,
                     ]}
                   >
                     <ColorDot colorIndex={i} size={36} />
@@ -266,54 +206,9 @@ export default function KidEditScreen(): React.ReactElement {
                         <IconCheck size={11} color={TOKENS.surface} />
                       </View>
                     ) : null}
-                    {/* Light static label so palette names are visible without
-                        depending on the avatar surface. */}
-                    <Text style={styles.colorSwatchLabel}>
-                      {COLOR_LABEL_KO[i]}
-                    </Text>
                   </Pressable>
                 );
               })}
-            </View>
-          </View>
-
-          {/* ── 알림 (시안엔 없지만 스키마 boundary 동일 화면 유지) */}
-          <SectionHeader label="알림" />
-          <View style={styles.card}>
-            <View style={styles.notifyRow}>
-              <Text style={styles.notifyLabel}>기본 알림 시점</Text>
-              <View style={styles.chipRow}>
-                {NOTIFY_OPTIONS.map((m) => {
-                  const active = notifyMinutesBefore === m;
-                  return (
-                    <Pressable
-                      key={m}
-                      onPress={() => setNotifyMinutesBefore(m)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${m}분 전`}
-                      accessibilityState={{ selected: active }}
-                      style={[styles.chip, active ? styles.chipActive : null]}
-                    >
-                      <Text
-                        style={[
-                          styles.chipLabel,
-                          active ? styles.chipLabelActive : null,
-                        ]}
-                      >
-                        {m}분 전
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-            <View style={styles.notifyToggleRow}>
-              <Text style={styles.notifyLabel}>알림 활성화</Text>
-              <Switch value={notifyEnabled} onValueChange={setNotifyEnabled} />
-            </View>
-            <View style={styles.notifyToggleRow}>
-              <Text style={styles.notifyLabel}>알림 소리</Text>
-              <Switch value={notifySound} onValueChange={setNotifySound} />
             </View>
           </View>
 
@@ -328,14 +223,10 @@ export default function KidEditScreen(): React.ReactElement {
                   accessibilityLabel={`${existing.name} 삭제`}
                   style={styles.destructiveRow}
                 >
-                  <View style={styles.destructiveText}>
-                    <Text style={styles.destructiveTitle}>
-                      {existing.name} 삭제
-                    </Text>
-                    <Text style={styles.destructiveSub}>
-                      이 자녀의 일정과 준비물도 모두 삭제돼요
-                    </Text>
-                  </View>
+                  <Text style={styles.destructiveTitle}>
+                    {existing.name} 삭제
+                  </Text>
+                  <IconChevronRight size={16} color={TOKENS.ink30} />
                 </Pressable>
               </View>
             </>
@@ -347,15 +238,6 @@ export default function KidEditScreen(): React.ReactElement {
     </SafeAreaView>
   );
 }
-
-const COLOR_LABEL_KO: readonly string[] = [
-  '핑크',
-  '민트',
-  '하늘',
-  '피치',
-  '시트러스',
-  '라벤더',
-] as const;
 
 // ───────────────────────────────────────────────────────────────────
 // Detail top bar — mirrors the one in /settings/kids. Kept local to
@@ -502,6 +384,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     overflow: 'hidden',
   },
+  // Tight variant — no bottom margin. Used by the 아바타 section so the
+  // grid stops flush with the trailing 삭제 card spacer above.
+  cardTight: {
+    backgroundColor: TOKENS.surface,
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 0,
+    overflow: 'hidden',
+  },
 
   // --- Name input -----------------------------------------------------
   nameInput: {
@@ -538,6 +429,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: TOKENS.ink,
   },
+  colorSwatchDisabled: {
+    opacity: 0.35,
+  },
   colorCheckChip: {
     position: 'absolute',
     top: 6,
@@ -549,75 +443,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  colorSwatchLabel: {
-    fontSize: 11,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.2,
-  },
-
-  // --- Notify ---------------------------------------------------------
-  notifyRow: {
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 6,
-    gap: 6,
-  },
-  notifyLabel: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
-    letterSpacing: -0.3,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 4,
-  },
-  chip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 9999,
-    backgroundColor: TOKENS.ink04,
-  },
-  chipActive: { backgroundColor: TOKENS.ink },
-  chipLabel: {
-    fontSize: 12.5,
-    fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.2,
-  },
-  chipLabelActive: { color: TOKENS.surface },
-  notifyToggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
 
   // --- Destructive row ------------------------------------------------
   spacer16: { height: 16 },
   destructiveRow: {
-    paddingHorizontal: 10,
-    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 14,
   },
-  destructiveText: { flex: 1, gap: 2 },
   destructiveTitle: {
+    flex: 1,
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.danger,
     letterSpacing: -0.3,
-  },
-  destructiveSub: {
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.1,
-    lineHeight: 16,
   },
 
   bottomSpacer: { height: 32 },
