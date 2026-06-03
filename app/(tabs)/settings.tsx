@@ -545,20 +545,25 @@ const styles = StyleSheet.create({
     marginTop: 10,
     width: '100%',
   },
-  // Each segment equal-width.
+  // Each segment equal-width. The 1px-transparent border on the idle
+  // state matches the box-sizing of the active state's 1px hair border
+  // so the cell DOESN'T shift size when selection moves — RN's
+  // borderWidth eats 1px off the inner area, so without a same-width
+  // transparent border on idle, every toggle reflowed the row.
   segment: {
     flex: 1,
     paddingVertical: 7,
     paddingHorizontal: 10,
     borderRadius: 9999,
     backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   // Active: white pill + 1px hair inset border + soft shadow.
   segmentActive: {
     backgroundColor: TOKENS.surface,
-    borderWidth: 1,
     borderColor: TOKENS.hair,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
