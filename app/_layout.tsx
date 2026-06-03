@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Text, StyleSheet } from 'react-native';
+import { AppState, Platform, Text, StyleSheet } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -28,6 +29,18 @@ export { ErrorBoundary } from 'expo-router';
 export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
+
+// Module-scope so it runs once on app load (before any boot effect).
+// Without this, expo-notifications silently suppresses notifications
+// while the app is in the foreground.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 type BootState = 'booting' | 'ready' | 'error';
 
@@ -93,6 +106,17 @@ export default function RootLayout() {
         // the OS queue stays a derived projection of SQLite even if
         // permission was denied (the scheduling calls will no-op).
         try {
+          // Android requires a registered channel before any local push
+          // can fire on API 26+. Channel must exist before scheduling.
+          if (Platform.OS === 'android') {
+            await Notifications.setNotificationChannelAsync('default', {
+              name: 'default',
+              importance: Notifications.AndroidImportance.DEFAULT,
+              sound: 'default',
+              vibrationPattern: [0, 250, 250, 250],
+              lightColor: '#FF7144',
+            });
+          }
           await ensurePermission();
           await rescheduleAll(db);
         } catch (notifErr) {

@@ -584,15 +584,14 @@ export function ScheduleEditSheet(): React.ReactElement {
               <View style={styles.pillWrapRow}>
                 {NOTIFY_OPTIONS.map((opt) => {
                   const selected = form.notifyMinutesBefore === opt;
-                  const label = opt === null ? '없음' : `${opt}분 전`;
                   return (
                     <Pill
-                      key={String(opt)}
+                      key={opt}
                       active={selected}
                       onPress={() =>
                         setForm({ ...form, notifyMinutesBefore: opt })
                       }
-                      label={label}
+                      label={`${opt}분 전`}
                     />
                   );
                 })}

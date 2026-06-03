@@ -18,6 +18,7 @@ import { wipeAllData } from '../../src/db/wipe';
 import { MAX_CHILDREN } from '../../src/domain/constants';
 import { useChildrenStore } from '../../src/state/children-store';
 import { useChecklistStore } from '../../src/state/checklist-store';
+import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
 import { usePickupLogStore } from '../../src/state/pickup-log-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useTodosStore } from '../../src/state/todos-store';
@@ -44,12 +45,14 @@ export default function SettingsScreen(): React.ReactElement {
     [children],
   );
 
-  // TODO(notif-persist): these toggles still live in component state.
-  // Once a global app_settings table or AsyncStorage slice lands they'll
-  // hydrate on boot + persist on change. Until then the UI works but the
-  // values reset on app relaunch.
-  const [systemNotif, setSystemNotif] = useState<boolean>(true);
-  const [leadTime, setLeadTime] = useState<number>(30);
+  // Notification settings share a Zustand slice with the schedule
+  // edit-sheet defaults — picking 30분 전 here makes new schedules
+  // start with 30분 전 highlighted. Persistence across launches is
+  // BACKLOG NOTIF-PERSIST and not in scope yet.
+  const systemNotif = useNotifSettingsStore((s) => s.systemEnabled);
+  const setSystemNotif = useNotifSettingsStore((s) => s.setSystemEnabled);
+  const leadTime = useNotifSettingsStore((s) => s.defaultMinutesBefore);
+  const setLeadTime = useNotifSettingsStore((s) => s.setDefaultMinutesBefore);
 
   const [resetVisible, setResetVisible] = useState<boolean>(false);
 

@@ -3,6 +3,7 @@
 // mounting @gorhom/bottom-sheet.
 
 import { GRID_END_HOUR, GRID_START_HOUR } from '../../domain/constants';
+import { useNotifSettingsStore } from '../../state/notif-settings-store';
 import type {
   DaysOfWeekMask,
   ISODate,
@@ -36,14 +37,17 @@ export const TYPE_LABELS_KO: Readonly<Record<ScheduleType, string>> = {
   other: '기타',
 } as const;
 
-export const NOTIFY_OPTIONS: readonly (number | null)[] = [
-  null,
-  5,
-  10,
-  15,
-  30,
-  60,
-] as const;
+// Unified to Settings § '기본 알림 시점' (app-settings.jsx). The user-facing
+// picker only exposes these three; existing schedules that were saved
+// with any other value (legacy null / 5 / 15) are coerced to the store
+// default at form-load time.
+export const NOTIFY_OPTIONS: readonly number[] = [10, 30, 60] as const;
+
+function coerceToNotifyOption(v: number | null): number {
+  const fallback = useNotifSettingsStore.getState().defaultMinutesBefore;
+  if (v === null) return fallback;
+  return (NOTIFY_OPTIONS as readonly number[]).includes(v) ? v : fallback;
+}
 
 export const TYPE_OPTIONS: readonly ScheduleType[] = [
   'school',
@@ -67,7 +71,7 @@ export function defaultFormState(childId: number | null, date: ISODate | null): 
     validUntil: '',
     location: '',
     notes: '',
-    notifyMinutesBefore: 15,
+    notifyMinutesBefore: useNotifSettingsStore.getState().defaultMinutesBefore,
     needsPickup: false,
   };
 }
@@ -84,7 +88,7 @@ export function formFromSchedule(s: Schedule): EditFormState {
     validUntil: s.validUntil === null ? '' : (s.validUntil as unknown as string),
     location: s.location ?? '',
     notes: s.notes ?? '',
-    notifyMinutesBefore: s.notifyMinutesBefore,
+    notifyMinutesBefore: coerceToNotifyOption(s.notifyMinutesBefore),
     needsPickup: s.needsPickup,
   };
 }
