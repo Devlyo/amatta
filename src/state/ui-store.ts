@@ -55,6 +55,12 @@ interface UiState {
   searchDrawerOpen: boolean;
   openSearch: () => void;
   closeSearch: () => void;
+
+  // 자녀 주간 화면의 kid-switch drawer
+  // (docs/design/amatta-v1/app-weekly-drawers.jsx KidDrawer).
+  kidSwitchDrawerOpen: boolean;
+  openKidSwitch: () => void;
+  closeKidSwitch: () => void;
 }
 
 export const useUiStore = create<UiState>()((set) => ({
@@ -89,4 +95,8 @@ export const useUiStore = create<UiState>()((set) => ({
   searchDrawerOpen: false,
   openSearch: () => set({ searchDrawerOpen: true }),
   closeSearch: () => set({ searchDrawerOpen: false }),
+
+  kidSwitchDrawerOpen: false,
+  openKidSwitch: () => set({ kidSwitchDrawerOpen: true }),
+  closeKidSwitch: () => set({ kidSwitchDrawerOpen: false }),
 }));

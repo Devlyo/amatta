@@ -53,32 +53,35 @@ describe('todayIso', () => {
 });
 
 describe('weekStartIso', () => {
-  // 2026-06-02 is a Tuesday → Monday is 2026-06-01.
-  test('Tuesday → previous Monday', () => {
-    expect(weekStartIso(iso('2026-06-02'))).toBe('2026-06-01');
+  // amatta-v1 weekly view anchors the week on Sunday
+  // (app-weekly.jsx DAYS_KR = ['일','월','화','수','목','금','토']).
+  // 2026-06-02 is a Tuesday → the preceding Sunday is 2026-05-31.
+  test('Tuesday → previous Sunday', () => {
+    expect(weekStartIso(iso('2026-06-02'))).toBe('2026-05-31');
   });
-  test('Monday → itself', () => {
-    expect(weekStartIso(iso('2026-06-01'))).toBe('2026-06-01');
+  test('Sunday → itself', () => {
+    expect(weekStartIso(iso('2026-06-07'))).toBe('2026-06-07');
   });
-  test('Sunday → previous Monday (6 days back)', () => {
-    expect(weekStartIso(iso('2026-06-07'))).toBe('2026-06-01');
+  test('Saturday → previous Sunday (6 days back)', () => {
+    expect(weekStartIso(iso('2026-06-06'))).toBe('2026-05-31');
   });
   test('crosses month boundary backward', () => {
-    expect(weekStartIso(iso('2026-07-01'))).toBe('2026-06-29');
+    // 2026-07-01 is a Wednesday → previous Sunday is 2026-06-28.
+    expect(weekStartIso(iso('2026-07-01'))).toBe('2026-06-28');
   });
 });
 
 describe('weekDatesIso', () => {
-  test('returns 7 ISO dates Mon..Sun', () => {
+  test('returns 7 ISO dates Sun..Sat', () => {
     const days = weekDatesIso(iso('2026-06-02'));
     expect(days).toEqual([
+      '2026-05-31',
       '2026-06-01',
       '2026-06-02',
       '2026-06-03',
       '2026-06-04',
       '2026-06-05',
       '2026-06-06',
-      '2026-06-07',
     ]);
   });
 });

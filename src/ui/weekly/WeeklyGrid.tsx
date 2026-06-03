@@ -1,20 +1,20 @@
 // 1:1 port of WeeklyB grid body in docs/design/amatta-v1/app-weekly.jsx:195–317.
 //
-// Tokens (aligned with src/ui/daily/ScheduleGrid.tsx so a kid's 30-min block
-// reads identically on both screens):
+// Tokens:
 //   SLOT_H        = 32         (per 30-min slot — hour = 64px)
-//   TIME_GUTTER   = 56         (left time column — wider than daily's 40 because
-//                               weekly stacks "00:00" + "AM/PM" with full hour
-//                               numbers, not just `h12`)
-//   TOTAL_SLOTS   = 34         (06:00..23:00)
-//   HOUR_COUNT    = 18         (06..23 inclusive in the gutter)
+//   TIME_GUTTER   = 40         (spec: gridTemplateColumns: '40px repeat(7,1fr)')
+//   TOTAL_SLOTS   = (GRID_END_HOUR-GRID_START_HOUR)*2 from src/domain/constants
+//   HOUR_COUNT    = GRID_END_HOUR-GRID_START_HOUR (gutter labels per hour)
+//   DOW_LABELS    = ['일','월','화','수','목','금','토']  (Sun-first; spec)
 //
 // Body: 7 day columns × TOTAL_SLOTS rows. Today's column has a faint
 // palette.bg tint. Hourly hairlines per column. Blocks position absolute
-// using minutes-from-06:00 so 09:45 lands sub-slot. Tap a block dispatches
-// onBlockPress; tap empty surface dispatches onEmptySlotPress.
+// using minutes-from-GRID_START so 09:45 lands sub-slot. Tap a block
+// dispatches onBlockPress; tap empty surface dispatches onEmptySlotPress.
+// NOW line (lime badge + horizontal rule) shows when today is in the
+// visible week — mirrors ADR-003 NOW tick.
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   GestureResponderEvent,
   Pressable,
@@ -39,13 +39,14 @@ import { fmt12hrShort, todayIso } from '../utils/date';
 const SLOT_H = 32;
 const TIME_START_MIN = GRID_START_HOUR * 60;
 const TIME_END_MIN = GRID_END_HOUR * 60;
-const TOTAL_SLOTS = (TIME_END_MIN - TIME_START_MIN) / SLOT_MIN; // 34
+const TOTAL_SLOTS = (TIME_END_MIN - TIME_START_MIN) / SLOT_MIN;
 const GRID_H = SLOT_H * TOTAL_SLOTS;
 const HOUR_H = SLOT_H * 2;
-const HOUR_COUNT = GRID_END_HOUR - GRID_START_HOUR; // 17 hour-gap rows
-const TIME_GUTTER = 56;
+const HOUR_COUNT = GRID_END_HOUR - GRID_START_HOUR;
+const TIME_GUTTER = 40;
 
-const DOW_LABELS = ['월', '화', '수', '목', '금', '토', '일'] as const;
+// Sun-first to match docs/design/amatta-v1/app-weekly.jsx:73.
+const DOW_LABELS = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
 export interface WeeklyEmptySlotEvent {
   dayIdx: number;
@@ -60,13 +61,21 @@ export interface WeeklyBlockPressEvent {
 
 interface Props {
   occurrences: Occurrence[];
-  weekDates: ISODate[]; // length 7 (Mon..Sun)
+  weekDates: ISODate[]; // length 7 (Sun..Sat)
   /** Optional kid palette index for today-column tint. Caller's choice. */
   todayColorIndex?: number;
   /** Optional fixed column width; otherwise the grid divides available width by 7. */
   columnWidth?: number;
+  /** Minutes-of-day (0..1440) for the NOW line + lime badge. When omitted
+   *  the grid still ticks its own clock so the lime line moves over time. */
+  nowMinutes?: number;
   onEmptySlotPress?: (e: WeeklyEmptySlotEvent) => void;
   onBlockPress?: (e: WeeklyBlockPressEvent) => void;
+}
+
+function nowMinutesOfDay(): number {
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
 }
 
 export function WeeklyGrid({
@@ -74,9 +83,31 @@ export function WeeklyGrid({
   weekDates,
   todayColorIndex,
   columnWidth,
+  nowMinutes: nowMinutesProp,
   onEmptySlotPress,
   onBlockPress,
 }: Props): React.ReactElement {
+  // Local NOW tick — minute-boundary aligned setInterval, mirrors ADR-003 §B.
+  // If the caller supplies `nowMinutes` (e.g. parent screen already runs the
+  // tick), we use that instead and skip the local interval.
+  const [localNow, setLocalNow] = useState<number>(() => nowMinutesOfDay());
+  useEffect(() => {
+    if (nowMinutesProp !== undefined) return;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const tick = (): void => setLocalNow(nowMinutesOfDay());
+    const now = new Date();
+    const msUntilNext = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+    timeoutId = setTimeout(() => {
+      tick();
+      intervalId = setInterval(tick, 60_000);
+    }, msUntilNext);
+    return () => {
+      if (timeoutId !== null) clearTimeout(timeoutId);
+      if (intervalId !== null) clearInterval(intervalId);
+    };
+  }, [nowMinutesProp]);
+  const nowMinutes = nowMinutesProp ?? localNow;
   const typeByScheduleId = useMemo(() => {
     const m = new Map<number, ScheduleType>();
     for (const occ of occurrences) m.set(occ.scheduleId, occ.type);
@@ -137,8 +168,11 @@ export function WeeklyGrid({
           {weekDates.map((d, i) => {
             const dayNum = Number((d as unknown as string).slice(8, 10));
             const isToday = i === todayIdx;
+            // Sun-first now: i=0 = Sunday (red), i=6 = Saturday (blue).
+            // '#3F66D8' Saturday tint stays as inline literal — no
+            // saturday/blue token exists in src/ui/palette.ts yet.
             const dowColor =
-              i === 6 ? TOKENS.danger : i === 5 ? '#3F66D8' : TOKENS.inkSub;
+              i === 0 ? TOKENS.danger : i === 6 ? '#3F66D8' : TOKENS.inkSub;
             return (
               <View
                 key={d as unknown as string}
@@ -260,10 +294,46 @@ export function WeeklyGrid({
             ))}
           </View>
         </View>
+
+        {/* NOW line — drawn only when today is in the visible week.
+            Spans the gutter (badge) + grid surface (line). Matches the
+            prototype's continuous bar at app-weekly.jsx:295. */}
+        {todayIdx >= 0 ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.nowRow,
+              { top: ((nowMinutes - TIME_START_MIN) / SLOT_MIN) * SLOT_H - 9 },
+            ]}
+          >
+            <View style={[styles.nowBadgeArea, { width: TIME_GUTTER }]}>
+              <View style={styles.nowBadge}>
+                <Text style={styles.nowBadgeLabel}>
+                  {fmt12hrShortNoAmpm(nowMinutes)}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.nowLine} />
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
 }
+
+// 12hr without AM/PM suffix (badge is just "H:MM").
+function fmt12hrShortNoAmpm(minutes: number): string {
+  const wrapped = ((minutes % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(wrapped / 60);
+  const m = wrapped % 60;
+  const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  return `${h12}:${String(m).padStart(2, '0')}`;
+}
+
+// Lime green from docs/design/amatta-v1/app-weekly.jsx:306 — matches the
+// existing NOW_YELLOW used in src/ui/daily/ScheduleGrid.tsx. Not yet a
+// TOKENS entry; inlined here to stay consistent with the daily grid.
+const NOW_YELLOW = '#E0E345';
 
 // ---------------------------------------------------------------------------
 // Weekly block — positions by dayIdx (not childIdx) using minutes-of-day so
@@ -447,4 +517,40 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   tapSurface: { position: 'absolute', top: 0, left: 0 },
+
+  // --- NOW line + badge -----------------------------------------------
+  nowRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  nowBadgeArea: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  nowBadge: {
+    backgroundColor: NOW_YELLOW,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
+    borderRadius: 9999,
+    shadowColor: NOW_YELLOW,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.55,
+    shadowRadius: 6,
+  },
+  nowBadgeLabel: {
+    fontSize: 10.5,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    color: '#1d1d1b',
+    letterSpacing: -0.1,
+  },
+  nowLine: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: NOW_YELLOW,
+    marginLeft: -1,
+  },
 });

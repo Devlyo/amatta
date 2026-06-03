@@ -43,10 +43,14 @@ export function todayIso(): ISODate {
 }
 
 /**
- * Returns the Monday-anchored start-of-week for the given ISO date. Computed
- * in local time so DST boundaries don't silently shift the week. Mon=0..Sun=6
- * per `domain/days-of-week.ts:dayOfWeekIndex` — subtract that many days to
- * reach Monday.
+ * Returns the Sunday-anchored start-of-week for the given ISO date — the
+ * convention used by `docs/design/amatta-v1/app-weekly.jsx`'s week strip
+ * (`DAYS_KR = ['일','월','화','수','목','금','토']`). Computed in local
+ * time so DST boundaries don't silently shift the week.
+ *
+ * Note: the `daysOfWeek` bit-mask in `domain/days-of-week.ts` is still
+ * Mon-bit-0..Sun-bit-6 — that mask is a storage concern, independent
+ * of the display week's anchor day.
  */
 export function weekStartIso(iso: ISODate): ISODate {
   const s = iso as unknown as string;
@@ -54,9 +58,8 @@ export function weekStartIso(iso: ISODate): ISODate {
   const m = Number(s.slice(5, 7));
   const d = Number(s.slice(8, 10));
   const date = new Date(y, m - 1, d);
-  // Mon=1..Sun=0 from getDay(); shift to Mon=0..Sun=6.
-  const dow = (date.getDay() + 6) % 7;
-  date.setDate(date.getDate() - dow);
+  // getDay() returns Sun=0..Sat=6 — subtract that many days to reach Sun.
+  date.setDate(date.getDate() - date.getDay());
   const yy = String(date.getFullYear()).padStart(4, '0');
   const mm = String(date.getMonth() + 1).padStart(2, '0');
   const dd = String(date.getDate()).padStart(2, '0');
@@ -64,7 +67,7 @@ export function weekStartIso(iso: ISODate): ISODate {
 }
 
 /**
- * Returns the 7 ISO dates Mon..Sun for the week containing `iso`.
+ * Returns the 7 ISO dates Sun..Sat for the week containing `iso`.
  */
 export function weekDatesIso(iso: ISODate): ISODate[] {
   const start = weekStartIso(iso);

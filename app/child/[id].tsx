@@ -36,16 +36,17 @@ import { useChildrenStore } from '../../src/state/children-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useUiStore } from '../../src/state/ui-store';
 import { KidAvatar } from '../../src/ui/common/KidAvatar';
+import { KidSwitchDrawer } from '../../src/ui/drawers/KidSwitchDrawer';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import {
   IconChevronDown,
   IconChevronLeft,
   IconChevronRight,
+  IconSearch,
 } from '../../src/ui/icons';
 import { TOKENS } from '../../src/ui/palette';
 import {
   shiftIsoDate,
-  todayIso,
   weekDatesIso,
   weekStartIso,
 } from '../../src/ui/utils/date';
@@ -56,7 +57,8 @@ import {
 } from '../../src/ui/weekly/WeeklyGrid';
 
 const SWIPE_THRESHOLD = 60;
-const TIME_GUTTER = 56;
+// Matches docs/design/amatta-v1/app-weekly.jsx grid-template '40px repeat(7,1fr)'.
+const TIME_GUTTER = 40;
 
 const KOREAN_MONTH = (month: number, day: number): string =>
   `${month}월 ${day}일`;
@@ -81,12 +83,14 @@ export default function ChildWeeklyScreen(): React.ReactElement {
   const exceptions = useSchedulesStore((s) => s.exceptions);
   const openEditSheet = useUiStore((s) => s.openEditSheet);
   const openEventDetail = useUiStore((s) => s.openEventDetail);
-  // TODO(worker-drawers): wire to useUiStore.openCalendar() once
-  // CalendarDrawer mounts in app/_layout.tsx.
-
-  // Anchor week to the child screen's own date (independent of the daily
-  // view's currentDate so navigation doesn't snap them together).
-  const [anchorDate, setAnchorDate] = useState<ISODate>(todayIso());
+  const openCalendar = useUiStore((s) => s.openCalendar);
+  const openSearch = useUiStore((s) => s.openSearch);
+  const openKidSwitch = useUiStore((s) => s.openKidSwitch);
+  // Week follows the shared currentDate so opening CalendarDrawer + picking
+  // a date here lands the right week. ±7 swipe writes back into currentDate
+  // so toggling back to daily/multi keeps the same focus.
+  const anchorDate = useUiStore((s) => s.currentDate);
+  const setAnchorDate = useUiStore((s) => s.setCurrentDate);
   const [bodyWidth, setBodyWidth] = useState(0);
 
   const childId = useMemo(() => {
@@ -143,8 +147,6 @@ export default function ChildWeeklyScreen(): React.ReactElement {
     })
     .runOnJS(true);
 
-  const goThisWeek = (): void => setAnchorDate(todayIso());
-
   const handleEmpty = (e: WeeklyEmptySlotEvent): void => {
     if (child === undefined) return;
     openEditSheet('create', {
@@ -189,21 +191,20 @@ export default function ChildWeeklyScreen(): React.ReactElement {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Top bar — back chev + "이번 주" pill + range caption + chev-down. */}
+      {/* Top bar — chev-back + "이번 주" range pill + search (no chev-right;
+          spec puts search on the right, not a this-week shortcut). */}
       <View style={styles.topBar}>
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel="뒤로"
           hitSlop={8}
-          style={styles.topBtn}
+          style={styles.backBtn}
         >
           <IconChevronLeft size={20} color={TOKENS.ink} />
         </Pressable>
         <Pressable
-          onPress={() => {
-            // TODO(worker-drawers): open CalendarDrawer.
-          }}
+          onPress={openCalendar}
           accessibilityRole="button"
           accessibilityLabel="주 선택"
           style={styles.topTitleRow}
@@ -217,28 +218,36 @@ export default function ChildWeeklyScreen(): React.ReactElement {
           </View>
         </Pressable>
         <Pressable
-          onPress={goThisWeek}
+          onPress={openSearch}
           accessibilityRole="button"
-          accessibilityLabel="이번 주로 이동"
-          style={styles.topBtn}
+          accessibilityLabel="검색"
           hitSlop={8}
+          style={styles.searchBtn}
         >
-          <IconChevronRight size={20} color={TOKENS.ink} />
+          <IconSearch size={20} color={TOKENS.ink} />
         </Pressable>
       </View>
 
-      {/* Kid header row — avatar + name + "이번 주 일정" + count. */}
+      {/* Kid header pill — entire row is the kid-switch trigger.
+          Mirrors app-weekly.jsx:140 ("바꾸기" affordance on the right). */}
       <View style={styles.kidHeaderWrap}>
-        <View style={styles.kidHeader}>
-          <KidAvatar child={child} size={30} />
+        <Pressable
+          onPress={openKidSwitch}
+          accessibilityRole="button"
+          accessibilityLabel={`${child.name} — 자녀 바꾸기`}
+          style={styles.kidHeader}
+        >
+          <KidAvatar child={child} size={28} />
           <View style={styles.kidHeaderTextRow}>
             <Text style={styles.kidName}>{child.name}</Text>
             <Text style={styles.kidWeekLabel}>이번 주 일정</Text>
             <Text style={styles.kidCount}>{activeCount}건</Text>
-            {/* TODO(schema-grade): kid grade caption is in app-weekly.jsx but
-                our schema has no grade column — show nothing for now. */}
           </View>
-        </View>
+          <View style={styles.kidSwitchAffordance}>
+            <Text style={styles.kidSwitchLabel}>바꾸기</Text>
+            <IconChevronRight size={11} color={TOKENS.inkSub} />
+          </View>
+        </Pressable>
       </View>
 
       <GestureDetector gesture={panGesture}>
@@ -260,6 +269,15 @@ export default function ChildWeeklyScreen(): React.ReactElement {
           ) : null}
         </View>
       </GestureDetector>
+
+      <KidSwitchDrawer
+        currentKidId={child.id}
+        onPick={(newKidId) => {
+          // Swap the route param so the same screen re-renders for the new
+          // kid (preserves the current week, just changes the lane).
+          router.setParams({ id: String(newKidId) });
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -275,13 +293,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     gap: 10,
   },
-  topBtn: {
+  backBtn: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 9999,
+    marginLeft: -4,
+  },
+  searchBtn: {
     width: 32,
     height: 32,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 9999,
-    backgroundColor: TOKENS.ink04,
   },
   topTitleRow: {
     flex: 1,
@@ -332,6 +357,19 @@ const styles = StyleSheet.create({
     gap: 5,
     flexWrap: 'wrap',
     minWidth: 0,
+  },
+  kidSwitchAffordance: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+  },
+  kidSwitchLabel: {
+    fontSize: 11.5,
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+    color: TOKENS.inkSub,
+    letterSpacing: -0.2,
   },
   kidName: {
     fontSize: 13,
