@@ -38,7 +38,7 @@ import {
 } from '../../src/ui/icons';
 import { getKidPalette, TOKENS } from '../../src/ui/palette';
 
-const NAME_MAX = 20;
+const NAME_MAX = 10; // app-settings-kids.jsx:231 maxLength={10}
 
 export default function KidEditScreen(): React.ReactElement {
   const router = useRouter();
@@ -139,9 +139,11 @@ export default function KidEditScreen(): React.ReactElement {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Hero — large color preview circle ─────────────────── */}
+          {/* ── Hero — large color preview circle.
+              Spec: 140 white ring + AvatarPH size 108. We use a 108
+              palette-source disc until the avatar field ships. */}
           <View style={styles.heroWrap}>
-            <View style={[styles.heroRing, { backgroundColor: palette.bg }]}>
+            <View style={styles.heroRing}>
               <View
                 style={[
                   styles.heroDot,
@@ -200,7 +202,7 @@ export default function KidEditScreen(): React.ReactElement {
                       disabled ? styles.colorSwatchDisabled : null,
                     ]}
                   >
-                    <ColorDot colorIndex={i} size={36} />
+                    <ColorDot colorIndex={i} size={56} />
                     {active ? (
                       <View style={styles.colorCheckChip}>
                         <IconCheck size={11} color={TOKENS.surface} />
@@ -212,7 +214,9 @@ export default function KidEditScreen(): React.ReactElement {
             </View>
           </View>
 
-          {/* ── 삭제 (편집 모드일 때만) ────────────────────────── */}
+          {/* ── 삭제 (편집 모드일 때만).
+              Spec: DestructiveRow uses RowFrame padding 7/10 + RowText
+              (label + sub) + ChevR colored to A.danger. */}
           {!isNew && existing !== undefined ? (
             <>
               <View style={styles.spacer16} />
@@ -223,10 +227,15 @@ export default function KidEditScreen(): React.ReactElement {
                   accessibilityLabel={`${existing.name} 삭제`}
                   style={styles.destructiveRow}
                 >
-                  <Text style={styles.destructiveTitle}>
-                    {existing.name} 삭제
-                  </Text>
-                  <IconChevronRight size={16} color={TOKENS.ink30} />
+                  <View style={styles.destructiveText}>
+                    <Text style={styles.destructiveTitle}>
+                      {existing.name} 삭제
+                    </Text>
+                    <Text style={styles.destructiveSub}>
+                      이 자녀의 일정과 준비물도 모두 삭제돼요
+                    </Text>
+                  </View>
+                  <IconChevronRight size={16} color={TOKENS.danger} />
                 </Pressable>
               </View>
             </>
@@ -352,9 +361,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Spec: AvatarPH size=108 inside 140 ring.
   heroDot: {
-    width: 84,
-    height: 84,
+    width: 108,
+    height: 108,
     borderRadius: 9999,
   },
   heroEyebrow: {
@@ -366,8 +376,9 @@ const styles = StyleSheet.create({
   },
 
   // --- Section / Card -------------------------------------------------
+  // Spec: '14px 14px 6px'.
   sectionHeader: {
-    paddingHorizontal: 4,
+    paddingHorizontal: 14,
     paddingTop: 14,
     paddingBottom: 6,
   },
@@ -404,22 +415,22 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
 
-  // --- Color grid -----------------------------------------------------
+  // --- Avatar grid (spec: 4-col, gap 6, padding 4) ------------------
   colorGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
     padding: 4,
   },
+  // Spec: each cell padding '14px 0', borderRadius 14, 4 per row.
+  // 4 cells + 3 gaps(6) = 18px gutters; flexBasis sized so wrap is clean.
   colorSwatch: {
-    flexBasis: '31%',
+    flexBasis: '23%',
     flexGrow: 1,
-    aspectRatio: 1.05,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
+    paddingVertical: 14,
   },
   colorSwatchIdle: {
     backgroundColor: TOKENS.ink04,
@@ -445,20 +456,31 @@ const styles = StyleSheet.create({
   },
 
   // --- Destructive row ------------------------------------------------
+  // Spec: RowFrame padding '7px 10px' borderRadius 12 + ChevR colored danger.
   spacer16: { height: 16 },
   destructiveRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 10,
     paddingHorizontal: 10,
-    paddingVertical: 14,
+    paddingVertical: 7,
+    borderRadius: 12,
   },
+  destructiveText: { flex: 1, minWidth: 0 },
   destructiveTitle: {
-    flex: 1,
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.danger,
     letterSpacing: -0.3,
+    lineHeight: 18,
+  },
+  destructiveSub: {
+    marginTop: 2,
+    fontSize: 12,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.inkSub,
+    letterSpacing: -0.1,
+    lineHeight: 16,
   },
 
   bottomSpacer: { height: 32 },
