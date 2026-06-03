@@ -152,26 +152,12 @@ describe('EventDetailDrawer', () => {
     expect(queryByText('필통')).not.toBeNull();
   });
 
-  test('"이 회차 수정" closes the drawer and opens the edit sheet in editOccurrence mode', () => {
-    const { getByLabelText, getAllByLabelText } = render(<EventDetailDrawer />);
-    // The top-bar "수정" button and the action-row "이 회차 수정" both target
-    // the same edit-occurrence path. Use the action row (less ambiguous).
-    const targets = getAllByLabelText('이 회차 수정');
-    fireEvent.press(targets[0]!);
-    const ui = useUiStore.getState();
-    expect(ui.eventDetailState.mode).toBe('closed');
-    expect(ui.editSheetState.mode).toBe('editOccurrence');
-    expect(ui.editSheetState.scheduleId).toBe(sampleSchedule.id);
-    expect(ui.editSheetState.occurrenceDate as unknown as string).toBe(
-      '2026-05-04',
-    );
-    // Keep getByLabelText reference linted as used.
-    void getByLabelText;
-  });
-
-  test('"전체 수정" closes the drawer and opens the edit sheet in editAll mode', () => {
+  test('header "수정" closes the drawer and opens the edit sheet in editAll mode', () => {
+    // Spec: the per-occurrence vs schedule-wide split now lives inside
+    // ScheduleEditSheet. The drawer surfaces a single "수정" entry in the
+    // top-right that opens the sheet in editAll mode.
     const { getByLabelText } = render(<EventDetailDrawer />);
-    fireEvent.press(getByLabelText('전체 수정'));
+    fireEvent.press(getByLabelText('수정'));
     const ui = useUiStore.getState();
     expect(ui.eventDetailState.mode).toBe('closed');
     expect(ui.editSheetState.mode).toBe('editAll');

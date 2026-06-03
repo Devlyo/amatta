@@ -185,18 +185,18 @@ export function EventDetailDrawer(): React.ReactElement {
         <View style={styles.headerBar}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="닫기"
+            accessibilityLabel="취소"
             onPress={closeDetail}
             hitSlop={8}
             style={styles.headerSlotStart}
           >
-            <Text style={styles.cancelLabel}>닫기</Text>
+            <Text style={styles.cancelLabel}>취소</Text>
           </Pressable>
           <Text style={styles.headerTitle}>일정</Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="이 회차 수정"
-            onPress={handleEditOccurrence}
+            accessibilityLabel="수정"
+            onPress={handleEditAll}
             disabled={!ready}
             hitSlop={8}
             style={styles.headerSlotEnd}
@@ -400,11 +400,12 @@ export function DetailBody({
         </Group>
       ) : null}
 
+      {/* Spec: bottom action group is exactly two centered rows.
+          "수정" lives in the top-right; the sheet itself surfaces the
+          editAll vs editOccurrence split once the user lands there. */}
       <View style={styles.actionGroup}>
-        <ActionRow label="이 회차 수정" onPress={onEditOccurrence} hairline />
-        <ActionRow label="전체 수정" onPress={onEditAll} hairline />
-        <ActionRow label="이 회차 삭제" onPress={onCancelOccurrence} hairline />
-        <ActionRow label="전체 삭제" onPress={onDeleteAll} tone="danger" />
+        <ActionRow label="이 회차만 취소" onPress={onCancelOccurrence} hairline />
+        <ActionRow label="일정 삭제" onPress={onDeleteAll} tone="danger" />
       </View>
 
       <View style={styles.tail} />

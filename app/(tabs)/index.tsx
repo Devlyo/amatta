@@ -54,6 +54,7 @@ export default function DailyViewScreen(): React.ReactElement {
   const currentDate = useUiStore((s) => s.currentDate);
   const setCurrentDate = useUiStore((s) => s.setCurrentDate);
   const openEditSheet = useUiStore((s) => s.openEditSheet);
+  const openEventDetail = useUiStore((s) => s.openEventDetail);
   const router = useRouter();
 
   // Horizontal swipe ±1 day on the schedule body. activeOffsetX delays
@@ -159,10 +160,10 @@ export default function DailyViewScreen(): React.ReactElement {
   const todoCount = undoneTodos + undoneChecklist;
 
   const handleBlockPress = (occ: Occurrence): void => {
-    // TODO(R3-drawers): the prototype routes to EventDetailDrawer. Until R3
-    // ports app-event-form.jsx into ScheduleEditSheet, we open the existing
-    // editAll sheet directly so users can still edit an occurrence.
-    openEditSheet('editAll', {
+    // Spec: tapping a daily block opens the read-only EventDetailDrawer
+    // (app-event-detail.jsx). The drawer's top-right '수정' routes into
+    // the editAll sheet from there.
+    openEventDetail({
       scheduleId: occ.scheduleId,
       occurrenceDate: currentDate,
     });
