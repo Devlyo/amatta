@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { MAX_CHILDREN } from '../src/domain/constants';
 import { expandOccurrences } from '../src/domain/occurrences';
 import type { Child, ISODate, Occurrence } from '../src/domain/types';
+import { isKoreanHoliday } from '../src/domain/korean-holidays';
 import { useChildrenStore } from '../src/state/children-store';
 import { useChecklistStore } from '../src/state/checklist-store';
 import { useSchedulesStore } from '../src/state/schedules-store';
@@ -301,8 +302,18 @@ function MultiViewScreenImpl(): React.ReactElement {
               const today = (date as unknown as string) === (todayIso() as unknown as string);
               const dowLabel = ['일', '월', '화', '수', '목', '금', '토'][idx] ?? '';
               const day = Number((date as unknown as string).slice(8, 10));
+              const isHoliday = isKoreanHoliday(date);
+              // Sunday OR Korean holiday → TOKENS.danger; Saturday → blue
+              // literal (no token); otherwise inkSub. Same rule applies in
+              // WeeklyGrid + CalendarDrawer.
               const dowColor =
-                idx === 0 ? TOKENS.danger : idx === 6 ? '#3F66D8' : TOKENS.inkSub;
+                idx === 0 || isHoliday
+                  ? TOKENS.danger
+                  : idx === 6
+                    ? '#3F66D8'
+                    : TOKENS.inkSub;
+              const dayColor =
+                isHoliday && !today ? TOKENS.danger : TOKENS.ink;
               return (
                 <View key={date as unknown as string} style={styles.weekStripCell}>
                   <Text style={[styles.weekStripDow, { color: dowColor }]}>
@@ -317,7 +328,9 @@ function MultiViewScreenImpl(): React.ReactElement {
                     <Text
                       style={[
                         styles.weekStripDateLabel,
-                        today ? styles.weekStripDateLabelToday : null,
+                        today
+                          ? styles.weekStripDateLabelToday
+                          : { color: dayColor },
                       ]}
                     >
                       {day}
@@ -445,7 +458,9 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   weekStripGutter: {
-    width: 44,
+    // Must equal MG_GUTTER inside src/ui/weekly/MultiKidGrid.tsx — both
+    // share the canonical 40px time-gutter used across all three views.
+    width: 40,
   },
   weekStripCell: {
     flex: 1,

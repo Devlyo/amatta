@@ -31,7 +31,8 @@ import { fmt12hrShort } from '../utils/date';
 export const MG_HOUR_START = 6;
 export const MG_HOUR_END = 25;
 export const MG_HOUR_PX = 56;
-const MG_GUTTER = 44;
+// Unified across all three grids (daily/weekly/multi) per user direction.
+const MG_GUTTER = 40;
 const NOW_BADGE_DEAD_ZONE = 14; // skip hour label too close to NOW pill
 const TIME_START_MIN = MG_HOUR_START * 60;
 const TIME_END_MIN = MG_HOUR_END * 60;

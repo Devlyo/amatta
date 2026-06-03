@@ -21,6 +21,10 @@ import { TOKENS } from '../palette';
 interface Props {
   caption: string; // "5월 5일 · 화"
   isToday: boolean;
+  /** Whether the currently viewed date is a Korean public holiday — the
+   *  title + caption render in TOKENS.danger when true (matches the
+   *  calendar drawer + week-strip convention). */
+  isHoliday?: boolean;
   onPressDate?: () => void; // opens CalendarDrawer (TODO R3)
   onPressSearch?: () => void; // opens SearchDrawer (TODO R3)
   onPressWeek?: () => void; // navigates to first kid's weekly view
@@ -29,10 +33,12 @@ interface Props {
 function TopBarImpl({
   caption,
   isToday,
+  isHoliday = false,
   onPressDate,
   onPressSearch,
   onPressWeek,
 }: Props): React.ReactElement {
+  const holidayTint = isHoliday ? { color: TOKENS.danger } : null;
   return (
     <View style={styles.bar}>
       {/* LEFT — title pressable */}
@@ -48,11 +54,11 @@ function TopBarImpl({
          *  · isToday=false → title shows "M월 D일" (left of the dot), caption
          *    shows only the weekday so the day-portion isn't duplicated.
          */}
-        <Text style={styles.title}>
+        <Text style={[styles.title, holidayTint]}>
           {isToday ? '오늘' : (caption.split(' · ')[0] ?? caption)}
         </Text>
         <View style={styles.captionWrap}>
-          <Text style={styles.caption}>
+          <Text style={[styles.caption, holidayTint]}>
             {isToday ? caption : (caption.split(' · ')[1] ?? caption)}
           </Text>
           <IconChevronDown size={16} color={TOKENS.inkSub} />

@@ -30,6 +30,7 @@ import {
   SLOT_MIN,
 } from '../../domain/constants';
 import { layoutWeek, type WeekBlockLayout } from '../../domain/grid';
+import { isKoreanHoliday } from '../../domain/korean-holidays';
 import type { ISODate, Occurrence, ScheduleType } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
 import { KIND_ICON } from '../icons';
@@ -168,11 +169,19 @@ export function WeeklyGrid({
           {weekDates.map((d, i) => {
             const dayNum = Number((d as unknown as string).slice(8, 10));
             const isToday = i === todayIdx;
+            const isHoliday = isKoreanHoliday(d);
             // Sun-first now: i=0 = Sunday (red), i=6 = Saturday (blue).
-            // '#3F66D8' Saturday tint stays as inline literal — no
-            // saturday/blue token exists in src/ui/palette.ts yet.
+            // Korean public holidays anywhere in the week also resolve to
+            // TOKENS.danger. '#3F66D8' Saturday tint stays as inline
+            // literal — no saturday/blue token exists in src/ui/palette.ts.
             const dowColor =
-              i === 0 ? TOKENS.danger : i === 6 ? '#3F66D8' : TOKENS.inkSub;
+              i === 0 || isHoliday
+                ? TOKENS.danger
+                : i === 6
+                  ? '#3F66D8'
+                  : TOKENS.inkSub;
+            const dayColor =
+              isHoliday && !isToday ? TOKENS.danger : TOKENS.ink;
             return (
               <View
                 key={d as unknown as string}
@@ -190,7 +199,7 @@ export function WeeklyGrid({
                   <Text
                     style={[
                       styles.weekStripDay,
-                      isToday ? styles.weekStripDayToday : null,
+                      isToday ? styles.weekStripDayToday : { color: dayColor },
                     ]}
                   >
                     {dayNum}
@@ -215,12 +224,15 @@ export function WeeklyGrid({
             pointerEvents="none"
           >
             {Array.from({ length: HOUR_COUNT + 1 }).map((_, i) => {
-              const hour = GRID_START_HOUR + i;
+              const rawHour = GRID_START_HOUR + i;
+              // GRID_END_HOUR may exceed 23 (extended past midnight). Wrap
+              // so 24 → 12AM (midnight), 25 → 1AM. Matches ScheduleGrid.
+              const hour = rawHour % 24;
               const h12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
               const ap = hour < 12 ? 'AM' : 'PM';
               return (
                 <View
-                  key={hour}
+                  key={rawHour}
                   style={[styles.hourLabel, { top: i * HOUR_H - 6 }]}
                 >
                   <Text style={styles.hourNum}>{h12}</Text>

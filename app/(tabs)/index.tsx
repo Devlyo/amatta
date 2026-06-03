@@ -21,6 +21,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 
 import { MAX_CHILDREN } from '../../src/domain/constants';
+import { isKoreanHoliday } from '../../src/domain/korean-holidays';
 import { expandOccurrences } from '../../src/domain/occurrences';
 import type { Child, Occurrence } from '../../src/domain/types';
 import { useChecklistStore } from '../../src/state/checklist-store';
@@ -205,6 +206,7 @@ export default function DailyViewScreen(): React.ReactElement {
       <TopBar
         caption={formatKoreanShortDate(currentDate)}
         isToday={isToday(currentDate)}
+        isHoliday={isKoreanHoliday(currentDate)}
         onPressDate={handlePressDate}
         onPressSearch={handlePressSearch}
         onPressWeek={handlePressWeek}
