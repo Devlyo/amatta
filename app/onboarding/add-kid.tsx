@@ -20,8 +20,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   Image,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -152,10 +150,11 @@ export default function OnbAddKidScreen(): React.ReactElement {
         <View style={styles.topBarBack} />
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      {/* No KeyboardAvoidingView — letting the keyboard cover the bottom
+          CTAs feels more natural than the lift-up behaviour, which made
+          the 완료 / 자녀 추가 buttons read as glued to the keyboard.
+          The ScrollView still scrolls the field into view. */}
+      <View style={styles.flex}>
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scroll}
@@ -295,7 +294,7 @@ export default function OnbAddKidScreen(): React.ReactElement {
             </Pressable>
           ) : null}
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
