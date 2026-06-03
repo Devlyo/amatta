@@ -2,17 +2,17 @@
 // docs/design/amatta-v1/app-settings-kids.jsx KidEdit (screen #2).
 //
 // Routing: pushed from /settings/kids with optional `id` query param.
-//   - present  → edit mode (loads child from store + notification setting
-//                from repo)
+//   - present  → edit mode (loads existing child)
 //   - absent   → create mode
 //
-// Avatar-from-spec is DEFERRED — the Child schema has no `avatar` column
-// yet. The hero + the '아바타' grid below show the kid's color (6-swatch
-// palette) instead until the avatar field ships in its own ralplan.
+// Per user direction (2026-06-03), avatar and palette are LOCKED 1:1
+// via AVATAR_KEYS — selecting an avatar implicitly chooses the palette
+// slot too. The picker dispatches both fields together.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -26,18 +26,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { getDb } from '../../src/db/client';
-import { MAX_CHILDREN, PALETTE } from '../../src/domain/constants';
-import { avatarKeyForColorIndex } from '../../src/domain/avatar';
-import type { Child, ColorIndex } from '../../src/domain/types';
+import { MAX_CHILDREN } from '../../src/domain/constants';
+import {
+  AVATAR_KEYS,
+  avatarKeyForColorIndex,
+  colorIndexForAvatarKey,
+  type AvatarKey,
+} from '../../src/domain/avatar';
+import type { Child } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
-import { ColorDot } from '../../src/ui/common/ColorDot';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import {
   IconCheck,
   IconChevronLeft,
   IconChevronRight,
 } from '../../src/ui/icons';
-import { getKidPalette, TOKENS } from '../../src/ui/palette';
+import { AVATAR_IMAGE_BY_KEY } from '../../src/ui/assets';
+import { TOKENS } from '../../src/ui/palette';
 
 const NAME_MAX = 10; // app-settings-kids.jsx:231 maxLength={10}
 
@@ -72,8 +77,10 @@ export default function KidEditScreen(): React.ReactElement {
   }, [isNew, children.length, router]);
 
   const [name, setName] = useState<string>(existing?.name ?? '');
-  const [colorIndex, setColorIndex] = useState<ColorIndex>(
-    existing?.colorIndex ?? 0,
+  // Avatar is the source of truth; colorIndex is derived via the 1:1
+  // AVATAR_KEYS map at save-time (and for the palette ring rendering).
+  const [avatar, setAvatar] = useState<AvatarKey>(
+    existing?.avatar ?? avatarKeyForColorIndex(0),
   );
 
   // Sync local state once existing child becomes available (store may load
@@ -81,27 +88,24 @@ export default function KidEditScreen(): React.ReactElement {
   useEffect(() => {
     if (existing === undefined) return;
     setName(existing.name);
-    setColorIndex(existing.colorIndex);
+    setAvatar(existing.avatar);
   }, [existing]);
 
+  const colorIndex = colorIndexForAvatarKey(avatar);
   const trimmedName = name.trim();
   const canSave = trimmedName.length > 0 && trimmedName.length <= NAME_MAX;
 
   const handleSave = useCallback(async (): Promise<void> => {
     if (!canSave) return;
     const db = await getDb();
+    const colorIndex = colorIndexForAvatarKey(avatar);
     if (existing === undefined) {
-      // avatar paired 1:1 with colorIndex per AVATAR_KEYS — once the
-      // avatar picker lands the colorIndex will be derived from the
-      // chosen avatar instead. Right now they're locked together.
-      const avatar = avatarKeyForColorIndex(colorIndex);
       await addChild(db, { name: trimmedName, colorIndex, avatar });
     } else {
-      const avatar = avatarKeyForColorIndex(colorIndex);
       await updateChild(db, existing.id, { name: trimmedName, colorIndex, avatar });
     }
     router.back();
-  }, [canSave, existing, addChild, updateChild, trimmedName, colorIndex, router]);
+  }, [canSave, existing, addChild, updateChild, trimmedName, avatar, router]);
 
   const handleDelete = useCallback((): void => {
     if (existing === undefined) return;
@@ -124,7 +128,7 @@ export default function KidEditScreen(): React.ReactElement {
     );
   }, [existing, removeChild, router]);
 
-  const palette = getKidPalette(colorIndex);
+  void colorIndex; // currently informational only — kept for future surfaces
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -145,16 +149,15 @@ export default function KidEditScreen(): React.ReactElement {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Hero — large color preview circle.
-              Spec: 140 white ring + AvatarPH size 108. We use a 108
-              palette-source disc until the avatar field ships. */}
+          {/* ── Hero — large avatar preview.
+              Spec line 209-213: 140 white ring + AvatarPH size 108. */}
           <View style={styles.heroWrap}>
             <View style={styles.heroRing}>
-              <View
-                style={[
-                  styles.heroDot,
-                  { backgroundColor: palette.source },
-                ]}
+              <Image
+                source={AVATAR_IMAGE_BY_KEY[avatar]}
+                style={styles.heroImage}
+                resizeMode="contain"
+                accessibilityLabel={trimmedName.length > 0 ? trimmedName : '미리보기'}
               />
             </View>
             <Text style={styles.heroEyebrow}>PREVIEW</Text>
@@ -175,30 +178,32 @@ export default function KidEditScreen(): React.ReactElement {
             />
           </View>
 
-          {/* ── 아바타 (avatar 도입 전까지 6-color 시각 picker 유지) ── */}
+          {/* ── 아바타 — 6 face-icon swatches (AVATAR_KEYS order).
+              Each tap dispatches setAvatar(); colorIndex is derived
+              from the AvatarKey at save-time so the 1:1 palette
+              mapping stays consistent.
+              Sibling-used avatars are disabled (palette is unique
+              per kid by extension). */}
           <SectionHeader label="아바타" />
           <View style={styles.cardTight}>
             <View style={styles.colorGrid}>
-              {PALETTE.map((_hex, idx) => {
-                const i = idx as ColorIndex;
-                const active = i === colorIndex;
-                // Sibling kids occupying this color (excluding the one
-                // being edited) — those swatches are disabled.
+              {AVATAR_KEYS.map((k) => {
+                const active = k === avatar;
                 const takenByOther = children.some(
                   (c) =>
-                    c.colorIndex === i &&
+                    c.avatar === k &&
                     (existing === undefined || c.id !== existing.id),
                 );
                 const disabled = takenByOther && !active;
                 return (
                   <Pressable
-                    key={i}
+                    key={k}
                     onPress={() => {
                       if (disabled) return;
-                      setColorIndex(i);
+                      setAvatar(k);
                     }}
                     accessibilityRole="button"
-                    accessibilityLabel={`아바타 ${i + 1}`}
+                    accessibilityLabel={k}
                     accessibilityState={{ selected: active, disabled }}
                     style={[
                       styles.colorSwatch,
@@ -208,7 +213,11 @@ export default function KidEditScreen(): React.ReactElement {
                       disabled ? styles.colorSwatchDisabled : null,
                     ]}
                   >
-                    <ColorDot colorIndex={i} size={56} />
+                    <Image
+                      source={AVATAR_IMAGE_BY_KEY[k]}
+                      style={styles.swatchImage}
+                      resizeMode="contain"
+                    />
                     {active ? (
                       <View style={styles.colorCheckChip}>
                         <IconCheck size={11} color={TOKENS.surface} />
@@ -368,10 +377,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   // Spec: AvatarPH size=108 inside 140 ring.
-  heroDot: {
+  heroImage: {
     width: 108,
     height: 108,
-    borderRadius: 9999,
   },
   heroEyebrow: {
     marginTop: 8,
@@ -450,6 +458,8 @@ const styles = StyleSheet.create({
   colorSwatchDisabled: {
     opacity: 0.35,
   },
+  // Spec line 266: AvatarPH size=56.
+  swatchImage: { width: 56, height: 56 },
   colorCheckChip: {
     position: 'absolute',
     top: 6,

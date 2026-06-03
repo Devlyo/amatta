@@ -22,7 +22,7 @@ import { useRouter } from 'expo-router';
 import { MAX_CHILDREN } from '../../src/domain/constants';
 import type { Child } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
-import { ColorDot } from '../../src/ui/common/ColorDot';
+import { KidAvatar } from '../../src/ui/common/KidAvatar';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import {
   IconChevronLeft,
@@ -170,7 +170,8 @@ function KidRow({
       <View
         style={[styles.kidAvatar, { backgroundColor: palette.bg }]}
       >
-        <ColorDot colorIndex={child.colorIndex} size={22} />
+        {/* Spec line 88: AvatarPH size=26 inside the 36 ring. */}
+        <KidAvatar child={child} size={26} />
       </View>
       <View style={styles.rowText}>
         <Text style={styles.rowLabel}>{child.name}</Text>

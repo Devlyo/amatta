@@ -2,8 +2,7 @@ import { memo } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
 import type { Child } from '../../domain/types';
-import { avatarForColorIndex } from '../avatar';
-import { AVATAR_FACES } from '../assets';
+import { AVATAR_IMAGE_BY_KEY } from '../assets';
 import { getKidPalette, TOKENS } from '../palette';
 
 interface Props {
@@ -18,8 +17,7 @@ interface Props {
 
 function KidAvatarImpl({ child, size = 32, ring = false }: Props): React.ReactElement {
   const palette = getKidPalette(child.colorIndex);
-  const faceKey = avatarForColorIndex(child.colorIndex);
-  const source = AVATAR_FACES[faceKey];
+  const source = AVATAR_IMAGE_BY_KEY[child.avatar];
 
   if (!ring) {
     return (

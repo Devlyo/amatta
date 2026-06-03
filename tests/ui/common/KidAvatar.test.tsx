@@ -2,29 +2,40 @@ import { render } from '@testing-library/react-native';
 import { Image } from 'react-native';
 
 import { KidAvatar } from '../../../src/ui/common/KidAvatar';
-import { AVATAR_FACES } from '../../../src/ui/assets';
-import type { Child, ISODate } from '../../../src/domain/types';
+import { AVATAR_IMAGE_BY_KEY } from '../../../src/ui/assets';
+import {
+  avatarKeyForColorIndex,
+  type AvatarKey,
+} from '../../../src/domain/avatar';
+import type { Child, ColorIndex, ISODate } from '../../../src/domain/types';
 
-const mkChild = (id: number, name: string, colorIndex: 0 | 1 | 2 | 3 | 4 | 5): Child => ({
+const mkChild = (
+  id: number,
+  name: string,
+  colorIndex: ColorIndex,
+  avatar?: AvatarKey,
+): Child => ({
   id,
   name,
   colorIndex,
+  avatar: avatar ?? avatarKeyForColorIndex(colorIndex),
   createdAt: '2026-05-01' as unknown as ISODate,
 });
 
 describe('KidAvatar', () => {
-  test('renders the colorIndex-mapped face image (no ring)', () => {
+  test('renders child.avatar as the face image (no ring)', () => {
+    // colorIndex 0 → avatarKeyForColorIndex → 'face-wink'.
     const child = mkChild(1, '민준', 0);
     const { UNSAFE_getByType } = render(<KidAvatar child={child} size={32} />);
     const img = UNSAFE_getByType(Image);
-    expect(img.props.source).toBe(AVATAR_FACES.wink); // colorIndex 0 → wink
+    expect(img.props.source).toBe(AVATAR_IMAGE_BY_KEY['face-wink']);
   });
 
-  test('colorIndex 2 → cool face', () => {
-    const child = mkChild(2, '지호', 2);
+  test('explicit avatar key on Child overrides the colorIndex default', () => {
+    const child = mkChild(2, '지호', 2, 'face-calm');
     const { UNSAFE_getByType } = render(<KidAvatar child={child} size={28} />);
     const img = UNSAFE_getByType(Image);
-    expect(img.props.source).toBe(AVATAR_FACES.cool);
+    expect(img.props.source).toBe(AVATAR_IMAGE_BY_KEY['face-calm']);
   });
 
   test('ring=true still resolves the same face source', () => {
@@ -33,7 +44,7 @@ describe('KidAvatar', () => {
       <KidAvatar child={child} size={30} ring />,
     );
     const img = UNSAFE_getByType(Image);
-    expect(img.props.source).toBe(AVATAR_FACES.surprise);
+    expect(img.props.source).toBe(AVATAR_IMAGE_BY_KEY['face-surprise']);
   });
 
   test('passes through the child name as accessibilityLabel', () => {

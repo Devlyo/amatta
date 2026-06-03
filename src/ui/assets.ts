@@ -14,6 +14,20 @@ export const AVATAR_FACES = {
 } as const;
 export type AvatarFaceKey = keyof typeof AVATAR_FACES;
 
+// Map a domain AvatarKey (`face-wink`, `face-cool`, …) onto its image
+// source. Keeps the schema-level identifier ('face-…') as the source of
+// truth while letting the asset module preserve the short-key
+// AVATAR_FACES table.
+import type { AvatarKey } from '../domain/avatar';
+export const AVATAR_IMAGE_BY_KEY: Readonly<Record<AvatarKey, number>> = {
+  'face-wink': AVATAR_FACES.wink,
+  'face-cool': AVATAR_FACES.cool,
+  'face-calm': AVATAR_FACES.calm,
+  'face-sleep': AVATAR_FACES.sleep,
+  'face-surprise': AVATAR_FACES.surprise,
+  'face-dizzy': AVATAR_FACES.dizzy,
+};
+
 export const AVATAR_ANIMALS = {
   bear: require('../../assets/amatta/avatar-bear.png'),
   cat: require('../../assets/amatta/avatar-cat.png'),
