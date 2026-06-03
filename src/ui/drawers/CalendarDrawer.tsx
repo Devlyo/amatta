@@ -6,19 +6,22 @@
 // month on each open; today (in the device's local time) is rendered with the
 // brand primary background.
 //
-// Per-kid color dots from the prototype are omitted in this port: the parent
-// app already exposes those dots only on the weekly view's date column, and
-// fanning them out here would re-traverse the schedule expansion logic. If we
-// add them, expandOccurrences over the visible month is the right hook.
+// Per-kid color dots: each date that hosts at least one occurrence shows up to
+// 4 small dots (one per kid with an event that day), colored by that kid's
+// palette. The list is expanded once per (year, month) via expandOccurrences
+// and bucketed by ISODate for O(1) lookup in the cell renderer.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useChildrenStore } from '../../state/children-store';
+import { useSchedulesStore } from '../../state/schedules-store';
 import { useUiStore } from '../../state/ui-store';
-import type { ISODate } from '../../domain/types';
+import { expandOccurrences } from '../../domain/occurrences';
+import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
 import { IconChevronLeft, IconChevronRight } from '../icons';
-import { TOKENS } from '../palette';
+import { getKidPalette, TOKENS } from '../palette';
 import { todayIso } from '../utils/date';
 
 // Weekend tints from the prototype's DOW header (Sun=red-pink, Sat=blue).
@@ -89,6 +92,43 @@ export function CalendarDrawer(): React.ReactElement {
   const todayYmd = useMemo(() => parseYmd(todayIso()), []);
   const selectedYmd = useMemo(() => parseYmd(currentDate), [currentDate]);
   const view = useMemo(() => buildMonth(year, month), [year, month]);
+
+  // Build a per-date list of distinct kid IDs with at least one occurrence
+  // that day. Used to draw the colored dot row under each date cell.
+  const children = useChildrenStore((s) => s.children);
+  const schedules = useSchedulesStore((s) => s.schedules);
+  const exceptions = useSchedulesStore((s) => s.exceptions);
+
+  const childrenById = useMemo(() => {
+    const m = new Map<number, Child>();
+    for (const c of children) m.set(c.id, c);
+    return m;
+  }, [children]);
+
+  // Distinct kid IDs (in stable order by Child.id) per ISODate.
+  const kidsByDate = useMemo<Map<string, number[]>>(() => {
+    const monthStart = isoFromYmd(year, month, 1);
+    const monthEnd = isoFromYmd(year, month, view.daysInMonth);
+    const occs: Occurrence[] = expandOccurrences(
+      schedules,
+      exceptions,
+      { from: monthStart, to: monthEnd },
+      childrenById,
+    );
+    const map = new Map<string, Set<number>>();
+    for (const occ of occs) {
+      const key = occ.date as unknown as string;
+      const set = map.get(key);
+      if (set === undefined) map.set(key, new Set([occ.childId]));
+      else set.add(occ.childId);
+    }
+    const out = new Map<string, number[]>();
+    // Sort kids by ID so dot order is stable across renders.
+    for (const [date, set] of map) {
+      out.set(date, Array.from(set).sort((a, b) => a - b));
+    }
+    return out;
+  }, [year, month, view.daysInMonth, schedules, exceptions, childrenById]);
 
   const prevMonth = useCallback(() => {
     if (month === 1) {
@@ -201,18 +241,35 @@ export function CalendarDrawer(): React.ReactElement {
                   : null,
             ];
 
+            const dateIso = isoFromYmd(year, month, d) as unknown as string;
+            const kidIdsForDate = kidsByDate.get(dateIso) ?? [];
             return (
               <Pressable
                 key={`d-${i}`}
                 onPress={() => handlePickDate(d)}
                 accessibilityRole="button"
-                accessibilityLabel={`${year}년 ${month}월 ${d}일`}
+                accessibilityLabel={`${year}년 ${month}월 ${d}일${kidIdsForDate.length > 0 ? ` 일정 ${kidIdsForDate.length}건` : ''}`}
                 accessibilityState={{ selected: isSelected }}
                 style={styles.cell}
               >
                 <View style={pillStyles}>
                   <Text style={pillTextStyles}>{d}</Text>
                 </View>
+                {kidIdsForDate.length > 0 ? (
+                  <View style={styles.dotRow}>
+                    {kidIdsForDate.slice(0, 4).map((kidId) => {
+                      const kid = childrenById.get(kidId);
+                      if (kid === undefined) return null;
+                      const pal = getKidPalette(kid.colorIndex);
+                      return (
+                        <View
+                          key={kidId}
+                          style={[styles.dot, { backgroundColor: pal.source }]}
+                        />
+                      );
+                    })}
+                  </View>
+                ) : null}
               </Pressable>
             );
           })}
@@ -322,5 +379,18 @@ const styles = StyleSheet.create({
   },
   pillTextSelected: {
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
+  },
+
+  dotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 3,
+    minHeight: 4,
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 9999,
   },
 });

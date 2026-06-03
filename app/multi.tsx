@@ -59,9 +59,15 @@ function MultiViewScreenImpl(): React.ReactElement {
   const openEditSheet = useUiStore((s) => s.openEditSheet);
   const router = useRouter();
 
-  // Anchor independent of the daily currentDate so swiping ±7 here doesn't
-  // tug the daily view along.
-  const [anchorDate, setAnchorDate] = useState<ISODate>(todayIso());
+  // Week anchor follows ui-store's currentDate so picking a date in
+  // CalendarDrawer (whose tap commits via setCurrentDate) lands here too.
+  // Swipe ±7 on this screen ALSO writes currentDate, so the daily view
+  // shares the focused date when the user toggles back. That's a feature:
+  // the user picked the date here, they expect daily to honor it.
+  const currentDate = useUiStore((s) => s.currentDate);
+  const setCurrentDate = useUiStore((s) => s.setCurrentDate);
+  const anchorDate = currentDate;
+  const setAnchorDate = setCurrentDate;
   const [tab, setTab] = useState<DailyTabKey>('schedule');
   const [nowMinutes, setNowMinutes] = useState<number>(() => currentMinutes());
 
@@ -191,13 +197,15 @@ function MultiViewScreenImpl(): React.ReactElement {
   });
   const todoCount = undoneTodos + undoneChecklist;
 
-  // Block tap → editAll for now (matches daily). EventDetail drawer can
-  // slot in once it's wired (see app/child/[id].tsx for the eventual API).
-  const handleBlockPress = (occ: Occurrence): void => {
-    openEditSheet('editAll', {
-      scheduleId: occ.scheduleId,
-      occurrenceDate: occ.date,
-    });
+  // Block tap is owned by <MultiKidGrid /> — it toggles an inline tooltip
+  // popover (matches docs/design/amatta-v1/app-multi-grid.jsx). We don't
+  // open the edit sheet from here because the tooltip is the only
+  // affordance the prototype offers on this surface; editing happens
+  // from the daily view (where tapping a block opens editAll). The
+  // `openEditSheet` binding is still in scope — `handlePressAdd` below
+  // calls it for the '+' button.
+  const handleBlockPress = (_occ: Occurrence): void => {
+    // no-op — tooltip is handled internally by MultiKidGrid
   };
 
   const handlePressAdd = (): void => {

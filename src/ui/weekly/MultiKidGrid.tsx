@@ -17,7 +17,7 @@
 // dropped on mobile — the user gets EditDetail / EditSheet via the parent
 // screen's wiring instead.)
 
-import { memo, useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 
 import type { Child, ISODate, Occurrence } from '../../domain/types';
@@ -25,6 +25,8 @@ import { getKidPalette } from '../palette';
 import { TOKENS } from '../palette';
 import { FONT_FAMILIES } from '../fonts';
 import { TypeIcon } from '../common/TypeIcon';
+import { KidAvatar } from '../common/KidAvatar';
+import { fmt12hrShort } from '../utils/date';
 
 export const MG_HOUR_START = 6;
 export const MG_HOUR_END = 25;
@@ -62,6 +64,19 @@ function MultiKidGridImpl({
   // position before paint" runs exactly once per mount. After that the
   // user (or week-change effect) owns the scroll position.
   const initialScrollDone = useRef(false);
+
+  // Tap-block tooltip — matches the popover affordance from
+  // docs/design/amatta-v1/app-multi-grid.jsx. tooltipKey is the
+  // (scheduleId|date) pair of the currently-open block; tapping the same
+  // block again closes the tooltip, tapping another block moves it.
+  const [tooltipKey, setTooltipKey] = useState<{
+    scheduleId: number;
+    date: string;
+  } | null>(null);
+  const tooltipKeyMatch = (occ: Occurrence): boolean =>
+    tooltipKey !== null &&
+    tooltipKey.scheduleId === occ.scheduleId &&
+    tooltipKey.date === (occ.date as unknown as string);
 
   // Find today's column (0..6) — returns -1 if today is not in this week.
   const todayIdx = weekDates.findIndex(
@@ -189,35 +204,90 @@ function MultiKidGridImpl({
                           const rawH =
                             minutesToPx(Math.min(occ.endMinutes, TIME_END_MIN)) - top;
                           const h = Math.max(12, rawH); // visible min-height
+                          const isOpen = tooltipKeyMatch(occ);
+                          const placeAbove = top > 90;
                           return (
-                            <Pressable
+                            <View
                               key={`${occ.scheduleId}|${occ.date as unknown as string}`}
-                              onPress={() => onBlockPress?.(occ)}
-                              accessibilityRole="button"
-                              accessibilityLabel={`${kid.name} ${occ.title}`}
-                              style={[
-                                styles.block,
-                                {
-                                  top: top + 1,
-                                  height: h - 2,
-                                  backgroundColor: palette.bg,
-                                  borderColor: palette.source,
-                                },
-                              ]}
+                              style={[styles.blockSlot, { zIndex: isOpen ? 20 : 1 }]}
                             >
-                              <View
+                              <Pressable
+                                onPress={() => {
+                                  const k = {
+                                    scheduleId: occ.scheduleId,
+                                    date: occ.date as unknown as string,
+                                  };
+                                  setTooltipKey((prev) =>
+                                    prev !== null &&
+                                    prev.scheduleId === k.scheduleId &&
+                                    prev.date === k.date
+                                      ? null
+                                      : k,
+                                  );
+                                  onBlockPress?.(occ);
+                                }}
+                                accessibilityRole="button"
+                                accessibilityLabel={`${kid.name} ${occ.title}`}
                                 style={[
-                                  styles.kindChip,
-                                  { backgroundColor: palette.source },
+                                  styles.block,
+                                  {
+                                    top: top + 1,
+                                    height: h - 2,
+                                    backgroundColor: palette.bg,
+                                    borderColor: palette.source,
+                                  },
+                                  isOpen ? styles.blockOpen : null,
                                 ]}
                               >
-                                <TypeIcon
-                                  type={occ.type}
-                                  size={12}
-                                  color={TOKENS.ink}
-                                />
-                              </View>
-                            </Pressable>
+                                <View
+                                  style={[
+                                    styles.kindChip,
+                                    { backgroundColor: palette.source },
+                                  ]}
+                                >
+                                  <TypeIcon
+                                    type={occ.type}
+                                    size={12}
+                                    color={TOKENS.ink}
+                                  />
+                                </View>
+                              </Pressable>
+                              {isOpen ? (
+                                <View
+                                  pointerEvents="none"
+                                  style={[
+                                    styles.tooltip,
+                                    placeAbove
+                                      ? { top: top - 62 }
+                                      : { top: top + h + 6 },
+                                  ]}
+                                >
+                                  <View style={styles.tooltipKidRow}>
+                                    <KidAvatar child={kid} size={18} />
+                                    <Text style={styles.tooltipKidName}>
+                                      {kid.name}
+                                    </Text>
+                                  </View>
+                                  <View style={styles.tooltipTitleRow}>
+                                    <TypeIcon
+                                      type={occ.type}
+                                      size={12}
+                                      color={TOKENS.ink}
+                                    />
+                                    <Text
+                                      style={styles.tooltipTitle}
+                                      numberOfLines={1}
+                                    >
+                                      {occ.title}
+                                    </Text>
+                                  </View>
+                                  <Text style={styles.tooltipTime}>
+                                    {fmt12hrShort(occ.startMinutes)}–
+                                    {fmt12hrShort(occ.endMinutes)}
+                                  </Text>
+                                </View>
+                              ) : null}
+                            </View>
                           );
                         })}
                       </View>
@@ -323,12 +393,71 @@ const styles = StyleSheet.create({
     position: 'relative',
     minWidth: 0,
   },
+  blockSlot: {
+    ...StyleSheet.absoluteFillObject,
+  },
   block: {
     position: 'absolute',
     left: 0,
     right: 0,
     borderRadius: 6,
     borderWidth: 1,
+  },
+  blockOpen: {
+    borderWidth: 1.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  tooltip: {
+    position: 'absolute',
+    left: '50%',
+    width: 140,
+    marginLeft: -70,
+    backgroundColor: TOKENS.surface,
+    borderRadius: 9,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 4,
+    // Sit above hour-lines + neighboring blocks.
+    zIndex: 30,
+  },
+  tooltipKidRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 2,
+  },
+  tooltipKidName: {
+    fontSize: 12,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    color: TOKENS.ink,
+    letterSpacing: -0.3,
+  },
+  tooltipTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 1,
+  },
+  tooltipTitle: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    color: TOKENS.ink,
+    letterSpacing: -0.3,
+  },
+  tooltipTime: {
+    fontSize: 10,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.inkSub,
+    letterSpacing: -0.1,
   },
   kindChip: {
     position: 'absolute',

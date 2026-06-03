@@ -116,7 +116,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.flex}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="child/[id]" options={{ title: '자녀 주간' }} />
+        <Stack.Screen name="child/[id]" options={{ headerShown: false }} />
         <Stack.Screen
           name="multi"
           options={{
