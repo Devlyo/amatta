@@ -18,7 +18,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 
 import { MAX_CHILDREN } from '../../src/domain/constants';
 import { isKoreanHoliday } from '../../src/domain/korean-holidays';
@@ -31,7 +31,6 @@ import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useTodosStore } from '../../src/state/todos-store';
 import { useUiStore } from '../../src/state/ui-store';
 import { BottomDock } from '../../src/ui/common/BottomDock';
-import { EmptyChildrenState } from '../../src/ui/common/EmptyChildrenState';
 import { KidPillsHeader } from '../../src/ui/daily/KidPillsHeader';
 import { PickupCarousel } from '../../src/ui/daily/PickupCarousel';
 import { ScheduleGrid } from '../../src/ui/daily/ScheduleGrid';
@@ -192,12 +191,10 @@ export default function DailyViewScreen(): React.ReactElement {
     router.push('/multi');
   };
 
+  // Zero-kids state: route into onboarding. Replace (not push) so the
+  // back stack stays clean on first launch + post-wipe states.
   if (children.length === 0) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <EmptyChildrenState />
-      </SafeAreaView>
-    );
+    return <Redirect href="/onboarding/welcome" />;
   }
 
   return (
