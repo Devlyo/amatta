@@ -68,9 +68,9 @@ const GRID_H = SLOT_H * TOTAL_SLOTS;
 const GUTTER = 40;
 const HOUR_COUNT = GRID_END_HOUR - GRID_START_HOUR; // hour-label rows
 const HOUR_H = SLOT_H * 2; // 64
-// Pad the bottom of the scroll surface so the last hours don't sit
-// underneath the floating BottomDock (height ~56 + 22 bottom inset).
-const SCROLL_BOTTOM_PAD = 120;
+// Was 120 (BottomDock clearance); user wants the scroll content to end
+// flush at the last hour with no trailing gap, matching WeeklyGrid.
+const SCROLL_BOTTOM_PAD = 0;
 
 interface Props {
   kids: Child[]; // ordered left-to-right

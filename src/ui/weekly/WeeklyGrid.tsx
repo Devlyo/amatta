@@ -180,8 +180,13 @@ export function WeeklyGrid({
                 : i === 6
                   ? '#3F66D8'
                   : TOKENS.inkSub;
+            // Sunday OR Korean holiday → date number in danger.
+            // Today's filled bubble takes precedence (white text on
+            // primary background) so we still gate on !isToday.
             const dayColor =
-              isHoliday && !isToday ? TOKENS.danger : TOKENS.ink;
+              (i === 0 || isHoliday) && !isToday
+                ? TOKENS.danger
+                : TOKENS.ink;
             return (
               <View
                 key={d as unknown as string}

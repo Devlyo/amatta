@@ -312,8 +312,12 @@ function MultiViewScreenImpl(): React.ReactElement {
                   : idx === 6
                     ? '#3F66D8'
                     : TOKENS.inkSub;
+              // Sunday OR Korean holiday → date number in danger.
+              // Today's filled chip wins (white text on primary).
               const dayColor =
-                isHoliday && !today ? TOKENS.danger : TOKENS.ink;
+                (idx === 0 || isHoliday) && !today
+                  ? TOKENS.danger
+                  : TOKENS.ink;
               return (
                 <View key={date as unknown as string} style={styles.weekStripCell}>
                   <Text style={[styles.weekStripDow, { color: dowColor }]}>

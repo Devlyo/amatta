@@ -37,7 +37,9 @@ const NOW_BADGE_DEAD_ZONE = 14; // skip hour label too close to NOW pill
 const TIME_START_MIN = MG_HOUR_START * 60;
 const TIME_END_MIN = MG_HOUR_END * 60;
 const GRID_H = (MG_HOUR_END - MG_HOUR_START) * MG_HOUR_PX;
-const SCROLL_BOTTOM_PAD = 120; // BottomDock clearance, mirrors ScheduleGrid
+// Was 120 (BottomDock clearance); user wants the scroll content to end
+// flush at the last hour with no trailing gap, matching WeeklyGrid.
+const SCROLL_BOTTOM_PAD = 0;
 
 export interface MultiKidGridProps {
   weekDates: readonly ISODate[]; // length 7 (Sun..Sat)
