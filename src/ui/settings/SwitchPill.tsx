@@ -58,21 +58,19 @@ function SwitchPillImpl({
 export const SwitchPill = memo(SwitchPillImpl);
 
 const styles = StyleSheet.create({
+  // No `borderWidth` here: the spec uses `box-shadow: inset 0 0 0 1px …`
+  // which sits ABOVE the layout, not inside it. RN's borderWidth eats 1px
+  // from each edge of the inner area, which breaks the knob's PAD math
+  // (top + bottom margins become asymmetric). Drop the inset ring; the
+  // background + corner radius alone read correctly.
   track: {
     width: W,
     height: H,
     borderRadius: 9999,
     position: 'relative',
-    borderWidth: 1,
   },
-  trackOn: {
-    backgroundColor: TOKENS.primary,
-    borderColor: TOKENS.primary,
-  },
-  trackOff: {
-    backgroundColor: TOKENS.ink12,
-    borderColor: TOKENS.ink06,
-  },
+  trackOn: { backgroundColor: TOKENS.primary },
+  trackOff: { backgroundColor: TOKENS.ink12 },
   disabled: { opacity: 0.5 },
   knob: {
     position: 'absolute',
