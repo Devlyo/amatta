@@ -13,13 +13,21 @@
 
 import type { ColorIndex } from './types';
 
+// Canonical pairing from docs/design/amatta-v1/app-tokens.jsx KIDS demo:
+//   민준 → peach (0) + face-wink
+//   서윤 → mint  (1) + face-dizzy
+//   지호 → sky   (2) + face-cool
+//   서아 → butter(3) + face-sleep
+// Slots 4 (citrus) and 5 (lavender) aren't in the 4-kid KIDS demo;
+// face-surprise reads as "bright/zingy" → citrus and face-calm reads as
+// "relaxed" → lavender. Easy to re-pair if reference assets land.
 export const AVATAR_KEYS = [
-  'face-wink',     // 0 — Petunia Pink
-  'face-cool',     // 1 — Vibrant Mint
-  'face-calm',     // 2 — Glacier Blue
-  'face-sleep',    // 3 — Soft Peach
+  'face-wink',     // 0 — Petunia Pink (peach)
+  'face-dizzy',    // 1 — Vibrant Mint
+  'face-cool',     // 2 — Glacier Blue (sky)
+  'face-sleep',    // 3 — Soft Peach (butter)
   'face-surprise', // 4 — Citrus Green
-  'face-dizzy',    // 5 — French Lavender
+  'face-calm',     // 5 — French Lavender
 ] as const;
 
 export type AvatarKey = (typeof AVATAR_KEYS)[number];

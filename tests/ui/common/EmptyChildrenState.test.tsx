@@ -52,11 +52,12 @@ describe('EmptyChildrenState', () => {
     await waitFor(() => {
       expect(mockAdd).toHaveBeenCalledTimes(1);
     });
-    // colorIndex 1 → AVATAR_KEYS[1] = 'face-cool' per src/domain/avatar.
+    // colorIndex 1 (Vibrant Mint) → AVATAR_KEYS[1] = 'face-dizzy'
+    // per the canonical KIDS demo in app-tokens.jsx.
     expect(mockAdd).toHaveBeenCalledWith(mockDb, {
       name: '민준',
       colorIndex: 1,
-      avatar: 'face-cool',
+      avatar: 'face-dizzy',
     });
   });
 });

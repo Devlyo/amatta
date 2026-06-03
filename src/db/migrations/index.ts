@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { migration001 } from './001_init.sql';
 import { migration002 } from './002_v2_prep_todos_pickup.sql';
 import { migration003 } from './003_v3_child_avatar.sql';
+import { migration004 } from './004_v4_align_color_to_avatar.sql';
 
 export type TxMode = 'explicit-begin' | 'fallback-with-transaction';
 
@@ -18,6 +19,7 @@ export const MIGRATIONS: ReadonlyArray<Migration> = [
   { version: 1, sql: migration001 },
   { version: 2, sql: migration002 },
   { version: 3, sql: migration003 },
+  { version: 4, sql: migration004 },
 ];
 
 export async function runMigrations(

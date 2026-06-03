@@ -116,12 +116,12 @@ describe('runMigrations', () => {
     return { real: new DatabaseSync(path), path };
   }
 
-  test('Test A: fresh DB → user_version=3 and all 7 tables exist', async () => {
+  test('Test A: fresh DB → user_version=4 and all 7 tables exist', async () => {
     const { real } = makeDb();
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(3);
+    expect(userVersion(real)).toBe(4);
     const tables = tableNames(real);
     expect(tables).toEqual(
       expect.arrayContaining([
@@ -137,7 +137,7 @@ describe('runMigrations', () => {
     real.close();
   });
 
-  test('Test B: idempotent — running twice yields no error and version stays 3', async () => {
+  test('Test B: idempotent — running twice yields no error and version stays 4', async () => {
     const { real } = makeDb();
     const wrapped = wrap(real);
 
@@ -146,7 +146,7 @@ describe('runMigrations', () => {
       runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]),
     ).resolves.toBeUndefined();
 
-    expect(userVersion(real)).toBe(3);
+    expect(userVersion(real)).toBe(4);
     real.close();
   });
 
@@ -191,8 +191,13 @@ describe('runMigrations', () => {
       { logTxModeTo: (m) => modes.push(m) },
     );
 
-    // Happy path now applies v1 + v2 + v3 — one log per migration.
-    expect(modes).toEqual(['explicit-begin', 'explicit-begin', 'explicit-begin']);
+    // Happy path now applies v1 + v2 + v3 + v4 — one log per migration.
+    expect(modes).toEqual([
+      'explicit-begin',
+      'explicit-begin',
+      'explicit-begin',
+      'explicit-begin',
+    ]);
 
     // Persist the chosen tx-mode for team-lead per the task spec.
     mkdirSync(dirname(TX_LOG_PATH), { recursive: true });
@@ -223,8 +228,9 @@ describe('runMigrations', () => {
       'fallback-with-transaction',
       'explicit-begin',
       'explicit-begin',
+      'explicit-begin',
     ]);
-    expect(userVersion(real)).toBe(3);
+    expect(userVersion(real)).toBe(4);
     real.close();
   });
 
@@ -233,7 +239,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(3);
+    expect(userVersion(real)).toBe(4);
 
     const tables = tableNames(real);
     expect(tables).toEqual(
@@ -260,7 +266,7 @@ describe('runMigrations', () => {
     real.close();
   });
 
-  test('Test F: v1-applied DB → runMigrations applies v2 + v3, ends at user_version=3', async () => {
+  test('Test F: v1-applied DB → runMigrations applies v2 + v3, ends at user_version=4', async () => {
     const { real } = makeDb();
 
     // Land at v1 first by execing migration001 directly + setting user_version=1.
@@ -273,7 +279,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(3);
+    expect(userVersion(real)).toBe(4);
     const tables = tableNames(real);
     expect(tables).toEqual(
       expect.arrayContaining(['checklist_items', 'todos', 'schedule_pickup_log']),
@@ -302,7 +308,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(3);
+    expect(userVersion(real)).toBe(4);
     expect(columnNames(real, 'schedules')).toEqual(
       expect.arrayContaining(['needs_pickup']),
     );
@@ -375,7 +381,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(3);
+    expect(userVersion(real)).toBe(4);
     expect(columnNames(real, 'children')).toEqual(
       expect.arrayContaining(['avatar']),
     );
