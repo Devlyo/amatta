@@ -91,12 +91,12 @@ const BLOB_H = 2;
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKENS.surface },
 
-  // Group sits just below screen vertical centre per user direction.
-  // Previously paddingBottom:200 was pulling it well above centre.
+  // Group sits ~30px below screen vertical centre per user direction.
+  // paddingBottom shrinks from 40 → 10 to nudge it down another 30px.
   heroContainer: {
     flex: 1,
     justifyContent: 'center',
-    paddingBottom: 40,
+    paddingBottom: 10,
   },
   heroGroup: {
     alignSelf: 'stretch',
