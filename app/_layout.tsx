@@ -134,6 +134,7 @@ export default function RootLayout() {
         />
         <Stack.Screen name="schedule/edit" options={{ title: '일정 편집', presentation: 'modal' }} />
         <Stack.Screen name="settings/kids" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/kid-edit" options={{ headerShown: false }} />
         <Stack.Screen name="settings/data" options={{ headerShown: false }} />
         <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
       </Stack>

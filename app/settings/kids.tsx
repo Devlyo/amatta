@@ -1,14 +1,15 @@
 // Children CRUD — 1:1 port of docs/design/amatta-v1/app-settings-kids.jsx
 // KidsList screen.
 //
-// - List rows: avatar dot + name → tap opens ChildEditModal.
+// - List rows: palette-tinted avatar + name → tap routes to /settings/kid-edit
+//   (full-screen). Destruction lives inside the edit screen per spec; the
+//   inline 삭제 button is gone.
 // - "자녀 추가" card pinned beneath the list, hidden at the 4-kid cap.
 // - Cap belt: tapping the disabled add area reveals a "최대 4명까지" message.
 //   The hard cap also lives in src/db/repositories/children.ts (ChildCapError).
 
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,10 +19,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
-import { getDb } from '../../src/db/client';
 import { MAX_CHILDREN } from '../../src/domain/constants';
-import type { Child, NotificationSetting } from '../../src/domain/types';
-import { notificationSettingsRepo } from '../../src/db/repositories';
+import type { Child } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
 import { ColorDot } from '../../src/ui/common/ColorDot';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
@@ -30,22 +29,12 @@ import {
   IconChevronRight,
   IconPlus,
 } from '../../src/ui/icons';
-import { TOKENS } from '../../src/ui/palette';
-import {
-  ChildEditModal,
-  type ChildEditValues,
-} from '../../src/ui/settings/ChildEditModal';
+import { getKidPalette, TOKENS } from '../../src/ui/palette';
 
 export default function KidsScreen(): React.ReactElement {
   const router = useRouter();
   const children = useChildrenStore((s) => s.children);
-  const addChild = useChildrenStore((s) => s.add);
-  const updateChild = useChildrenStore((s) => s.updateOne);
-  const removeChild = useChildrenStore((s) => s.removeOne);
 
-  const [modalChild, setModalChild] = useState<Child | undefined>(undefined);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalSetting, setModalSetting] = useState<NotificationSetting | undefined>(undefined);
   const [capMessageVisible, setCapMessageVisible] = useState(false);
 
   const atCap = children.length >= MAX_CHILDREN;
@@ -60,70 +49,15 @@ export default function KidsScreen(): React.ReactElement {
       setCapMessageVisible(true);
       return;
     }
-    setModalChild(undefined);
-    setModalSetting(undefined);
-    setModalOpen(true);
-  }, [atCap]);
+    router.push('/settings/kid-edit');
+  }, [atCap, router]);
 
-  const handleEditPress = useCallback(async (c: Child): Promise<void> => {
-    const db = await getDb();
-    const setting = await notificationSettingsRepo.getByChildId(db, c.id);
-    setModalChild(c);
-    setModalSetting(setting ?? undefined);
-    setModalOpen(true);
-  }, []);
-
-  const handleDelete = useCallback((c: Child): void => {
-    Alert.alert(
-      `${c.name} 삭제`,
-      `${c.name}의 일정·준비물·할일이 모두 삭제돼요. 이 작업은 되돌릴 수 없어요.`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '삭제',
-          style: 'destructive',
-          onPress: async () => {
-            const db = await getDb();
-            await removeChild(db, c.id);
-          },
-        },
-      ],
-    );
-  }, [removeChild]);
-
-  const handleSave = useCallback(async (values: ChildEditValues): Promise<void> => {
-    const db = await getDb();
-    let childId: number;
-    if (modalChild === undefined) {
-      const created = await addChild(db, {
-        name: values.name,
-        colorIndex: values.colorIndex,
-      });
-      childId = created.id;
-    } else {
-      await updateChild(db, modalChild.id, {
-        name: values.name,
-        colorIndex: values.colorIndex,
-      });
-      childId = modalChild.id;
-    }
-    const existing = await notificationSettingsRepo.getByChildId(db, childId);
-    if (existing === null) {
-      await notificationSettingsRepo.create(db, {
-        childId,
-        defaultMinutesBefore: values.defaultMinutesBefore,
-        sound: values.sound,
-        enabled: values.enabled,
-      });
-    } else {
-      await notificationSettingsRepo.update(db, childId, {
-        defaultMinutesBefore: values.defaultMinutesBefore,
-        sound: values.sound,
-        enabled: values.enabled,
-      });
-    }
-    setModalOpen(false);
-  }, [addChild, updateChild, modalChild]);
+  const handleEditPress = useCallback((c: Child): void => {
+    router.push({
+      pathname: '/settings/kid-edit',
+      params: { id: String(c.id) },
+    });
+  }, [router]);
 
   const sortedChildren = [...children].sort((a, b) => a.id - b.id);
 
@@ -151,8 +85,7 @@ export default function KidsScreen(): React.ReactElement {
                 {i > 0 ? <View style={styles.divider} /> : null}
                 <KidRow
                   child={c}
-                  onEdit={() => void handleEditPress(c)}
-                  onDelete={() => handleDelete(c)}
+                  onEdit={() => handleEditPress(c)}
                 />
               </View>
             ))
@@ -207,14 +140,6 @@ export default function KidsScreen(): React.ReactElement {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-
-      <ChildEditModal
-        visible={modalOpen}
-        child={modalChild}
-        notificationSetting={modalSetting}
-        onCancel={() => setModalOpen(false)}
-        onSave={handleSave}
-      />
     </SafeAreaView>
   );
 }
@@ -224,37 +149,32 @@ export default function KidsScreen(): React.ReactElement {
 function KidRow({
   child,
   onEdit,
-  onDelete,
 }: {
   child: Child;
   onEdit: () => void;
-  onDelete: () => void;
 }): React.ReactElement {
+  // Inline 삭제 button removed — destruction lives inside the edit screen
+  // per docs/design/amatta-v1/app-settings-kids.jsx KidEdit's bottom
+  // destructive section. Tap the row → edit screen.
+  const palette = getKidPalette(child.colorIndex);
   return (
     <Pressable
       onPress={onEdit}
       accessibilityRole="button"
-      accessibilityLabel={`${child.name} 수정`}
+      accessibilityLabel={`${child.name} 편집`}
       style={({ pressed }) => [
         styles.row,
         pressed ? styles.rowPressed : null,
       ]}
     >
-      <View style={styles.kidAvatar}>
+      <View
+        style={[styles.kidAvatar, { backgroundColor: palette.bg }]}
+      >
         <ColorDot colorIndex={child.colorIndex} size={22} />
       </View>
       <View style={styles.rowText}>
         <Text style={styles.rowLabel}>{child.name}</Text>
       </View>
-      <Pressable
-        onPress={onDelete}
-        accessibilityRole="button"
-        accessibilityLabel={`${child.name} 삭제`}
-        hitSlop={8}
-        style={styles.deleteBtn}
-      >
-        <Text style={styles.deleteLabel}>삭제</Text>
-      </Pressable>
       <IconChevronRight size={16} color={TOKENS.ink30} />
     </Pressable>
   );
@@ -416,19 +336,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    // backgroundColor overridden per-row to palette.bg.
     backgroundColor: TOKENS.surfaceWarm,
-  },
-
-  deleteBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  deleteLabel: {
-    fontSize: 13,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.danger,
-    letterSpacing: -0.2,
   },
 
   addCard: {
