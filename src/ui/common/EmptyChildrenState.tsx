@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import type { ColorIndex } from '../../domain/types';
+import { avatarKeyForColorIndex } from '../../domain/avatar';
 import { getDb } from '../../db/client';
 import { useChildrenStore } from '../../state/children-store';
 import { MASCOTS } from '../assets';
@@ -75,7 +76,12 @@ function AddKidScreen({ onBack }: { onBack: () => void }): React.ReactElement {
     setSubmitting(true);
     try {
       const db = await getDb();
-      await addChild(db, { name: trimmed, colorIndex });
+      // Avatar paired with the chosen color via the AVATAR_KEYS index map.
+      await addChild(db, {
+        name: trimmed,
+        colorIndex,
+        avatar: avatarKeyForColorIndex(colorIndex),
+      });
     } finally {
       setSubmitting(false);
     }

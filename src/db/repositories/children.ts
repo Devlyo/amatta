@@ -1,9 +1,16 @@
 import type { SQLiteDatabase, SQLiteBindValue } from 'expo-sqlite';
 
 import type { Child, ColorIndex, ISODate } from '../../domain/types';
+import { avatarKeyForColorIndex } from '../../domain/avatar';
 import { rowToChild, type ChildRow } from '../row-mappers';
 
-export type NewChild = Omit<Child, 'id' | 'createdAt'>;
+// `avatar` is optional in the create() input: when omitted we derive it
+// from colorIndex via AVATAR_KEYS (1:1 mapping) so callsites that only
+// know about the color slot — including the legacy 'add a kid' tests —
+// keep working. The kid-edit screen still passes the explicit pair.
+export type NewChild = Omit<Child, 'id' | 'createdAt' | 'avatar'> & {
+  avatar?: Child['avatar'];
+};
 
 export class ChildCapError extends Error {
   readonly code = 'CHILD_CAP_EXCEEDED';
@@ -17,7 +24,7 @@ const MAX_CHILDREN = 4;
 
 export async function getById(db: SQLiteDatabase, id: number): Promise<Child | null> {
   const row = await db.getFirstAsync<ChildRow>(
-    'SELECT id, name, color_index, created_at FROM children WHERE id = ?',
+    'SELECT id, name, color_index, avatar, created_at FROM children WHERE id = ?',
     [id],
   );
   return row ? rowToChild(row) : null;
@@ -25,7 +32,7 @@ export async function getById(db: SQLiteDatabase, id: number): Promise<Child | n
 
 export async function list(db: SQLiteDatabase): Promise<Child[]> {
   const rows = await db.getAllAsync<ChildRow>(
-    'SELECT id, name, color_index, created_at FROM children ORDER BY id ASC',
+    'SELECT id, name, color_index, avatar, created_at FROM children ORDER BY id ASC',
   );
   return rows.map(rowToChild);
 }
@@ -39,9 +46,10 @@ export async function create(db: SQLiteDatabase, input: NewChild): Promise<Child
   }
 
   const createdAt = new Date().toISOString().slice(0, 10) as ISODate;
+  const avatar = input.avatar ?? avatarKeyForColorIndex(input.colorIndex);
   const result = await db.runAsync(
-    'INSERT INTO children (name, color_index, created_at) VALUES (?, ?, ?)',
-    [input.name, input.colorIndex, createdAt],
+    'INSERT INTO children (name, color_index, avatar, created_at) VALUES (?, ?, ?, ?)',
+    [input.name, input.colorIndex, avatar, createdAt],
   );
   const child = await getById(db, result.lastInsertRowId);
   if (!child) throw new Error('Failed to retrieve newly created child');
@@ -63,6 +71,10 @@ export async function update(
   if (patch.colorIndex !== undefined) {
     fields.push('color_index = ?');
     values.push(patch.colorIndex as ColorIndex);
+  }
+  if (patch.avatar !== undefined) {
+    fields.push('avatar = ?');
+    values.push(patch.avatar);
   }
 
   if (fields.length > 0) {

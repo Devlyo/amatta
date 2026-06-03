@@ -10,11 +10,17 @@ import type {
   ScheduleType,
   Todo,
 } from '../domain/types';
+import {
+  avatarKeyForColorIndex,
+  isAvatarKey,
+  type AvatarKey,
+} from '../domain/avatar';
 
 export interface ChildRow {
   id: number;
   name: string;
   color_index: number;
+  avatar: string;
   created_at: string;
 }
 
@@ -52,10 +58,17 @@ export interface NotificationSettingRow {
 }
 
 export function rowToChild(r: ChildRow): Child {
+  // Defensive: a row from a hypothetical pre-v3 snapshot (or a JSON
+  // import that omits the field) gets a fallback avatar derived from
+  // color_index, since AVATAR_KEYS is index-aligned with the palette.
+  const avatar: AvatarKey = isAvatarKey(r.avatar)
+    ? r.avatar
+    : avatarKeyForColorIndex(r.color_index as ColorIndex);
   return {
     id: r.id,
     name: r.name,
     colorIndex: r.color_index as ColorIndex,
+    avatar,
     createdAt: r.created_at as ISODate,
   };
 }

@@ -52,6 +52,11 @@ describe('EmptyChildrenState', () => {
     await waitFor(() => {
       expect(mockAdd).toHaveBeenCalledTimes(1);
     });
-    expect(mockAdd).toHaveBeenCalledWith(mockDb, { name: '민준', colorIndex: 1 });
+    // colorIndex 1 → AVATAR_KEYS[1] = 'face-cool' per src/domain/avatar.
+    expect(mockAdd).toHaveBeenCalledWith(mockDb, {
+      name: '민준',
+      colorIndex: 1,
+      avatar: 'face-cool',
+    });
   });
 });

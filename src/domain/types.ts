@@ -12,6 +12,9 @@ export interface Child {
   id: number;
   name: string;
   colorIndex: ColorIndex;
+  /** Face-icon avatar key. Paired 1:1 with colorIndex per
+   *  src/domain/avatar.ts AVATAR_KEYS. v3 schema. */
+  avatar: import('./avatar').AvatarKey;
   createdAt: ISODate;
 }
 

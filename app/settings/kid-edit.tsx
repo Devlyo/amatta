@@ -27,6 +27,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { getDb } from '../../src/db/client';
 import { MAX_CHILDREN, PALETTE } from '../../src/domain/constants';
+import { avatarKeyForColorIndex } from '../../src/domain/avatar';
 import type { Child, ColorIndex } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
 import { ColorDot } from '../../src/ui/common/ColorDot';
@@ -90,9 +91,14 @@ export default function KidEditScreen(): React.ReactElement {
     if (!canSave) return;
     const db = await getDb();
     if (existing === undefined) {
-      await addChild(db, { name: trimmedName, colorIndex });
+      // avatar paired 1:1 with colorIndex per AVATAR_KEYS — once the
+      // avatar picker lands the colorIndex will be derived from the
+      // chosen avatar instead. Right now they're locked together.
+      const avatar = avatarKeyForColorIndex(colorIndex);
+      await addChild(db, { name: trimmedName, colorIndex, avatar });
     } else {
-      await updateChild(db, existing.id, { name: trimmedName, colorIndex });
+      const avatar = avatarKeyForColorIndex(colorIndex);
+      await updateChild(db, existing.id, { name: trimmedName, colorIndex, avatar });
     }
     router.back();
   }, [canSave, existing, addChild, updateChild, trimmedName, colorIndex, router]);
