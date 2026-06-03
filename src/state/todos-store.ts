@@ -3,6 +3,15 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { Todo } from '../domain/types';
 import { todosRepo, type NewTodo } from '../db/repositories';
+import { rescheduleAll } from '../notifications/scheduler';
+
+// Every mutation here changes either a todo's notify trigger directly
+// or its visibility — reconcile after every set().
+function reconcile(db: SQLiteDatabase): void {
+  void rescheduleAll(db).catch((e) => {
+    console.warn('[todos-store] reconcile failed:', e);
+  });
+}
 
 interface TodosState {
   todos: Todo[];
@@ -31,6 +40,7 @@ export const useTodosStore = create<TodosState>()((set) => ({
     const todo = await todosRepo.create(db, input);
     const todos = await todosRepo.list(db);
     set({ todos });
+    reconcile(db);
     return todo;
   },
 
@@ -38,17 +48,20 @@ export const useTodosStore = create<TodosState>()((set) => ({
     await todosRepo.update(db, id, patch);
     const todos = await todosRepo.list(db);
     set({ todos });
+    reconcile(db);
   },
 
   removeOne: async (db, id) => {
     await todosRepo.remove(db, id);
     const todos = await todosRepo.list(db);
     set({ todos });
+    reconcile(db);
   },
 
   toggleDone: async (db, id) => {
     await todosRepo.toggleDone(db, id, Date.now());
     const todos = await todosRepo.list(db);
     set({ todos });
+    reconcile(db);
   },
 }));

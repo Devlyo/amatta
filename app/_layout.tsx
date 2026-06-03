@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Text, StyleSheet } from 'react-native';
+import { AppState, Text, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -11,6 +11,8 @@ import 'react-native-reanimated';
 import { getDb } from '../src/db/client';
 import { runMigrations } from '../src/db/migrations';
 import { seedDevData } from '../src/db/seed-dev';
+import { ensurePermission } from '../src/notifications/permissions';
+import { rescheduleAll } from '../src/notifications/scheduler';
 import { useChildrenStore } from '../src/state/children-store';
 import { useSchedulesStore } from '../src/state/schedules-store';
 import { useChecklistStore } from '../src/state/checklist-store';
@@ -85,6 +87,18 @@ export default function RootLayout() {
           }
         }
 
+        // Notification permission + initial reconciliation. The
+        // ensurePermission() call only prompts the OS once (asked-flag
+        // persisted via AsyncStorage); rescheduleAll() ALWAYS runs so
+        // the OS queue stays a derived projection of SQLite even if
+        // permission was denied (the scheduling calls will no-op).
+        try {
+          await ensurePermission();
+          await rescheduleAll(db);
+        } catch (notifErr) {
+          console.warn('[boot] notification reconcile failed:', notifErr);
+        }
+
         setBootState('ready');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e ?? 'Unknown error');
@@ -95,6 +109,31 @@ export default function RootLayout() {
 
     void boot();
   }, [fontsLoaded]);
+
+  // AppState 'active' → debounced re-reconcile (≥ 60 min since last run).
+  // Catches: device clock drift, push to a new timezone, edits made in a
+  // background sibling session, the user toggling notification permission
+  // in OS settings.
+  const lastReconcileAtRef = useRef<number>(0);
+  useEffect(() => {
+    if (bootState !== 'ready') return;
+    const DEBOUNCE_MS = 60 * 60 * 1000;
+    const sub = AppState.addEventListener('change', (status) => {
+      if (status !== 'active') return;
+      const now = Date.now();
+      if (now - lastReconcileAtRef.current < DEBOUNCE_MS) return;
+      lastReconcileAtRef.current = now;
+      void (async () => {
+        try {
+          const db = await getDb();
+          await rescheduleAll(db);
+        } catch (e) {
+          console.warn('[appstate] notification reconcile failed:', e);
+        }
+      })();
+    });
+    return () => sub.remove();
+  }, [bootState]);
 
   if (!fontsLoaded || bootState === 'booting') {
     return (

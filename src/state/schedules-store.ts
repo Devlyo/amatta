@@ -3,6 +3,17 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { ISODate, Schedule, ScheduleException } from '../domain/types';
 import { schedulesRepo, exceptionsRepo, type NewSchedule, type NewScheduleException } from '../db/repositories';
+import { rescheduleAll } from '../notifications/scheduler';
+
+// Fire-and-forget — every mutation in this store changes what the OS
+// notification queue should hold, so we always reconcile via the
+// cancelAll-first reschedule path. Errors are swallowed: the OS queue
+// being a few seconds stale isn't worth blocking a user action over.
+function reconcile(db: SQLiteDatabase): void {
+  void rescheduleAll(db).catch((e) => {
+    console.warn('[schedules-store] reconcile failed:', e);
+  });
+}
 
 export type ExceptionOverrides =
   | { kind: 'cancel' }
@@ -61,6 +72,7 @@ export const useSchedulesStore = create<SchedulesState>()((set) => ({
     const schedule = await schedulesRepo.create(db, input);
     const { schedules, exceptions } = await loadBoth(db);
     set({ schedules, exceptions });
+    reconcile(db);
     return schedule;
   },
 
@@ -68,18 +80,21 @@ export const useSchedulesStore = create<SchedulesState>()((set) => ({
     await schedulesRepo.update(db, id, patch);
     const { schedules, exceptions } = await loadBoth(db);
     set({ schedules, exceptions });
+    reconcile(db);
   },
 
   removeSchedule: async (db, id) => {
     await schedulesRepo.remove(db, id);
     const { schedules, exceptions } = await loadBoth(db);
     set({ schedules, exceptions });
+    reconcile(db);
   },
 
   addException: async (db, input) => {
     const exception = await exceptionsRepo.create(db, input);
     const { schedules, exceptions } = await loadBoth(db);
     set({ schedules, exceptions });
+    reconcile(db);
     return exception;
   },
 
@@ -87,12 +102,14 @@ export const useSchedulesStore = create<SchedulesState>()((set) => ({
     await exceptionsRepo.update(db, id, patch);
     const { schedules, exceptions } = await loadBoth(db);
     set({ schedules, exceptions });
+    reconcile(db);
   },
 
   removeException: async (db, id) => {
     await exceptionsRepo.remove(db, id);
     const { schedules, exceptions } = await loadBoth(db);
     set({ schedules, exceptions });
+    reconcile(db);
   },
 
   applyException: async (db, scheduleId, date, overrides) => {
@@ -131,5 +148,6 @@ export const useSchedulesStore = create<SchedulesState>()((set) => ({
     });
     const { schedules, exceptions } = await loadBoth(db);
     set({ schedules, exceptions });
+    reconcile(db);
   },
 }));

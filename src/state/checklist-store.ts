@@ -3,6 +3,17 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { ChecklistItem } from '../domain/types';
 import { checklistItemsRepo, type NewChecklistItem } from '../db/repositories';
+import { rescheduleAll } from '../notifications/scheduler';
+
+// Checklist edits change the body of a schedule's notifications
+// (ADR-002: items prepend to the body), so every mutation triggers a
+// reschedule. Errors swallowed — body staleness for a few seconds is
+// not worth blocking on.
+function reconcile(db: SQLiteDatabase): void {
+  void rescheduleAll(db).catch((e) => {
+    console.warn('[checklist-store] reconcile failed:', e);
+  });
+}
 
 interface ChecklistState {
   itemsByScheduleId: Map<number, ChecklistItem[]>;
@@ -56,6 +67,7 @@ export const useChecklistStore = create<ChecklistState>()((set, get) => ({
     const item = await checklistItemsRepo.create(db, input);
     const next = await refreshSchedule(db, input.scheduleId, get().itemsByScheduleId);
     set({ itemsByScheduleId: next });
+    reconcile(db);
     return item;
   },
 
@@ -65,6 +77,7 @@ export const useChecklistStore = create<ChecklistState>()((set, get) => ({
     await checklistItemsRepo.update(db, id, patch);
     const next = await refreshSchedule(db, existing.scheduleId, get().itemsByScheduleId);
     set({ itemsByScheduleId: next });
+    reconcile(db);
   },
 
   removeOne: async (db, id) => {
@@ -73,6 +86,7 @@ export const useChecklistStore = create<ChecklistState>()((set, get) => ({
     await checklistItemsRepo.remove(db, id);
     const next = await refreshSchedule(db, existing.scheduleId, get().itemsByScheduleId);
     set({ itemsByScheduleId: next });
+    reconcile(db);
   },
 
   toggleDone: async (db, id) => {
@@ -81,11 +95,13 @@ export const useChecklistStore = create<ChecklistState>()((set, get) => ({
     await checklistItemsRepo.toggleDone(db, id, Date.now());
     const next = await refreshSchedule(db, existing.scheduleId, get().itemsByScheduleId);
     set({ itemsByScheduleId: next });
+    reconcile(db);
   },
 
   reorder: async (db, scheduleId, orderedIds) => {
     await checklistItemsRepo.reorder(db, scheduleId, orderedIds);
     const next = await refreshSchedule(db, scheduleId, get().itemsByScheduleId);
     set({ itemsByScheduleId: next });
+    reconcile(db);
   },
 }));
