@@ -422,10 +422,11 @@ const styles = StyleSheet.create({
     gap: 6,
     padding: 4,
   },
-  // Spec: each cell padding '14px 0', borderRadius 14, 4 per row.
-  // 4 cells + 3 gaps(6) = 18px gutters; flexBasis sized so wrap is clean.
+  // 3-per-row (user override of the spec's 4-col grid — fits the 6
+  // palette slots exactly in 2 rows of 3 without trailing empty cells).
+  // Cell padding '14px 0', borderRadius 14 retained from spec.
   colorSwatch: {
-    flexBasis: '23%',
+    flexBasis: '31%',
     flexGrow: 1,
     borderRadius: 14,
     alignItems: 'center',
