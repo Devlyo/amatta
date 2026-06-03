@@ -75,7 +75,7 @@ export const TOKENS = {
 
   surface: '#FFFFFF',
   surfaceWarm: '#FAF8F2',
-  surfaceSoft: '#F5F3EE',
+  surfaceSoft: '#F7F6F5',
 
   success: '#00C951',
   danger: '#FF4444',
