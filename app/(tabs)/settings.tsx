@@ -2,27 +2,38 @@
 // Rows link to detail sub-screens; notifications row is a placeholder until
 // batch E lands. Children CRUD now lives on /settings/kids.
 
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
+import { getDb } from '../../src/db/client';
+import { wipeAllData } from '../../src/db/wipe';
 import { MAX_CHILDREN } from '../../src/domain/constants';
 import { useChildrenStore } from '../../src/state/children-store';
+import { useChecklistStore } from '../../src/state/checklist-store';
+import { usePickupLogStore } from '../../src/state/pickup-log-store';
+import { useSchedulesStore } from '../../src/state/schedules-store';
+import { useTodosStore } from '../../src/state/todos-store';
 import { KidAvatar } from '../../src/ui/common/KidAvatar';
 import type { Child } from '../../src/domain/types';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { IconChevronLeft, IconChevronRight } from '../../src/ui/icons';
 import { TOKENS } from '../../src/ui/palette';
+import { ResetConfirmSheet } from '../../src/ui/settings/ResetConfirmSheet';
 
 const APP_VERSION = '1.0.0';
 const APP_BUILD = '(build 1)';
+
+// Spec § 알림 — three "기본 알림 시점" options.
+const NOTIFY_LEAD_OPTIONS = [10, 30, 60] as const;
 
 export default function SettingsScreen(): React.ReactElement {
   const router = useRouter();
@@ -32,6 +43,34 @@ export default function SettingsScreen(): React.ReactElement {
     () => [...children].sort((a, b) => a.id - b.id),
     [children],
   );
+
+  // TODO(notif-persist): these toggles still live in component state.
+  // Once a global app_settings table or AsyncStorage slice lands they'll
+  // hydrate on boot + persist on change. Until then the UI works but the
+  // values reset on app relaunch.
+  const [systemNotif, setSystemNotif] = useState<boolean>(true);
+  const [leadTime, setLeadTime] = useState<number>(30);
+
+  const [resetVisible, setResetVisible] = useState<boolean>(false);
+
+  const handleConfirmReset = useCallback(async (): Promise<void> => {
+    const db = await getDb();
+    await wipeAllData(db);
+    // Reload every zustand slice so the empty state is reflected
+    // immediately. children-store re-emitting [] triggers the redirect
+    // to /onboarding/welcome from (tabs)/index.
+    await Promise.all([
+      useChildrenStore.getState().load(db),
+      useSchedulesStore.getState().load(db),
+      useChecklistStore.getState().load(db),
+      useTodosStore.getState().load(db),
+      usePickupLogStore.getState().load(db),
+    ]);
+    setResetVisible(false);
+    // Bounce out to the daily tab; the empty-state redirect picks up
+    // the wipe and routes to /onboarding/welcome.
+    router.replace('/');
+  }, [router]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -67,16 +106,28 @@ export default function SettingsScreen(): React.ReactElement {
           />
         </Card>
 
-        {/* 알림 — placeholder until batch E */}
+        {/* 알림 — spec § '알림' inline (no detail page). */}
         <SectionHeader label="알림" />
         <Card>
-          <NavRow
-            label="알림 설정"
-            sub="이벤트 시작 전 푸시 받기"
-            value={<Text style={styles.valueMuted}>준비 중</Text>}
-            disabled
-            accessibilityLabel="알림 설정 (준비 중)"
-            testID="settings-row-notifications"
+          <ToggleRow
+            label="시스템 알림"
+            sub="이벤트 시작 전에 푸시 받기"
+            value={systemNotif}
+            onChange={setSystemNotif}
+            accessibilityLabel="시스템 알림"
+            testID="settings-row-notif-system"
+          />
+          <Divider />
+          <SegmentedRow
+            label="기본 알림 시점"
+            sub="새 일정에 자동으로 설정돼요"
+            options={NOTIFY_LEAD_OPTIONS}
+            value={leadTime}
+            onChange={setLeadTime}
+            disabled={!systemNotif}
+            renderOption={(v) => `${v}분 전`}
+            accessibilityLabel="기본 알림 시점"
+            testID="settings-row-notif-lead"
           />
         </Card>
 
@@ -89,6 +140,19 @@ export default function SettingsScreen(): React.ReactElement {
             onPress={() => router.push('/settings/data')}
             accessibilityLabel="데이터 관리"
             testID="settings-row-data"
+          />
+        </Card>
+
+        {/* 모든 데이터 초기화 — spec § '데이터' destructive card.
+            Lives in its own Card right before the 정보 section. */}
+        <View style={styles.destructiveSpacer} />
+        <Card>
+          <DestructiveRow
+            label="모든 데이터 초기화"
+            sub="자녀·일정·할일·설정이 모두 삭제돼요"
+            onPress={() => setResetVisible(true)}
+            accessibilityLabel="모든 데이터 초기화"
+            testID="settings-row-reset"
           />
         </Card>
 
@@ -111,6 +175,12 @@ export default function SettingsScreen(): React.ReactElement {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      <ResetConfirmSheet
+        visible={resetVisible}
+        onCancel={() => setResetVisible(false)}
+        onConfirm={() => void handleConfirmReset()}
+      />
     </SafeAreaView>
   );
 }
@@ -174,6 +244,133 @@ function NavRow({
       </View>
       {value !== undefined ? value : null}
       <IconChevronRight size={16} color={TOKENS.ink30} />
+    </Pressable>
+  );
+}
+
+function ToggleRow({
+  label,
+  sub,
+  value,
+  onChange,
+  accessibilityLabel,
+  testID,
+}: {
+  label: string;
+  sub?: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+  accessibilityLabel: string;
+  testID?: string;
+}): React.ReactElement {
+  return (
+    <View
+      style={styles.row}
+      accessibilityRole="switch"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ checked: value }}
+      testID={testID}
+    >
+      <View style={styles.rowText}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        {sub !== undefined ? <Text style={styles.rowSub}>{sub}</Text> : null}
+      </View>
+      <Switch value={value} onValueChange={onChange} />
+    </View>
+  );
+}
+
+function SegmentedRow<T>({
+  label,
+  sub,
+  options,
+  value,
+  onChange,
+  disabled,
+  renderOption,
+  accessibilityLabel,
+  testID,
+}: {
+  label: string;
+  sub?: string;
+  options: readonly T[];
+  value: T;
+  onChange: (v: T) => void;
+  disabled?: boolean;
+  renderOption: (v: T) => string;
+  accessibilityLabel: string;
+  testID?: string;
+}): React.ReactElement {
+  return (
+    <View
+      style={[styles.row, styles.segmentedRow, disabled ? styles.rowDisabled : null]}
+      accessibilityLabel={accessibilityLabel}
+      testID={testID}
+    >
+      <View style={styles.rowText}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        {sub !== undefined ? <Text style={styles.rowSub}>{sub}</Text> : null}
+      </View>
+      <View style={styles.segmentedTrack}>
+        {options.map((opt, i) => {
+          const active = opt === value && !disabled;
+          return (
+            <Pressable
+              key={i}
+              onPress={() => {
+                if (disabled) return;
+                onChange(opt);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={renderOption(opt)}
+              accessibilityState={{ selected: active, disabled }}
+              style={[styles.segment, active ? styles.segmentActive : null]}
+            >
+              <Text
+                style={[
+                  styles.segmentLabel,
+                  active ? styles.segmentLabelActive : null,
+                ]}
+              >
+                {renderOption(opt)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function DestructiveRow({
+  label,
+  sub,
+  onPress,
+  accessibilityLabel,
+  testID,
+}: {
+  label: string;
+  sub?: string;
+  onPress: () => void;
+  accessibilityLabel: string;
+  testID?: string;
+}): React.ReactElement {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      testID={testID}
+      style={({ pressed }) => [
+        styles.row,
+        pressed ? styles.rowPressed : null,
+      ]}
+    >
+      <View style={styles.rowText}>
+        <Text style={styles.destructiveLabel}>{label}</Text>
+        {sub !== undefined ? <Text style={styles.rowSub}>{sub}</Text> : null}
+      </View>
+      <IconChevronRight size={16} color={TOKENS.danger} />
     </Pressable>
   );
 }
@@ -311,11 +508,36 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  valueMuted: {
-    fontSize: 13,
-    fontFamily: FONT_FAMILIES.pretendard,
+  // --- Segmented row ---------------------------------------------------
+  segmentedRow: { alignItems: 'flex-start', gap: 8 },
+  segmentedTrack: {
+    flexDirection: 'row',
+    gap: 4,
+    flexShrink: 0,
+  },
+  segment: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 9999,
+    backgroundColor: TOKENS.ink04,
+  },
+  segmentActive: { backgroundColor: TOKENS.ink },
+  segmentLabel: {
+    fontSize: 12.5,
+    fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
+  },
+  segmentLabelActive: { color: TOKENS.surface },
+
+  // --- Destructive row -------------------------------------------------
+  destructiveSpacer: { height: 8 },
+  destructiveLabel: {
+    fontSize: 14,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.danger,
+    letterSpacing: -0.3,
+    lineHeight: 18,
   },
 
   infoValueWrap: {
