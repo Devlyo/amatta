@@ -138,7 +138,10 @@ export function ScheduleGrid({
         <View style={styles.grid}>
           {/* ── Gutter ─────────────────────────────────────────────── */}
           <View style={styles.gutter}>
-            {Array.from({ length: HOUR_COUNT }).map((_, i) => {
+            {/* HOUR_COUNT + 1 so the final hour-line (i = HOUR_COUNT,
+                rawHour = GRID_END_HOUR) gets a label too — without the
+                +1 the 1 AM cap of the extended grid had no gutter text. */}
+            {Array.from({ length: HOUR_COUNT + 1 }).map((_, i) => {
               const rawHour = GRID_START_HOUR + i;
               // Wrap past midnight: 24 → 0 (AM), 25 → 1 (AM).
               const hour = rawHour % 24;

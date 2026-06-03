@@ -3,6 +3,7 @@ import { Text, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { GeistMono_400Regular } from '@expo-google-fonts/geist-mono';
 import 'react-native-reanimated';
@@ -114,6 +115,10 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.flex}>
+      {/* Force dark status-bar glyphs (battery, clock, etc.) — every screen
+          in the app uses a light surface so the default white glyphs would
+          be invisible. style='dark' makes the icons render in #000-ish. */}
+      <StatusBar style="dark" />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="child/[id]" options={{ headerShown: false }} />

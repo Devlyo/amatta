@@ -54,12 +54,13 @@ function fmtTimeShort(minutes: number): string {
 
 function fmtEta(nowMinutes: number, targetMinutes: number): string {
   const delta = targetMinutes - nowMinutes;
+  // '곧' is the "imminent" cap — already self-contained, no '남음' suffix.
   if (delta <= 0) return '곧';
   const h = Math.floor(delta / 60);
   const m = delta % 60;
-  if (h === 0) return `${m}분`;
-  if (m === 0) return `${h}시간`;
-  return `${h}시간 ${m}분`;
+  if (h === 0) return `${m}분 남음`;
+  if (m === 0) return `${h}시간 남음`;
+  return `${h}시간 ${m}분 남음`;
 }
 
 interface Eligible {
