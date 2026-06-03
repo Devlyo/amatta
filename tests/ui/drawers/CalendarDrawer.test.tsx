@@ -106,7 +106,9 @@ describe('CalendarDrawer', () => {
 
   test('today (2026-05-05) is rendered with the primary highlight pill', () => {
     const { getByLabelText, UNSAFE_getAllByType } = render(<CalendarDrawer />);
-    const todayBtn = getByLabelText('2026년 5월 5일');
+    // 2026-05-05 is 어린이날 — the holiday name gets appended to the cell's
+    // accessibility label by the Korean-holidays integration.
+    const todayBtn = getByLabelText('2026년 5월 5일 어린이날');
     // The inner pill view sits inside the Pressable. Inspect its style
     // recursively via UNSAFE_getAllByType to confirm the primary background.
     const views = UNSAFE_getAllByType(View);

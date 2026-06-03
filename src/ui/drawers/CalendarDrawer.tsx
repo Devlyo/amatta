@@ -18,6 +18,10 @@ import { useChildrenStore } from '../../state/children-store';
 import { useSchedulesStore } from '../../state/schedules-store';
 import { useUiStore } from '../../state/ui-store';
 import { expandOccurrences } from '../../domain/occurrences';
+import {
+  getKoreanHolidayName,
+  isKoreanHoliday,
+} from '../../domain/korean-holidays';
 import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
 import { IconChevronLeft, IconChevronRight } from '../icons';
@@ -241,19 +245,32 @@ export function CalendarDrawer(): React.ReactElement {
                   : null,
             ];
 
-            const dateIso = isoFromYmd(year, month, d) as unknown as string;
-            const kidIdsForDate = kidsByDate.get(dateIso) ?? [];
+            const dateIso = isoFromYmd(year, month, d);
+            const dateIsoStr = dateIso as unknown as string;
+            const kidIdsForDate = kidsByDate.get(dateIsoStr) ?? [];
+            const dowIdx = i % 7;
+            const isSunday = dowIdx === 0;
+            const holidayName = getKoreanHolidayName(dateIso);
+            const isHoliday = isKoreanHoliday(dateIso);
+            const isRedText = (isSunday || isHoliday) && !isToday && !isSelected;
             return (
               <Pressable
                 key={`d-${i}`}
                 onPress={() => handlePickDate(d)}
                 accessibilityRole="button"
-                accessibilityLabel={`${year}년 ${month}월 ${d}일${kidIdsForDate.length > 0 ? ` 일정 ${kidIdsForDate.length}건` : ''}`}
+                accessibilityLabel={`${year}년 ${month}월 ${d}일${holidayName !== null ? ` ${holidayName}` : ''}${kidIdsForDate.length > 0 ? ` 일정 ${kidIdsForDate.length}건` : ''}`}
                 accessibilityState={{ selected: isSelected }}
                 style={styles.cell}
               >
                 <View style={pillStyles}>
-                  <Text style={pillTextStyles}>{d}</Text>
+                  <Text
+                    style={[
+                      ...pillTextStyles,
+                      isRedText ? styles.pillTextRed : null,
+                    ]}
+                  >
+                    {d}
+                  </Text>
                 </View>
                 {kidIdsForDate.length > 0 ? (
                   <View style={styles.dotRow}>
@@ -379,6 +396,12 @@ const styles = StyleSheet.create({
   },
   pillTextSelected: {
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
+  },
+  pillTextRed: {
+    // Sunday + 한국 공휴일 — both adopt the DOW header's Sunday tint
+    // so weekend-vs-holiday distinction stays implicit (calendars
+    // conventionally treat them the same visually).
+    color: WEEKEND_COLOR_SUN,
   },
 
   dotRow: {
