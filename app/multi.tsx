@@ -302,7 +302,7 @@ function MultiViewScreenImpl(): React.ReactElement {
               const dowLabel = ['일', '월', '화', '수', '목', '금', '토'][idx] ?? '';
               const day = Number((date as unknown as string).slice(8, 10));
               const dowColor =
-                idx === 0 ? '#D04580' : idx === 6 ? '#3F66D8' : TOKENS.inkSub;
+                idx === 0 ? TOKENS.danger : idx === 6 ? '#3F66D8' : TOKENS.inkSub;
               return (
                 <View key={date as unknown as string} style={styles.weekStripCell}>
                   <Text style={[styles.weekStripDow, { color: dowColor }]}>

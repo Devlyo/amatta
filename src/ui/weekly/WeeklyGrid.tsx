@@ -138,7 +138,7 @@ export function WeeklyGrid({
             const dayNum = Number((d as unknown as string).slice(8, 10));
             const isToday = i === todayIdx;
             const dowColor =
-              i === 6 ? '#D04580' : i === 5 ? '#3F66D8' : TOKENS.inkSub;
+              i === 6 ? TOKENS.danger : i === 5 ? '#3F66D8' : TOKENS.inkSub;
             return (
               <View
                 key={d as unknown as string}

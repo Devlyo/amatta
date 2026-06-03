@@ -28,8 +28,10 @@ import { IconChevronLeft, IconChevronRight } from '../icons';
 import { getKidPalette, TOKENS } from '../palette';
 import { todayIso } from '../utils/date';
 
-// Weekend tints from the prototype's DOW header (Sun=red-pink, Sat=blue).
-const WEEKEND_COLOR_SUN = '#D04580';
+// Weekend tints. Sunday uses TOKENS.danger (the codebase's defined red,
+// `#FF4444`) so the calendar/dow header doesn't ship a one-off magenta.
+// Saturday's blue stays as a local literal until a `saturday`/blue token
+// exists in src/ui/palette.ts.
 const WEEKEND_COLOR_SAT = '#3F66D8';
 
 const DOW_LABELS = ['일', '월', '화', '수', '목', '금', '토'] as const;
@@ -203,7 +205,7 @@ export function CalendarDrawer(): React.ReactElement {
           {DOW_LABELS.map((d, i) => {
             const tint =
               i === 0
-                ? WEEKEND_COLOR_SUN
+                ? TOKENS.danger
                 : i === 6
                   ? WEEKEND_COLOR_SAT
                   : TOKENS.inkSub;
@@ -401,7 +403,7 @@ const styles = StyleSheet.create({
     // Sunday + 한국 공휴일 — both adopt the DOW header's Sunday tint
     // so weekend-vs-holiday distinction stays implicit (calendars
     // conventionally treat them the same visually).
-    color: WEEKEND_COLOR_SUN,
+    color: TOKENS.danger,
   },
 
   dotRow: {
