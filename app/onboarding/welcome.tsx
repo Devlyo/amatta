@@ -17,6 +17,8 @@ import { memo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
+import Svg, { Path } from 'react-native-svg';
 
 import { MASCOTS } from '../../src/ui/assets';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
@@ -36,7 +38,15 @@ function OnbWelcomeImpl(): React.ReactElement {
         <View style={styles.heroGroup}>
           {/* ── Mascot row + lime tray ────────────────────────── */}
           <View style={styles.mascotRow}>
-            <View style={styles.limeBlob} pointerEvents="none" />
+            {IS_EXPO_GO ? (
+              <View style={styles.limeBlob} pointerEvents="none" />
+            ) : (
+              <View style={styles.blobWrap} pointerEvents="none">
+                <Svg width={BLOB_SVG_W} height={BLOB_SVG_H} viewBox="0 0 280 120">
+                  <Path d={BLOB_PATH} fill={BLOB_CITRUS} />
+                </Svg>
+              </View>
+            )}
             <Image
               source={MASCOTS.pink}
               style={styles.mascotPink}
@@ -84,9 +94,18 @@ export default memo(OnbWelcomeImpl);
 
 const MASCOT_PINK_SIZE = 120;
 const MASCOT_ORANGE_SIZE = 130;
-// User override: the View-oval approximation read as a flat dome that
-// didn't match the spec's organic blob anyway, so swap to a plain 2px
-// horizontal line in the same NOW_YELLOW. Same centre + spec offsets.
+// The organic lime "tray" under the mascots is an SVG path (app-onboarding.jsx).
+// react-native-svg can't render in Expo Go (Fabric components unregistered), so:
+//   - Expo Go  → a plain 2px line approximation (no crash)
+//   - EAS build → the real organic blob
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
+// eslint-disable-next-line no-restricted-syntax -- kid-palette Citrus Green, no TOKENS mapping
+const BLOB_CITRUS = '#E0E446';
+const BLOB_SVG_W = 270;
+const BLOB_SVG_H = 116;
+const BLOB_PATH =
+  'M14,82 C24,76 70,72 130,66 C190,60 230,46 236,32 C256,22 288,42 282,68 C276,96 240,108 196,104 C146,100 92,98 50,98 C22,98 4,90 14,82 Z';
+// Expo Go fallback line dims.
 const BLOB_W = 230;
 const BLOB_H = 2;
 
@@ -120,9 +139,20 @@ const styles = StyleSheet.create({
     top: '50%',
     marginLeft: -BLOB_W / 2 + 6, // spec: translate(calc(-50% + 6px), ...)
     marginTop: -BLOB_H / 2 + 38, // a touch below the mascot feet line.
-    // eslint-disable-next-line no-restricted-syntax
-    backgroundColor: '#E0E446', // kid-palette Citrus Green — no TOKENS mapping.
+    backgroundColor: BLOB_CITRUS,
     borderRadius: 1,
+  },
+  // EAS-build organic blob — centred behind the mascots' feet.
+  // Mirrors the prototype transform translate(-50% + 6px, -50% + 30px).
+  blobWrap: {
+    position: 'absolute',
+    width: BLOB_SVG_W,
+    height: BLOB_SVG_H,
+    left: '50%',
+    top: '50%',
+    marginLeft: -BLOB_SVG_W / 2 + 6,
+    marginTop: -BLOB_SVG_H / 2 + 30,
+    zIndex: 0,
   },
   mascotPink: {
     width: MASCOT_PINK_SIZE,

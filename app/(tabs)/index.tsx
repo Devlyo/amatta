@@ -31,6 +31,7 @@ import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useTodosStore } from '../../src/state/todos-store';
 import { useUiStore } from '../../src/state/ui-store';
 import { BottomDock } from '../../src/ui/common/BottomDock';
+import { EmptyDayState } from '../../src/ui/daily/EmptyDayState';
 import { KidPillsHeader } from '../../src/ui/daily/KidPillsHeader';
 import { PickupCarousel } from '../../src/ui/daily/PickupCarousel';
 import { ScheduleGrid } from '../../src/ui/daily/ScheduleGrid';
@@ -231,14 +232,19 @@ export default function DailyViewScreen(): React.ReactElement {
               kids={visibleChildren}
               onPressKid={(id) => router.push(`/child/${id}`)}
             />
-            {/* Section 6 — Day grid (scrolls vertically) */}
-            <ScheduleGrid
-              kids={visibleChildren}
-              occurrences={occurrences}
-              nowMinutes={nowMinutes}
-              currentDate={currentDate}
-              onBlockPress={handleBlockPress}
-            />
+            {/* Section 6 — Day grid (scrolls vertically), or an empty-day
+                hint when nothing is scheduled for the viewed date. */}
+            {occurrences.length === 0 ? (
+              <EmptyDayState />
+            ) : (
+              <ScheduleGrid
+                kids={visibleChildren}
+                occurrences={occurrences}
+                nowMinutes={nowMinutes}
+                currentDate={currentDate}
+                onBlockPress={handleBlockPress}
+              />
+            )}
           </View>
         </GestureDetector>
       ) : (
