@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "schedul-app",
+    "name": "아마따",
     "slug": "schedul-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,28 +14,10 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "io.starzip.schedulapp",
-      "usesIcloudStorage": true,
-      "entitlements": {
-        "com.apple.developer.icloud-container-identifiers": [
-          "iCloud.io.starzip.schedulapp.documents"
-        ],
-        "com.apple.developer.icloud-services": [
-          "CloudDocuments"
-        ],
-        "com.apple.developer.ubiquity-container-identifiers": [
-          "iCloud.io.starzip.schedulapp.documents"
-        ]
-      },
       "infoPlist": {
-        "NSUbiquitousContainers": {
-          "iCloud.io.starzip.schedulapp.documents": {
-            "NSUbiquitousContainerIsDocumentScopePublic": true,
-            "NSUbiquitousContainerSupportedFolderLevels": "Any",
-            "NSUbiquitousContainerName": "schedulapp"
-          }
-        }
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
