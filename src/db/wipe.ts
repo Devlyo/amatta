@@ -20,6 +20,10 @@ const TABLES_LEAF_FIRST = [
   'notification_settings',
   'schedules',
   'children',
+  // app_settings has no FK relationships; clearing it makes reset a true
+  // clean slate so no stale persisted notif settings (systemEnabled /
+  // defaultMinutesBefore) survive a "모든 데이터 초기화".
+  'app_settings',
 ] as const;
 
 export async function wipeAllData(db: SQLiteDatabase): Promise<void> {

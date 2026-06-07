@@ -87,13 +87,45 @@ describe('exportDb', () => {
     if (existsSync(dbPath)) rmSync(dbPath, { force: true });
   });
 
-  test('empty DB → envelope has all four arrays empty + schemaVersion=1', async () => {
+  test('empty DB → envelope has all seven arrays empty + schemaVersion bump', async () => {
     const result = await exportDb(db as never);
     expect(result.envelope.schemaVersion).toBe(EXPORT_SCHEMA_VERSION);
+    expect(EXPORT_SCHEMA_VERSION).toBeGreaterThanOrEqual(2);
     expect(result.envelope.children).toEqual([]);
     expect(result.envelope.schedules).toEqual([]);
     expect(result.envelope.exceptions).toEqual([]);
     expect(result.envelope.notificationSettings).toEqual([]);
+    expect(result.envelope.checklistItems).toEqual([]);
+    expect(result.envelope.todos).toEqual([]);
+    expect(result.envelope.pickupLog).toEqual([]);
+  });
+
+  // Reject-vector guard (P3.3): every category the data screen counts/displays
+  // under "내보낼 정보" — 자녀(children) / 일정(schedules) / 준비물(checklist) /
+  // 할일(todos) — plus the rest of the DB surface MUST be an exported envelope
+  // key. If the UI ever shows a category the export drops, this fails.
+  test('exported categories cover all seven DB entities (no silent data loss)', async () => {
+    const result = await exportDb(db as never);
+    const exportedKeys = Object.keys(result.envelope).sort();
+    expect(exportedKeys).toEqual(
+      [
+        'checklistItems',
+        'children',
+        'exceptions',
+        'exportedAt',
+        'notificationSettings',
+        'pickupLog',
+        'schedules',
+        'schemaVersion',
+        'todos',
+      ].sort(),
+    );
+    // The four categories the data.tsx "내보낼 정보" UI counts must each map to
+    // a populated-able export array.
+    expect(result.envelope.children).toBeDefined(); // 자녀
+    expect(result.envelope.schedules).toBeDefined(); // 일정
+    expect(result.envelope.checklistItems).toBeDefined(); // 준비물
+    expect(result.envelope.todos).toBeDefined(); // 할일
   });
 
   test('exportedAt is a valid ISO 8601 UTC timestamp', async () => {
@@ -114,7 +146,7 @@ describe('exportDb', () => {
     expect(result.suggestedFilename).toBe('schedulapp-export-20260602-1324.json');
   });
 
-  test('populated DB → all four tables present', async () => {
+  test('populated DB → every table round-trips its row count into the export', async () => {
     real.exec(
       `INSERT INTO children (name, color_index, created_at) VALUES
         ('민준', 0, '2026-05-01'),
@@ -122,10 +154,10 @@ describe('exportDb', () => {
     );
     real.exec(
       `INSERT INTO schedules
-         (child_id, title, type, days_of_week, start_minutes, end_minutes, valid_from, notify_minutes_before)
+         (child_id, title, type, days_of_week, start_minutes, end_minutes, valid_from, notify_minutes_before, needs_pickup)
        VALUES
-         (1, '학교', 'school', 31, 540, 870, '2026-05-01', NULL),
-         (1, '영어학원', 'academy', 21, 960, 1050, '2026-05-01', 30)`,
+         (1, '학교', 'school', 31, 540, 870, '2026-05-01', NULL, 0),
+         (1, '영어학원', 'academy', 21, 960, 1050, '2026-05-01', 30, 1)`,
     );
     real.exec(
       `INSERT INTO schedule_exceptions (schedule_id, date, kind)
@@ -135,12 +167,66 @@ describe('exportDb', () => {
       `INSERT INTO notification_settings (child_id, default_minutes_before, sound, enabled)
        VALUES (1, 15, 1, 1), (2, 30, 0, 1)`,
     );
+    real.exec(
+      `INSERT INTO checklist_items (schedule_id, label, sort_order, is_done, done_at)
+       VALUES
+         (2, '교재', 0, 0, NULL),
+         (2, '필통', 1, 1, 1717000000000),
+         (1, '물통', 0, 0, NULL)`,
+    );
+    real.exec(
+      `INSERT INTO todos (child_id, title, due_at, notify_minutes_before, is_done, done_at, created_at)
+       VALUES
+         (1, '준비물 챙기기', 1717100000000, 30, 0, NULL, 1716000000000),
+         (NULL, '학부모 상담 예약', 1717200000000, NULL, 1, 1717150000000, 1716000000000)`,
+    );
+    real.exec(
+      `INSERT INTO schedule_pickup_log (schedule_id, occurrence_date, completed_at)
+       VALUES (2, 1717000000000, 1717003600000)`,
+    );
+
+    // Expected counts straight from the seed above — these are the source of
+    // truth the export must mirror per table.
+    const expectedCounts: Record<string, number> = {
+      children: 2,
+      schedules: 2,
+      exceptions: 1,
+      notificationSettings: 2,
+      checklistItems: 3,
+      todos: 2,
+      pickupLog: 1,
+    };
 
     const result = await exportDb(db as never);
-    expect(result.envelope.children).toHaveLength(2);
-    expect(result.envelope.schedules).toHaveLength(2);
-    expect(result.envelope.exceptions).toHaveLength(1);
-    expect(result.envelope.notificationSettings).toHaveLength(2);
+    expect(result.envelope.children).toHaveLength(expectedCounts.children);
+    expect(result.envelope.schedules).toHaveLength(expectedCounts.schedules);
+    expect(result.envelope.exceptions).toHaveLength(expectedCounts.exceptions);
+    expect(result.envelope.notificationSettings).toHaveLength(
+      expectedCounts.notificationSettings,
+    );
+    expect(result.envelope.checklistItems).toHaveLength(
+      expectedCounts.checklistItems,
+    );
+    expect(result.envelope.todos).toHaveLength(expectedCounts.todos);
+    expect(result.envelope.pickupLog).toHaveLength(expectedCounts.pickupLog);
+
+    // Cross-check each export array length against the live DB row count, so a
+    // future schema change that drops rows from a table is caught.
+    for (const [table, sql] of [
+      ['children', 'SELECT COUNT(*) AS c FROM children'],
+      ['schedules', 'SELECT COUNT(*) AS c FROM schedules'],
+      ['exceptions', 'SELECT COUNT(*) AS c FROM schedule_exceptions'],
+      ['notificationSettings', 'SELECT COUNT(*) AS c FROM notification_settings'],
+      ['checklistItems', 'SELECT COUNT(*) AS c FROM checklist_items'],
+      ['todos', 'SELECT COUNT(*) AS c FROM todos'],
+      ['pickupLog', 'SELECT COUNT(*) AS c FROM schedule_pickup_log'],
+    ] as const) {
+      const dbCount = Number(
+        (real.prepare(sql).get() as { c: number | bigint }).c,
+      );
+      const exported = (result.envelope as Record<string, unknown[]>)[table];
+      expect(exported).toHaveLength(dbCount);
+    }
 
     // Spot-check that the mappers ran (domain shape, not raw row shape).
     expect(result.envelope.children[0]).toMatchObject({
@@ -152,6 +238,7 @@ describe('exportDb', () => {
       title: '영어학원',
       type: 'academy',
       notifyMinutesBefore: 30,
+      needsPickup: true,
     });
     expect(result.envelope.exceptions[0]).toMatchObject({
       scheduleId: 2,
@@ -161,6 +248,20 @@ describe('exportDb', () => {
       childId: 1,
       sound: true,
       enabled: true,
+    });
+    expect(result.envelope.checklistItems[1]).toMatchObject({
+      scheduleId: 2,
+      label: '필통',
+      isDone: true,
+    });
+    expect(result.envelope.todos[1]).toMatchObject({
+      childId: null,
+      title: '학부모 상담 예약',
+      isDone: true,
+    });
+    expect(result.envelope.pickupLog[0]).toMatchObject({
+      scheduleId: 2,
+      occurrenceDate: 1717000000000,
     });
   });
 

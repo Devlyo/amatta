@@ -5,6 +5,7 @@ import * as notificationSettingsRepo from './notification-settings';
 import * as checklistItemsRepo from './checklist-items';
 import * as todosRepo from './todos';
 import * as schedulePickupLogRepo from './schedule-pickup-log';
+import * as appSettingsRepo from './app-settings';
 
 export {
   childrenRepo,
@@ -14,6 +15,7 @@ export {
   checklistItemsRepo,
   todosRepo,
   schedulePickupLogRepo,
+  appSettingsRepo,
 };
 
 // Also re-export types

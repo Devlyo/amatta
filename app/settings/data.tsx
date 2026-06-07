@@ -118,7 +118,7 @@ export default function DataScreen(): React.ReactElement {
         </View>
 
         <Text style={styles.note}>
-          내보낸 JSON 파일은 다른 기기의 아마따에서 가져오기로 복원하거나, 백업용으로 보관할 수 있어요.
+          내보낸 JSON 파일은 백업용으로 보관할 수 있어요. 가져오기(복원)는 v1.1에서 지원돼요.
         </Text>
 
         {/* CTA — 내보내기 */}

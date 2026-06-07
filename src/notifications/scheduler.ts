@@ -44,6 +44,7 @@ import {
   todosRepo,
 } from '../db/repositories';
 import { shiftIsoDate, todayIso } from '../ui/utils/date';
+import { useNotifSettingsStore } from '../state/notif-settings-store';
 import {
   formatScheduleNotification,
   formatTodoNotification,
@@ -51,6 +52,33 @@ import {
 
 /** Default rolling horizon in days. */
 export const DEFAULT_HORIZON_DAYS = 14;
+
+/**
+ * Max pending triggers we schedule per reconcile. iOS silently caps the
+ * pending-notification queue at 64; we stay safely under it so the SOONEST
+ * triggers are always armed (4-kid density can produce ~280/14d). When the
+ * candidate set exceeds this, we keep only the `MAX_SCHEDULED` soonest and
+ * flag the truncation on the notif store.
+ */
+export const MAX_SCHEDULED = 60;
+
+/**
+ * A single not-yet-scheduled notification, carrying its absolute fire time
+ * so the full candidate set can be sorted soonest-first before we commit
+ * the bounded subset to the OS queue.
+ */
+interface Candidate {
+  /** Owner key for the sessionMap (e.g. `s:12` / `t:3`). */
+  ownerKey: string;
+  fireAtMs: number;
+  request: {
+    content: { title: string; body: string; sound: 'default' };
+    trigger: {
+      type: typeof Notifications.SchedulableTriggerInputTypes.DATE;
+      date: Date;
+    };
+  };
+}
 
 /**
  * PER-SESSION CACHE. Maps a scheduleId/todoId to the notification ids it
@@ -67,18 +95,19 @@ function keyForTodo(todoId: number): string {
 }
 
 /**
- * For a single Schedule, schedule all triggers that fall inside the
- * horizon and whose firing time is in the future. Returns the list of
- * notification ids the OS handed back.
+ * For a single Schedule, BUILD (do not schedule) every candidate trigger
+ * that falls inside the horizon and whose firing time is in the future.
+ * Scheduling happens later in rescheduleAll after the global candidate set
+ * is sorted soonest-first and truncated to the ≤60 cap.
  */
-async function scheduleForSchedule(input: {
+function candidatesForSchedule(input: {
   schedule: Schedule;
   exceptions: readonly ScheduleException[];
   childrenById: Map<number, Child>;
   checklistByScheduleId: Map<number, ChecklistItem[]>;
   horizonDays: number;
   now: Date;
-}): Promise<string[]> {
+}): Candidate[] {
   const {
     schedule,
     exceptions,
@@ -104,7 +133,8 @@ async function scheduleForSchedule(input: {
   );
 
   const checklist = checklistByScheduleId.get(schedule.id) ?? [];
-  const ids: string[] = [];
+  const ownerKey = keyForSchedule(schedule.id);
+  const candidates: Candidate[] = [];
 
   for (const occ of occurrences) {
     const fireAt = subtractMinutes(
@@ -121,27 +151,31 @@ async function scheduleForSchedule(input: {
       checklist,
     });
 
-    const id = await Notifications.scheduleNotificationAsync({
-      content: { title, body, sound: 'default' },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: fireAt,
+    candidates.push({
+      ownerKey,
+      fireAtMs: fireAt.getTime(),
+      request: {
+        content: { title, body, sound: 'default' },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: fireAt,
+        },
       },
     });
-    ids.push(id);
   }
 
-  return ids;
+  return candidates;
 }
 
 /**
- * For a single Todo, schedule its single push (dueAt - notifyMinutesBefore).
+ * For a single Todo, BUILD (do not schedule) its single candidate trigger
+ * (dueAt - notifyMinutesBefore).
  */
-async function scheduleForTodo(input: {
+function candidatesForTodo(input: {
   todo: Todo;
   childrenById: Map<number, Child>;
   now: Date;
-}): Promise<string[]> {
+}): Candidate[] {
   const { todo, childrenById, now } = input;
   if (todo.notifyMinutesBefore === null) return [];
   if (todo.isDone) return [];
@@ -152,14 +186,19 @@ async function scheduleForTodo(input: {
   if (fireAt.getTime() <= now.getTime()) return [];
 
   const { title, body } = formatTodoNotification({ todo, kidName });
-  const id = await Notifications.scheduleNotificationAsync({
-    content: { title, body, sound: 'default' },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DATE,
-      date: fireAt,
+  return [
+    {
+      ownerKey: keyForTodo(todo.id),
+      fireAtMs: fireAt.getTime(),
+      request: {
+        content: { title, body, sound: 'default' },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: fireAt,
+        },
+      },
     },
-  });
-  return [id];
+  ];
 }
 
 /**
@@ -182,9 +221,20 @@ export async function rescheduleAll(
   const horizonDays = opts.horizonDays ?? DEFAULT_HORIZON_DAYS;
   const now = opts.now ?? new Date();
 
-  // CRITICAL — wipe the OS queue first. See invariant 3.
+  // CRITICAL — wipe the OS queue first. See invariant 3. This MUST run on
+  // every reschedule path, including the systemEnabled=false early return,
+  // so turning notifications OFF immediately cancels everything pending.
   await Notifications.cancelAllScheduledNotificationsAsync();
   sessionMap.clear();
+
+  // P3.4 — systemEnabled gates scheduling. When OFF: cancel (above) and
+  // schedule NOTHING. The store is hydrated from app_settings during boot
+  // before this runs, so getState() reflects the persisted preference.
+  const notifStore = useNotifSettingsStore.getState();
+  if (!notifStore.systemEnabled) {
+    notifStore.setScheduleResult({ truncated: false, scheduledCount: 0 });
+    return;
+  }
 
   const [children, schedules, allExceptions, allTodos] = await Promise.all([
     childrenRepo.list(db),
@@ -210,24 +260,42 @@ export async function rescheduleAll(
     checklistByScheduleId.set(s.id, items);
   }
 
-  // Schedules.
+  // P3.2 — collect ALL candidate triggers (schedules + todos) WITHOUT
+  // scheduling inline, sort soonest-first, then truncate to MAX_SCHEDULED.
+  // This guarantees the soonest triggers win the limited iOS slots instead
+  // of the OS silently dropping whatever overflows the 64-pending cap.
+  const candidates: Candidate[] = [];
   for (const s of schedules) {
-    const ids = await scheduleForSchedule({
-      schedule: s,
-      exceptions: exceptionsByScheduleId.get(s.id) ?? [],
-      childrenById,
-      checklistByScheduleId,
-      horizonDays,
-      now,
-    });
-    if (ids.length > 0) sessionMap.set(keyForSchedule(s.id), ids);
+    candidates.push(
+      ...candidatesForSchedule({
+        schedule: s,
+        exceptions: exceptionsByScheduleId.get(s.id) ?? [],
+        childrenById,
+        checklistByScheduleId,
+        horizonDays,
+        now,
+      }),
+    );
+  }
+  for (const t of allTodos) {
+    candidates.push(...candidatesForTodo({ todo: t, childrenById, now }));
   }
 
-  // Todos.
-  for (const t of allTodos) {
-    const ids = await scheduleForTodo({ todo: t, childrenById, now });
-    if (ids.length > 0) sessionMap.set(keyForTodo(t.id), ids);
+  candidates.sort((a, b) => a.fireAtMs - b.fireAtMs);
+  const truncated = candidates.length > MAX_SCHEDULED;
+  const toSchedule = truncated ? candidates.slice(0, MAX_SCHEDULED) : candidates;
+
+  for (const c of toSchedule) {
+    const id = await Notifications.scheduleNotificationAsync(c.request);
+    const existing = sessionMap.get(c.ownerKey);
+    if (existing === undefined) sessionMap.set(c.ownerKey, [id]);
+    else existing.push(id);
   }
+
+  notifStore.setScheduleResult({
+    truncated,
+    scheduledCount: toSchedule.length,
+  });
 }
 
 // ── Time helpers ──────────────────────────────────────────────────────

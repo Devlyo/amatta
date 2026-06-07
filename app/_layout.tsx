@@ -19,6 +19,7 @@ import { useSchedulesStore } from '../src/state/schedules-store';
 import { useChecklistStore } from '../src/state/checklist-store';
 import { useTodosStore } from '../src/state/todos-store';
 import { usePickupLogStore } from '../src/state/pickup-log-store';
+import { useNotifSettingsStore } from '../src/state/notif-settings-store';
 import { TOKENS } from '../src/ui/palette';
 
 export { ErrorBoundary } from 'expo-router';
@@ -90,6 +91,11 @@ export default function RootLayout() {
 
         await useChildrenStore.getState().load(db);
         await useSchedulesStore.getState().load(db);
+
+        // Hydrate persisted notification settings BEFORE rescheduleAll so
+        // scheduling sees the persisted systemEnabled (P3.1/P3.4). Falls
+        // back to defaults when app_settings has no rows yet.
+        await useNotifSettingsStore.getState().load(db);
 
         // v2 stores: load in parallel; one failure should not block the others.
         const v2Results = await Promise.allSettled([

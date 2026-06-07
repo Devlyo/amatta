@@ -116,12 +116,12 @@ describe('runMigrations', () => {
     return { real: new DatabaseSync(path), path };
   }
 
-  test('Test A: fresh DB → user_version=4 and all 7 tables exist', async () => {
+  test('Test A: fresh DB → user_version=5 and all 8 tables exist', async () => {
     const { real } = makeDb();
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(4);
+    expect(userVersion(real)).toBe(5);
     const tables = tableNames(real);
     expect(tables).toEqual(
       expect.arrayContaining([
@@ -132,12 +132,13 @@ describe('runMigrations', () => {
         'checklist_items',
         'todos',
         'schedule_pickup_log',
+        'app_settings',
       ]),
     );
     real.close();
   });
 
-  test('Test B: idempotent — running twice yields no error and version stays 4', async () => {
+  test('Test B: idempotent — running twice yields no error and version stays 5', async () => {
     const { real } = makeDb();
     const wrapped = wrap(real);
 
@@ -146,7 +147,7 @@ describe('runMigrations', () => {
       runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]),
     ).resolves.toBeUndefined();
 
-    expect(userVersion(real)).toBe(4);
+    expect(userVersion(real)).toBe(5);
     real.close();
   });
 
@@ -191,8 +192,9 @@ describe('runMigrations', () => {
       { logTxModeTo: (m) => modes.push(m) },
     );
 
-    // Happy path now applies v1 + v2 + v3 + v4 — one log per migration.
+    // Happy path now applies v1 + v2 + v3 + v4 + v5 — one log per migration.
     expect(modes).toEqual([
+      'explicit-begin',
       'explicit-begin',
       'explicit-begin',
       'explicit-begin',
@@ -229,8 +231,9 @@ describe('runMigrations', () => {
       'explicit-begin',
       'explicit-begin',
       'explicit-begin',
+      'explicit-begin',
     ]);
-    expect(userVersion(real)).toBe(4);
+    expect(userVersion(real)).toBe(5);
     real.close();
   });
 
@@ -239,7 +242,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(4);
+    expect(userVersion(real)).toBe(5);
 
     const tables = tableNames(real);
     expect(tables).toEqual(
@@ -251,6 +254,7 @@ describe('runMigrations', () => {
         'checklist_items',
         'todos',
         'schedule_pickup_log',
+        'app_settings',
       ]),
     );
 
@@ -266,7 +270,7 @@ describe('runMigrations', () => {
     real.close();
   });
 
-  test('Test F: v1-applied DB → runMigrations applies v2 + v3, ends at user_version=4', async () => {
+  test('Test F: v1-applied DB → runMigrations applies v2..v5, ends at user_version=5', async () => {
     const { real } = makeDb();
 
     // Land at v1 first by execing migration001 directly + setting user_version=1.
@@ -279,10 +283,10 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(4);
+    expect(userVersion(real)).toBe(5);
     const tables = tableNames(real);
     expect(tables).toEqual(
-      expect.arrayContaining(['checklist_items', 'todos', 'schedule_pickup_log']),
+      expect.arrayContaining(['checklist_items', 'todos', 'schedule_pickup_log', 'app_settings']),
     );
     real.close();
   });
@@ -308,7 +312,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(4);
+    expect(userVersion(real)).toBe(5);
     expect(columnNames(real, 'schedules')).toEqual(
       expect.arrayContaining(['needs_pickup']),
     );
@@ -381,7 +385,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(4);
+    expect(userVersion(real)).toBe(5);
     expect(columnNames(real, 'children')).toEqual(
       expect.arrayContaining(['avatar']),
     );
@@ -391,6 +395,162 @@ describe('runMigrations', () => {
       .get() as { avatar: string } | undefined;
     expect(row?.avatar).toBe('face-wink');
     real.close();
+  });
+
+  test('Test J: v5 fresh DB → app_settings exists, is empty, and has the (key,value) shape', async () => {
+    const { real } = makeDb();
+    const wrapped = wrap(real);
+    await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
+
+    expect(userVersion(real)).toBe(5);
+    expect(tableNames(real)).toEqual(expect.arrayContaining(['app_settings']));
+
+    // Schema shape: exactly key + value columns, key is the PK, both NOT NULL.
+    expect(columnNames(real, 'app_settings')).toEqual(['key', 'value']);
+    const info = real.prepare(`PRAGMA table_info(app_settings)`).all() as {
+      name: string;
+      pk: number;
+      notnull: number;
+    }[];
+    const key = info.find((c) => c.name === 'key');
+    const value = info.find((c) => c.name === 'value');
+    expect(key?.pk).toBe(1);
+    expect(key?.notnull).toBe(1);
+    expect(value?.notnull).toBe(1);
+
+    // Not seeded — the store writes defaults at runtime.
+    const count = real.prepare('SELECT COUNT(*) AS n FROM app_settings').get() as { n: number };
+    expect(count.n).toBe(0);
+
+    // Behaves as a usable key-value store (upsert pattern the future store uses).
+    real.exec(`INSERT INTO app_settings (key, value) VALUES ('systemEnabled', '1')`);
+    real.exec(
+      `INSERT INTO app_settings (key, value) VALUES ('defaultMinutesBefore', '30')
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    );
+    const got = real
+      .prepare(`SELECT value FROM app_settings WHERE key = 'defaultMinutesBefore'`)
+      .get() as { value: string } | undefined;
+    expect(got?.value).toBe('30');
+    real.close();
+  });
+
+  test('Test K: v4-applied DB with data → v5 adds app_settings, preserves all existing rows', async () => {
+    const { real } = makeDb();
+
+    // Bring the DB fully up to v4 via the real runner, then populate every
+    // user-data table so we can prove v5 is purely additive.
+    const wrapped = wrap(real);
+    await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
+    expect(userVersion(real)).toBe(5);
+
+    // Simulate a pre-v5 install by rolling user_version back to 4 and dropping
+    // app_settings, then re-seeding data as it would exist on a v4 device.
+    real.exec('DROP TABLE app_settings');
+    real.exec('PRAGMA user_version = 4');
+    expect(userVersion(real)).toBe(4);
+    expect(tableNames(real)).not.toContain('app_settings');
+
+    real.exec(
+      `INSERT INTO children (name, color_index, created_at, avatar)
+       VALUES ('민준', 0, '2026-06-02T00:00:00.000Z', 'face-wink')`,
+    );
+    real.exec(
+      `INSERT INTO schedules (child_id, title, type, days_of_week, start_minutes, end_minutes, valid_from, needs_pickup)
+       VALUES (1, '수영', 'academy', 64, 1080, 1140, '2026-06-01', 1)`,
+    );
+    real.exec(
+      `INSERT INTO schedule_exceptions (schedule_id, date, kind)
+       VALUES (1, '2026-06-10', 'cancel')`,
+    );
+    real.exec(
+      `INSERT INTO checklist_items (schedule_id, label, sort_order)
+       VALUES (1, '수영복', 0)`,
+    );
+    real.exec(
+      `INSERT INTO todos (child_id, title, due_at, is_done, created_at)
+       VALUES (1, '준비물 사기', 1750000000000, 0, 1749000000000)`,
+    );
+    real.exec(
+      `INSERT INTO schedule_pickup_log (schedule_id, occurrence_date, completed_at)
+       VALUES (1, 1749000000000, 1749000060000)`,
+    );
+    real.exec(
+      `INSERT INTO notification_settings (child_id, default_minutes_before, sound, enabled)
+       VALUES (1, 15, 1, 1)`,
+    );
+
+    // Now upgrade v4 → v5.
+    const wrapped2 = wrap(real);
+    await runMigrations(wrapped2 as unknown as Parameters<typeof runMigrations>[0]);
+
+    expect(userVersion(real)).toBe(5);
+    expect(tableNames(real)).toEqual(expect.arrayContaining(['app_settings']));
+
+    // Every pre-existing row survived the migration untouched.
+    const counts = (t: string) =>
+      (real.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as { n: number }).n;
+    expect(counts('children')).toBe(1);
+    expect(counts('schedules')).toBe(1);
+    expect(counts('schedule_exceptions')).toBe(1);
+    expect(counts('checklist_items')).toBe(1);
+    expect(counts('todos')).toBe(1);
+    expect(counts('schedule_pickup_log')).toBe(1);
+    expect(counts('notification_settings')).toBe(1);
+
+    // ...and a spot-check on the actual values, not just the row count.
+    const child = real.prepare(`SELECT name, avatar FROM children WHERE id = 1`).get() as {
+      name: string;
+      avatar: string;
+    };
+    expect(child).toEqual({ name: '민준', avatar: 'face-wink' });
+
+    // The brand-new table arrives empty.
+    expect(counts('app_settings')).toBe(0);
+    real.close();
+  });
+
+  test('Test L: crash-recovery v5 — throw during PRAGMA user_version=5 leaves v4 intact, no app_settings', async () => {
+    const path = tmpDbPath();
+    created.push(path);
+
+    // Throw only on v5's PRAGMA. Because the DDL + the user_version bump share
+    // a single BEGIN IMMEDIATE…COMMIT, the ROLLBACK must drop the half-created
+    // app_settings table AND leave user_version at 4 — never 5-ahead-of-schema.
+    const first = new DatabaseSync(path);
+    const wrapped = wrap(first, {
+      execThrowOnce: {
+        match: /^PRAGMA user_version\s*=\s*5$/,
+        error: new Error('synthetic crash before v5 commit'),
+      },
+    });
+
+    await expect(
+      runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]),
+    ).rejects.toThrow('synthetic crash before v5 commit');
+
+    first.close();
+
+    // Re-open the same file. v1..v4 must be fully committed; v5 entirely absent.
+    expect(existsSync(path)).toBe(true);
+    const second = new DatabaseSync(path);
+    expect(userVersion(second)).toBe(4);
+
+    const tables = tableNames(second);
+    expect(tables).toEqual(
+      expect.arrayContaining([
+        'children',
+        'schedules',
+        'schedule_exceptions',
+        'notification_settings',
+        'checklist_items',
+        'todos',
+        'schedule_pickup_log',
+      ]),
+    );
+    // The half-applied v5 table must NOT exist.
+    expect(tables).not.toContain('app_settings');
+    second.close();
   });
 });
 

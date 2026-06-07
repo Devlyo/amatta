@@ -4,8 +4,10 @@ import { useRouter } from 'expo-router';
 
 import { getDb } from '../../src/db/client';
 import { wipeAllData } from '../../src/db/wipe';
+import { rescheduleAll } from '../../src/notifications/scheduler';
 import { useChildrenStore } from '../../src/state/children-store';
 import { useChecklistStore } from '../../src/state/checklist-store';
+import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
 import { usePickupLogStore } from '../../src/state/pickup-log-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useTodosStore } from '../../src/state/todos-store';
@@ -21,6 +23,10 @@ export default function ResetConfirmRoute(): React.ReactElement {
   const handleConfirm = useCallback(async (): Promise<void> => {
     const db = await getDb();
     await wipeAllData(db);
+    // wipeAllData cleared the persisted app_settings rows; mirror that in
+    // memory so the notif store doesn't keep stale systemEnabled / lead-time
+    // values until the next relaunch.
+    useNotifSettingsStore.getState().resetToDefaults();
     await Promise.all([
       useChildrenStore.getState().load(db),
       useSchedulesStore.getState().load(db),
@@ -28,6 +34,9 @@ export default function ResetConfirmRoute(): React.ReactElement {
       useTodosStore.getState().load(db),
       usePickupLogStore.getState().load(db),
     ]);
+    // Reconcile the OS queue against the now-empty DB — cancelAll-first
+    // clears every pending push left over from the wiped schedules/todos.
+    await rescheduleAll(db);
     // replace → leave the sheet and bounce to daily, which redirects to
     // onboarding on the now-empty data.
     router.replace('/');

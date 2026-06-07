@@ -18,9 +18,11 @@ import { join } from 'node:path';
 
 import {
   rescheduleAll,
+  MAX_SCHEDULED,
   __sessionMapSize,
   __clearSessionMap,
 } from '../../src/notifications/scheduler';
+import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
 import type { Child, Schedule, Todo } from '../../src/domain/types';
 
 // ── Mocks ────────────────────────────────────────────────────────────
@@ -138,6 +140,13 @@ beforeEach(() => {
   mockState.fakeSchedules = [];
   mockState.fakeTodos = [];
   __clearSessionMap();
+  // Default the notif gate to ON so the pre-existing tests are unaffected;
+  // the P3.4 block flips it OFF explicitly.
+  useNotifSettingsStore.setState({
+    systemEnabled: true,
+    lastScheduleTruncated: false,
+    lastScheduledCount: 0,
+  });
 });
 
 describe('rescheduleAll', () => {
@@ -200,6 +209,103 @@ describe('rescheduleAll', () => {
     ];
     await rescheduleAll(fakeDb, { now });
     expect(mockState.scheduled).toHaveLength(0);
+  });
+});
+
+describe('P3.4 — systemEnabled gates scheduling', () => {
+  test('systemEnabled=false ⇒ cancelAll runs but nothing is scheduled', async () => {
+    useNotifSettingsStore.setState({ systemEnabled: false });
+    mockState.fakeSchedules = [makeSchedule({})];
+    mockState.fakeTodos = [makeTodo({})];
+    await rescheduleAll(fakeDb, { now: new Date('2026-06-02T08:00:00') });
+
+    expect(mockState.callOrder[0]).toBe('cancelAll');
+    expect(mockState.callOrder).not.toContain('schedule');
+    expect(mockState.scheduled).toHaveLength(0);
+    expect(__sessionMapSize()).toBe(0);
+    expect(useNotifSettingsStore.getState().lastScheduledCount).toBe(0);
+  });
+
+  test('toggling back on re-schedules', async () => {
+    mockState.fakeSchedules = [makeSchedule({})];
+    const now = new Date('2026-06-02T08:00:00');
+
+    useNotifSettingsStore.setState({ systemEnabled: false });
+    await rescheduleAll(fakeDb, { now });
+    expect(mockState.scheduled).toHaveLength(0);
+
+    useNotifSettingsStore.setState({ systemEnabled: true });
+    await rescheduleAll(fakeDb, { now });
+    expect(mockState.scheduled.length).toBeGreaterThan(0);
+  });
+});
+
+describe('P3.2 — count-bounded soonest-first ≤60', () => {
+  // Build N distinct todo candidates with strictly-increasing dueAt so the
+  // candidate count is deterministic (1 trigger each) and "soonest" is the
+  // smallest dueAt.
+  function makeTodos(count: number, now: Date): Todo[] {
+    const todos: Todo[] = [];
+    for (let i = 0; i < count; i++) {
+      todos.push(
+        makeTodo({
+          id: i + 1,
+          // i+1 hours out, all in the future, strictly ascending.
+          dueAt: now.getTime() + (i + 1) * 60 * 60 * 1000,
+          notifyMinutesBefore: 0,
+        }),
+      );
+    }
+    return todos;
+  }
+
+  const now = new Date('2026-06-02T08:00:00');
+
+  test('exactly 60 candidates → all 60 scheduled, not truncated', async () => {
+    mockState.fakeTodos = makeTodos(60, now);
+    await rescheduleAll(fakeDb, { now });
+    expect(mockState.scheduled).toHaveLength(60);
+    expect(useNotifSettingsStore.getState().lastScheduleTruncated).toBe(false);
+    expect(useNotifSettingsStore.getState().lastScheduledCount).toBe(60);
+  });
+
+  test('61 candidates → only the 60 soonest scheduled, truncated flag true', async () => {
+    mockState.fakeTodos = makeTodos(61, now);
+    await rescheduleAll(fakeDb, { now });
+    expect(mockState.scheduled).toHaveLength(MAX_SCHEDULED);
+    expect(useNotifSettingsStore.getState().lastScheduleTruncated).toBe(true);
+
+    // The single dropped trigger must be the LATEST (61st) dueAt.
+    const droppedFireAt = makeTodos(61, now)[60]!.dueAt;
+    const scheduledTimes = mockState.scheduled.map(
+      (s) => (s.trigger as { date: Date }).date.getTime(),
+    );
+    expect(scheduledTimes).not.toContain(droppedFireAt);
+    // Every scheduled time is earlier than the dropped one.
+    for (const t of scheduledTimes) expect(t).toBeLessThan(droppedFireAt);
+  });
+
+  test('65 candidates → exactly 60 soonest, 5 dropped', async () => {
+    const all = makeTodos(65, now);
+    mockState.fakeTodos = all;
+    await rescheduleAll(fakeDb, { now });
+    expect(mockState.scheduled).toHaveLength(MAX_SCHEDULED);
+    expect(useNotifSettingsStore.getState().lastScheduleTruncated).toBe(true);
+
+    const scheduledTimes = new Set(
+      mockState.scheduled.map((s) => (s.trigger as { date: Date }).date.getTime()),
+    );
+    const sortedFireAts = all.map((t) => t.dueAt).sort((a, b) => a - b);
+    // The 60 soonest are present; the latest 5 are absent.
+    for (let i = 0; i < 60; i++) expect(scheduledTimes.has(sortedFireAts[i]!)).toBe(true);
+    for (let i = 60; i < 65; i++) expect(scheduledTimes.has(sortedFireAts[i]!)).toBe(false);
+  });
+
+  test('≤60 (50) candidates → truncated flag false', async () => {
+    mockState.fakeTodos = makeTodos(50, now);
+    await rescheduleAll(fakeDb, { now });
+    expect(mockState.scheduled).toHaveLength(50);
+    expect(useNotifSettingsStore.getState().lastScheduleTruncated).toBe(false);
   });
 });
 

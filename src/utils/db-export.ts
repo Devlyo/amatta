@@ -1,28 +1,41 @@
 // Pure DB → JSON export. Read-only against the live SQLite handle.
-// Spec: ralplan §Phase 4 §3 "데이터 내보내기 (JSON)". Schema v1 only —
-// the 4 entities exported here are the entire user-facing surface; the
-// `schemaVersion` field lets a future v3 importer reject incompatible bundles.
+// Spec: ralplan §Phase 4 §3 "데이터 내보내기 (JSON)". Schema v2 covers all
+// seven user entities (the full DB surface): children, schedules,
+// schedule_exceptions, notification_settings, checklist_items, todos,
+// schedule_pickup_log. The `schemaVersion` field lets a future importer
+// detect/reject incompatible bundles.
 
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type {
+  ChecklistItem,
   Child,
   NotificationSetting,
   Schedule,
   ScheduleException,
+  SchedulePickupLog,
+  Todo,
 } from '../domain/types';
 import {
+  rowToChecklistItem,
   rowToChild,
   rowToNotificationSetting,
   rowToSchedule,
   rowToScheduleException,
+  rowToSchedulePickupLog,
+  rowToTodo,
+  type ChecklistItemRow,
   type ChildRow,
   type NotificationSettingRow,
   type ScheduleExceptionRow,
+  type SchedulePickupLogRow,
   type ScheduleRow,
+  type TodoRow,
 } from '../db/row-mappers';
 
-export const EXPORT_SCHEMA_VERSION = 1 as const;
+// Bumped 1 → 2 when checklist_items / todos / schedule_pickup_log were added
+// to the envelope. A future importer keys off this to detect the format.
+export const EXPORT_SCHEMA_VERSION = 2 as const;
 
 export interface ExportEnvelope {
   exportedAt: string; // ISO timestamp (UTC)
@@ -31,6 +44,9 @@ export interface ExportEnvelope {
   schedules: Schedule[];
   exceptions: ScheduleException[];
   notificationSettings: NotificationSetting[];
+  checklistItems: ChecklistItem[];
+  todos: Todo[];
+  pickupLog: SchedulePickupLog[];
 }
 
 export interface ExportResult {
@@ -40,7 +56,7 @@ export interface ExportResult {
 }
 
 /**
- * Reads every row from the four v1 entity tables and returns a serialized
+ * Reads every row from all seven entity tables and returns a serialized
  * JSON envelope. Caller is responsible for writing to disk + invoking
  * Sharing.shareAsync; this function stays pure so it can be unit-tested
  * against an in-memory SQLite under jest-expo.
@@ -50,12 +66,12 @@ export async function exportDb(
   now: Date = new Date(),
 ): Promise<ExportResult> {
   const childrenRows = await db.getAllAsync<ChildRow>(
-    'SELECT id, name, color_index, created_at FROM children ORDER BY id ASC',
+    'SELECT id, name, color_index, avatar, created_at FROM children ORDER BY id ASC',
   );
   const schedulesRows = await db.getAllAsync<ScheduleRow>(
     `SELECT id, child_id, title, type, location, notes,
             days_of_week, start_minutes, end_minutes,
-            valid_from, valid_until, notify_minutes_before
+            valid_from, valid_until, notify_minutes_before, needs_pickup
      FROM schedules ORDER BY id ASC`,
   );
   const exceptionsRows = await db.getAllAsync<ScheduleExceptionRow>(
@@ -67,6 +83,19 @@ export async function exportDb(
     `SELECT child_id, default_minutes_before, sound, enabled
      FROM notification_settings ORDER BY child_id ASC`,
   );
+  const checklistRows = await db.getAllAsync<ChecklistItemRow>(
+    `SELECT id, schedule_id, label, sort_order, is_done, done_at
+     FROM checklist_items ORDER BY id ASC`,
+  );
+  const todoRows = await db.getAllAsync<TodoRow>(
+    `SELECT id, child_id, title, due_at, notify_minutes_before,
+            is_done, done_at, created_at
+     FROM todos ORDER BY id ASC`,
+  );
+  const pickupLogRows = await db.getAllAsync<SchedulePickupLogRow>(
+    `SELECT id, schedule_id, occurrence_date, completed_at
+     FROM schedule_pickup_log ORDER BY id ASC`,
+  );
 
   const envelope: ExportEnvelope = {
     exportedAt: now.toISOString(),
@@ -75,6 +104,9 @@ export async function exportDb(
     schedules: schedulesRows.map(rowToSchedule),
     exceptions: exceptionsRows.map(rowToScheduleException),
     notificationSettings: notifRows.map(rowToNotificationSetting),
+    checklistItems: checklistRows.map(rowToChecklistItem),
+    todos: todoRows.map(rowToTodo),
+    pickupLog: pickupLogRows.map(rowToSchedulePickupLog),
   };
 
   return {

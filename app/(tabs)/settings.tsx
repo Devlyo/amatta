@@ -2,7 +2,7 @@
 // Rows link to detail sub-screens; notifications row is a placeholder until
 // batch E lands. Children CRUD now lives on /settings/kids.
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -14,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { MAX_CHILDREN } from '../../src/domain/constants';
+import { getDb } from '../../src/db/client';
+import { rescheduleAll } from '../../src/notifications/scheduler';
 import { useChildrenStore } from '../../src/state/children-store';
 import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
 import { KidAvatar } from '../../src/ui/common/KidAvatar';
@@ -41,12 +43,36 @@ export default function SettingsScreen(): React.ReactElement {
 
   // Notification settings share a Zustand slice with the schedule
   // edit-sheet defaults — picking 30분 전 here makes new schedules
-  // start with 30분 전 highlighted. Persistence across launches is
-  // BACKLOG NOTIF-PERSIST and not in scope yet.
+  // start with 30분 전 highlighted. The slice is persisted to app_settings
+  // (write-through) and hydrated on boot, so toggles survive relaunch.
   const systemNotif = useNotifSettingsStore((s) => s.systemEnabled);
-  const setSystemNotif = useNotifSettingsStore((s) => s.setSystemEnabled);
+  const setSystemEnabled = useNotifSettingsStore((s) => s.setSystemEnabled);
   const leadTime = useNotifSettingsStore((s) => s.defaultMinutesBefore);
-  const setLeadTime = useNotifSettingsStore((s) => s.setDefaultMinutesBefore);
+  const setDefaultMinutesBefore = useNotifSettingsStore(
+    (s) => s.setDefaultMinutesBefore,
+  );
+  const lastScheduleTruncated = useNotifSettingsStore(
+    (s) => s.lastScheduleTruncated,
+  );
+
+  // Toggling 시스템 알림: persist (write-through) then reconcile so turning
+  // OFF cancels every pending push immediately and turning ON re-arms.
+  const handleSystemNotifChange = useCallback((v: boolean): void => {
+    void (async () => {
+      const db = await getDb();
+      await setSystemEnabled(db, v);
+      await rescheduleAll(db);
+    })();
+  }, [setSystemEnabled]);
+
+  // Changing 기본 알림 시점: persist. New schedules pick this up via the
+  // edit-sheet default; existing triggers are unaffected so no reconcile.
+  const handleLeadTimeChange = useCallback((n: number): void => {
+    void (async () => {
+      const db = await getDb();
+      await setDefaultMinutesBefore(db, n);
+    })();
+  }, [setDefaultMinutesBefore]);
 
 
   return (
@@ -90,7 +116,7 @@ export default function SettingsScreen(): React.ReactElement {
             label="시스템 알림"
             sub="이벤트 시작 전에 푸시 받기"
             value={systemNotif}
-            onChange={setSystemNotif}
+            onChange={handleSystemNotifChange}
             accessibilityLabel="시스템 알림"
             testID="settings-row-notif-system"
           />
@@ -100,12 +126,17 @@ export default function SettingsScreen(): React.ReactElement {
             sub="새 일정에 자동으로 설정돼요"
             options={NOTIFY_LEAD_OPTIONS}
             value={leadTime}
-            onChange={setLeadTime}
+            onChange={handleLeadTimeChange}
             disabled={!systemNotif}
             renderOption={(v) => `${v}분 전`}
             accessibilityLabel="기본 알림 시점"
             testID="settings-row-notif-lead"
           />
+          {systemNotif && lastScheduleTruncated ? (
+            <Text style={styles.notifTruncatedCaption} testID="settings-notif-truncated">
+              임박한 60개 알림만 예약됐어요
+            </Text>
+          ) : null}
         </Card>
 
         {/* 데이터 */}
@@ -504,6 +535,19 @@ const styles = StyleSheet.create({
   },
   rowSub: {
     marginTop: SPACING.xxs,
+    fontSize: 12,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.inkSub,
+    letterSpacing: -0.1,
+    lineHeight: 16,
+  },
+
+  // Caption shown under the 알림 card when rescheduleAll truncated to the
+  // ≤60 soonest triggers (iOS 64-pending cap headroom).
+  notifTruncatedCaption: {
+    paddingHorizontal: 10,
+    paddingTop: SPACING.xxs,
+    paddingBottom: SPACING.sm,
     fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
