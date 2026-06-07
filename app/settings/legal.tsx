@@ -96,7 +96,7 @@ const PRIVACY_SECTIONS: Section[] = [
       '본 방침에 관한 문의 사항이 있으시면 아래로 연락해 주세요. 회사는 합리적인 시간 내에 성실히 답변드리겠습니다.',
     ],
     bullets: [
-      '이메일: privacy@amatta.app',
+      '이메일: amatta.help@gmail.com',
       '응답 시간: 영업일 기준 3일 이내',
     ],
   },
