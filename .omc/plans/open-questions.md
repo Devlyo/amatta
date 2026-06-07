@@ -17,3 +17,28 @@ Items deferred from v2 (must-fix list closed; secondary items tracked here for v
 - [ ] DB-import path paired with the v2 export button — Full device-migration story is half-built without it.
 - [ ] Revisit Drizzle if/when schema crosses ~10 tables or relationships get hairy.
 - [ ] Revisit a materialized-instance cache only if profiling shows `expandOccurrences` exceeds 5ms on a P50 device.
+
+## ralplan-ios-launch-v1 - 2026-06-07
+
+iOS App Store first-launch decisions requiring user input before execution (DELIBERATE consensus draft).
+
+- [ ] A1 — Apple Developer account type: individual vs business/org ("starzip")? — Org needs D-U-N-S (1–2wk lead) and changes public seller name; gates enrollment timeline.
+- [ ] A2 — Store display name: "schedul-app" vs "아마따"? — ASC name is near-permanent and user-facing; code brand is 아마따.
+- [ ] A3 — iPad support keep (`supportsTablet:true`) vs iPhone-only v1? — CORRECTED (v2): daily grid is fluid (`ScheduleGrid.tsx:351` flex:1), not a likely broken-layout reject. Real cost of keeping = extra iPad screenshot set + a QA pass + the Q8 weekly/multi-kid audit. Default drop on scope-minimization (P4), not fragility.
+- [ ] A4 — iCloud entitlement keep (ship verified JSON backup) vs drop for v1? — Entitlement present without working feature = undeclared-capability reject risk; drop simplifies review.
+- [ ] A5 — Privacy-policy web host (public https URL)? — Submission is blocked without a reachable policy URL.
+- [ ] A6 — App Store category + age rating + confirm NOT a "Kids" category app? — Mis-declaration triggers heavier review.
+- [ ] Phase 3.2 — RESOLVED in v2 as v1-BLOCKING: the defect is not horizon/top-up (both exist) but `rescheduleAll` having no count cap + no soonest-first ordering. Fix = collect candidates, sort ascending by fireAt, truncate to ≤60. (Tracking note only.)
+
+## ralplan-ios-launch (v2) - 2026-06-07
+
+New open questions introduced by the v2 revision (still user/Architect-gated).
+
+- [ ] Q7 — Does EAS managed build run `postinstall`? — Drives the react-native-svg Metro-fix delivery: if postinstall is not guaranteed under EAS `npm ci`, the current script silently no-ops and the SVG fix is absent from the production native bundle. Default: migrate to a committed `patch-package` file (postinstall-independent). Confirm against EAS docs in Phase 1.
+- [ ] Q8 — WeeklyGrid/MultiKidGrid fixed-pixel-width audit — Only the daily `ScheduleGrid` is verified fluid (`flex:1`). If iPad is kept (A3), `src/ui/weekly/WeeklyGrid.tsx` + `src/ui/weekly/MultiKidGrid.tsx` must be audited for fixed-width layout before claiming iPad support. N/A if A3=drop iPad.
+
+## ralplan-ios-launch (v2.1) - 2026-06-07
+
+Open question introduced by the v2.1 NEW-1 correction (the precedence-resolver claim was fiction; the real gap is store durability).
+
+- [ ] Q9 — `systemEnabled` ("시스템 알림") toggle does nothing at schedule time — Verified: the scheduler reads only the per-row `notifyMinutesBefore` (`scheduler.ts:91,146`); the toggle (`settings.tsx:93,103`) only mutates the Zustand store and never calls `rescheduleAll`/`cancelAll`, so toggling it off suppresses no notifications. A toggle that does nothing = soft Guideline 2.3.8 / UX-honesty risk. v1 sub-decision of 3.1: (a) wire `systemEnabled` to a minimal suppress/reschedule path if cheap, else (b) hide the toggle until v1.1. Default (a) if cheap, else (b). Not necessarily v1-fixed.

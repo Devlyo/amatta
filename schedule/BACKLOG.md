@@ -91,3 +91,23 @@
   (app/settings/legal.tsx 텍스트).
 - [ ] [QA-BEHAVIOR] 동작 확인 — 디자인 패스 이후 전 화면 기능 회귀 점검 (일정 CRUD, 날짜 스코프
   todo, 4명 시드/렌더, 모달 흐름, 알림 등) 실기기 동작 검증.
+
+## App Store v1.0.0 출시 (ADR-005 / 계획: .omc/plans/ralplan-ios-launch.md)
+
+> 결정 확정: 개인 계정 · 스토어명 "아마따" · 아이폰 전용(iPad v1.1) · iCloud 제거 ·
+> 약관 웹호스팅 · 생산성/4+ · SVG patch-package · 시스템알림 토글 실제 연결.
+> 의존성 순서. [BLOCKER] = 다음 단계/제출 차단.
+
+- [ ] **P0** 결정+Apple 개인 계정 가입(1~14일, day1 시작) + App Store Connect 앱 레코드 `[BLOCKER]`
+- [ ] **P1a** 무료 dev-client 빌드로 실기기 검증(가입과 병렬): SVG 렌더(patch-package) + 로컬 알림 실발화
+- [ ] **P1b** EAS production 빌드 인프라(eas.json) `[P0 gated]` — 프로덕션 번들 SVG 확인
+- [ ] **P2** Privacy Manifest(PrivacyInfo.xcprivacy, filesystem) + ITSAppUsesNonExemptEncryption=false + App Privacy "수집안함" 신고 + **iCloud 3표면 제거**(usesIcloudStorage/entitlements/NSUbiquitousContainers) `[BLOCKER]`
+- [ ] **P3.1** [NOTIF-PERSIST] 전역 알림설정 SQLite app_settings 영구저장 + 부팅 재수화 `[BLOCKER]`
+- [ ] **P3.2** 64알림 캡: rescheduleAll 가까운 순 ≤60 truncation + 인디케이터 `[BLOCKER]`
+- [ ] **P3.3** 백업 정합: db-export 7테이블 확장 or 복원약속 축소 + 카테고리==카운트 테스트 `[BLOCKER]`
+- [ ] **P3.4** 시스템알림 토글 실제 연결(Q9-a) + 부팅 재arm + 권한거부 graceful
+- [ ] **P4** 실기기 QA 스윕 (CRUD/날짜스코프todo/4명/모달/알림 ≥65 guard/백업복원) `[BLOCKER]`
+- [ ] **P5** 에셋 교체(1024 아이콘·스플래시·adaptive·블롭·빈상태) + App Store 스크린샷(6.9"+6.5") `[BLOCKER]`
+- [ ] **P6** 약관/개인정보 본문 확정 + 공개 https URL 호스팅 + 메타데이터(설명·키워드·생산성·4+) `[BLOCKER]`
+- [ ] **P7** version 1.0.0 + ios.buildNumber 추가/autoIncrement + app.json에 아마따/supportsTablet:false 반영
+- [ ] **P8** TestFlight 내부베타 → 심사 제출(리뷰어 노트: 로컬전용/계정없음) → 리뷰 대응 `[FINAL]`
