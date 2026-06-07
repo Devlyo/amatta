@@ -33,7 +33,7 @@ export interface EditFormState {
 export const TYPE_LABELS_KO: Readonly<Record<ScheduleType, string>> = {
   school: '학교',
   academy: '학원',
-  activity: '운동',
+  activity: '활동',
   other: '기타',
 } as const;
 

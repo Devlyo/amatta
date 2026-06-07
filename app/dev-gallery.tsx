@@ -61,7 +61,7 @@ const BTN_SIZES: ButtonSize[] = ['sm', 'md', 'lg'];
 const KIND_OPTIONS: { id: 'school' | 'academy' | 'activity' | 'etc'; label: string }[] = [
   { id: 'school', label: '학교' },
   { id: 'academy', label: '학원' },
-  { id: 'activity', label: '운동' },
+  { id: 'activity', label: '활동' },
   { id: 'etc', label: '기타' },
 ];
 const DAYS_KR = ['일', '월', '화', '수', '목', '금', '토'];
