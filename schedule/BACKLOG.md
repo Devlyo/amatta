@@ -82,3 +82,12 @@
 **기술 부채 / 정리**
 - [ ] [REF-IMAGES-AUDIT] docs/design/references/char_pack*.jpg + sub_colors.webp — git 에 올라가 있는데
   코드에서 안 씀. 사용 여부 확정 후 ref-only 디렉토리로 옮기거나 .gitignore.
+
+### Tracked 2026-06-07 (after design-consistency pass — feat/design-consistency-pass)
+
+- [ ] [ASSET-SWAP] 아이콘 / 이미지 에셋 교체 — 현재 placeholder/임시 에셋을 최종 디자인 에셋으로 교체
+  (앱 아이콘·스플래시·마스코트·타입 아이콘 등 전반 점검).
+- [ ] [LEGAL-EDIT] 약관 / 개인정보처리방침 본문 수정 — 실제 서비스 내용·연락처·발효일 확정 반영
+  (app/settings/legal.tsx 텍스트).
+- [ ] [QA-BEHAVIOR] 동작 확인 — 디자인 패스 이후 전 화면 기능 회귀 점검 (일정 CRUD, 날짜 스코프
+  todo, 4명 시드/렌더, 모달 흐름, 알림 등) 실기기 동작 검증.
