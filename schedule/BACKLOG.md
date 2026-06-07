@@ -111,3 +111,19 @@
 - [ ] **P6** 약관/개인정보 본문 확정 + 공개 https URL 호스팅 + 메타데이터(설명·키워드·생산성·4+) `[BLOCKER]`
 - [ ] **P7** version 1.0.0 + ios.buildNumber 추가/autoIncrement + app.json에 아마따/supportsTablet:false 반영
 - [ ] **P8** TestFlight 내부베타 → 심사 제출(리뷰어 노트: 로컬전용/계정없음) → 리뷰 대응 `[FINAL]`
+
+## Play Store (Android) — iOS 이후 (코드 ~95% 공유)
+
+> Expo 크로스플랫폼이라 로직/UI/아이콘(dual-path SVG)/알림/백업 전부 재사용.
+> iOS 자산(방침 URL·스토어 문구·QA 체크리스트) 재활용. 아래는 Android 전용 델타만.
+
+- [x] **A-PKG** `android.package = io.starzip.schedulapp` (app.json) — 완료
+- [ ] **A-ACCT** Google Play 개발자 계정($25 1회) + 신원 확인 `[BLOCKER]`
+- [ ] **A-TEST** ⚠️ 신규 **개인** 계정이면 프로덕션 전 closed testing **12~20명 × 14일** 의무 — 가장 큰 일정 허들 (법인은 면제) `[BLOCKER]`
+- [ ] **A-ALARM** Android 12+ 정시 알림 정밀도 점검(SCHEDULE_EXACT_ALARM 필요 여부) — 기본으로 충분한지 실기기 확인
+- [ ] **A-NOTIF13** Android 13+ POST_NOTIFICATIONS 런타임 권한 흐름 확인(expo-notifications 처리)
+- [ ] **A-BUILD** `eas build --profile production --platform android`(.aab) + 키스토어(EAS 자동) → `eas submit`
+- [ ] **A-ASSET** 아이콘 512×512 + **피처 그래픽 1024×500**(Play 필수) + 안드로이드 스크린샷
+- [ ] **A-LISTING** Play Console 등록: 설명(iOS 문구 재사용) + **Data safety 폼**("수집 안 함") + 콘텐츠 등급(IARC) + 개인정보처리방침 URL(iOS와 동일)
+- [ ] **A-TARGET** Play target API level 요건 충족(SDK54 기본 충족 여부 확인)
+- [ ] **A-QA** iOS QA 체크리스트(docs/launch/qa-checklist.md) Android 실기기 재실행(알림·아이콘·블롭 등)
