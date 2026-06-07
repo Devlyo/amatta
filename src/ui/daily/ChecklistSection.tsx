@@ -9,6 +9,8 @@ import { KidAvatar } from '../common/KidAvatar';
 import { FONT_FAMILIES } from '../fonts';
 import { IconCheck } from '../icons';
 import { getKidPalette, TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 
 interface KidGroupItem {
   item: ChecklistItem;
@@ -111,7 +113,10 @@ function ChecklistSectionImpl(): React.ReactElement {
     <View testID="checklist-section">
       <SectionHeader label="준비물" done={done} total={total} />
       <View style={styles.card}>
-        {groups.map((group, idx) => {
+        {groups.length === 0 ? (
+          <Text style={styles.emptyText}>오늘 챙길 준비물이 없어요</Text>
+        ) : (
+          groups.map((group, idx) => {
           const palette = getKidPalette(group.kid.colorIndex);
           const remaining = group.items.filter((i) => !i.item.isDone).length;
           return (
@@ -143,7 +148,7 @@ function ChecklistSectionImpl(): React.ReactElement {
                           : styles.checkboxIdle,
                       ]}
                     >
-                      {isDone ? <IconCheck size={12} color="#fff" /> : null}
+                      {isDone ? <IconCheck size={12} color={TOKENS.surface} /> : null}
                     </View>
                     <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null]}>
                       {item.label}
@@ -158,7 +163,8 @@ function ChecklistSectionImpl(): React.ReactElement {
               })}
             </Fragment>
           );
-        })}
+          })
+        )}
       </View>
     </View>
   );
@@ -170,10 +176,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 8,
+    gap: SPACING.sm,
     paddingTop: 14,
-    paddingHorizontal: 4,
-    paddingBottom: 8,
+    paddingHorizontal: SPACING.xs,
+    paddingBottom: SPACING.sm,
   },
   headerLabel: {
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
@@ -184,34 +190,41 @@ const styles = StyleSheet.create({
   },
   headerCount: {
     fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '400',
     color: TOKENS.inkSub,
   },
   card: {
     backgroundColor: TOKENS.surface,
-    borderRadius: 18,
+    borderRadius: RADIUS.xl,
     padding: 6,
-    marginBottom: 16,
+    marginBottom: SPACING.lg,
+  },
+  emptyText: {
+    fontFamily: FONT_FAMILIES.pretendard,
+    fontSize: 14,
+    color: TOKENS.inkSub,
+    textAlign: 'center',
+    paddingVertical: SPACING.xl,
   },
   divider: {
     borderTopWidth: 1,
     borderTopColor: TOKENS.hair,
-    marginVertical: 4,
-    marginHorizontal: 8,
+    marginVertical: SPACING.xs,
+    marginHorizontal: SPACING.sm,
   },
   kidRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: SPACING.sm,
     paddingTop: 10,
     paddingRight: 10,
-    paddingBottom: 4,
+    paddingBottom: SPACING.xs,
     paddingLeft: 10,
   },
   kidName: {
     fontFamily: FONT_FAMILIES.pretendardBold,
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: '700',
     color: TOKENS.ink,
     letterSpacing: -0.3,
@@ -219,7 +232,7 @@ const styles = StyleSheet.create({
   kidRemaining: {
     marginLeft: 'auto',
     fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '400',
     color: TOKENS.inkSub,
   },
@@ -229,7 +242,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 7,
     paddingHorizontal: 10,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
   },
   itemRowDone: {
     opacity: 0.5,
@@ -237,7 +250,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 99,
+    borderRadius: RADIUS.full,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -249,7 +262,7 @@ const styles = StyleSheet.create({
   itemLabel: {
     flex: 1,
     fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: '400',
     color: TOKENS.ink,
     letterSpacing: -0.2,
@@ -259,13 +272,13 @@ const styles = StyleSheet.create({
   },
   duePill: {
     backgroundColor: TOKENS.ink04,
-    paddingVertical: 2,
+    paddingVertical: SPACING.xxs,
     paddingHorizontal: 7,
-    borderRadius: 99,
+    borderRadius: RADIUS.full,
   },
   duePillText: {
     fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '400',
     color: TOKENS.inkSub,
   },

@@ -7,8 +7,8 @@
 학부모가 자녀 4명까지의 학원·학교 일정을 등록하고, **일간 자녀×시간 그리드**(타임 스프레드)로 동시 비교하는 모바일 앱. 로컬 SQLite 단독, 서버/계정 없음, 로컬 푸시 알림 필수.
 
 ## Locked Decisions (변경하려면 새 ADR 필요)
-- **Stack**: Expo SDK ~52 + React Native + TypeScript + expo-sqlite + expo-notifications + expo-router
-- **UI**: bare RN primitives + react-native-gesture-handler + react-native-reanimated + @gorhom/bottom-sheet
+- **Stack**: Expo SDK ~54 + React Native 0.81 (new arch) + TypeScript + expo-sqlite + expo-notifications + expo-router
+- **UI**: bare RN primitives + react-native-gesture-handler + react-native-reanimated. 시트/모달은 네이티브 expo-router 라우트(ADR-004) — **@gorhom/bottom-sheet 미사용**(deps엔 남아 있으나 제거 가능)
 - **State**: Zustand (per-slice)
 - **DB 접근**: raw SQL + 손수 마이그레이션 (PRAGMA user_version 트랜잭션 안쪽)
 - **Recurrence**: daysOfWeek 비트마스크 + ScheduleException 단일 예외 only (NO RRULE)
@@ -20,6 +20,8 @@
 - **알림 정책 (ADR-002)**: 일정 알림 본문에 ChecklistItem 자동 prepend(≤80자). Todo는 dueAt 기반 단독 푸시. **그 외 새 푸시 surface 금지** (충돌 푸시 X).
 - **픽업 시각화 (ADR-003, ADR-002 supersede)**: 일간 그리드 상단 `PickupCarousel` 단일 위치. 다음 픽업 1+개를 swipe 가능 카드(Sunset Orange / French Lavender bg)로 표시. 동시 시간 픽업 ≥ 2 → carousel 추가 카드. 블록 오버레이·푸시 둘 다 금지. `⚠ {hh:mm} 픽업 충돌` sub-bar pill은 ADR-003에서 폐기.
 - **NOW 라인 (ADR-003)**: 일간 그리드 라임색 NOW 라인은 분 단위 실시간 갱신 (setInterval 60s + 다음 분 경계 align + AppState focus 즉시 동기화).
+- **모달/시트 (ADR-004)**: 모든 바텀시트·모달 = expo-router 네이티브 라우트. 짧은 시트 = `presentation:'formSheet'` + `sheetAllowedDetents`(분수/`'fitToContents'`); 큰 폼(새일정·수정·상세) = `presentation:'modal'`. **gorhom 미사용** (iOS "닫은 뒤 두 번 탭" 버그). 앱 라이트모드 런타임 고정(`Appearance.setColorScheme('light')` in `_layout`). 키보드 = `ScrollView automaticallyAdjustKeyboardInsets`.
+- **디자인 시스템 (ADR 없음, 2026-06 신설)**: `src/ui` 토큰(`spacing`·`radius`·`typography`·`elevation` + `palette` TOKENS) + `src/ui/components` primitives(Text·Button·Card·Input·Fab·Pill·Badge·SelectChip·DayCircle·Toggle·DateField·DashedAddButton·Segmented). **임의 색·크기·shadow 리터럴 금지 — 토큰 사용**. dev 갤러리: 설정→개발자→🎨 (`__DEV__`, `app/dev-gallery.tsx`).
 
 ## Authoritative Documents
 | 무엇 | 어디 |
@@ -29,7 +31,7 @@
 | Architect/Critic 리뷰 | `.omc/plans/ralplan-schedul-app-v2.{architect,critic}-review.md` |
 | 보류된 결정 | `.omc/plans/open-questions.md` |
 | 제품 PRD·페르소나 | `docs/product/` |
-| 아키텍처·ADR | `docs/architecture/` (ADR-001 stack lock, ADR-002 prep·todos·pickup, **ADR-003 pickup carousel + NOW tick**) |
+| 아키텍처·ADR | `docs/architecture/` (ADR-001 stack lock, ADR-002 prep·todos·pickup, ADR-003 pickup carousel + NOW tick, **ADR-004 modal sheets — 네이티브 formSheet/modal, gorhom 미사용**) |
 | UI/UX 가이드 | `docs/design/` |
 | 회의록 | `docs/meetings/` |
 | 로드맵·백로그·스프린트 | `schedule/` |

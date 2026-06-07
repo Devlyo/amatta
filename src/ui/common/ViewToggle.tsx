@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     // → RN approximation: outer drop shadow + 1px border (the inset shadow).
     borderWidth: 1,
     borderColor: TOKENS.hair,
-    shadowColor: '#000',
+    shadowColor: TOKENS.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 2,

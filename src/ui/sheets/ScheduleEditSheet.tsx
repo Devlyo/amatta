@@ -7,7 +7,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Keyboard,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -44,6 +43,8 @@ import {
   IconXMark,
 } from '../icons';
 import { TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 import { fmtKoTime, weekdayKo } from '../utils/date';
 import {
   DOW_LABELS_KO,
@@ -94,6 +95,14 @@ function dateToIso(d: Date): string {
   const day = d.getDate();
   return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
+// Day-of-week bit for a date (Mon=bit0 … Sun=bit6, matching DaysOfWeekMask).
+// Used when the user saves without picking any 반복 day: the schedule defaults
+// to a single occurrence on the chosen 날짜's weekday.
+function weekdayMaskFromIso(iso: string): DaysOfWeekMask {
+  const js = isoToDate(iso).getDay(); // 0=Sun … 6=Sat
+  const bit = (js + 6) % 7; // Sun→6, Mon→0
+  return (1 << bit) as DaysOfWeekMask;
+}
 function minutesToDate(min: Minutes): Date {
   const ref = new Date(2000, 0, 1);
   ref.setHours(Math.floor(min / 60));
@@ -114,9 +123,14 @@ function formatKoDateFull(iso: string): string {
   return `${y}.${m}.${d} (${weekdayKo(iso as unknown as ISODate)})`;
 }
 
-export function ScheduleEditSheet(): React.ReactElement {
+export interface ScheduleEditContentProps {
+  onClose: () => void;
+}
+
+export function ScheduleEditContent({
+  onClose,
+}: ScheduleEditContentProps): React.ReactElement {
   const editSheetState = useUiStore((s) => s.editSheetState);
-  const closeEditSheet = useUiStore((s) => s.closeEditSheet);
   const children = useChildrenStore((s) => s.children);
   const schedules = useSchedulesStore((s) => s.schedules);
   const exceptions = useSchedulesStore((s) => s.exceptions);
@@ -161,6 +175,16 @@ export function ScheduleEditSheet(): React.ReactElement {
   // Snapshot of the checklist as it was when the sheet opened. Used by save
   // to compute INSERT / UPDATE / DELETE diffs against the in-memory edits.
   const originalChecklistRef = useRef<ChecklistItem[]>([]);
+  // Scroll the 메모 field comfortably above the keyboard on focus (the auto
+  // keyboard inset only lifts it flush to the keyboard top; this gives a gap).
+  const scrollRef = useRef<ScrollView | null>(null);
+  const notesYRef = useRef(0);
+  const checklistYRef = useRef(0);
+  const scrollFieldIntoView = useCallback((y: number) => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
+    });
+  }, []);
 
   useEffect(() => {
     if (sheetMode === null) return;
@@ -202,7 +226,10 @@ export function ScheduleEditSheet(): React.ReactElement {
     () =>
       validate(form, {
         requireChildId: sheetMode === 'create',
-        requireDaysOfWeek: sheetMode !== 'editOccurrence',
+        // 반복(요일)은 더 이상 저장 필수 조건이 아니다. 자녀·종류·제목·날짜·
+        // 시간만 채우면 저장 가능. 요일 미선택 시 handleSave가 날짜의 요일로
+        // 단일 일정을 만든다 (안 보이는 일정 방지).
+        requireDaysOfWeek: false,
       }),
     [form, sheetMode],
   );
@@ -214,22 +241,36 @@ export function ScheduleEditSheet(): React.ReactElement {
 
     const db = await getDb();
 
+    // 반복 미선택(daysOfWeek===0) → 날짜의 요일로 단일 일정 처리. validUntil을
+    // validFrom에 묶어 그 날짜 한 번만 노출되게 한다. 요일을 골랐으면 기존대로
+    // open-ended(또는 사용자가 지정한 종료일) 주간 반복.
+    // 종류는 validation이 non-null을 보장하지만 TS 내로잉용 로컬 가드.
+    const formType = form.type;
+    if (formType === null) return;
+
+    const noRepeat = form.daysOfWeek === 0;
+    const effectiveDaysOfWeek = noRepeat
+      ? weekdayMaskFromIso(form.validFrom)
+      : form.daysOfWeek;
+    const effectiveValidUntil: ISODate | null = noRepeat
+      ? (form.validFrom as unknown as ISODate)
+      : form.validUntil.length > 0
+        ? (form.validUntil as unknown as ISODate)
+        : null;
+
     if (sheetMode === 'create') {
       if (form.childId === null) return;
       const created = await addSchedule(db, {
         childId: form.childId,
         title: form.title.trim(),
-        type: form.type,
+        type: formType,
         location: form.location.trim().length > 0 ? form.location.trim() : null,
         notes: form.notes.trim().length > 0 ? form.notes.trim() : null,
-        daysOfWeek: form.daysOfWeek,
+        daysOfWeek: effectiveDaysOfWeek,
         startMinutes: form.startMinutes,
         endMinutes: form.endMinutes,
         validFrom: form.validFrom as unknown as ISODate,
-        validUntil:
-          form.validUntil.length > 0
-            ? (form.validUntil as unknown as ISODate)
-            : null,
+        validUntil: effectiveValidUntil,
         notifyMinutesBefore: form.notifyMinutesBefore,
         needsPickup: form.needsPickup,
       });
@@ -247,17 +288,14 @@ export function ScheduleEditSheet(): React.ReactElement {
     } else if (sheetMode === 'editAll' && existingSchedule !== undefined) {
       await updateSchedule(db, existingSchedule.id, {
         title: form.title.trim(),
-        type: form.type,
+        type: formType,
         location: form.location.trim().length > 0 ? form.location.trim() : null,
         notes: form.notes.trim().length > 0 ? form.notes.trim() : null,
-        daysOfWeek: form.daysOfWeek,
+        daysOfWeek: effectiveDaysOfWeek,
         startMinutes: form.startMinutes,
         endMinutes: form.endMinutes,
         validFrom: form.validFrom as unknown as ISODate,
-        validUntil:
-          form.validUntil.length > 0
-            ? (form.validUntil as unknown as ISODate)
-            : null,
+        validUntil: effectiveValidUntil,
         notifyMinutesBefore: form.notifyMinutesBefore,
         needsPickup: form.needsPickup,
       });
@@ -296,7 +334,7 @@ export function ScheduleEditSheet(): React.ReactElement {
     }
 
     Keyboard.dismiss();
-    closeEditSheet();
+    onClose();
   }, [
     validation.ok,
     sheetMode,
@@ -306,7 +344,7 @@ export function ScheduleEditSheet(): React.ReactElement {
     addSchedule,
     updateSchedule,
     applyException,
-    closeEditSheet,
+    onClose,
     checklist,
     checklistAdd,
     checklistUpdate,
@@ -323,11 +361,11 @@ export function ScheduleEditSheet(): React.ReactElement {
         onPress: async () => {
           const db = await getDb();
           await removeSchedule(db, existingSchedule.id);
-          closeEditSheet();
+          onClose();
         },
       },
     ]);
-  }, [existingSchedule, removeSchedule, closeEditSheet]);
+  }, [existingSchedule, removeSchedule, onClose]);
 
   const handleDeleteOccurrence = useCallback(() => {
     if (
@@ -347,7 +385,7 @@ export function ScheduleEditSheet(): React.ReactElement {
           await applyException(db, existingSchedule.id, date, {
             kind: 'cancel',
           });
-          closeEditSheet();
+          onClose();
         },
       },
     ]);
@@ -355,7 +393,7 @@ export function ScheduleEditSheet(): React.ReactElement {
     existingSchedule,
     editSheetState.occurrenceDate,
     applyException,
-    closeEditSheet,
+    onClose,
   ]);
 
   const handleSwitchToOccurrenceMode = useCallback(() => {
@@ -379,30 +417,14 @@ export function ScheduleEditSheet(): React.ReactElement {
   const showError = (key: keyof EditFormState): string | undefined =>
     submitted ? validation.errors[key] : undefined;
 
-  const open = sheetMode !== null;
-
   return (
-    <Modal
-      visible={open}
-      transparent
-      animationType="slide"
-      onRequestClose={closeEditSheet}
-      accessibilityViewIsModal
-    >
-      <Pressable style={styles.backdrop} onPress={closeEditSheet} />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.sheet}
-      >
-        <View style={styles.handleArea}>
-          <View style={styles.handle} />
-        </View>
+    <View style={styles.contentRoot}>
         {/* Top bar — 취소 · Title · 추가/저장 */}
         <View style={styles.headerBar}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="취소"
-            onPress={closeEditSheet}
+            onPress={onClose}
             hitSlop={8}
             style={styles.headerSlotStart}
           >
@@ -430,9 +452,14 @@ export function ScheduleEditSheet(): React.ReactElement {
         </View>
 
         <ScrollView
+          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          // iOS-native keyboard inset: auto-scrolls the focused input above the
+          // keyboard (gorhom's own keyboard handling wasn't lifting bottom
+          // fields on new arch). The sheet stays put (keyboardBehavior extend).
+          automaticallyAdjustKeyboardInsets
         >
           {/* Group 1: 자녀 + 종류 (create only shows the kid picker; editAll/
               editOccurrence display the bound kid as a read-only chip) */}
@@ -470,6 +497,7 @@ export function ScheduleEditSheet(): React.ReactElement {
                   );
                 })}
               </View>
+              <FieldError text={showError('type')} />
             </Row>
           </Group>
 
@@ -615,25 +643,39 @@ export function ScheduleEditSheet(): React.ReactElement {
           </Group>
 
           {/* Group 5: 메모 */}
-          <Group>
-            <Row label="메모" align="top" hairline={false}>
-              <TextInput
-                value={form.notes}
-                onChangeText={(v: string) => setForm({ ...form, notes: v })}
-                placeholder="추가 정보"
-                placeholderTextColor={TOKENS.ink30}
-                style={[styles.bigInput, styles.notesInput]}
-                multiline
-                maxLength={500}
-                accessibilityLabel="메모 입력"
-              />
-            </Row>
-          </Group>
+          <View
+            onLayout={(e) => {
+              notesYRef.current = e.nativeEvent.layout.y;
+            }}
+          >
+            <Group>
+              <Row label="메모" align="top" hairline={false}>
+                <TextInput
+                  value={form.notes}
+                  onChangeText={(v: string) => setForm({ ...form, notes: v })}
+                  placeholder="추가 정보"
+                  placeholderTextColor={TOKENS.ink30}
+                  style={[styles.bigInput, styles.notesInput]}
+                  multiline
+                  maxLength={500}
+                  accessibilityLabel="메모 입력"
+                  // Lift the field toward the top of the visible area so it
+                  // sits well above the keyboard (gap the auto-inset lacks).
+                  onFocus={() => scrollFieldIntoView(notesYRef.current)}
+                />
+              </Row>
+            </Group>
+          </View>
 
           {/* Group 6: 준비물 — checklist items attached to the schedule.
               Hidden in editOccurrence mode because checklists are template-
               level, not per-occurrence (ADR-002). */}
           {sheetMode !== 'editOccurrence' ? (
+            <View
+              onLayout={(e) => {
+                checklistYRef.current = e.nativeEvent.layout.y;
+              }}
+            >
             <Group>
               <Row label="준비물" align="top" hairline={false}>
                 <View style={styles.checklistColumn}>
@@ -660,6 +702,7 @@ export function ScheduleEditSheet(): React.ReactElement {
                         style={styles.checklistInput}
                         maxLength={60}
                         accessibilityLabel={`준비물 ${idx + 1}`}
+                        onFocus={() => scrollFieldIntoView(checklistYRef.current)}
                       />
                       <Pressable
                         onPress={() =>
@@ -670,7 +713,7 @@ export function ScheduleEditSheet(): React.ReactElement {
                         accessibilityLabel="준비물 삭제"
                         style={styles.checklistRemoveBtn}
                       >
-                        <IconXMark size={14} color={TOKENS.inkSub} />
+                        <IconXMark size={16} color={TOKENS.inkSub} />
                       </Pressable>
                     </View>
                   ))}
@@ -685,12 +728,13 @@ export function ScheduleEditSheet(): React.ReactElement {
                       checklist.length > 0 ? styles.checklistAddBtnSpaced : null,
                     ]}
                   >
-                    <IconPlus size={12} color={TOKENS.inkSub} />
+                    <IconPlus size={14} color={TOKENS.inkSub} />
                     <Text style={styles.checklistAddLabel}>추가</Text>
                   </Pressable>
                 </View>
               </Row>
             </Group>
+            </View>
           ) : null}
 
           {/* Destructive actions — editAll only. editOccurrence shows a single
@@ -727,7 +771,6 @@ export function ScheduleEditSheet(): React.ReactElement {
 
           <View style={styles.tail} />
         </ScrollView>
-      </KeyboardAvoidingView>
       <PickerOverlay
         state={picker}
         onClose={() => setPicker(null)}
@@ -751,7 +794,7 @@ export function ScheduleEditSheet(): React.ReactElement {
           }
         }}
       />
-    </Modal>
+    </View>
   );
 }
 
@@ -1152,55 +1195,34 @@ export type { EditFormState } from './edit-sheet-form';
 void (null as unknown as ScheduleType);
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(29,29,27,0.45)',
-  },
-  sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    top: '8%',
-    backgroundColor: TOKENS.surfaceWarm,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  handleArea: {
-    alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: TOKENS.ink12,
-  },
+  // De-chromed: the gorhom route sheet owns scrim/shape/grabber.
+  contentRoot: { flex: 1, backgroundColor: TOKENS.surfaceWarm },
 
   headerBar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    // baseline so the larger 새 일정/일정 수정 title sits on the same text
+    // baseline as the 취소 / 추가 actions instead of floating above them.
+    alignItems: 'baseline',
     paddingHorizontal: 14,
-    paddingTop: 4,
-    paddingBottom: 8,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.sm,
   },
   headerSlotStart: { flex: 1, alignItems: 'flex-start' },
   headerSlotEnd: { flex: 1, alignItems: 'flex-end' },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.ink,
     letterSpacing: -0.4,
   },
   cancelLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.ink,
     letterSpacing: -0.3,
   },
   saveLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.primary,
     letterSpacing: -0.3,
@@ -1208,20 +1230,20 @@ const styles = StyleSheet.create({
   saveLabelDisabled: { color: TOKENS.ink30 },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingTop: 4, paddingBottom: 8 },
+  scrollContent: { paddingTop: SPACING.sm, paddingBottom: SPACING.sm },
 
   // --- Group / Row -----------------------------------------------------
   group: {
     backgroundColor: TOKENS.surface,
     borderRadius: 14,
     marginHorizontal: 14,
-    marginBottom: 10,
+    marginBottom: SPACING.md,
     overflow: 'hidden',
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 16,
+    gap: SPACING.md,
+    paddingHorizontal: SPACING.lg,
     paddingVertical: 10,
     minHeight: 40,
   },
@@ -1233,7 +1255,7 @@ const styles = StyleSheet.create({
   rowTop: { alignItems: 'flex-start' },
   rowLabel: {
     width: 56,
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
@@ -1258,30 +1280,30 @@ const styles = StyleSheet.create({
   // --- Inputs ----------------------------------------------------------
   bigInput: {
     width: '100%',
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     letterSpacing: -0.2,
     padding: 0,
     margin: 0,
-    lineHeight: 18,
+    lineHeight: 20,
   },
-  notesInput: { minHeight: 64, textAlignVertical: 'top' },
+  notesInput: { minHeight: 24, textAlignVertical: 'top' },
 
   // --- Native date/time field ------------------------------------------
   nativeField: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.sm,
     backgroundColor: TOKENS.ink04,
   },
   nativeFieldPressed: { opacity: 0.6 },
   nativeFieldText: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
+    fontSize: 16,
+    fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.ink,
     letterSpacing: -0.2,
   },
@@ -1298,8 +1320,8 @@ const styles = StyleSheet.create({
     top: '30%',
     backgroundColor: TOKENS.surface,
     borderRadius: 14,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.xs,
     overflow: 'hidden',
   },
   // Spinner needs an explicit height — without it, the iOS wheel can
@@ -1308,12 +1330,12 @@ const styles = StyleSheet.create({
   pickerSpinner: { width: '100%', height: 216, backgroundColor: TOKENS.surface },
   pickerDoneBtn: {
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: SPACING.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: TOKENS.ink04,
   },
   pickerDoneLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.primary,
     letterSpacing: -0.3,
@@ -1325,22 +1347,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 6,
+    paddingVertical: SPACING.sm,
   },
   checklistRowTop: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: TOKENS.ink04,
   },
   checklistBullet: {
-    width: 18,
-    height: 18,
-    borderRadius: 9999,
+    width: 20,
+    height: 20,
+    borderRadius: RADIUS.full,
     borderWidth: 1.5,
     borderColor: TOKENS.ink30,
   },
   checklistInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     letterSpacing: -0.2,
@@ -1348,44 +1370,49 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   checklistRemoveBtn: {
-    width: 22,
-    height: 22,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: TOKENS.ink12,
   },
   checklistAddBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 4,
+    gap: SPACING.sm,
+    paddingVertical: SPACING.xs,
   },
   checklistAddBtnSpaced: { paddingTop: 6 },
   checklistAddLabel: {
-    fontSize: 12.5,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
   },
 
   // --- Pills -----------------------------------------------------------
-  pillRowGrow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, width: '100%' },
-  pillWrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  pillRowGrow: { flexDirection: 'row', gap: 6, width: '100%' },
+  pillWrapRow: { flexDirection: 'row', gap: 6, width: '100%' },
   pill: {
+    flex: 1, // toggle pills share the row evenly (4 종류 / 3 알림 fill the width)
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingVertical: 7,
-    paddingHorizontal: 13,
-    backgroundColor: '#EBEAE9',
-    borderRadius: 9999,
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.sm,
+    backgroundColor: TOKENS.controlIdle,
+    borderRadius: RADIUS.full,
   },
-  pillActive: { backgroundColor: '#2A2A29' },
+  pillActive: { backgroundColor: TOKENS.controlActive },
   pillLabel: {
-    fontSize: 12.5,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
-    lineHeight: 14,
+    lineHeight: 20,
   },
   pillLabelActive: { color: TOKENS.surface },
 
@@ -1395,35 +1422,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 3,
-    paddingLeft: 3,
-    paddingRight: 11,
-    backgroundColor: '#EBEAE9',
-    borderRadius: 9999,
+    paddingVertical: SPACING.sm,
+    paddingLeft: SPACING.xs,
+    paddingRight: SPACING.sm,
+    backgroundColor: TOKENS.controlIdle,
+    borderRadius: RADIUS.full,
   },
-  kidPillActive: { backgroundColor: '#2A2A29' },
+  kidPillActive: { backgroundColor: TOKENS.controlActive },
   kidPillLabel: {
-    fontSize: 12.5,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
-    lineHeight: 14,
+    lineHeight: 20,
   },
   kidPillLabelActive: { color: TOKENS.surface },
 
   // --- Day circles -----------------------------------------------------
   dayCircleRow: { flexDirection: 'row', gap: 6 },
   dayCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 9999,
+    width: 30,
+    height: 30,
+    borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EBEAE9',
+    backgroundColor: TOKENS.controlIdle,
   },
-  dayCircleActive: { backgroundColor: '#2A2A29' },
+  dayCircleActive: { backgroundColor: TOKENS.controlActive },
   dayCircleLabel: {
-    fontSize: 12.5,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
@@ -1431,24 +1458,24 @@ const styles = StyleSheet.create({
   dayCircleLabelActive: { color: TOKENS.surface },
 
   timeDash: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink30,
   },
 
   // --- Switch ----------------------------------------------------------
   switchTrack: {
-    width: 36,
-    height: 22,
-    borderRadius: 9999,
-    backgroundColor: '#D6D8DD',
-    padding: 2,
+    width: 44,
+    height: 26,
+    borderRadius: RADIUS.full,
+    backgroundColor: TOKENS.switchOff,
+    padding: SPACING.xxs,
   },
-  switchTrackOn: { backgroundColor: '#2A2A29' },
+  switchTrackOn: { backgroundColor: TOKENS.controlActive },
   switchKnob: {
-    width: 18,
-    height: 18,
-    borderRadius: 9999,
+    width: 22,
+    height: 22,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.surface,
   },
   switchKnobOff: { alignSelf: 'flex-start' },
@@ -1459,16 +1486,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginRight: 2,
+    marginRight: SPACING.xxs,
   },
   pickupDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 9999,
+    width: 8,
+    height: 8,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.primary,
   },
   pickupText: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     letterSpacing: -0.2,
@@ -1479,7 +1506,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.danger,
-    marginTop: 4,
+    marginTop: SPACING.xs,
     width: '100%',
   },
 
@@ -1488,12 +1515,12 @@ const styles = StyleSheet.create({
     backgroundColor: TOKENS.surface,
     borderRadius: 14,
     marginHorizontal: 14,
-    marginBottom: 10,
+    marginBottom: SPACING.md,
     overflow: 'hidden',
   },
   actionRow: {
     paddingVertical: 13,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.lg,
     alignItems: 'center',
   },
   actionRowHairline: {
@@ -1501,12 +1528,14 @@ const styles = StyleSheet.create({
     borderBottomColor: TOKENS.ink04,
   },
   actionLabel: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     letterSpacing: -0.2,
   },
   actionLabelDanger: { color: TOKENS.danger },
 
-  tail: { height: 32 },
+  // Bottom breathing room. Keyboard avoidance is handled by the scroll's
+  // automaticallyAdjustKeyboardInsets (iOS), not by a giant spacer.
+  tail: { height: 40 },
 });

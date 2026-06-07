@@ -1,23 +1,15 @@
-// 1:1 port of docs/design/amatta-v1/app-event-detail.jsx.
+// Read-only event detail BODY. Presented as the gorhom bottom-sheet route
+// app/event/detail.tsx (see .omc/plans/ralplan-drawer-route-modal.md). The
+// route shell owns native presentation + the ui-store eventDetail open/close
+// lockstep; this component reads eventDetailState, looks up the Schedule/Child/
+// ChecklistItems, and renders. Dismissal is delegated via the `onClose` prop.
 //
-// Read-only event detail. Driven by useUiStore.eventDetailState
-// (mode/open + scheduleId + occurrenceDate). Pulls Schedule via
-// useSchedulesStore, Child via useChildrenStore, and related
-// ChecklistItems via useChecklistStore.itemsByScheduleId.
-//
-// Top-right "수정" routes to ScheduleEditSheet via openEditSheet('editAll').
-// The lower action stack offers per-occurrence edit/cancel and full delete.
+// Top-right "수정" opens ScheduleEditSheet via openEditSheet('editAll') (still
+// the global Modal until that sheet is migrated too).
 
 import { useCallback, useMemo } from 'react';
-import {
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useChecklistStore } from '../../state/checklist-store';
 import { useChildrenStore } from '../../state/children-store';
@@ -36,6 +28,8 @@ import { TypeIcon } from '../common/TypeIcon';
 import { FONT_FAMILIES } from '../fonts';
 import { IconCheck } from '../icons';
 import { TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 import { fmtKoTime, formatKoreanDateLabel } from '../utils/date';
 import { TYPE_LABELS_KO } from '../sheets/edit-sheet-form';
 
@@ -50,10 +44,15 @@ const NOTIFY_LABEL_KO = (m: number | null): string => {
   return `${m}분 전`;
 };
 
-export function EventDetailDrawer(): React.ReactElement {
+export interface EventDetailContentProps {
+  onClose: () => void;
+}
+
+export function EventDetailContent({
+  onClose,
+}: EventDetailContentProps): React.ReactElement {
+  const router = useRouter();
   const detail = useUiStore((s) => s.eventDetailState);
-  const closeDetail = useUiStore((s) => s.closeEventDetail);
-  const openEditSheet = useUiStore((s) => s.openEditSheet);
 
   const schedules = useSchedulesStore((s) => s.schedules);
   const exceptions = useSchedulesStore((s) => s.exceptions);
@@ -61,8 +60,6 @@ export function EventDetailDrawer(): React.ReactElement {
   const applyException = useSchedulesStore((s) => s.applyException);
   const children = useChildrenStore((s) => s.children);
   const itemsByScheduleId = useChecklistStore((s) => s.itemsByScheduleId);
-
-  const open = detail.mode === 'open';
 
   const schedule: Schedule | undefined = useMemo(() => {
     if (detail.scheduleId === undefined) return undefined;
@@ -107,20 +104,29 @@ export function EventDetailDrawer(): React.ReactElement {
     return { startMinutes, endMinutes, title };
   }, [schedule, exception]);
 
+  // Sibling-swap: REPLACE this detail route with the edit route in one atomic
+  // nav action. Calling onClose() (gorhom close animation) and then router.push
+  // races — it can leave a stuck transparent route that eats touches. replace
+  // unmounts detail (→ closeEventDetail via the shell) and shows edit cleanly.
   const handleEditOccurrence = useCallback(() => {
     if (schedule === undefined || detail.occurrenceDate === undefined) return;
-    closeDetail();
-    openEditSheet('editOccurrence', {
-      scheduleId: schedule.id,
-      occurrenceDate: detail.occurrenceDate,
+    router.replace({
+      pathname: '/schedule/edit',
+      params: {
+        mode: 'editOccurrence',
+        scheduleId: String(schedule.id),
+        occurrenceDate: detail.occurrenceDate,
+      },
     });
-  }, [schedule, detail.occurrenceDate, openEditSheet, closeDetail]);
+  }, [schedule, detail.occurrenceDate, router]);
 
   const handleEditAll = useCallback(() => {
     if (schedule === undefined) return;
-    closeDetail();
-    openEditSheet('editAll', { scheduleId: schedule.id });
-  }, [schedule, openEditSheet, closeDetail]);
+    router.replace({
+      pathname: '/schedule/edit',
+      params: { mode: 'editAll', scheduleId: String(schedule.id) },
+    });
+  }, [schedule, router]);
 
   const handleCancelOccurrence = useCallback(() => {
     if (schedule === undefined || detail.occurrenceDate === undefined) return;
@@ -136,12 +142,12 @@ export function EventDetailDrawer(): React.ReactElement {
           onPress: async () => {
             const db = await getDb();
             await applyException(db, schedule.id, date, { kind: 'cancel' });
-            closeDetail();
+            onClose();
           },
         },
       ],
     );
-  }, [schedule, detail.occurrenceDate, applyException, closeDetail]);
+  }, [schedule, detail.occurrenceDate, applyException, onClose]);
 
   const handleDeleteAll = useCallback(() => {
     if (schedule === undefined) return;
@@ -156,12 +162,12 @@ export function EventDetailDrawer(): React.ReactElement {
           onPress: async () => {
             const db = await getDb();
             await removeSchedule(db, schedule.id);
-            closeDetail();
+            onClose();
           },
         },
       ],
     );
-  }, [schedule, removeSchedule, closeDetail]);
+  }, [schedule, removeSchedule, onClose]);
 
   // The modal must still mount with a body even if the schedule was just
   // deleted (drawer closes the next tick). Render a minimal frame so the
@@ -169,65 +175,53 @@ export function EventDetailDrawer(): React.ReactElement {
   const ready = schedule !== undefined && child !== undefined && display !== null;
 
   return (
-    <Modal
-      visible={open}
-      transparent
-      animationType="slide"
-      onRequestClose={closeDetail}
-      accessibilityViewIsModal
-    >
-      <Pressable style={styles.backdrop} onPress={closeDetail} />
-      <View style={styles.sheet}>
-        <View style={styles.handleArea}>
-          <View style={styles.handle} />
-        </View>
-        {/* Top bar — 취소 · 일정 · 수정 */}
-        <View style={styles.headerBar}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="취소"
-            onPress={closeDetail}
-            hitSlop={8}
-            style={styles.headerSlotStart}
-          >
-            <Text style={styles.cancelLabel}>취소</Text>
-          </Pressable>
-          <Text style={styles.headerTitle}>일정</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="수정"
-            onPress={handleEditAll}
-            disabled={!ready}
-            hitSlop={8}
-            style={styles.headerSlotEnd}
-          >
-            <Text style={[styles.editLabel, !ready ? styles.editLabelDisabled : null]}>
-              수정
-            </Text>
-          </Pressable>
-        </View>
-
-        {ready ? (
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-          >
-            <DetailBody
-              schedule={schedule}
-              child={child}
-              checklist={checklist}
-              display={display}
-              occurrenceDate={detail.occurrenceDate}
-              onEditOccurrence={handleEditOccurrence}
-              onEditAll={handleEditAll}
-              onCancelOccurrence={handleCancelOccurrence}
-              onDeleteAll={handleDeleteAll}
-            />
-          </ScrollView>
-        ) : null}
+    <View style={styles.contentRoot}>
+      {/* Top bar — 취소 · 일정 · 수정 */}
+      <View style={styles.headerBar}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="취소"
+          onPress={onClose}
+          hitSlop={8}
+          style={styles.headerSlotStart}
+        >
+          <Text style={styles.cancelLabel}>취소</Text>
+        </Pressable>
+        <Text style={styles.headerTitle}>일정</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="수정"
+          onPress={handleEditAll}
+          disabled={!ready}
+          hitSlop={8}
+          style={styles.headerSlotEnd}
+        >
+          <Text style={[styles.editLabel, !ready ? styles.editLabelDisabled : null]}>
+            수정
+          </Text>
+        </Pressable>
       </View>
-    </Modal>
+
+      {ready ? (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <DetailBody
+            schedule={schedule}
+            child={child}
+            checklist={checklist}
+            display={display}
+            occurrenceDate={detail.occurrenceDate}
+            onEditOccurrence={handleEditOccurrence}
+            onEditAll={handleEditAll}
+            onCancelOccurrence={handleCancelOccurrence}
+            onDeleteAll={handleDeleteAll}
+          />
+        </ScrollView>
+      ) : null}
+    </View>
   );
 }
 
@@ -488,55 +482,34 @@ function ActionRow({
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(29,29,27,0.45)',
-  },
-  sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    top: '15%',
-    backgroundColor: TOKENS.surfaceWarm,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  handleArea: {
-    alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: TOKENS.ink12,
-  },
+  // De-chromed: the gorhom route sheet owns the scrim/shape/grabber.
+  contentRoot: { flex: 1, backgroundColor: TOKENS.surfaceWarm },
 
   headerBar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    // baseline to match ScheduleEditSheet's header (title shares the 취소/수정
+    // text baseline instead of floating above the smaller action labels).
+    alignItems: 'baseline',
     paddingHorizontal: 14,
-    paddingTop: 4,
-    paddingBottom: 8,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.sm,
   },
   headerSlotStart: { flex: 1, alignItems: 'flex-start' },
   headerSlotEnd: { flex: 1, alignItems: 'flex-end' },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.ink,
     letterSpacing: -0.4,
   },
   cancelLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.ink,
     letterSpacing: -0.3,
   },
   editLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.primary,
     letterSpacing: -0.3,
@@ -544,19 +517,19 @@ const styles = StyleSheet.create({
   editLabelDisabled: { color: TOKENS.ink30 },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingTop: 4, paddingBottom: 8 },
+  scrollContent: { paddingTop: SPACING.sm, paddingBottom: SPACING.sm },
 
   group: {
     backgroundColor: TOKENS.surface,
     borderRadius: 14,
     marginHorizontal: 14,
-    marginBottom: 10,
+    marginBottom: SPACING.md,
     overflow: 'hidden',
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 16,
+    gap: SPACING.md,
+    paddingHorizontal: SPACING.lg,
     paddingVertical: 10,
     minHeight: 40,
   },
@@ -568,12 +541,12 @@ const styles = StyleSheet.create({
   rowTop: { alignItems: 'flex-start' },
   rowLabel: {
     width: 56,
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
   },
-  rowLabelTop: { paddingTop: 4 },
+  rowLabelTop: { paddingTop: SPACING.xs },
   rowContent: {
     flex: 1,
     minWidth: 0,
@@ -592,7 +565,7 @@ const styles = StyleSheet.create({
 
   // --- Inline values --------------------------------------------------
   valueText: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     letterSpacing: -0.2,
@@ -615,14 +588,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 3,
-    paddingLeft: 3,
-    paddingRight: 11,
-    backgroundColor: '#EBEAE9',
-    borderRadius: 9999,
+    paddingVertical: SPACING.sm,
+    paddingLeft: SPACING.xs,
+    paddingRight: SPACING.sm,
+    backgroundColor: TOKENS.controlIdle,
+    borderRadius: RADIUS.full,
   },
   kidChipLabel: {
-    fontSize: 12.5,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
@@ -631,16 +604,16 @@ const styles = StyleSheet.create({
   // --- Day circles -----------------------------------------------------
   dayRow: { flexDirection: 'row', gap: 6 },
   dayCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 9999,
+    width: 30,
+    height: 30,
+    borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EBEAE9',
+    backgroundColor: TOKENS.controlIdle,
   },
-  dayCircleActive: { backgroundColor: '#2A2A29' },
+  dayCircleActive: { backgroundColor: TOKENS.controlActive },
   dayCircleLabel: {
-    fontSize: 12.5,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.ink30,
     letterSpacing: -0.2,
@@ -656,7 +629,7 @@ const styles = StyleSheet.create({
   pickupDot: {
     width: 7,
     height: 7,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.primary,
   },
 
@@ -675,7 +648,7 @@ const styles = StyleSheet.create({
   checkBox: {
     width: 18,
     height: 18,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     borderWidth: 1.5,
     borderColor: TOKENS.ink30,
     alignItems: 'center',
@@ -683,8 +656,8 @@ const styles = StyleSheet.create({
     backgroundColor: TOKENS.surface,
   },
   checkBoxDone: {
-    backgroundColor: '#2A2A29',
-    borderColor: '#2A2A29',
+    backgroundColor: TOKENS.controlActive,
+    borderColor: TOKENS.controlActive,
   },
   checklistDone: {
     color: TOKENS.inkSub,
@@ -696,12 +669,12 @@ const styles = StyleSheet.create({
     backgroundColor: TOKENS.surface,
     borderRadius: 14,
     marginHorizontal: 14,
-    marginBottom: 10,
+    marginBottom: SPACING.md,
     overflow: 'hidden',
   },
   actionRow: {
     paddingVertical: 13,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.lg,
     alignItems: 'center',
   },
   actionRowHairline: {
@@ -709,7 +682,7 @@ const styles = StyleSheet.create({
     borderBottomColor: TOKENS.ink04,
   },
   actionLabel: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     letterSpacing: -0.2,

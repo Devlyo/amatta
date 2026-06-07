@@ -1,32 +1,8 @@
-// Render-level tests for EventDetailDrawer. We mock @gorhom/bottom-sheet to
-// plain Views so the drawer's body renders synchronously, matching the
-// CalendarDrawer test harness.
+// Render-level tests for EventDetailContent (the de-chromed body rendered by
+// the app/event/detail.tsx native formSheet route). Plain RN now — no gorhom.
+// Dismissal is delegated via the onClose prop.
 
 import { act, fireEvent, render } from '@testing-library/react-native';
-
-jest.mock('@gorhom/bottom-sheet', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Mock = require('react-native') as typeof import('react-native');
-  const ViewMock = Mock.View;
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { forwardRef } = require('react') as typeof import('react');
-  return {
-    __esModule: true,
-    BottomSheetModal: forwardRef(function MockModal(
-      props: { children?: React.ReactNode },
-      _ref: unknown,
-    ) {
-      return <ViewMock>{props.children}</ViewMock>;
-    }),
-    BottomSheetView: function MockView(props: { children?: React.ReactNode }) {
-      return <ViewMock>{props.children}</ViewMock>;
-    },
-    BottomSheetTextInput: Mock.TextInput,
-    BottomSheetBackdrop: function MockBackdrop() {
-      return null;
-    },
-  };
-});
 
 // Stub the DB client so the drawer's destructive actions don't try to open
 // a real expo-sqlite DB during tests.
@@ -34,8 +10,14 @@ jest.mock('../../../src/db/client', () => ({
   getDb: jest.fn().mockResolvedValue({}),
 }));
 
+// "수정" now navigates to the edit route (via replace) instead of setting the store.
+const mockReplace = jest.fn();
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn(), replace: mockReplace }),
+}));
+
 // eslint-disable-next-line import/first
-import { EventDetailDrawer } from '../../../src/ui/drawers/EventDetailDrawer';
+import { EventDetailContent } from '../../../src/ui/drawers/EventDetailDrawer';
 // eslint-disable-next-line import/first
 import { useChecklistStore } from '../../../src/state/checklist-store';
 // eslint-disable-next-line import/first
@@ -116,8 +98,9 @@ function primeStores(): void {
   });
 }
 
-describe('EventDetailDrawer', () => {
+describe('EventDetailContent', () => {
   beforeEach(() => {
+    mockReplace.mockClear();
     primeStores();
   });
 
@@ -131,7 +114,7 @@ describe('EventDetailDrawer', () => {
   });
 
   test('renders title, kid name, type label, and pickup row when state is open', () => {
-    const { queryByText } = render(<EventDetailDrawer />);
+    const { queryByText } = render(<EventDetailContent onClose={() => {}} />);
     // Kid chip
     expect(queryByText('민준')).not.toBeNull();
     // Type label (academy → 학원)
@@ -147,20 +130,26 @@ describe('EventDetailDrawer', () => {
   });
 
   test('renders the checklist items pulled from the checklist store', () => {
-    const { queryByText } = render(<EventDetailDrawer />);
+    const { queryByText } = render(<EventDetailContent onClose={() => {}} />);
     expect(queryByText('교재')).not.toBeNull();
     expect(queryByText('필통')).not.toBeNull();
   });
 
-  test('header "수정" closes the drawer and opens the edit sheet in editAll mode', () => {
-    // Spec: the per-occurrence vs schedule-wide split now lives inside
-    // ScheduleEditSheet. The drawer surfaces a single "수정" entry in the
-    // top-right that opens the sheet in editAll mode.
-    const { getByLabelText } = render(<EventDetailDrawer />);
+  test('header "수정" replaces this route with the edit route in editAll mode', () => {
+    // The per-occurrence vs schedule-wide split lives inside the edit sheet.
+    // "수정" atomically swaps detail → edit via router.replace (no onClose race).
+    const onClose = jest.fn();
+    const { getByLabelText } = render(<EventDetailContent onClose={onClose} />);
     fireEvent.press(getByLabelText('수정'));
-    const ui = useUiStore.getState();
-    expect(ui.eventDetailState.mode).toBe('closed');
-    expect(ui.editSheetState.mode).toBe('editAll');
-    expect(ui.editSheetState.scheduleId).toBe(sampleSchedule.id);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/schedule/edit',
+        params: expect.objectContaining({
+          mode: 'editAll',
+          scheduleId: String(sampleSchedule.id),
+        }),
+      }),
+    );
   });
 });

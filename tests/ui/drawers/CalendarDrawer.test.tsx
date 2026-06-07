@@ -1,45 +1,21 @@
-// Render-level tests for CalendarDrawer.
+// Render-level tests for the calendar body (CalendarBody).
 //
-// We bypass the @gorhom/bottom-sheet provider by mocking its surface to a
-// plain View — that way the drawer's grid renders immediately under
-// @testing-library/react-native without a host BottomSheetModalProvider.
+// Post-migration: CalendarBody is the de-chromed content rendered by the
+// app/calendar/index.tsx formSheet route. It reads currentDate from the store
+// and delegates dismissal to an `onClose` prop (the route calls router.back()).
+// (The old @gorhom/bottom-sheet mock was dead — the component never imported
+// gorhom — and has been removed.)
 
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { View } from 'react-native';
 
-jest.mock('@gorhom/bottom-sheet', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const RN = require('react-native') as typeof import('react-native');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const React = require('react') as typeof import('react');
-  return {
-    __esModule: true,
-    BottomSheetModal: React.forwardRef(function MockModal(
-      props: { children?: React.ReactNode },
-      _ref: unknown,
-    ) {
-      return <RN.View>{props.children}</RN.View>;
-    }),
-    BottomSheetView: function MockView(props: { children?: React.ReactNode }) {
-      return <RN.View>{props.children}</RN.View>;
-    },
-    BottomSheetTextInput: RN.TextInput,
-    BottomSheetBackdrop: function MockBackdrop() {
-      return null;
-    },
-  };
-});
-
-// eslint-disable-next-line import/first
-import { CalendarDrawer } from '../../../src/ui/drawers/CalendarDrawer';
-// eslint-disable-next-line import/first
+import { CalendarBody } from '../../../src/ui/drawers/CalendarDrawer';
 import { useUiStore } from '../../../src/state/ui-store';
-// eslint-disable-next-line import/first
 import type { ISODate } from '../../../src/domain/types';
 
 const ISO = (s: string): ISODate => s as unknown as ISODate;
 
-// Pin today() so "today highlight" is deterministic. The drawer reads
+// Pin today() so "today highlight" is deterministic. The body reads
 // todayIso() from src/ui/utils/date, which derives from `new Date()`.
 const ORIGINAL_DATE = Date;
 class FakeDate extends ORIGINAL_DATE {
@@ -53,7 +29,7 @@ class FakeDate extends ORIGINAL_DATE {
   }
 }
 
-describe('CalendarDrawer', () => {
+describe('CalendarBody', () => {
   beforeAll(() => {
     // @ts-expect-error — override global Date for deterministic todayIso().
     global.Date = FakeDate;
@@ -65,21 +41,12 @@ describe('CalendarDrawer', () => {
 
   beforeEach(() => {
     act(() => {
-      useUiStore.setState({
-        calendarDrawerOpen: true,
-        currentDate: ISO('2026-05-05'),
-      });
-    });
-  });
-
-  afterEach(() => {
-    act(() => {
-      useUiStore.setState({ calendarDrawerOpen: false });
+      useUiStore.setState({ currentDate: ISO('2026-05-05') });
     });
   });
 
   test('renders the current month label + DOW header', () => {
-    const { queryByText } = render(<CalendarDrawer />);
+    const { queryByText } = render(<CalendarBody onClose={() => {}} />);
     expect(queryByText('2026년 5월')).not.toBeNull();
     for (const d of ['일', '월', '화', '수', '목', '금', '토']) {
       expect(queryByText(d)).not.toBeNull();
@@ -87,7 +54,7 @@ describe('CalendarDrawer', () => {
   });
 
   test('next-month chevron advances the visible month', () => {
-    const { queryByText, getByLabelText } = render(<CalendarDrawer />);
+    const { queryByText, getByLabelText } = render(<CalendarBody onClose={() => {}} />);
     expect(queryByText('2026년 5월')).not.toBeNull();
     fireEvent.press(getByLabelText('다음 달'));
     expect(queryByText('2026년 6월')).not.toBeNull();
@@ -96,21 +63,21 @@ describe('CalendarDrawer', () => {
     expect(queryByText('2026년 4월')).not.toBeNull();
   });
 
-  test('tapping a date sets currentDate and closes the drawer', () => {
-    const { getByLabelText } = render(<CalendarDrawer />);
+  test('tapping a date sets currentDate and calls onClose', () => {
+    const onClose = jest.fn();
+    const { getByLabelText } = render(<CalendarBody onClose={onClose} />);
     fireEvent.press(getByLabelText('2026년 5월 12일'));
-    const next = useUiStore.getState();
-    expect(next.currentDate as unknown as string).toBe('2026-05-12');
-    expect(next.calendarDrawerOpen).toBe(false);
+    expect(useUiStore.getState().currentDate as unknown as string).toBe('2026-05-12');
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   test('today (2026-05-05) is rendered with the primary highlight pill', () => {
-    const { getByLabelText, UNSAFE_getAllByType } = render(<CalendarDrawer />);
+    const { getByLabelText, UNSAFE_getAllByType } = render(
+      <CalendarBody onClose={() => {}} />,
+    );
     // 2026-05-05 is 어린이날 — the holiday name gets appended to the cell's
     // accessibility label by the Korean-holidays integration.
     const todayBtn = getByLabelText('2026년 5월 5일 어린이날');
-    // The inner pill view sits inside the Pressable. Inspect its style
-    // recursively via UNSAFE_getAllByType to confirm the primary background.
     const views = UNSAFE_getAllByType(View);
     const hasPrimary = views.some((v) => {
       const style = v.props.style;

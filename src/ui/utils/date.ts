@@ -89,20 +89,23 @@ export function formatKoreanWeekRange(weekStart: ISODate): string {
 }
 
 /**
- * Formats minutes-from-midnight as a compact 12-hour amatta-v1 block string:
- *   `9 * 60 + 0` → "9:00AM"
+ * Formats minutes-from-midnight as a compact 12-hour block string. The minutes
+ * are dropped on the hour to save horizontal space in the narrow grid columns:
+ *   `9 * 60 + 0` → "9AM"
+ *   `14 * 60 + 0` → "2PM"
  *   `15 * 60 + 30` → "3:30PM"
- *   `0` → "12:00AM"
+ *   `0` → "12AM"
  *
- * Mirrors `fmt12hrShort(hhmm)` from docs/design/amatta-v1/app-tokens.jsx but
- * takes the domain's minute-of-day representation so we don't shuttle strings.
+ * Derived from `fmt12hrShort(hhmm)` in docs/design/amatta-v1/app-tokens.jsx,
+ * but takes the domain's minute-of-day representation (so we don't shuttle
+ * strings) and omits ":00" — the prototype always printed it.
  */
 export function fmt12hrShort(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
   const ap = h < 12 ? 'AM' : 'PM';
-  return `${h12}:${String(m).padStart(2, '0')}${ap}`;
+  return m === 0 ? `${h12}${ap}` : `${h12}:${String(m).padStart(2, '0')}${ap}`;
 }
 
 /**
@@ -174,4 +177,20 @@ export function formatTodoDue(dueAt: number, currentDate: ISODate): string {
   if (diff === 0) return '오늘';
   if (diff === 1) return '내일';
   return `${dueM}/${dueD}`;
+}
+
+/**
+ * True when a Todo's `dueAt` epoch-ms falls on the given calendar date
+ * (local time). Todos are date-bound: a todo created on June 5 must only
+ * surface on June 5, never on June 6. Compares local Y/M/D so it is immune
+ * to the noon-anchor / timezone offset used when the todo was created.
+ */
+export function isDueOnDate(dueAt: number, date: ISODate): boolean {
+  const d = new Date(dueAt);
+  const s = date as unknown as string;
+  return (
+    d.getFullYear() === Number(s.slice(0, 4)) &&
+    d.getMonth() + 1 === Number(s.slice(5, 7)) &&
+    d.getDate() === Number(s.slice(8, 10))
+  );
 }

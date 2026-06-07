@@ -15,6 +15,8 @@ import { useRouter } from 'expo-router';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { IconChevronDown, IconChevronRight } from '../../src/ui/icons';
 import { TOKENS } from '../../src/ui/palette';
+import { RADIUS } from '../../src/ui/radius';
+import { SPACING } from '../../src/ui/spacing';
 
 import { DetailTopBar } from './kids';
 
@@ -286,32 +288,32 @@ function GroupSection({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKENS.surfaceSoft },
 
-  scrollContent: { paddingHorizontal: 14, paddingBottom: 32 },
+  scrollContent: { paddingHorizontal: 14, paddingBottom: SPACING.xxxl },
 
   hero: {
     backgroundColor: TOKENS.surface,
     borderRadius: 18,
     paddingHorizontal: 18,
-    paddingVertical: 20,
-    marginTop: 4,
+    paddingVertical: SPACING.xl,
+    marginTop: SPACING.xs,
     marginBottom: 14,
   },
   heroLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.mono,
     color: TOKENS.inkSub,
     letterSpacing: 0.4,
   },
   heroDate: {
-    marginTop: 4,
-    fontSize: 15,
+    marginTop: SPACING.xs,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.ink,
     letterSpacing: -0.2,
   },
   heroNote: {
-    marginTop: 12,
-    fontSize: 13,
+    marginTop: SPACING.md,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     lineHeight: 21,
@@ -320,8 +322,8 @@ const styles = StyleSheet.create({
 
   group: {
     backgroundColor: TOKENS.surface,
-    borderRadius: 16,
-    marginBottom: 8,
+    borderRadius: RADIUS.lg,
+    marginBottom: SPACING.sm,
     overflow: 'hidden',
   },
   groupHeader: {
@@ -333,29 +335,29 @@ const styles = StyleSheet.create({
   groupHeaderPressed: { backgroundColor: TOKENS.ink04 },
   groupTitle: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.ink,
     letterSpacing: -0.3,
   },
   groupBody: {
     paddingHorizontal: 14,
-    paddingBottom: 16,
+    paddingBottom: SPACING.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: TOKENS.ink04,
-    paddingTop: 12,
+    paddingTop: SPACING.md,
   },
 
-  sectionSpacer: { marginTop: 16 },
+  sectionSpacer: { marginTop: SPACING.lg },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.ink,
     letterSpacing: -0.2,
     marginBottom: 6,
   },
   paragraph: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     lineHeight: 21,
@@ -363,12 +365,12 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  bulletList: { marginTop: 8 },
+  bulletList: { marginTop: SPACING.sm },
   bulletRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-    paddingVertical: 2,
+    gap: SPACING.sm,
+    paddingVertical: SPACING.xxs,
   },
   bulletDot: {
     width: 4,
@@ -379,7 +381,7 @@ const styles = StyleSheet.create({
   },
   bulletText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     lineHeight: 20,
@@ -388,8 +390,8 @@ const styles = StyleSheet.create({
 
   footer: {
     textAlign: 'center',
-    paddingVertical: 20,
-    fontSize: 11,
+    paddingVertical: SPACING.xl,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.mono,
     color: TOKENS.ink30,
     letterSpacing: 0.3,

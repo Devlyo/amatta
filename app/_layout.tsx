@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Platform, Text, StyleSheet } from 'react-native';
+import { Appearance, AppState, Platform, Text, StyleSheet } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,10 +19,7 @@ import { useSchedulesStore } from '../src/state/schedules-store';
 import { useChecklistStore } from '../src/state/checklist-store';
 import { useTodosStore } from '../src/state/todos-store';
 import { usePickupLogStore } from '../src/state/pickup-log-store';
-import { CalendarDrawer } from '../src/ui/drawers/CalendarDrawer';
-import { SearchDrawer } from '../src/ui/drawers/SearchDrawer';
-import { EventDetailDrawer } from '../src/ui/drawers/EventDetailDrawer';
-import { ScheduleEditSheet } from '../src/ui/sheets/ScheduleEditSheet';
+import { TOKENS } from '../src/ui/palette';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -33,6 +30,12 @@ export const unstable_settings = {
 // Module-scope so it runs once on app load (before any boot effect).
 // Without this, expo-notifications silently suppresses notifications
 // while the app is in the foreground.
+// Lock the app to light appearance at RUNTIME. app.json's
+// userInterfaceStyle:'light' only applies in a native build (not Expo Go), so
+// this forces light there too — otherwise native chrome (the formSheet sheet
+// container, date picker) renders with the device's dark-mode system colors.
+Appearance.setColorScheme('light');
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -114,7 +117,7 @@ export default function RootLayout() {
               importance: Notifications.AndroidImportance.DEFAULT,
               sound: 'default',
               vibrationPattern: [0, 250, 250, 250],
-              lightColor: '#FF7144',
+              lightColor: TOKENS.primary,
             });
           }
           await ensurePermission();
@@ -195,7 +198,15 @@ export default function RootLayout() {
             animation: 'none',
           }}
         />
-        <Stack.Screen name="schedule/edit" options={{ title: '일정 편집', presentation: 'modal' }} />
+        {/* New/Edit schedule — FULL modal (dev-gallery style), per user. */}
+        <Stack.Screen
+          name="schedule/edit"
+          options={{
+            headerShown: false,
+            presentation: 'modal',
+            contentStyle: { backgroundColor: TOKENS.surface },
+          }}
+        />
         <Stack.Screen
           name="onboarding/welcome"
           options={{ headerShown: false, animation: 'none' }}
@@ -208,13 +219,71 @@ export default function RootLayout() {
         <Stack.Screen name="settings/kid-edit" options={{ headerShown: false }} />
         <Stack.Screen name="settings/data" options={{ headerShown: false }} />
         <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
+        {/* Reset-all-data confirm — native formSheet route (app/settings/reset-confirm.tsx). */}
+        <Stack.Screen
+          name="settings/reset-confirm"
+          options={{
+            headerShown: false,
+            presentation: 'formSheet',
+            sheetAllowedDetents: 'fitToContents',
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 22,
+            contentStyle: { backgroundColor: TOKENS.surface },
+          }}
+        />
+        {/* Dev-only design-system gallery. Entry point in Settings is __DEV__-gated. */}
+        <Stack.Screen name="dev-gallery" options={{ title: 'DS Gallery', presentation: 'modal' }} />
+        {/* Calendar — native SHORT sheet (formSheet + detents). NO gorhom
+            (gorhom's backdrop/gesture ate the first tap after dismiss; native
+            react-native-screens sheets — like dev-gallery's modal — don't).
+            The earlier formSheet "dark margins / white-on-touch" were dark-mode
+            artifacts, now fixed by the runtime Appearance.setColorScheme('light')
+            + contentStyle white. */}
+        <Stack.Screen
+          name="calendar/index"
+          options={{
+            headerShown: false,
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.5],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 20,
+            contentStyle: { backgroundColor: TOKENS.surface },
+          }}
+        />
+        {/* Event detail — FULL modal (dev-gallery style). */}
+        <Stack.Screen
+          name="event/detail"
+          options={{
+            headerShown: false,
+            presentation: 'modal',
+            contentStyle: { backgroundColor: TOKENS.surface },
+          }}
+        />
+        {/* Search — native formSheet route (see app/search/index.tsx). */}
+        <Stack.Screen
+          name="search/index"
+          options={{
+            headerShown: false,
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.5, 0.92],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 20,
+            contentStyle: { backgroundColor: TOKENS.surface },
+          }}
+        />
+        {/* 자녀 선택 — native formSheet route (see app/kid-switch.tsx). */}
+        <Stack.Screen
+          name="kid-switch"
+          options={{
+            headerShown: false,
+            presentation: 'formSheet',
+            sheetAllowedDetents: 'fitToContents',
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 20,
+            contentStyle: { backgroundColor: TOKENS.surface },
+          }}
+        />
       </Stack>
-      {/* Sheets + drawers mounted once at the layout level so daily/weekly
-          views can open them via ui-store without route navigation. */}
-      <ScheduleEditSheet />
-      <CalendarDrawer />
-      <SearchDrawer />
-      <EventDetailDrawer />
     </GestureHandlerRootView>
   );
 }
@@ -222,7 +291,10 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // eslint-disable-next-line no-restricted-syntax
   text: { fontSize: 16, color: '#333' },
+  // eslint-disable-next-line no-restricted-syntax
   errorText: { fontSize: 16, color: '#c00', marginBottom: 8 },
+  // eslint-disable-next-line no-restricted-syntax
   errorDetail: { fontSize: 12, color: '#666', textAlign: 'center', paddingHorizontal: 24 },
 });

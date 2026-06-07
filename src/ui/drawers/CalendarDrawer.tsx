@@ -1,8 +1,10 @@
-// 1:1 port of CalendarDrawer from docs/design/amatta-v1/app-weekly-drawers.jsx.
+// Calendar month-grid body. Presented as the expo-router `formSheet` route
+// app/calendar/index.tsx (see .omc/plans/ralplan-drawer-route-modal.md); the
+// route shell owns native presentation + the ui-store open/close lockstep.
 //
-// Single-month grid driven by useUiStore.calendarDrawerOpen. Prev/next month
-// chevrons; weekday header 일~토; tap a date → useUiStore.setCurrentDate +
-// closeCalendar. The grid is anchored to the *currently-selected* currentDate's
+// Single-month grid. Prev/next month chevrons; weekday header 일~토; tap a date
+// → useUiStore.setCurrentDate + onClose() (the host dismisses the route). The
+// grid is anchored to the *currently-selected* currentDate's
 // month on each open; today (in the device's local time) is rendered with the
 // brand primary background.
 //
@@ -11,8 +13,8 @@
 // palette. The list is expanded once per (year, month) via expandOccurrences
 // and bucketed by ISODate for O(1) lookup in the cell renderer.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useChildrenStore } from '../../state/children-store';
 import { useSchedulesStore } from '../../state/schedules-store';
@@ -26,13 +28,15 @@ import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
 import { IconChevronLeft, IconChevronRight } from '../icons';
 import { getKidPalette, TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 import { todayIso } from '../utils/date';
 
 // Weekend tints. Sunday uses TOKENS.danger (the codebase's defined red,
 // `#FF4444`) so the calendar/dow header doesn't ship a one-off magenta.
 // Saturday's blue stays as a local literal until a `saturday`/blue token
 // exists in src/ui/palette.ts.
-const WEEKEND_COLOR_SAT = '#3F66D8';
+const WEEKEND_COLOR_SAT = TOKENS.saturday;
 
 const DOW_LABELS = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
@@ -72,28 +76,20 @@ function buildMonth(year: number, month: number): MonthShape {
   return { year, month, daysInMonth, startDow, cells };
 }
 
-export function CalendarDrawer(): React.ReactElement {
-  const open = useUiStore((s) => s.calendarDrawerOpen);
-  const closeCalendar = useUiStore((s) => s.closeCalendar);
+export interface CalendarBodyProps {
+  onClose: () => void;
+}
+
+export function CalendarBody({ onClose }: CalendarBodyProps): React.ReactElement {
   const currentDate = useUiStore((s) => s.currentDate);
   const setCurrentDate = useUiStore((s) => s.setCurrentDate);
 
-  // Anchor the visible month to the current date when (re)opening; this keeps
-  // the user in context if they've already navigated to a different week/day.
+  // Anchor the visible month to the current date. The route mounts a fresh body
+  // on each open, so initial state derived from currentDate IS the anchor — no
+  // open-flag re-anchor effect needed.
   const initialAnchor = useMemo(() => parseYmd(currentDate), [currentDate]);
   const [year, setYear] = useState(initialAnchor.y);
   const [month, setMonth] = useState(initialAnchor.m);
-
-  // Re-anchor on each open. Don't depend on `currentDate` directly so that
-  // tapping a date doesn't immediately flicker the month back if the parent
-  // updates currentDate after the close transition starts.
-  useEffect(() => {
-    if (open) {
-      const { y, m } = parseYmd(useUiStore.getState().currentDate);
-      setYear(y);
-      setMonth(m);
-    }
-  }, [open]);
 
   const todayYmd = useMemo(() => parseYmd(todayIso()), []);
   const selectedYmd = useMemo(() => parseYmd(currentDate), [currentDate]);
@@ -157,24 +153,13 @@ export function CalendarDrawer(): React.ReactElement {
   const handlePickDate = useCallback(
     (d: number) => {
       setCurrentDate(isoFromYmd(year, month, d));
-      closeCalendar();
+      onClose();
     },
-    [year, month, setCurrentDate, closeCalendar],
+    [year, month, setCurrentDate, onClose],
   );
 
   return (
-    <Modal
-      visible={open}
-      transparent
-      animationType="slide"
-      onRequestClose={closeCalendar}
-      accessibilityViewIsModal
-    >
-      <Pressable style={styles.backdrop} onPress={closeCalendar} />
-      <View style={styles.sheet} testID="calendar-drawer-content">
-        <View style={styles.handleArea}>
-          <View style={styles.handle} />
-        </View>
+    <View style={styles.sheetBody} testID="calendar-drawer-content">
         {/* Month nav */}
         <View style={styles.monthNav}>
           <Pressable
@@ -293,47 +278,28 @@ export function CalendarDrawer(): React.ReactElement {
             );
           })}
         </View>
-      </View>
-    </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(29,29,27,0.45)',
-  },
-  sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    top: '50%',
+  // De-chromed: the native formSheet route owns the scrim, sheet shape/position,
+  // and grabber. This is just the content surface.
+  sheetBody: {
+    flex: 1,
     backgroundColor: TOKENS.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  handleArea: {
-    alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: TOKENS.ink30,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.sm,
   },
 
   monthNav: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
+    paddingHorizontal: SPACING.xs,
     paddingTop: 6,
-    paddingBottom: 12,
+    paddingBottom: SPACING.md,
   },
   navBtn: {
     padding: 6,
@@ -341,7 +307,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   monthLabel: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.ink,
     letterSpacing: -0.3,
@@ -349,15 +315,15 @@ const styles = StyleSheet.create({
 
   dowRow: {
     flexDirection: 'row',
-    marginBottom: 4,
+    marginBottom: SPACING.xs,
   },
   dowCell: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: SPACING.xs,
   },
   dowText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendardMedium,
   },
 
@@ -370,12 +336,12 @@ const styles = StyleSheet.create({
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
+    paddingVertical: SPACING.xs,
   },
   pill: {
     width: 30,
     height: 30,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -416,6 +382,6 @@ const styles = StyleSheet.create({
   dot: {
     width: 4,
     height: 4,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
   },
 });

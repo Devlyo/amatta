@@ -21,6 +21,8 @@ import { useRouter } from 'expo-router';
 import { MASCOTS } from '../../src/ui/assets';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { TOKENS } from '../../src/ui/palette';
+import { RADIUS } from '../../src/ui/radius';
+import { SPACING } from '../../src/ui/spacing';
 
 function OnbWelcomeImpl(): React.ReactElement {
   const router = useRouter();
@@ -118,7 +120,8 @@ const styles = StyleSheet.create({
     top: '50%',
     marginLeft: -BLOB_W / 2 + 6, // spec: translate(calc(-50% + 6px), ...)
     marginTop: -BLOB_H / 2 + 38, // a touch below the mascot feet line.
-    backgroundColor: '#E0E446', // NOW_YELLOW.
+    // eslint-disable-next-line no-restricted-syntax
+    backgroundColor: '#E0E446', // kid-palette Citrus Green — no TOKENS mapping.
     borderRadius: 1,
   },
   mascotPink: {
@@ -138,7 +141,7 @@ const styles = StyleSheet.create({
   copyBlock: {
     alignItems: 'center',
     paddingHorizontal: 28,
-    paddingTop: 20,
+    paddingTop: SPACING.xl,
   },
   welcomeTitle: {
     fontSize: 24,
@@ -149,7 +152,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   welcomeSub: {
-    marginTop: 12,
+    marginTop: SPACING.md,
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
@@ -161,20 +164,20 @@ const styles = StyleSheet.create({
   // ─── CTA ─────────────────────────────────────────────────
   ctaWrap: {
     marginTop: 40,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.lg,
   },
   primaryCta: {
     width: '100%',
     paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 9999,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryCtaPressed: { opacity: 0.85 },
   primaryCtaLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.surface,
     letterSpacing: -0.3,

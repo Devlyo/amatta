@@ -18,7 +18,7 @@
 // Empty-slot tap → useUiStore.openEditSheet('create', {preFill: {childId,
 // date}}).
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   LayoutChangeEvent,
   Pressable,
@@ -28,7 +28,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { expandOccurrences } from '../../src/domain/occurrences';
 import type { Child, ISODate } from '../../src/domain/types';
@@ -36,7 +36,6 @@ import { useChildrenStore } from '../../src/state/children-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useUiStore } from '../../src/state/ui-store';
 import { KidAvatar } from '../../src/ui/common/KidAvatar';
-import { KidSwitchDrawer } from '../../src/ui/drawers/KidSwitchDrawer';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import {
   IconChevronDown,
@@ -81,11 +80,20 @@ export default function ChildWeeklyScreen(): React.ReactElement {
   const children = useChildrenStore((s) => s.children);
   const schedules = useSchedulesStore((s) => s.schedules);
   const exceptions = useSchedulesStore((s) => s.exceptions);
-  const openEditSheet = useUiStore((s) => s.openEditSheet);
-  const openEventDetail = useUiStore((s) => s.openEventDetail);
-  const openCalendar = useUiStore((s) => s.openCalendar);
-  const openSearch = useUiStore((s) => s.openSearch);
-  const openKidSwitch = useUiStore((s) => s.openKidSwitch);
+  const pendingKidId = useUiStore((s) => s.pendingKidId);
+  const setPendingKidId = useUiStore((s) => s.setPendingKidId);
+  // The kid-switch route writes the picked kid to pendingKidId. Apply it on
+  // FOCUS (i.e. once kid-switch has dismissed and THIS screen is focused) — only
+  // then does router.setParams target /child/[id] rather than the kid-switch
+  // route. Swaps the `id` param in place (preserves the week) + clears.
+  useFocusEffect(
+    useCallback(() => {
+      if (pendingKidId !== null) {
+        router.setParams({ id: String(pendingKidId) });
+        setPendingKidId(null);
+      }
+    }, [pendingKidId, router, setPendingKidId]),
+  );
   // Week follows the shared currentDate so opening CalendarDrawer + picking
   // a date here lands the right week. ±7 swipe writes back into currentDate
   // so toggling back to daily/multi keeps the same focus.
@@ -149,13 +157,17 @@ export default function ChildWeeklyScreen(): React.ReactElement {
 
   const handleEmpty = (e: WeeklyEmptySlotEvent): void => {
     if (child === undefined) return;
-    openEditSheet('create', {
-      preFill: { childId: child.id, date: e.date },
+    router.push({
+      pathname: '/schedule/edit',
+      params: { mode: 'create', childId: String(child.id), date: e.date },
     });
   };
 
   const handleBlock = (e: WeeklyBlockPressEvent): void => {
-    openEventDetail({ scheduleId: e.scheduleId, occurrenceDate: e.date });
+    router.push({
+      pathname: '/event/detail',
+      params: { scheduleId: String(e.scheduleId), occurrenceDate: e.date },
+    });
   };
 
   // ---------- Render branches (hooks above ran unconditionally) ----------
@@ -204,7 +216,7 @@ export default function ChildWeeklyScreen(): React.ReactElement {
           <IconChevronLeft size={20} color={TOKENS.ink} />
         </Pressable>
         <Pressable
-          onPress={openCalendar}
+          onPress={() => router.push('/calendar')}
           accessibilityRole="button"
           accessibilityLabel="주 선택"
           style={styles.topTitleRow}
@@ -218,7 +230,7 @@ export default function ChildWeeklyScreen(): React.ReactElement {
           </View>
         </Pressable>
         <Pressable
-          onPress={openSearch}
+          onPress={() => router.push('/search')}
           accessibilityRole="button"
           accessibilityLabel="검색"
           hitSlop={8}
@@ -232,12 +244,17 @@ export default function ChildWeeklyScreen(): React.ReactElement {
           Mirrors app-weekly.jsx:140 ("바꾸기" affordance on the right). */}
       <View style={styles.kidHeaderWrap}>
         <Pressable
-          onPress={openKidSwitch}
+          onPress={() =>
+            router.push({
+              pathname: '/kid-switch',
+              params: { currentKidId: String(child.id) },
+            })
+          }
           accessibilityRole="button"
           accessibilityLabel={`${child.name} — 자녀 바꾸기`}
           style={styles.kidHeader}
         >
-          <KidAvatar child={child} size={28} />
+          <KidAvatar child={child} size={30} />
           <View style={styles.kidHeaderTextRow}>
             <Text style={styles.kidName}>{child.name}</Text>
             <Text style={styles.kidWeekLabel}>이번 주 일정</Text>
@@ -270,14 +287,6 @@ export default function ChildWeeklyScreen(): React.ReactElement {
         </View>
       </GestureDetector>
 
-      <KidSwitchDrawer
-        currentKidId={child.id}
-        onPick={(newKidId) => {
-          // Swap the route param so the same screen re-renders for the new
-          // kid (preserves the current week, just changes the lane).
-          router.setParams({ id: String(newKidId) });
-        }}
-      />
     </SafeAreaView>
   );
 }
@@ -345,7 +354,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    paddingVertical: 4,
+    paddingVertical: 5,
     paddingHorizontal: 10,
     backgroundColor: TOKENS.ink04,
     borderRadius: 9999,
@@ -366,24 +375,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   kidSwitchLabel: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
   },
   kidName: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.ink,
     letterSpacing: -0.3,
   },
   kidWeekLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
   },
   kidCount: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.ink,
   },

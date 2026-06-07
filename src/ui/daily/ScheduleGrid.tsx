@@ -56,6 +56,8 @@ import {
   TOKENS,
   type KidPalette,
 } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 import { fmt12hrShort, todayIso } from '../utils/date';
 
 const SLOT_H = 32;
@@ -90,6 +92,9 @@ export function ScheduleGrid({
   const scrollRef = useRef<ScrollView | null>(null);
   const showNow = nowMinutes >= TIME_START_MIN && nowMinutes <= TIME_END_MIN;
   const nowTop = ((nowMinutes - TIME_START_MIN) / SLOT_MIN) * SLOT_H;
+  // At the 4-kid cap each column is ~1/4 wide, so shrink the block's inner
+  // text one notch to keep titles readable instead of clipping to one char.
+  const compact = kids.length >= 4;
 
   // Bucket occurrences by childId for column rendering.
   const eventsByChild = useMemo(() => {
@@ -177,6 +182,7 @@ export function ScheduleGrid({
                     key={`${ev.scheduleId}-${ev.date as unknown as string}`}
                     occ={ev}
                     palette={palette}
+                    compact={compact}
                     onPress={() => onBlockPress(ev)}
                   />
                 ))}
@@ -199,10 +205,11 @@ export function ScheduleGrid({
 interface BlockProps {
   occ: Occurrence;
   palette: KidPalette;
+  compact: boolean;
   onPress: () => void;
 }
 
-function ScheduleBlockDaily({ occ, palette, onPress }: BlockProps): React.ReactElement {
+function ScheduleBlockDaily({ occ, palette, compact, onPress }: BlockProps): React.ReactElement {
   const slotIndex = (occ.startMinutes - TIME_START_MIN) / SLOT_MIN;
   const span = (occ.endMinutes - occ.startMinutes) / SLOT_MIN;
   const top = slotIndex * SLOT_H + 1;
@@ -235,20 +242,28 @@ function ScheduleBlockDaily({ occ, palette, onPress }: BlockProps): React.ReactE
     >
       <View style={styles.blockTitleRow}>
         <View style={styles.blockIconWrap}>
-          <KindIcon size={13} color={TOKENS.ink} />
+          <KindIcon size={compact ? 11 : 13} color={TOKENS.ink} />
         </View>
-        <Text style={styles.blockTitle} numberOfLines={1} ellipsizeMode="tail">
+        <Text
+          style={[styles.blockTitle, compact ? styles.blockTextCompact : null]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
           {occ.title}
         </Text>
         {occ.needsPickup ? <View style={styles.pickupDot} /> : null}
         {/* TODO(EAS-dev-build): add 2px white outline ring (boxShadow inset)
             when react-native-svg works in our Expo Go binary. */}
       </View>
-      <Text style={styles.blockTime}>
+      <Text style={[styles.blockTime, compact ? styles.blockTextCompact : null]}>
         {fmt12hrShort(occ.startMinutes)}–{fmt12hrShort(occ.endMinutes)}
       </Text>
       {height > 64 && place ? (
-        <Text style={styles.blockPlace} numberOfLines={1} ellipsizeMode="tail">
+        <Text
+          style={[styles.blockPlace, compact ? styles.blockTextCompact : null]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
           {place}
         </Text>
       ) : null}
@@ -295,14 +310,14 @@ function NowLine({ top, nowMinutes }: NowProps): React.ReactElement {
 // Styles
 // ─────────────────────────────────────────────────────────────────────────
 
-const NOW_YELLOW = '#E0E345';
+const NOW_YELLOW = TOKENS.nowLine;
 
 const styles = StyleSheet.create({
   outer: { flex: 1 },
   scroll: { flex: 1 },
   grid: {
     flexDirection: 'row',
-    paddingHorizontal: 12,
+    paddingHorizontal: SPACING.md,
     height: GRID_H,
     position: 'relative',
   },
@@ -318,17 +333,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   hourNum: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     lineHeight: 12,
   },
   hourAp: {
-    fontSize: 8,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.mono,
     color: TOKENS.ink30,
     letterSpacing: 0.4,
-    lineHeight: 9,
+    lineHeight: 14,
   },
 
   // Kid column
@@ -352,7 +367,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 3,
     right: 3,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     borderWidth: 1, // inset 0 0 0 1px palette.source
     paddingTop: 6,
     paddingRight: 7,
@@ -365,10 +380,15 @@ const styles = StyleSheet.create({
   blockTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: SPACING.xs,
   },
   blockIconWrap: {
     opacity: 0.85,
+  },
+  // 4-kid compact override (fontSize one notch down). lineHeights on the base
+  // styles (14/12) already exceed 10 so there is no clipping.
+  blockTextCompact: {
+    fontSize: 10,
   },
   blockTitle: {
     flex: 1,
@@ -382,18 +402,18 @@ const styles = StyleSheet.create({
   pickupDot: {
     width: 7,
     height: 7,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.primary,
-    marginLeft: 4,
+    marginLeft: SPACING.xs,
   },
   blockTime: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     lineHeight: 12,
   },
   blockPlace: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     marginTop: 'auto',
@@ -412,8 +432,8 @@ const styles = StyleSheet.create({
   nowPill: {
     backgroundColor: NOW_YELLOW,
     paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 9999,
+    paddingVertical: SPACING.xxs,
+    borderRadius: RADIUS.full,
     marginLeft: 10,
     marginRight: -2,
     // boxShadow: '0 2px 6px rgba(224,227,69,0.55)'
@@ -425,14 +445,14 @@ const styles = StyleSheet.create({
   },
   nowPillLabel: {
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    fontSize: 10.5,
-    color: '#1d1d1b',
+    fontSize: 12,
+    color: TOKENS.ink,
     lineHeight: 12,
   },
   nowLine: {
     flex: 1,
     height: 1.5,
     backgroundColor: NOW_YELLOW,
-    borderRadius: 1,
+    borderRadius: 1, // hairline
   },
 });

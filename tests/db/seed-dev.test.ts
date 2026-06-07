@@ -83,34 +83,34 @@ describe('seedDevData', () => {
     if (existsSync(dbPath)) rmSync(dbPath, { force: true });
   });
 
-  it('inserts 3 children, 8 schedules, 1 exception, 3 notification settings on a fresh DB', async () => {
+  it('inserts 4 children, 10 schedules, 1 exception, 4 notification settings on a fresh DB', async () => {
     await seedDevData(db as never);
 
-    expect(real.prepare('SELECT COUNT(*) AS c FROM children').get()).toEqual({ c: 3 });
-    expect(real.prepare('SELECT COUNT(*) AS c FROM schedules').get()).toEqual({ c: 8 });
+    expect(real.prepare('SELECT COUNT(*) AS c FROM children').get()).toEqual({ c: 4 });
+    expect(real.prepare('SELECT COUNT(*) AS c FROM schedules').get()).toEqual({ c: 10 });
     expect(real.prepare('SELECT COUNT(*) AS c FROM schedule_exceptions').get()).toEqual({
       c: 1,
     });
     expect(real.prepare('SELECT COUNT(*) AS c FROM notification_settings').get()).toEqual({
-      c: 3,
+      c: 4,
     });
   });
 
-  it('marks 3 schedules with needs_pickup=1 (v2)', async () => {
+  it('marks 4 schedules with needs_pickup=1 (v2)', async () => {
     await seedDevData(db as never);
     expect(
       real.prepare('SELECT COUNT(*) AS c FROM schedules WHERE needs_pickup = 1').get(),
-    ).toEqual({ c: 3 });
+    ).toEqual({ c: 4 });
   });
 
-  it('inserts 7 checklist_items (v2)', async () => {
+  it('inserts 9 checklist_items (v2)', async () => {
     await seedDevData(db as never);
-    expect(real.prepare('SELECT COUNT(*) AS c FROM checklist_items').get()).toEqual({ c: 7 });
+    expect(real.prepare('SELECT COUNT(*) AS c FROM checklist_items').get()).toEqual({ c: 9 });
   });
 
-  it('inserts 4 todos with deterministic NOW_MS timestamps (v2)', async () => {
+  it('inserts 5 todos with deterministic NOW_MS timestamps (v2)', async () => {
     await seedDevData(db as never);
-    expect(real.prepare('SELECT COUNT(*) AS c FROM todos').get()).toEqual({ c: 4 });
+    expect(real.prepare('SELECT COUNT(*) AS c FROM todos').get()).toEqual({ c: 5 });
     const rows = real
       .prepare('SELECT created_at FROM todos')
       .all() as { created_at: number }[];
@@ -131,7 +131,7 @@ describe('seedDevData', () => {
     const rows = real
       .prepare('SELECT name, color_index FROM children ORDER BY id')
       .all() as { name: string; color_index: number }[];
-    expect(rows.map((r) => r.name)).toEqual(['민준', '서연', '도윤']);
+    expect(rows.map((r) => r.name)).toEqual(['민준', '서연', '도윤', '하준']);
     for (const r of rows) {
       expect(r.color_index).toBeGreaterThanOrEqual(0);
       expect(r.color_index).toBeLessThanOrEqual(5);
@@ -151,7 +151,7 @@ describe('seedDevData', () => {
       start_minutes: number;
       end_minutes: number;
     }[];
-    expect(rows).toHaveLength(8);
+    expect(rows).toHaveLength(10);
     for (const r of rows) {
       expect(['school', 'academy', 'activity', 'other']).toContain(r.type);
       expect(r.days_of_week).toBeGreaterThan(0);
@@ -175,8 +175,8 @@ describe('seedDevData', () => {
   it('is idempotent — second call leaves counts unchanged', async () => {
     await seedDevData(db as never);
     await seedDevData(db as never);
-    expect(real.prepare('SELECT COUNT(*) AS c FROM children').get()).toEqual({ c: 3 });
-    expect(real.prepare('SELECT COUNT(*) AS c FROM schedules').get()).toEqual({ c: 8 });
+    expect(real.prepare('SELECT COUNT(*) AS c FROM children').get()).toEqual({ c: 4 });
+    expect(real.prepare('SELECT COUNT(*) AS c FROM schedules').get()).toEqual({ c: 10 });
     expect(real.prepare('SELECT COUNT(*) AS c FROM schedule_exceptions').get()).toEqual({
       c: 1,
     });

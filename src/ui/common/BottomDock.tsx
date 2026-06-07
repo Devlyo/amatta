@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     gap: 10,
     // 0 10px 26px rgba(0,0,0,0.10) — main drop shadow
-    shadowColor: '#000',
+    shadowColor: TOKENS.shadow,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 26,
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     backgroundColor: TOKENS.ink,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1D1D1B',
+    shadowColor: TOKENS.ink,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 10,

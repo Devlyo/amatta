@@ -2,31 +2,15 @@
 
 import { act, fireEvent, render } from '@testing-library/react-native';
 
-jest.mock('@gorhom/bottom-sheet', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const RN = require('react-native') as typeof import('react-native');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const React = require('react') as typeof import('react');
-  return {
-    __esModule: true,
-    BottomSheetModal: React.forwardRef(function MockModal(
-      props: { children?: React.ReactNode },
-      _ref: unknown,
-    ) {
-      return <RN.View>{props.children}</RN.View>;
-    }),
-    BottomSheetView: function MockView(props: { children?: React.ReactNode }) {
-      return <RN.View>{props.children}</RN.View>;
-    },
-    BottomSheetTextInput: RN.TextInput,
-    BottomSheetBackdrop: function MockBackdrop() {
-      return null;
-    },
-  };
-});
+// Result-tap swaps to the event/detail route via replace (no onClose race).
+const mockReplace = jest.fn();
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn(), replace: mockReplace }),
+}));
+
 
 // eslint-disable-next-line import/first
-import { SearchDrawer } from '../../../src/ui/drawers/SearchDrawer';
+import { SearchContent } from '../../../src/ui/drawers/SearchDrawer';
 // eslint-disable-next-line import/first
 import { useChildrenStore } from '../../../src/state/children-store';
 // eslint-disable-next-line import/first
@@ -94,6 +78,7 @@ const CHECKLIST_ITEM: ChecklistItem = {
 
 describe('SearchDrawer', () => {
   beforeEach(() => {
+    mockReplace.mockClear();
     act(() => {
       useChildrenStore.setState({ children: [KID], isLoaded: true });
       useSchedulesStore.setState({
@@ -124,12 +109,12 @@ describe('SearchDrawer', () => {
   });
 
   test('empty query shows the placeholder', () => {
-    const { queryByText } = render(<SearchDrawer />);
+    const { queryByText } = render(<SearchContent onClose={() => {}} />);
     expect(queryByText('검색어를 입력하세요')).not.toBeNull();
   });
 
   test('typing a schedule title filters and shows the matching result', () => {
-    const { getByTestId, queryByText } = render(<SearchDrawer />);
+    const { getByTestId, queryByText } = render(<SearchContent onClose={() => {}} />);
     fireEvent.changeText(getByTestId('search-drawer-input'), '영어');
     expect(queryByText('영어학원')).not.toBeNull();
     expect(queryByText(/결과 1건/)).not.toBeNull();
@@ -138,13 +123,17 @@ describe('SearchDrawer', () => {
     expect(queryByText('수영복')).toBeNull();
   });
 
-  test('tapping a schedule result opens EventDetailDrawer and closes search', () => {
-    const { getByTestId } = render(<SearchDrawer />);
+  test('tapping a schedule result replaces with the event detail route', () => {
+    const onClose = jest.fn();
+    const { getByTestId } = render(<SearchContent onClose={onClose} />);
     fireEvent.changeText(getByTestId('search-drawer-input'), '영어');
     fireEvent.press(getByTestId(`search-result-schedule-${SCHEDULE.id}`));
-    const ui = useUiStore.getState();
-    expect(ui.eventDetailState.mode).toBe('open');
-    expect(ui.eventDetailState.scheduleId).toBe(SCHEDULE.id);
-    expect(ui.searchDrawerOpen).toBe(false);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/event/detail',
+        params: expect.objectContaining({ scheduleId: String(SCHEDULE.id) }),
+      }),
+    );
   });
 });

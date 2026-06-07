@@ -17,6 +17,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { FONT_FAMILIES } from '../fonts';
 import { TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 
 export type DailyTabKey = 'schedule' | 'todo';
 
@@ -110,22 +112,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingTop: 12,
-    paddingRight: 16,
+    paddingTop: SPACING.md,
+    paddingRight: SPACING.lg,
     paddingBottom: 14,
-    paddingLeft: 16,
+    paddingLeft: SPACING.lg,
     position: 'relative',
   },
   label: {
-    fontSize: 14,
+    fontSize: 16,
     letterSpacing: -0.3,
-    lineHeight: 16, // approximate the prototype's 1.0–1.2 line height
+    lineHeight: 20, // approximate the prototype's 1.0–1.2 line height
   },
   badge: {
     minWidth: 18,
-    paddingHorizontal: 2,
-    paddingVertical: 2,
-    borderRadius: 9999,
+    paddingHorizontal: SPACING.xxs,
+    paddingVertical: SPACING.xxs,
+    borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -141,6 +143,6 @@ const styles = StyleSheet.create({
     bottom: -1,
     height: 3,
     backgroundColor: TOKENS.primary,
-    borderRadius: 2,
+    borderRadius: 2, // hairline
   },
 });

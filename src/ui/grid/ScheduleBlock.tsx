@@ -7,6 +7,8 @@ import type { ScheduleType } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
 import { KIND_ICON } from '../icons';
 import { getKidPalette, TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 import { fmt12hrShort } from '../utils/date';
 
 interface Props {
@@ -88,16 +90,16 @@ const styles = StyleSheet.create({
   block: {
     position: 'absolute',
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     paddingHorizontal: 7,
     paddingTop: 5,
-    paddingBottom: 4,
+    paddingBottom: SPACING.xs,
     overflow: 'hidden',
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: SPACING.xs,
   },
   title: {
     fontSize: 12,
@@ -107,7 +109,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   timePill: {
-    marginTop: 2,
+    marginTop: SPACING.xxs,
     fontSize: 10,
     fontFamily: FONT_FAMILIES.mono,
     color: TOKENS.inkSub,
@@ -127,7 +129,7 @@ const styles = StyleSheet.create({
     right: 4,
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: 3, // hairline
     backgroundColor: TOKENS.warningDot,
   },
 });

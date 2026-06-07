@@ -25,8 +25,9 @@ import { TabStrip, type DailyTabKey } from '../src/ui/daily/TabStrip';
 import { TodoTabContent } from '../src/ui/daily/TodoTabContent';
 import { FONT_FAMILIES } from '../src/ui/fonts';
 import { IconChevronDown, IconSearch } from '../src/ui/icons';
-import { TOKENS } from '../src/ui/palette';
+import { getKidPalette, TOKENS } from '../src/ui/palette';
 import {
+  isDueOnDate,
   shiftIsoDate,
   todayIso,
   weekDatesIso,
@@ -57,7 +58,6 @@ function MultiViewScreenImpl(): React.ReactElement {
   const children = useChildrenStore((s) => s.children);
   const schedules = useSchedulesStore((s) => s.schedules);
   const exceptions = useSchedulesStore((s) => s.exceptions);
-  const openEditSheet = useUiStore((s) => s.openEditSheet);
   const router = useRouter();
 
   // Week anchor follows ui-store's currentDate so picking a date in
@@ -185,9 +185,13 @@ function MultiViewScreenImpl(): React.ReactElement {
     })
     .runOnJS(true);
 
-  // Counts for the tab badge (same intent as daily/index.tsx).
-  const undoneTodos = useTodosStore(
-    (s) => s.todos.filter((t) => !t.isDone).length,
+  // Counts for the tab badge (same intent as daily/index.tsx). Todos are
+  // date-bound — scope to currentDate so the badge matches the list shown
+  // in the 준비물 & 할일 tab.
+  const todos = useTodosStore((s) => s.todos);
+  const undoneTodos = useMemo(
+    () => todos.filter((t) => !t.isDone && isDueOnDate(t.dueAt, currentDate)).length,
+    [todos, currentDate],
   );
   const undoneChecklist = useChecklistStore((s) => {
     let n = 0;
@@ -210,7 +214,7 @@ function MultiViewScreenImpl(): React.ReactElement {
   };
 
   const handlePressAdd = (): void => {
-    openEditSheet('create', { preFill: { date: anchorDate } });
+    router.push({ pathname: '/schedule/edit', params: { mode: 'create', date: anchorDate } });
   };
 
   const handlePressGear = (): void => {
@@ -222,11 +226,11 @@ function MultiViewScreenImpl(): React.ReactElement {
   };
 
   const handlePressTitle = (): void => {
-    useUiStore.getState().openCalendar();
+    router.push('/calendar');
   };
 
   const handlePressSearch = (): void => {
-    useUiStore.getState().openSearch();
+    router.push('/search');
   };
 
   return (
@@ -276,6 +280,10 @@ function MultiViewScreenImpl(): React.ReactElement {
           <View style={styles.chipsRow}>
             {allKids.map((k) => {
               const active = activeKidIds.has(k.id);
+              // Selected chips wear the kid's own palette (lane-matching bg +
+              // saturated ring) so "this kid is on" reads at a glance; the
+              // dimmed outline of an unselected chip reads as "tap to enable".
+              const palette = getKidPalette(k.colorIndex);
               return (
                 <Pressable
                   key={k.id}
@@ -285,7 +293,9 @@ function MultiViewScreenImpl(): React.ReactElement {
                   accessibilityState={{ selected: active }}
                   style={[
                     styles.kidChip,
-                    active ? styles.kidChipActive : styles.kidChipInactive,
+                    active
+                      ? { backgroundColor: palette.bg, borderColor: palette.source }
+                      : styles.kidChipInactive,
                   ]}
                 >
                   <KidAvatar child={k} size={26} />
@@ -310,7 +320,7 @@ function MultiViewScreenImpl(): React.ReactElement {
                 idx === 0 || isHoliday
                   ? TOKENS.danger
                   : idx === 6
-                    ? '#3F66D8'
+                    ? TOKENS.saturday
                     : TOKENS.inkSub;
               // Sunday OR Korean holiday → date number in danger.
               // Today's filled chip wins (white text on primary).
@@ -437,13 +447,13 @@ const styles = StyleSheet.create({
     paddingRight: 13,
     paddingVertical: 4,
     borderRadius: 9999,
-  },
-  kidChipActive: {
-    backgroundColor: TOKENS.ink04,
+    // Constant 1.5px border in both states → toggling on/off never shifts
+    // the chip width. Selected overrides borderColor inline (kid's color).
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
   kidChipInactive: {
     backgroundColor: 'transparent',
-    borderWidth: 1,
     borderColor: TOKENS.hair,
     opacity: 0.5,
   },
@@ -472,7 +482,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   weekStripDow: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: FONT_FAMILIES.pretendardMedium,
   },
   weekStripDateChip: {

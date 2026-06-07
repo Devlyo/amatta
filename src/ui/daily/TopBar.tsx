@@ -17,6 +17,8 @@ import { ViewToggle } from '../common/ViewToggle';
 import { FONT_FAMILIES } from '../fonts';
 import { IconChevronDown, IconSearch } from '../icons';
 import { TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 
 interface Props {
   caption: string; // "5월 5일 · 화"
@@ -88,9 +90,9 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 8,
+    paddingTop: SPACING.sm,
     paddingRight: 14,
-    paddingBottom: 4,
+    paddingBottom: SPACING.xs,
     paddingLeft: 14,
     gap: 10,
   },
@@ -99,12 +101,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
     flexDirection: 'row',
     alignItems: 'baseline', // matches JSX
-    gap: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: SPACING.xs,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontFamily: FONT_FAMILIES.pretendardSemiBold, // 600
     color: TOKENS.ink,
     letterSpacing: -0.4,
@@ -112,10 +114,10 @@ const styles = StyleSheet.create({
   captionWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: SPACING.xxs,
   },
   caption: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard, // 400
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
@@ -128,7 +130,7 @@ const styles = StyleSheet.create({
   searchBtn: {
     width: 32,
     height: 32,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
     // background transparent — matches topBtnB helper in the prototype.

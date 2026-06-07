@@ -4,12 +4,14 @@ import type { ScheduleType } from './types';
 // Index order is contractual: seed data + child.colorIndex reference this order.
 // Source of truth: docs/design/README.md §2.
 export const PALETTE = [
+  /* eslint-disable no-restricted-syntax */
   '#FFA9FF', // 0: Petunia Pink
   '#C0F0AA', // 1: Vibrant Mint
   '#D8E6FF', // 2: Glacier Blue
   '#FFE8D2', // 3: Soft Peach
   '#E0E446', // 4: Citrus Green
   '#C7B0FF', // 5: French Lavender
+  /* eslint-enable no-restricted-syntax */
 ] as const;
 
 export const SLOT_MIN = 30;

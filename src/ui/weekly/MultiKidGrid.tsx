@@ -21,8 +21,9 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 
 import type { Child, ISODate, Occurrence } from '../../domain/types';
-import { getKidPalette } from '../palette';
-import { TOKENS } from '../palette';
+import { getKidPalette, TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 import { FONT_FAMILIES } from '../fonts';
 import { TypeIcon } from '../common/TypeIcon';
 import { KidAvatar } from '../common/KidAvatar';
@@ -349,16 +350,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   gutterHour: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
-    lineHeight: 13,
+    lineHeight: 12,
   },
   gutterAmpm: {
-    fontSize: 8,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink30,
-    lineHeight: 9,
+    lineHeight: 14,
   },
   daysRow: {
     flexDirection: 'row',
@@ -389,7 +390,7 @@ const styles = StyleSheet.create({
     left: 2,
     right: 2,
     flexDirection: 'row',
-    gap: 2,
+    gap: SPACING.xxs,
   },
   lane: {
     flex: 1,
@@ -403,12 +404,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    borderRadius: 6,
+    borderRadius: RADIUS.xs,
     borderWidth: 1,
   },
   blockOpen: {
     borderWidth: 1.5,
-    shadowColor: '#000',
+    shadowColor: TOKENS.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
@@ -422,8 +423,8 @@ const styles = StyleSheet.create({
     backgroundColor: TOKENS.surface,
     borderRadius: 9,
     paddingVertical: 6,
-    paddingHorizontal: 8,
-    shadowColor: '#000',
+    paddingHorizontal: SPACING.sm,
+    shadowColor: TOKENS.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 24,
@@ -435,7 +436,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    marginBottom: 2,
+    marginBottom: SPACING.xxs,
   },
   tooltipKidName: {
     fontSize: 12,
@@ -469,11 +470,11 @@ const styles = StyleSheet.create({
     marginLeft: -10,
     width: 20,
     height: 20,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
     // Subtle iOS-ish drop shadow so the chip lifts above the block edge.
-    shadowColor: '#000',
+    shadowColor: TOKENS.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.18,
     shadowRadius: 2,
@@ -492,11 +493,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   nowBadge: {
-    backgroundColor: '#E0E345',
-    paddingVertical: 2,
+    backgroundColor: TOKENS.nowLine,
+    paddingVertical: SPACING.xxs,
     paddingHorizontal: 7,
-    borderRadius: 9999,
-    shadowColor: '#E0E345',
+    borderRadius: RADIUS.full,
+    shadowColor: TOKENS.nowLine,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.55,
     shadowRadius: 6,
@@ -504,13 +505,13 @@ const styles = StyleSheet.create({
   nowBadgeLabel: {
     fontSize: 10.5,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: '#1d1d1b',
+    color: TOKENS.ink,
     letterSpacing: -0.1,
   },
   nowLine: {
     flex: 1,
     height: 1.5,
-    backgroundColor: '#E0E345',
+    backgroundColor: TOKENS.nowLine,
     marginLeft: -1,
   },
 });

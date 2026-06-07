@@ -5,6 +5,7 @@ import {
   formatKoreanShortDate,
   formatKoreanWeekRange,
   formatTodoDue,
+  isDueOnDate,
   isToday,
   shiftIsoDate,
   todayIso,
@@ -96,14 +97,14 @@ describe('formatKoreanWeekRange', () => {
 });
 
 describe('fmt12hrShort', () => {
-  test('midnight is 12:00AM', () => {
-    expect(fmt12hrShort(0)).toBe('12:00AM');
+  test('midnight on the hour drops minutes → 12AM', () => {
+    expect(fmt12hrShort(0)).toBe('12AM');
   });
-  test('9:00 → 9:00AM', () => {
-    expect(fmt12hrShort(9 * 60)).toBe('9:00AM');
+  test('9:00 on the hour → 9AM', () => {
+    expect(fmt12hrShort(9 * 60)).toBe('9AM');
   });
-  test('noon is 12:00PM', () => {
-    expect(fmt12hrShort(12 * 60)).toBe('12:00PM');
+  test('noon on the hour → 12PM', () => {
+    expect(fmt12hrShort(12 * 60)).toBe('12PM');
   });
   test('15:30 → 3:30PM', () => {
     expect(fmt12hrShort(15 * 60 + 30)).toBe('3:30PM');
@@ -169,5 +170,29 @@ describe('formatTodoDue', () => {
   test('past date also returns M/D form', () => {
     const dueAt = new Date(2026, 4, 28, 12, 0).getTime();
     expect(formatTodoDue(dueAt, today)).toBe('5/28');
+  });
+});
+
+describe('isDueOnDate', () => {
+  // A todo created on June 5 (noon anchor, as the app stores it).
+  const jun5 = new Date(2026, 5, 5, 12, 0).getTime();
+
+  test('same calendar day → true', () => {
+    expect(isDueOnDate(jun5, iso('2026-06-05'))).toBe(true);
+  });
+
+  test('next day → false (June 5 todo must not show on June 6)', () => {
+    expect(isDueOnDate(jun5, iso('2026-06-06'))).toBe(false);
+  });
+
+  test('previous day → false', () => {
+    expect(isDueOnDate(jun5, iso('2026-06-04'))).toBe(false);
+  });
+
+  test('matches at the day boundaries (00:00 and 23:59)', () => {
+    const startOfDay = new Date(2026, 5, 5, 0, 0).getTime();
+    const endOfDay = new Date(2026, 5, 5, 23, 59).getTime();
+    expect(isDueOnDate(startOfDay, iso('2026-06-05'))).toBe(true);
+    expect(isDueOnDate(endOfDay, iso('2026-06-05'))).toBe(true);
   });
 });

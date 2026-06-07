@@ -80,4 +80,23 @@ export const TOKENS = {
   success: '#00C951',
   danger: '#FF4444',
   warningDot: '#FFB000',
+
+  // Control surfaces — from the shipping new-schedule form (ScheduleEditSheet)
+  // + BottomDock. These near-neutral grays were inline literals; promoted to
+  // tokens so selectable chips / toggles / day-circles share one source.
+  // NOTE: `controlActive` (#2A2A29) is a hair lighter than `ink` (#1D1D1B) —
+  // the app uses BOTH as "near-black". Flagged for possible unification.
+  controlIdle: '#EBEAE9', // chip / day-circle idle background
+  controlActive: '#2A2A29', // selected chip / toggle-on / day-circle active
+  switchOff: '#D6D8DD', // toggle track when off
+
+  // NOW line (ADR-003) — distinct lime indicator. Near but NOT citrus (#E0E446);
+  // kept as its own semantic so the two don't drift into each other.
+  nowLine: '#E0E345',
+  // Saturday tint in calendar / weekly day headers (Sunday uses `danger`).
+  saturday: '#3F66D8',
+  // Pickup carousel alternate card background (lavender), pairs with `primary`.
+  pickupLavender: '#D4B4FA',
+  // Pure black — drop-shadow color ONLY (never a UI surface/text color).
+  shadow: '#000000',
 } as const;

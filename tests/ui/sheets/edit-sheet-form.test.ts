@@ -18,6 +18,7 @@ const iso = (s: string): ISODate => s as unknown as ISODate;
 function makeForm(overrides: Partial<EditFormState> = {}): EditFormState {
   return {
     ...defaultFormState(1, iso('2026-06-02')),
+    type: 'academy', // defaultFormState now starts type=null; a complete form picks one
     title: '영어학원',
     daysOfWeek: 0b0010101, // Mon/Wed/Fri
     ...overrides,
@@ -32,6 +33,15 @@ describe('validate', () => {
     });
     expect(r.ok).toBe(true);
     expect(r.errors).toEqual({});
+  });
+
+  test('fails when type is not selected (null)', () => {
+    const r = validate(makeForm({ type: null }), {
+      requireChildId: true,
+      requireDaysOfWeek: true,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.errors.type).toBeDefined();
   });
 
   test('fails when childId is missing in create mode', () => {

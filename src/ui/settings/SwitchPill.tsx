@@ -7,6 +7,7 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { TOKENS } from '../palette';
+import { RADIUS } from '../radius';
 
 const W = 44;
 const H = 26;
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
   track: {
     width: W,
     height: H,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     position: 'relative',
   },
   trackOn: { backgroundColor: TOKENS.primary },
@@ -77,10 +78,10 @@ const styles = StyleSheet.create({
     top: PAD,
     width: KNOB,
     height: KNOB,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.surface,
     // Soft iOS-like drop shadow.
-    shadowColor: '#000',
+    shadowColor: TOKENS.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.18,
     shadowRadius: 2,

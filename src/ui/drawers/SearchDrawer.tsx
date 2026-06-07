@@ -12,24 +12,14 @@
 // only close the drawer — focusing them inside their respective list is left
 // for a follow-up (the corresponding sections don't yet support deep-linking).
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useChildrenStore } from '../../state/children-store';
 import { useChecklistStore } from '../../state/checklist-store';
 import { useSchedulesStore } from '../../state/schedules-store';
 import { useTodosStore } from '../../state/todos-store';
-import { useUiStore } from '../../state/ui-store';
 import type {
   ChecklistItem,
   Child,
@@ -40,6 +30,8 @@ import { ColorDot } from '../common/ColorDot';
 import { FONT_FAMILIES } from '../fonts';
 import { IconCheck, IconSearch, IconXMark, KIND_ICON } from '../icons';
 import { TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 import { todayIso } from '../utils/date';
 
 type Result =
@@ -58,25 +50,21 @@ function matches(haystack: string | null | undefined, needle: string): boolean {
   return haystack.toLowerCase().includes(needle);
 }
 
-export function SearchDrawer(): React.ReactElement {
-  const open = useUiStore((s) => s.searchDrawerOpen);
-  const closeSearch = useUiStore((s) => s.closeSearch);
-  const openEventDetail = useUiStore((s) => s.openEventDetail);
+export interface SearchContentProps {
+  onClose: () => void;
+}
+
+export function SearchContent({ onClose }: SearchContentProps): React.ReactElement {
+  const router = useRouter();
 
   const children = useChildrenStore((s) => s.children);
   const schedules = useSchedulesStore((s) => s.schedules);
   const todos = useTodosStore((s) => s.todos);
   const itemsByScheduleId = useChecklistStore((s) => s.itemsByScheduleId);
 
+  // Query starts empty on every mount — the route mounts a fresh body each open,
+  // so no close-reset effect is needed.
   const [query, setQuery] = useState('');
-
-  useEffect(() => {
-    if (!open) {
-      // Clear the query when the sheet closes so re-opens start fresh — matches
-      // the prototype's `setQ('')` on close.
-      setQuery('');
-    }
-  }, [open]);
 
   const childById = useMemo(() => {
     const m = new Map<number, Child>();
@@ -136,22 +124,23 @@ export function SearchDrawer(): React.ReactElement {
     return out;
   }, [query, schedules, todos, itemsByScheduleId, childById, scheduleById]);
 
+  // Sibling-swap via replace (NOT onClose()+push — that races: gorhom's close
+  // animation fires router.back after the push, popping the new route).
   const handleSelectSchedule = useCallback(
     (schedule: Schedule) => {
-      openEventDetail({
-        scheduleId: schedule.id,
-        occurrenceDate: todayIso(),
+      router.replace({
+        pathname: '/event/detail',
+        params: { scheduleId: String(schedule.id), occurrenceDate: todayIso() },
       });
-      closeSearch();
     },
-    [openEventDetail, closeSearch],
+    [router],
   );
 
   const handleSelectTodo = useCallback(() => {
     // TODO(R3.x): focus this todo inside TodoSection. The todo tab doesn't yet
     // expose an imperative focus API, so close the sheet for now.
-    closeSearch();
-  }, [closeSearch]);
+    onClose();
+  }, [onClose]);
 
   const handleSelectChecklist = useCallback(
     (result: Extract<Result, { kind: 'checklist' }>) => {
@@ -159,39 +148,27 @@ export function SearchDrawer(): React.ReactElement {
       // we know the parent schedule, fall back to opening EventDetailDrawer for
       // it — the checklist will be visible in that view.
       if (result.schedule !== undefined) {
-        openEventDetail({
-          scheduleId: result.schedule.id,
-          occurrenceDate: todayIso(),
+        router.replace({
+          pathname: '/event/detail',
+          params: { scheduleId: String(result.schedule.id), occurrenceDate: todayIso() },
         });
+      } else {
+        onClose();
       }
-      closeSearch();
     },
-    [openEventDetail, closeSearch],
+    [router, onClose],
   );
 
   const trimmed = query.trim();
   const showEmpty = trimmed === '';
 
   return (
-    <Modal
-      visible={open}
-      transparent
-      animationType="slide"
-      onRequestClose={closeSearch}
-      accessibilityViewIsModal
-    >
-      <Pressable style={styles.backdrop} onPress={closeSearch} />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={[styles.sheet, showEmpty ? styles.sheetCompact : null]}
-      >
-        <View style={styles.handleArea}>
-          <View style={styles.handle} />
-        </View>
+    <View style={styles.contentRoot}>
         <ScrollView
           style={styles.sheetScroll}
           contentContainerStyle={styles.sheetContent}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           testID="search-drawer-content"
         >
           {/* Search input */}
@@ -249,8 +226,7 @@ export function SearchDrawer(): React.ReactElement {
             )}
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
-    </Modal>
+    </View>
   );
 }
 
@@ -382,41 +358,13 @@ function ResultRow({
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(29,29,27,0.45)',
-  },
-  sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    top: '22%',
-    backgroundColor: TOKENS.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  // Empty-query state — shrink sheet to match CalendarDrawer footprint
-  // (top:'50%' + paddingBottom 8) so the bottom whitespace stays consistent.
-  sheetCompact: {
-    top: '50%',
-    paddingBottom: 8,
-  },
-  handleArea: {
-    alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: TOKENS.ink30,
-  },
+  // De-chromed: the gorhom route sheet owns scrim/shape/grabber.
+  contentRoot: { flex: 1, backgroundColor: TOKENS.surface },
   sheetScroll: { flex: 1 },
   sheetContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.xl,
   },
 
   inputWrap: {
@@ -426,60 +374,60 @@ const styles = StyleSheet.create({
   inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: SPACING.sm,
     backgroundColor: TOKENS.ink04,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
   },
   input: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     letterSpacing: -0.2,
     padding: 0,
   },
   clearBtn: {
-    padding: 2,
+    padding: SPACING.xxs,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   resultsWrap: {
     flex: 1,
-    paddingTop: 4,
+    paddingTop: SPACING.xs,
   },
   placeholder: {
-    fontSize: 13,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     textAlign: 'center',
-    paddingVertical: 24,
+    paddingVertical: SPACING.xxl,
   },
   resultsCount: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.inkSub,
-    paddingHorizontal: 4,
-    paddingVertical: 8,
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: SPACING.sm,
   },
   noResults: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     textAlign: 'center',
-    paddingVertical: 20,
+    paddingVertical: SPACING.xl,
   },
   resultList: {
-    gap: 4,
+    gap: SPACING.xs,
   },
 
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingHorizontal: 8,
+    paddingHorizontal: SPACING.sm,
     paddingVertical: 10,
     borderRadius: 10,
   },
@@ -494,7 +442,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   rowTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.ink,
     letterSpacing: -0.2,
@@ -503,10 +451,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 2,
+    marginTop: SPACING.xxs,
   },
   rowCaptionText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     flexShrink: 1,

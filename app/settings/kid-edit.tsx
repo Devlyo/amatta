@@ -43,6 +43,8 @@ import {
 } from '../../src/ui/icons';
 import { AVATAR_IMAGE_BY_KEY } from '../../src/ui/assets';
 import { TOKENS } from '../../src/ui/palette';
+import { RADIUS } from '../../src/ui/radius';
+import { SPACING } from '../../src/ui/spacing';
 
 const NAME_MAX = 10; // app-settings-kids.jsx:231 maxLength={10}
 
@@ -332,8 +334,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    paddingTop: 4,
-    paddingBottom: 8,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.sm,
     backgroundColor: TOKENS.surfaceSoft,
   },
   topBarBack: {
@@ -343,7 +345,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   topBarTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.ink,
     letterSpacing: -0.4,
@@ -353,25 +355,25 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   topBarRightLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.primary,
     letterSpacing: -0.3,
   },
   topBarRightLabelDisabled: { color: TOKENS.ink30 },
 
-  scroll: { paddingHorizontal: 14, paddingBottom: 32 },
+  scroll: { paddingHorizontal: 14, paddingBottom: SPACING.xxxl },
 
   // --- Hero -----------------------------------------------------------
   heroWrap: {
     alignItems: 'center',
-    paddingTop: 4,
+    paddingTop: SPACING.xs,
     paddingBottom: 10,
   },
   heroRing: {
     width: 140,
     height: 140,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -382,8 +384,8 @@ const styles = StyleSheet.create({
     height: 108,
   },
   heroEyebrow: {
-    marginTop: 8,
-    fontSize: 11,
+    marginTop: SPACING.sm,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.mono,
     color: TOKENS.inkSub,
     letterSpacing: 0.4,
@@ -397,31 +399,31 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   sectionHeaderText: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
   },
   card: {
     backgroundColor: TOKENS.surface,
-    borderRadius: 16,
-    padding: 4,
-    marginBottom: 8,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xs,
+    marginBottom: SPACING.sm,
     overflow: 'hidden',
   },
   // Tight variant — no bottom margin. Used by the 아바타 section so the
   // grid stops flush with the trailing 삭제 card spacer above.
   cardTight: {
     backgroundColor: TOKENS.surface,
-    borderRadius: 16,
-    padding: 4,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xs,
     marginBottom: 0,
     overflow: 'hidden',
   },
 
   // --- Name input -----------------------------------------------------
   nameInput: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     letterSpacing: -0.3,
@@ -434,7 +436,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    padding: 4,
+    padding: SPACING.xs,
   },
   // 3-per-row (user override of the spec's 4-col grid — fits the 6
   // palette slots exactly in 2 rows of 3 without trailing empty cells).
@@ -466,7 +468,7 @@ const styles = StyleSheet.create({
     right: 6,
     width: 18,
     height: 18,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.ink,
     alignItems: 'center',
     justifyContent: 'center',
@@ -481,7 +483,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 10,
     paddingVertical: 7,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
   },
   destructiveText: { flex: 1, minWidth: 0 },
   destructiveTitle: {
@@ -492,7 +494,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   destructiveSub: {
-    marginTop: 2,
+    marginTop: SPACING.xxs,
     fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,

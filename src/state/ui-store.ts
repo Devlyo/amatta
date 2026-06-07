@@ -36,6 +36,11 @@ interface UiState {
   selectedChildId: number | null;
   setSelectedChildId: (id: number | null) => void;
 
+  // Return channel for the kid-switch route: the route writes the picked kid
+  // here, the host /child/[id] screen consumes it (router.setParams) + clears.
+  pendingKidId: number | null;
+  setPendingKidId: (id: number | null) => void;
+
   editSheetState: EditSheetState;
   openEditSheet: (
     mode: Exclude<EditSheetMode, 'closed'>,
@@ -69,6 +74,9 @@ export const useUiStore = create<UiState>()((set) => ({
 
   selectedChildId: null,
   setSelectedChildId: (id) => set({ selectedChildId: id }),
+
+  pendingKidId: null,
+  setPendingKidId: (id) => set({ pendingKidId: id }),
 
   editSheetState: { mode: 'closed' },
 

@@ -3,7 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import type { ScheduleType } from '../domain/types';
 
 /**
- * Inserts a fixed demo dataset (3 children + 8 schedules + 1 exception + per-child
+ * Inserts a fixed demo dataset (4 children + 10 schedules + 1 exception + per-child
  * notification settings) so the daily/weekly grids have something visible during
  * development. Idempotent: skips entirely if the children table is non-empty,
  * so a developer's own test data is never overwritten.
@@ -42,13 +42,20 @@ export async function seedDevData(db: SQLiteDatabase): Promise<void> {
     await insertSchedule(db, doyoon, '어린이집', 'school', MON_FRI, 540, 960, null);
     await insertSchedule(db, doyoon, '발레', 'activity', WED, 1020, 1080, 30);
 
+    // 4th child — inserted AFTER the others so the hardcoded schedule ids
+    // (3/6/8) used below for needs_pickup stay valid. 하준's pickup schedule
+    // id is captured directly rather than hardcoded.
+    const hajun = await insertChild(db, '하준', 5);
+    await insertSchedule(db, hajun, '학교', 'school', MON_FRI, 540, 960, null);
+    const hajunTkd = await insertSchedule(db, hajun, '태권도', 'academy', MWF, 1000, 1080, 30);
+
     // One cancellation to seed the exception path: 서연 피아노 on Thursday 2026-06-04.
     await db.runAsync(
       `INSERT INTO schedule_exceptions (schedule_id, date, kind) VALUES (?, ?, ?)`,
       [seoyeonPiano, '2026-06-04', 'cancel'],
     );
 
-    for (const childId of [minjun, seoyeon, doyoon]) {
+    for (const childId of [minjun, seoyeon, doyoon, hajun]) {
       await db.runAsync(
         `INSERT INTO notification_settings (child_id, default_minutes_before, sound, enabled)
          VALUES (?, ?, ?, ?)`,
@@ -56,10 +63,11 @@ export async function seedDevData(db: SQLiteDatabase): Promise<void> {
       );
     }
 
-    // v2: pickup flags. Schedule ids 3 (민준 수영), 6 (서연 미술학원), 8 (도윤 발레).
+    // v2: pickup flags. Schedule ids 3 (민준 수영), 6 (서연 미술학원), 8 (도윤 발레),
+    // + 하준 태권도 (captured id).
     await db.runAsync(
-      'UPDATE schedules SET needs_pickup = 1 WHERE id IN (?, ?, ?)',
-      [3, 6, 8],
+      'UPDATE schedules SET needs_pickup = 1 WHERE id IN (?, ?, ?, ?)',
+      [3, 6, 8, hajunTkd],
     );
 
     // v2: ChecklistItems — preparation items per pickup-marked schedule.
@@ -91,6 +99,14 @@ export async function seedDevData(db: SQLiteDatabase): Promise<void> {
       `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
       [8, '발레슈즈', 1],
     );
+    await db.runAsync(
+      `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
+      [hajunTkd, '도복', 0],
+    );
+    await db.runAsync(
+      `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
+      [hajunTkd, '띠', 1],
+    );
 
     // v2: Todos — mix of parent-level (child_id=NULL) + per-child.
     const NOW_MS = 1717286400000; // 2026-06-02 00:00 KST (deterministic for tests)
@@ -110,6 +126,10 @@ export async function seedDevData(db: SQLiteDatabase): Promise<void> {
     await db.runAsync(
       `INSERT INTO todos (child_id, title, due_at, notify_minutes_before, created_at) VALUES (?, ?, ?, ?, ?)`,
       [seoyeon, '서연 미술 준비물 (붓)', NOW_MS + 4 * DAY, 30, NOW_MS],
+    );
+    await db.runAsync(
+      `INSERT INTO todos (child_id, title, due_at, notify_minutes_before, created_at) VALUES (?, ?, ?, ?, ?)`,
+      [hajun, '하준 태권도 승급 심사비', NOW_MS + 4 * DAY, 30, NOW_MS],
     );
 
     // schedule_pickup_log starts empty; user marks completions via UI.

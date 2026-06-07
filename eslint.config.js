@@ -26,4 +26,24 @@ module.exports = defineConfig([
       'metro.config.js',
     ],
   },
+  // Ban raw hex color literals — use TOKENS.<name> from src/ui/palette.ts instead.
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Literal[value=/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/]',
+          message: 'Raw hex color — use a TOKENS.<name> from src/ui/palette.ts',
+        },
+      ],
+    },
+  },
+  // Disable the hex ban for the palette source-of-truth and the design gallery.
+  {
+    files: ['src/ui/palette.ts', 'app/dev-gallery.tsx'],
+    rules: {
+      'no-restricted-syntax': 'off',
+    },
+  },
 ]);

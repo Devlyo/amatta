@@ -22,6 +22,8 @@ import { useTodosStore } from '../../src/state/todos-store';
 import { useChecklistStore } from '../../src/state/checklist-store';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { TOKENS } from '../../src/ui/palette';
+import { RADIUS } from '../../src/ui/radius';
+import { SPACING } from '../../src/ui/spacing';
 import { exportDb } from '../../src/utils/db-export';
 
 import { DetailTopBar } from './kids';
@@ -208,7 +210,7 @@ function Divider(): React.ReactElement {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKENS.surfaceSoft },
 
-  scrollContent: { paddingHorizontal: 14, paddingBottom: 32 },
+  scrollContent: { paddingHorizontal: 14, paddingBottom: SPACING.xxxl },
 
   hero: {
     flexDirection: 'row',
@@ -217,9 +219,9 @@ const styles = StyleSheet.create({
     backgroundColor: TOKENS.surface,
     borderRadius: 18,
     paddingHorizontal: 18,
-    paddingVertical: 20,
-    marginTop: 4,
-    marginBottom: 8,
+    paddingVertical: SPACING.xl,
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.sm,
   },
   heroText: { flex: 1, minWidth: 0 },
   heroFilename: {
@@ -229,8 +231,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   heroMeta: {
-    marginTop: 4,
-    fontSize: 11,
+    marginTop: SPACING.xs,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     letterSpacing: -0.1,
@@ -239,7 +241,7 @@ const styles = StyleSheet.create({
   fileIcon: {
     width: 48,
     height: 56,
-    borderRadius: 6,
+    borderRadius: RADIUS.xs,
     borderWidth: 1.5,
     borderColor: TOKENS.primary,
     backgroundColor: TOKENS.surface,
@@ -261,7 +263,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fileIconLabelText: {
-    fontSize: 9,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.mono,
     color: TOKENS.surface,
     letterSpacing: 0.6,
@@ -273,7 +275,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   sectionHeaderText: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
@@ -281,9 +283,9 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: TOKENS.surface,
-    borderRadius: 16,
-    padding: 4,
-    marginBottom: 8,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xs,
+    marginBottom: SPACING.sm,
     overflow: 'hidden',
   },
 
@@ -299,7 +301,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 10,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
   },
   rowDisabled: { opacity: 0.55 },
 
@@ -313,7 +315,7 @@ const styles = StyleSheet.create({
   },
   rowLabelDisabled: { color: TOKENS.ink50 },
   rowSub: {
-    marginTop: 2,
+    marginTop: SPACING.xxs,
     fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
@@ -333,7 +335,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   countUnit: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
   },
@@ -349,32 +351,32 @@ const styles = StyleSheet.create({
   },
 
   primaryCta: {
-    marginTop: 4,
-    marginBottom: 16,
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.lg,
     paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.lg,
     backgroundColor: TOKENS.primary,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryCtaPressed: { backgroundColor: TOKENS.primaryDeep },
   primaryCtaDisabled: { backgroundColor: TOKENS.ink12 },
   primaryCtaLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.surface,
     letterSpacing: -0.3,
   },
 
   badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.sm,
     backgroundColor: TOKENS.ink04,
   },
   badgeLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     letterSpacing: -0.1,

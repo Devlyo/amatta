@@ -1,27 +1,58 @@
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
-/**
- * Phase 4 onwards: edit happens in a globally-mounted `ScheduleEditSheet`
- * driven by `useUiStore.openEditSheet`, not via route navigation. This
- * route is retained so deep links don't 404, but it immediately bounces
- * back to the previous screen.
- */
-export default function ScheduleEditScreen(): React.ReactElement {
+import { useUiStore, type EditSheetMode } from '../../src/state/ui-store';
+import { TOKENS } from '../../src/ui/palette';
+import { SPACING } from '../../src/ui/spacing';
+import type { ISODate } from '../../src/domain/types';
+import { ScheduleEditContent } from '../../src/ui/sheets/ScheduleEditSheet';
+import { useModalRouteShell } from '../../src/ui/navigation/useModalRouteShell';
+
+// New/Edit schedule — native formSheet route (no gorhom). The shell drives the
+// ui-store editSheet open/close from route params; ScheduleEditContent reads the
+// store. iOS handles the keyboard for the form's TextInputs via the ScrollView's
+// automaticallyAdjustKeyboardInsets. The in-place editAll→editOccurrence switch
+// mutates the store directly, so the open effect runs once on mount.
+export default function ScheduleEditRoute(): React.ReactElement {
   const router = useRouter();
-  useEffect(() => {
-    router.back();
-  }, [router]);
+  const params = useLocalSearchParams<{
+    mode?: string;
+    scheduleId?: string;
+    occurrenceDate?: string;
+    childId?: string;
+    date?: string;
+  }>();
+  const openEditSheet = useUiStore((s) => s.openEditSheet);
+  const closeEditSheet = useUiStore((s) => s.closeEditSheet);
+
+  useModalRouteShell(
+    () => {
+      const mode = (params.mode ?? 'create') as Exclude<EditSheetMode, 'closed'>;
+      openEditSheet(mode, {
+        scheduleId:
+          params.scheduleId !== undefined ? Number(params.scheduleId) : undefined,
+        occurrenceDate: params.occurrenceDate as ISODate | undefined,
+        preFill: {
+          childId: params.childId !== undefined ? Number(params.childId) : undefined,
+          date: params.date as ISODate | undefined,
+        },
+      });
+    },
+    closeEditSheet,
+    [params.mode, params.scheduleId, params.occurrenceDate, params.childId, params.date],
+  );
+
+  const handleClose = useCallback(() => router.back(), [router]);
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container} />
-    </SafeAreaView>
+    <View style={styles.root}>
+      <ScheduleEditContent onClose={handleClose} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  container: { flex: 1 },
+  // Top padding so the header isn't flush against the modal's top edge.
+  root: { flex: 1, paddingTop: SPACING.xl, backgroundColor: TOKENS.surfaceWarm },
 });

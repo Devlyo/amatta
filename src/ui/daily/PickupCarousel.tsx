@@ -20,6 +20,9 @@ import {
 } from 'react-native';
 
 import type { Child, ISODate, Occurrence } from '../../domain/types';
+import { TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 import { PickupCard } from './PickupCard';
 import { computePickupCards } from './pickup-data';
 
@@ -104,11 +107,11 @@ const styles = StyleSheet.create({
   outer: {
     paddingHorizontal: 14,
     paddingTop: 6,
-    paddingBottom: 8,
+    paddingBottom: SPACING.sm,
   },
   viewport: {
     overflow: 'hidden',
-    borderRadius: 18,
+    borderRadius: RADIUS.xl,
     position: 'relative',
   },
   slide: {
@@ -126,8 +129,8 @@ const styles = StyleSheet.create({
   },
   dot: {
     height: 3,
-    borderRadius: 99,
-    backgroundColor: '#fff',
+    borderRadius: RADIUS.full,
+    backgroundColor: TOKENS.surface,
   },
   dotActive: {
     width: 10,

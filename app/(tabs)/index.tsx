@@ -38,7 +38,7 @@ import { TabStrip, type DailyTabKey } from '../../src/ui/daily/TabStrip';
 import { TodoTabContent } from '../../src/ui/daily/TodoTabContent';
 import { TopBar } from '../../src/ui/daily/TopBar';
 import { TOKENS } from '../../src/ui/palette';
-import { formatKoreanShortDate, isToday, shiftIsoDate } from '../../src/ui/utils/date';
+import { formatKoreanShortDate, isDueOnDate, isToday, shiftIsoDate } from '../../src/ui/utils/date';
 
 const SWIPE_THRESHOLD = 60;
 
@@ -53,8 +53,6 @@ export default function DailyViewScreen(): React.ReactElement {
   const exceptions = useSchedulesStore((s) => s.exceptions);
   const currentDate = useUiStore((s) => s.currentDate);
   const setCurrentDate = useUiStore((s) => s.setCurrentDate);
-  const openEditSheet = useUiStore((s) => s.openEditSheet);
-  const openEventDetail = useUiStore((s) => s.openEventDetail);
   const router = useRouter();
 
   // Horizontal swipe ±1 day on the schedule body. activeOffsetX delays
@@ -147,8 +145,12 @@ export default function DailyViewScreen(): React.ReactElement {
     [completionMap],
   );
 
-  const undoneTodos = useTodosStore(
-    (s) => s.todos.filter((t) => !t.isDone).length,
+  // Todos are date-bound: only count the ones due on the viewed day so the
+  // tab badge matches the (date-filtered) list inside the 준비물 & 할일 tab.
+  const todos = useTodosStore((s) => s.todos);
+  const undoneTodos = useMemo(
+    () => todos.filter((t) => !t.isDone && isDueOnDate(t.dueAt, currentDate)).length,
+    [todos, currentDate],
   );
   const undoneChecklist = useChecklistStore((s) => {
     let n = 0;
@@ -163,15 +165,14 @@ export default function DailyViewScreen(): React.ReactElement {
     // Spec: tapping a daily block opens the read-only EventDetailDrawer
     // (app-event-detail.jsx). The drawer's top-right '수정' routes into
     // the editAll sheet from there.
-    openEventDetail({
-      scheduleId: occ.scheduleId,
-      occurrenceDate: currentDate,
+    router.push({
+      pathname: '/event/detail',
+      params: { scheduleId: String(occ.scheduleId), occurrenceDate: currentDate },
     });
   };
 
   const handlePressAdd = (): void => {
-    // TODO(R3-drawers): replace with NewEventDrawer flow.
-    openEditSheet('create', { preFill: { date: currentDate } });
+    router.push({ pathname: '/schedule/edit', params: { mode: 'create', date: currentDate } });
   };
 
   const handlePressGear = (): void => {
@@ -179,11 +180,11 @@ export default function DailyViewScreen(): React.ReactElement {
   };
 
   const handlePressDate = (): void => {
-    useUiStore.getState().openCalendar();
+    router.push('/calendar');
   };
 
   const handlePressSearch = (): void => {
-    useUiStore.getState().openSearch();
+    router.push('/search');
   };
 
   const handlePressWeek = (): void => {

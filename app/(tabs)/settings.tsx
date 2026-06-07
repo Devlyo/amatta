@@ -2,7 +2,7 @@
 // Rows link to detail sub-screens; notifications row is a placeholder until
 // batch E lands. Children CRUD now lives on /settings/kids.
 
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -13,25 +13,19 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
-import { getDb } from '../../src/db/client';
-import { wipeAllData } from '../../src/db/wipe';
 import { MAX_CHILDREN } from '../../src/domain/constants';
 import { useChildrenStore } from '../../src/state/children-store';
-import { useChecklistStore } from '../../src/state/checklist-store';
 import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
-import { usePickupLogStore } from '../../src/state/pickup-log-store';
-import { useSchedulesStore } from '../../src/state/schedules-store';
-import { useTodosStore } from '../../src/state/todos-store';
 import { KidAvatar } from '../../src/ui/common/KidAvatar';
 import type { Child } from '../../src/domain/types';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { IconChevronLeft, IconChevronRight } from '../../src/ui/icons';
 import { TOKENS } from '../../src/ui/palette';
-import { ResetConfirmSheet } from '../../src/ui/settings/ResetConfirmSheet';
+import { RADIUS } from '../../src/ui/radius';
+import { SPACING } from '../../src/ui/spacing';
 import { SwitchPill } from '../../src/ui/settings/SwitchPill';
 
 const APP_VERSION = '1.0.0';
-const APP_BUILD = '(build 1)';
 
 // Spec § 알림 — three "기본 알림 시점" options.
 const NOTIFY_LEAD_OPTIONS = [10, 30, 60] as const;
@@ -54,26 +48,6 @@ export default function SettingsScreen(): React.ReactElement {
   const leadTime = useNotifSettingsStore((s) => s.defaultMinutesBefore);
   const setLeadTime = useNotifSettingsStore((s) => s.setDefaultMinutesBefore);
 
-  const [resetVisible, setResetVisible] = useState<boolean>(false);
-
-  const handleConfirmReset = useCallback(async (): Promise<void> => {
-    const db = await getDb();
-    await wipeAllData(db);
-    // Reload every zustand slice so the empty state is reflected
-    // immediately. children-store re-emitting [] triggers the redirect
-    // to /onboarding/welcome from (tabs)/index.
-    await Promise.all([
-      useChildrenStore.getState().load(db),
-      useSchedulesStore.getState().load(db),
-      useChecklistStore.getState().load(db),
-      useTodosStore.getState().load(db),
-      usePickupLogStore.getState().load(db),
-    ]);
-    setResetVisible(false);
-    // Bounce out to the daily tab; the empty-state redirect picks up
-    // the wipe and routes to /onboarding/welcome.
-    router.replace('/');
-  }, [router]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -153,7 +127,7 @@ export default function SettingsScreen(): React.ReactElement {
           <DestructiveRow
             label="모든 데이터 초기화"
             sub="자녀·일정·할일·설정이 모두 삭제돼요"
-            onPress={() => setResetVisible(true)}
+            onPress={() => router.push('/settings/reset-confirm')}
             accessibilityLabel="모든 데이터 초기화"
             testID="settings-row-reset"
           />
@@ -165,7 +139,6 @@ export default function SettingsScreen(): React.ReactElement {
           <InfoRow
             label="앱 버전"
             value={APP_VERSION}
-            valueSub={APP_BUILD}
           />
           <Divider />
           <NavRow
@@ -176,14 +149,24 @@ export default function SettingsScreen(): React.ReactElement {
           />
         </Card>
 
+        {/* Dev-only — design-system gallery. Stripped from production builds. */}
+        {__DEV__ ? (
+          <>
+            <SectionHeader label="개발자" />
+            <Card>
+              <NavRow
+                label="🎨 디자인 시스템 갤러리"
+                onPress={() => router.push('/dev-gallery')}
+                accessibilityLabel="디자인 시스템 갤러리"
+                testID="settings-row-ds-gallery"
+              />
+            </Card>
+          </>
+        ) : null}
+
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      <ResetConfirmSheet
-        visible={resetVisible}
-        onCancel={() => setResetVisible(false)}
-        onConfirm={() => void handleConfirmReset()}
-      />
     </SafeAreaView>
   );
 }
@@ -454,8 +437,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    paddingTop: 4,
-    paddingBottom: 8,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.sm,
     backgroundColor: TOKENS.surfaceSoft,
   },
   topBarSide: { flex: 1 },
@@ -466,13 +449,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   topBarTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.ink,
     letterSpacing: -0.4,
   },
 
-  scrollContent: { paddingHorizontal: 14, paddingBottom: 32 },
+  scrollContent: { paddingHorizontal: 14, paddingBottom: SPACING.xxxl },
 
   sectionHeader: {
     paddingHorizontal: 14,
@@ -480,7 +463,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   sectionHeaderText: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
@@ -488,9 +471,9 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: TOKENS.surface,
-    borderRadius: 16,
-    padding: 4,
-    marginBottom: 8,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xs,
+    marginBottom: SPACING.sm,
     overflow: 'hidden',
   },
 
@@ -506,7 +489,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 10,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
   },
   rowPressed: { backgroundColor: TOKENS.ink04 },
   rowDisabled: { opacity: 0.6 },
@@ -520,7 +503,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   rowSub: {
-    marginTop: 2,
+    marginTop: SPACING.xxs,
     fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
@@ -532,19 +515,19 @@ const styles = StyleSheet.create({
   // Row card paddings ('8px 10px 10px') so the label sits hugging the
   // top-left and the track has 10px before the bottom edge.
   segmentedRow: {
-    paddingTop: 8,
+    paddingTop: SPACING.sm,
     paddingHorizontal: 10,
     paddingBottom: 10,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
   },
   // Track: ink04 pill below the label, 3px inner padding, 2px between
   // segments, full-row width.
   segmentedTrack: {
     flexDirection: 'row',
     backgroundColor: TOKENS.ink04,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     padding: 3,
-    gap: 2,
+    gap: SPACING.xxs,
     marginTop: 10,
     width: '100%',
   },
@@ -557,7 +540,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 7,
     paddingHorizontal: 10,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: 'transparent',
@@ -568,14 +551,14 @@ const styles = StyleSheet.create({
   segmentActive: {
     backgroundColor: TOKENS.surface,
     borderColor: TOKENS.hair,
-    shadowColor: '#000',
+    shadowColor: TOKENS.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 2,
     elevation: 1,
   },
   segmentLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
@@ -602,13 +585,13 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   infoValue: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.mono,
     color: TOKENS.ink,
     letterSpacing: -0.1,
   },
   infoValueSub: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.mono,
     color: TOKENS.inkSub,
     letterSpacing: 0.2,
@@ -635,7 +618,7 @@ const styles = StyleSheet.create({
   },
   kidStackDotOverlap: { marginLeft: -7 },
   kidStackCount: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     letterSpacing: -0.2,

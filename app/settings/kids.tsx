@@ -30,6 +30,8 @@ import {
   IconPlus,
 } from '../../src/ui/icons';
 import { getKidPalette, TOKENS } from '../../src/ui/palette';
+import { RADIUS } from '../../src/ui/radius';
+import { SPACING } from '../../src/ui/spacing';
 
 export default function KidsScreen(): React.ReactElement {
   const router = useRouter();
@@ -245,8 +247,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    paddingTop: 4,
-    paddingBottom: 8,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.sm,
     backgroundColor: TOKENS.surfaceSoft,
   },
   topBarBack: {
@@ -256,7 +258,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   topBarTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.ink,
     letterSpacing: -0.4,
@@ -266,14 +268,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   topBarRightLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.primary,
     letterSpacing: -0.3,
   },
   topBarRightLabelDisabled: { color: TOKENS.ink30 },
 
-  scrollContent: { paddingHorizontal: 14, paddingBottom: 32 },
+  scrollContent: { paddingHorizontal: 14, paddingBottom: SPACING.xxxl },
 
   sectionHeader: {
     paddingHorizontal: 14,
@@ -281,7 +283,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   sectionHeaderText: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
@@ -289,9 +291,9 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: TOKENS.surface,
-    borderRadius: 16,
-    padding: 4,
-    marginBottom: 8,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.xs,
+    marginBottom: SPACING.sm,
     overflow: 'hidden',
   },
 
@@ -307,11 +309,11 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 10,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
   },
   rowPressed: { backgroundColor: TOKENS.ink04 },
 
-  empty: { fontSize: 14, color: TOKENS.inkSub, paddingVertical: 12 },
+  empty: { fontSize: 14, color: TOKENS.inkSub, paddingVertical: SPACING.md },
 
   rowText: { flex: 1, minWidth: 0 },
   rowLabel: {
@@ -323,7 +325,7 @@ const styles = StyleSheet.create({
   },
   rowLabelDisabled: { color: TOKENS.ink50 },
   rowSub: {
-    marginTop: 2,
+    marginTop: SPACING.xxs,
     fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
@@ -347,7 +349,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 10,
     paddingVertical: 10,
-    marginTop: 8,
+    marginTop: SPACING.sm,
     backgroundColor: TOKENS.surface,
     borderRadius: 18,
   },
@@ -358,7 +360,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 10,
     paddingVertical: 10,
-    marginTop: 8,
+    marginTop: SPACING.sm,
     backgroundColor: TOKENS.surface,
     borderRadius: 18,
     opacity: 0.6,
@@ -385,11 +387,11 @@ const styles = StyleSheet.create({
   },
 
   capMessage: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.danger,
-    textAlign: 'center',
-    marginTop: 8,
+    textAlign: 'left',
+    marginTop: SPACING.sm,
     letterSpacing: -0.2,
   },
 

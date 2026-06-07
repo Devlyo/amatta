@@ -35,6 +35,8 @@ import type { ISODate, Occurrence, ScheduleType } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
 import { KIND_ICON } from '../icons';
 import { getKidPalette, TOKENS, type KidPalette } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 import { fmt12hrShort, todayIso } from '../utils/date';
 
 const SLOT_H = 32;
@@ -178,7 +180,7 @@ export function WeeklyGrid({
               i === 0 || isHoliday
                 ? TOKENS.danger
                 : i === 6
-                  ? '#3F66D8'
+                  ? TOKENS.saturday
                   : TOKENS.inkSub;
             // Sunday OR Korean holiday → date number in danger.
             // Today's filled bubble takes precedence (white text on
@@ -350,7 +352,7 @@ function fmt12hrShortNoAmpm(minutes: number): string {
 // Lime green from docs/design/amatta-v1/app-weekly.jsx:306 — matches the
 // existing NOW_YELLOW used in src/ui/daily/ScheduleGrid.tsx. Not yet a
 // TOKENS entry; inlined here to stay consistent with the daily grid.
-const NOW_YELLOW = '#E0E345';
+const NOW_YELLOW = TOKENS.nowLine;
 
 // ---------------------------------------------------------------------------
 // Weekly block — positions by dayIdx (not childIdx) using minutes-of-day so
@@ -424,26 +426,26 @@ const blockStyles = StyleSheet.create({
   block: {
     position: 'absolute',
     borderWidth: 1,
-    borderRadius: 6,
+    borderRadius: RADIUS.xs,
     paddingHorizontal: 5,
-    paddingVertical: 4,
+    paddingVertical: SPACING.xs,
     overflow: 'hidden',
     gap: 1,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: SPACING.xxs,
   },
   iconWrap: { opacity: 0.85 },
   title: {
     flex: 1,
     minWidth: 0,
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     letterSpacing: -0.2,
-    lineHeight: 13,
+    lineHeight: 12,
   },
   time: {
     fontSize: 9,
@@ -458,15 +460,15 @@ const styles = StyleSheet.create({
 
   weekStrip: {
     flexDirection: 'row',
-    paddingTop: 4,
-    paddingBottom: 8,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.sm,
     borderBottomColor: TOKENS.hair,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   weekStripRow: { flexDirection: 'row' },
-  weekStripCell: { alignItems: 'center', gap: 4 },
+  weekStripCell: { alignItems: 'center', gap: SPACING.xs },
   weekStripDow: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: FONT_FAMILIES.pretendardMedium,
   },
   weekStripDayBubble: {
@@ -499,17 +501,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   hourNum: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     lineHeight: 12,
   },
   hourAp: {
-    fontSize: 8,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.mono,
     color: TOKENS.ink30,
     letterSpacing: 0.4,
-    lineHeight: 9,
+    lineHeight: 14,
   },
 
   surface: { position: 'relative', height: GRID_H },
@@ -550,9 +552,9 @@ const styles = StyleSheet.create({
   },
   nowBadge: {
     backgroundColor: NOW_YELLOW,
-    paddingVertical: 2,
+    paddingVertical: SPACING.xxs,
     paddingHorizontal: 7,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     shadowColor: NOW_YELLOW,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.55,
@@ -561,7 +563,7 @@ const styles = StyleSheet.create({
   nowBadgeLabel: {
     fontSize: 10.5,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: '#1d1d1b',
+    color: TOKENS.ink,
     letterSpacing: -0.1,
   },
   nowLine: {

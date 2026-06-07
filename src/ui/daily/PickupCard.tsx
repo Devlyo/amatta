@@ -15,10 +15,12 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { FONT_FAMILIES } from '../fonts';
 import { TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 import { CartoonCar } from './CartoonCar';
 import type { PickupCardData } from './pickup-data';
 
-const CARD_BGS = [TOKENS.primary, '#D4B4FA'] as const;
+const CARD_BGS = [TOKENS.primary, TOKENS.pickupLavender] as const;
 
 interface Props {
   data: PickupCardData;
@@ -29,9 +31,9 @@ export function PickupCard({ data, index }: Props): React.ReactElement {
   const bg = CARD_BGS[index % CARD_BGS.length] as string;
   const onBg = pickOnBg(bg);
   const onBgSub =
-    onBg === '#fff' ? 'rgba(255,255,255,0.85)' : 'rgba(29,29,27,0.6)';
+    onBg === TOKENS.surface ? 'rgba(255,255,255,0.85)' : 'rgba(29,29,27,0.6)';
   const roadLineColor =
-    onBg === '#fff' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.10)';
+    onBg === TOKENS.surface ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.10)';
 
   const pulseScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(1)).current;
@@ -126,20 +128,20 @@ function pickOnBg(hex: string): string {
   const g = parseInt(h.slice(2, 4), 16);
   const b = parseInt(h.slice(4, 6), 16);
   const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return lum > 0.65 ? '#1d1d1b' : '#fff';
+  return lum > 0.65 ? TOKENS.ink : TOKENS.surface;
 }
 
 const styles = StyleSheet.create({
   card: {
     position: 'relative',
     overflow: 'hidden',
-    borderRadius: 14,
+    borderRadius: RADIUS.lg,
     paddingTop: 6,
     paddingHorizontal: 14,
     paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: SPACING.sm,
     minHeight: 44,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
@@ -165,17 +167,17 @@ const styles = StyleSheet.create({
   eyebrowDot: {
     width: 6,
     height: 6,
-    borderRadius: 99,
+    borderRadius: RADIUS.full,
   },
   eyebrow: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.mono,
     letterSpacing: 0.8,
   },
   title: {
-    marginTop: 2,
+    marginTop: SPACING.xxs,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    fontSize: 15,
+    fontSize: 16,
     letterSpacing: -0.4,
     lineHeight: 17,
   },

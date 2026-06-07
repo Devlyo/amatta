@@ -42,6 +42,8 @@ import { AVATAR_IMAGE_BY_KEY } from '../../src/ui/assets';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { IconCheck, IconChevronLeft } from '../../src/ui/icons';
 import { TOKENS } from '../../src/ui/palette';
+import { RADIUS } from '../../src/ui/radius';
+import { SPACING } from '../../src/ui/spacing';
 
 const NAME_MAX = 10; // spec: maxLength 10
 const STEP_LABELS = ['첫째', '둘째', '셋째', '넷째'] as const;
@@ -309,7 +311,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 14,
-    paddingTop: 4,
+    paddingTop: SPACING.xs,
     paddingBottom: 6,
   },
   topBarBack: {
@@ -319,18 +321,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stepIndicator: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.mono,
     color: TOKENS.inkSub,
     letterSpacing: 0,
   },
   stepDivider: { color: TOKENS.ink30 },
 
-  scroll: { paddingHorizontal: 22, paddingBottom: 24 },
+  scroll: { paddingHorizontal: 22, paddingBottom: SPACING.xxl },
 
   // ─── Title block ────────────────────────────────────────
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontFamily: FONT_FAMILIES.pretendardBold,
     color: TOKENS.ink,
     letterSpacing: -0.5,
@@ -339,7 +341,7 @@ const styles = StyleSheet.create({
   },
   sub: {
     marginTop: 6,
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
@@ -355,26 +357,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chipsLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.inkSub,
     letterSpacing: 0.2,
-    marginRight: 2,
+    marginRight: SPACING.xxs,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingLeft: 4,
+    paddingLeft: SPACING.xs,
     paddingRight: 10,
-    paddingVertical: 4,
-    borderRadius: 9999,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.ink04,
   },
   chipAvatarWrap: {
     width: 22,
     height: 22,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -391,13 +393,13 @@ const styles = StyleSheet.create({
   // ─── Hero ──────────────────────────────────────────────
   heroWrap: {
     alignItems: 'center',
-    paddingTop: 24,
-    paddingBottom: 8,
+    paddingTop: SPACING.xxl,
+    paddingBottom: SPACING.sm,
   },
   heroRing: {
     width: 132,
     height: 132,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.ink04,
     alignItems: 'center',
     justifyContent: 'center',
@@ -406,10 +408,10 @@ const styles = StyleSheet.create({
 
   // ─── Name input ────────────────────────────────────────
   fieldLabel: {
-    paddingTop: 20,
-    paddingHorizontal: 2,
-    paddingBottom: 8,
-    fontSize: 13,
+    paddingTop: SPACING.xl,
+    paddingHorizontal: SPACING.xxs,
+    paddingBottom: SPACING.sm,
+    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
@@ -419,8 +421,8 @@ const styles = StyleSheet.create({
     backgroundColor: TOKENS.ink04,
     borderRadius: 14,
     paddingVertical: 14,
-    paddingHorizontal: 16,
-    fontSize: 15,
+    paddingHorizontal: SPACING.lg,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.ink,
     letterSpacing: -0.3,
@@ -437,7 +439,7 @@ const styles = StyleSheet.create({
   avatarSwatch: {
     flexBasis: '31%',
     flexGrow: 1,
-    paddingVertical: 12,
+    paddingVertical: SPACING.md,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -456,7 +458,7 @@ const styles = StyleSheet.create({
     right: 4,
     width: 16,
     height: 16,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.ink,
     alignItems: 'center',
     justifyContent: 'center',
@@ -464,16 +466,16 @@ const styles = StyleSheet.create({
 
   // ─── Bottom CTAs ────────────────────────────────────────
   ctaStack: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
     paddingBottom: 22,
-    gap: 8,
+    gap: SPACING.sm,
   },
   primaryCta: {
     width: '100%',
     paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 9999,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.ink,
     alignItems: 'center',
     justifyContent: 'center',
@@ -481,7 +483,7 @@ const styles = StyleSheet.create({
   primaryCtaPressed: { opacity: 0.85 },
   primaryCtaDisabled: { backgroundColor: 'rgba(29,29,27,0.18)' },
   primaryCtaLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     color: TOKENS.surface,
     letterSpacing: -0.3,
@@ -489,15 +491,15 @@ const styles = StyleSheet.create({
   ghostCta: {
     width: '100%',
     paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 9999,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: RADIUS.full,
     backgroundColor: TOKENS.ink04,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ghostCtaPressed: { opacity: 0.85 },
   ghostCtaLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
     color: TOKENS.ink,
     letterSpacing: -0.3,

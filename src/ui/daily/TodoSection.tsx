@@ -8,6 +8,9 @@ import type { ISODate, Todo } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
 import { IconCheck, IconPlus, IconTrash } from '../icons';
 import { TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
+import { isDueOnDate } from '../utils/date';
 
 // Build a local-time epoch-ms anchor for the given calendar date at 12:00,
 // so the resulting `dueAt` falls cleanly inside that day regardless of the
@@ -35,12 +38,16 @@ function TodoSectionImpl(): React.ReactElement {
   const todos = useTodosStore((s) => s.todos);
   const currentDate = useUiStore((s) => s.currentDate);
 
+  // Todos are date-bound — only show the ones due on the day the daily view
+  // is anchored to. A todo added on June 5 must not appear on June 6.
   const sorted = useMemo<Todo[]>(() => {
-    return [...todos].sort((a, b) => {
-      if (a.dueAt !== b.dueAt) return a.dueAt - b.dueAt;
-      return a.id - b.id;
-    });
-  }, [todos]);
+    return todos
+      .filter((t) => isDueOnDate(t.dueAt, currentDate))
+      .sort((a, b) => {
+        if (a.dueAt !== b.dueAt) return a.dueAt - b.dueAt;
+        return a.id - b.id;
+      });
+  }, [todos, currentDate]);
 
   const total = sorted.length;
   const done = sorted.filter((t) => t.isDone).length;
@@ -116,7 +123,7 @@ function TodoSectionImpl(): React.ReactElement {
                   style={styles.swipeDeleteAction}
                   testID={`todo-delete-${todo.id}`}
                 >
-                  <IconTrash size={18} color="#fff" />
+                  <IconTrash size={18} color={TOKENS.surface} />
                 </Pressable>
               )}
               rightThreshold={40}
@@ -138,7 +145,7 @@ function TodoSectionImpl(): React.ReactElement {
                       : styles.checkboxIdle,
                   ]}
                 >
-                  {isDone ? <IconCheck size={12} color="#fff" /> : null}
+                  {isDone ? <IconCheck size={12} color={TOKENS.surface} /> : null}
                 </View>
                 <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null]}>
                   {todo.title}
@@ -167,7 +174,7 @@ function TodoSectionImpl(): React.ReactElement {
               onBlur={() => {
                 void commitDraft();
               }}
-              placeholder="할일 입력 후 Enter…"
+              placeholder="할일"
               placeholderTextColor={TOKENS.inkSub}
               returnKeyType="done"
               style={styles.addInput}
@@ -195,10 +202,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 8,
+    gap: SPACING.sm,
     paddingTop: 14,
-    paddingHorizontal: 4,
-    paddingBottom: 8,
+    paddingHorizontal: SPACING.xs,
+    paddingBottom: SPACING.sm,
   },
   headerLabel: {
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
@@ -209,15 +216,15 @@ const styles = StyleSheet.create({
   },
   headerCount: {
     fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '400',
     color: TOKENS.inkSub,
   },
   card: {
     backgroundColor: TOKENS.surface,
-    borderRadius: 18,
+    borderRadius: RADIUS.xl,
     padding: 6,
-    marginBottom: 16,
+    marginBottom: SPACING.lg,
   },
   itemRow: {
     flexDirection: 'row',
@@ -225,7 +232,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 7,
     paddingHorizontal: 10,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
   },
   itemRowDone: {
     opacity: 0.5,
@@ -233,7 +240,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 99,
+    borderRadius: RADIUS.full,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -245,7 +252,7 @@ const styles = StyleSheet.create({
   itemLabel: {
     flex: 1,
     fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: '400',
     color: TOKENS.ink,
     letterSpacing: -0.2,
@@ -259,8 +266,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 18,
     marginVertical: 0,
-    borderRadius: 12,
-    marginLeft: 4,
+    borderRadius: RADIUS.md,
+    marginLeft: SPACING.xs,
   },
   addRow: {
     flexDirection: 'row',
@@ -268,8 +275,8 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 7,
     paddingHorizontal: 10,
-    borderRadius: 12,
-    marginTop: 2,
+    borderRadius: RADIUS.md,
+    marginTop: SPACING.xxs,
   },
   addRowDivider: {
     borderTopWidth: 1,
@@ -279,7 +286,7 @@ const styles = StyleSheet.create({
   addCheckbox: {
     width: 22,
     height: 22,
-    borderRadius: 99,
+    borderRadius: RADIUS.full,
     borderWidth: 1.5,
     borderStyle: 'dashed',
     borderColor: TOKENS.ink30,
@@ -289,16 +296,16 @@ const styles = StyleSheet.create({
   addLabel: {
     flex: 1,
     fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: '400',
     color: TOKENS.inkSub,
     letterSpacing: -0.2,
   },
   addInput: {
     flex: 1,
-    fontFamily: FONT_FAMILIES.pretendardBold,
-    fontSize: 13,
-    fontWeight: '700',
+    fontFamily: FONT_FAMILIES.pretendard,
+    fontSize: 16,
+    fontWeight: '400',
     color: TOKENS.ink,
     letterSpacing: -0.2,
     paddingVertical: 0,

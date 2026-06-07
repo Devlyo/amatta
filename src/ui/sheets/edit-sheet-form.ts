@@ -16,7 +16,7 @@ import type {
 export interface EditFormState {
   childId: number | null;
   title: string;
-  type: ScheduleType;
+  type: ScheduleType | null; // null = nothing selected yet (no default)
   daysOfWeek: DaysOfWeekMask;
   startMinutes: Minutes;
   endMinutes: Minutes;
@@ -63,7 +63,7 @@ export function defaultFormState(childId: number | null, date: ISODate | null): 
   return {
     childId,
     title: '',
-    type: 'academy',
+    type: null, // 종류는 기본 선택 없음 — 사용자가 직접 골라야 저장 가능
     daysOfWeek: 0,
     startMinutes: 15 * 60, // 15:00
     endMinutes: 16 * 60, // 16:00
@@ -144,6 +144,9 @@ export function validate(
 
   if (options.requireChildId && (form.childId === null || !Number.isFinite(form.childId))) {
     errors.childId = '자녀를 선택하세요.';
+  }
+  if (form.type === null) {
+    errors.type = '종류를 선택하세요.';
   }
   const title = form.title.trim();
   if (title.length === 0) {

@@ -12,6 +12,9 @@
 
 import { StyleSheet, View } from 'react-native';
 
+import { TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+
 interface Props {
   onBg: string; // '#1d1d1b' or '#fff' — dark text on the card → dark car parts
 }
@@ -24,9 +27,9 @@ export function CartoonCar({ onBg }: Props): React.ReactElement {
   // card is light (ink text), draw the car in ink.
   const bodyColor = onBg;
   const windowColor =
-    onBg === '#fff' ? 'rgba(255,255,255,0.7)' : 'rgba(29,29,27,0.7)';
-  const wheelColor = '#1d1d1b';
-  const hubColor = '#ffffff';
+    onBg === TOKENS.surface ? 'rgba(255,255,255,0.7)' : 'rgba(29,29,27,0.7)';
+  const wheelColor = TOKENS.ink;
+  const hubColor = TOKENS.surface;
 
   return (
     <View
@@ -61,7 +64,7 @@ const styles = StyleSheet.create({
     right: 4,
     top: 14,
     height: 18,
-    borderRadius: 10,
+    borderRadius: RADIUS.md,
   },
   cabin: {
     position: 'absolute',
@@ -69,17 +72,17 @@ const styles = StyleSheet.create({
     right: 14,
     top: 8,
     height: 10,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 8,
-    borderBottomLeftRadius: 2,
-    borderBottomRightRadius: 2,
+    borderTopLeftRadius: RADIUS.xs,
+    borderTopRightRadius: RADIUS.sm,
+    borderBottomLeftRadius: 2, // hairline
+    borderBottomRightRadius: 2, // hairline
   },
   wheel: {
     position: 'absolute',
     bottom: 0,
     width: 14,
     height: 14,
-    borderRadius: 99,
+    borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -88,6 +91,6 @@ const styles = StyleSheet.create({
   hub: {
     width: 5,
     height: 5,
-    borderRadius: 99,
+    borderRadius: RADIUS.full,
   },
 });

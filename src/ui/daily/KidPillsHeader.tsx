@@ -23,6 +23,8 @@ import { KidAvatar } from '../common/KidAvatar';
 import { FONT_FAMILIES } from '../fonts';
 import { IconChevronDown } from '../icons';
 import { TOKENS } from '../palette';
+import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
 
 const GUTTER = 40;
 
@@ -32,6 +34,11 @@ interface Props {
 }
 
 function KidPillsHeaderImpl({ kids, onPressKid }: Props): React.ReactElement {
+  // At the 4-kid cap each pill is ~1/4 of the row, so the avatar + name + chev
+  // no longer fit and the name collapses to a single char. Shrink the avatar
+  // and name one notch ONLY at 4 kids; 1–3 kids keep the comfortable sizing.
+  const compact = kids.length >= 4;
+  const avatarSize = compact ? 24 : 30;
   return (
     <View style={styles.row}>
       <View style={{ width: GUTTER }} />
@@ -41,15 +48,18 @@ function KidPillsHeaderImpl({ kids, onPressKid }: Props): React.ReactElement {
           onPress={() => onPressKid(k.id)}
           accessibilityRole="button"
           accessibilityLabel={`${k.name} 주간 보기`}
-          style={styles.pill}
+          style={[styles.pill, compact ? styles.pillCompact : null]}
         >
-          <KidAvatar child={k} size={30} />
-          <View style={styles.nameWrap}>
-            <Text style={styles.name} numberOfLines={1}>
-              {k.name}
-            </Text>
-            <IconChevronDown size={12} color={TOKENS.inkSub} />
-          </View>
+          <KidAvatar child={k} size={avatarSize} />
+          {/* name takes the remaining width so the chevron is pinned to the
+              right edge of the pill regardless of name length. */}
+          <Text
+            style={[styles.name, compact ? styles.nameCompact : null]}
+            numberOfLines={1}
+          >
+            {k.name}
+          </Text>
+          <IconChevronDown size={12} color={TOKENS.inkSub} />
           {/* TODO(v2-schema): amatta-v1 also shows grade ("초3") next to the
               name. Domain Child has no `grade` field yet — omit until v2. */}
         </Pressable>
@@ -64,11 +74,11 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: SPACING.xs,
     paddingTop: 10,
-    paddingRight: 12,
-    paddingBottom: 8,
-    paddingLeft: 12,
+    paddingRight: SPACING.md,
+    paddingBottom: SPACING.sm,
+    paddingLeft: SPACING.md,
   },
   pill: {
     flex: 1,
@@ -79,20 +89,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 5,
     backgroundColor: TOKENS.ink04,
-    borderRadius: 9999,
+    borderRadius: RADIUS.full,
   },
-  nameWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 1,
-    minWidth: 0,
-    flexShrink: 1,
+  pillCompact: {
+    gap: 3,
+    paddingHorizontal: SPACING.xs,
   },
   name: {
-    fontSize: 13,
+    flex: 1,
+    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendardMedium, // 500
     color: TOKENS.ink,
     letterSpacing: -0.3,
-    flexShrink: 1,
+  },
+  nameCompact: {
+    fontSize: 11,
   },
 });

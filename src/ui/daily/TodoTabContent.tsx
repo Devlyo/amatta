@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { TOKENS } from '../palette';
+import { SPACING } from '../spacing';
 import { ChecklistSection } from './ChecklistSection';
 import { TodoSection } from './TodoSection';
 
@@ -11,6 +12,12 @@ function TodoTabContentImpl(): React.ReactElement {
       style={styles.scroll}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      // Keyboard handling: when the "할일 추가" input (bottom of the list) is
+      // focused, inset the scroll content by the keyboard height so the field
+      // scrolls above the keyboard instead of being covered. keyboardShouldPersistTaps
+      // keeps a tap on another row working without first dismissing the keyboard.
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
       testID="todo-tab-content"
     >
       <ChecklistSection />
@@ -31,7 +38,7 @@ const styles = StyleSheet.create({
     backgroundColor: TOKENS.surfaceSoft,
   },
   content: {
-    paddingTop: 4,
+    paddingTop: SPACING.xs,
     paddingHorizontal: 14,
     paddingBottom: 100,
   },

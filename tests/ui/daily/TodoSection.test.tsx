@@ -52,8 +52,9 @@ describe('TodoSection', () => {
   });
 
   test('populated: renders parent-level + per-kid todos sorted by dueAt ASC', () => {
+    // Both due on the viewed day (2026-06-02), different times → sort by time.
     const earlier = new Date(2026, 5, 2, 8, 0).getTime();
-    const later = new Date(2026, 5, 4, 17, 0).getTime();
+    const later = new Date(2026, 5, 2, 17, 0).getTime();
     useTodosStore.setState({
       todos: [
         mkTodo(2, '준비물 사기', later, false, null),
@@ -72,6 +73,28 @@ describe('TodoSection', () => {
     expect(getByText('준비물 사기')).toBeTruthy();
     // Date pill removed — new todos always bind to the viewed date so
     // a relative "오늘 / 내일 / M/D" caption became redundant clutter.
+  });
+
+  test('date-bound: a todo due on another day is hidden (June 5 todo not shown on June 2)', () => {
+    const onJun2 = new Date(2026, 5, 2, 9, 0).getTime();
+    const onJun5 = new Date(2026, 5, 5, 9, 0).getTime();
+    useTodosStore.setState({
+      todos: [
+        mkTodo(1, '오늘 할일', onJun2, false, null),
+        mkTodo(2, '다른날 할일', onJun5, false, null),
+      ],
+      isLoaded: true,
+      toggleDone: toggleDoneMock,
+      add: addMock,
+    });
+
+    const { getByText, getByTestId, queryByTestId, queryByText } = render(<TodoSection />);
+    // currentDate is 2026-06-02 → only the June 2 todo counts/renders.
+    expect(getByText('0/1')).toBeTruthy();
+    expect(getByTestId('todo-item-1')).toBeTruthy();
+    expect(getByText('오늘 할일')).toBeTruthy();
+    expect(queryByTestId('todo-item-2')).toBeNull();
+    expect(queryByText('다른날 할일')).toBeNull();
   });
 
   test('inline add flow: tap + → type → submit → add() invoked with childId null', async () => {
