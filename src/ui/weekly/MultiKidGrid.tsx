@@ -185,17 +185,6 @@ function MultiKidGridImpl({
                   isToday ? styles.dayColToday : null,
                 ]}
               >
-                {/* Hour gridlines */}
-                {HOURS.map((h) => {
-                  const top = (h - MG_HOUR_START) * MG_HOUR_PX;
-                  return (
-                    <View
-                      key={h}
-                      style={[styles.hourLine, { top }]}
-                    />
-                  );
-                })}
-
                 {/* Kid lanes — flex:1 each so they share the column equally */}
                 <View style={styles.laneRow}>
                   {kids.map((kid) => {
@@ -298,6 +287,21 @@ function MultiKidGridImpl({
                       </View>
                     );
                   })}
+                </View>
+
+                {/* Hour gridlines ON TOP of the kid blocks (the time grid reads
+                    above the colored blocks; under the NOW line). pointerEvents
+                    none so blocks keep receiving taps. */}
+                <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                  {HOURS.map((h) => (
+                    <View
+                      key={h}
+                      style={[
+                        styles.hourLine,
+                        { top: (h - MG_HOUR_START) * MG_HOUR_PX },
+                      ]}
+                    />
+                  ))}
                 </View>
               </View>
             );
