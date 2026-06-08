@@ -65,6 +65,11 @@ levels — a single day, or a whole week.
 | <img src="docs/screenshots/05-onboarding.png" alt="Onboarding add-child step with name field and an avatar picker" width="250"/> | **Onboarding** — a playful avatar picker; add up to 4 children. |
 | <img src="docs/screenshots/07-settings-data.png" alt="Settings with reminder defaults, JSON export and import, and app version 1.0.0" width="250"/> | **Data stays on device** — **JSON export/restore** instead of a cloud, plus a per-child reminder default. |
 
+<p align="center">
+  <img src="docs/screenshots/walkthrough.gif" alt="Full walkthrough: weekly view, creating a schedule with type, weekday repeat, reminder, pickup toggle and checklist, search, and the prep & todo page" width="300" />
+  <br/><sub><b>Full walkthrough</b> (0.5× slow-mo) — weekly view → new-schedule form (type · repeat · reminder · pickup · checklist) → search → prep &amp; todos.</sub>
+</p>
+
 ## Design system
 
 A **token-first** system, not ad-hoc styles:
