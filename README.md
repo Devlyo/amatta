@@ -67,7 +67,7 @@ levels — a single day, or a whole week.
 
 <p align="center">
   <img src="docs/screenshots/walkthrough.gif" alt="Full walkthrough: weekly view, creating a schedule with type, weekday repeat, reminder, pickup toggle and checklist, search, and the prep & todo page" width="300" />
-  <br/><sub><b>Full walkthrough</b> (1.5×) — weekly view → new-schedule form (type · repeat · reminder · pickup · checklist) → search → prep &amp; todos.</sub>
+  <br/><sub><b>Full walkthrough</b> (1.7×) — weekly view → new-schedule form (type · repeat · reminder · pickup · checklist) → search → prep &amp; todos.</sub>
 </p>
 
 ## Design system
