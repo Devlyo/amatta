@@ -33,9 +33,16 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files (never commit real secrets — use .env.example for shareable defaults)
+.env
 .env*.local
 .env.local
+
+# native signing / service-config (future EAS builds)
+*.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
 
 # typescript
 *.tsbuildinfo
