@@ -202,15 +202,17 @@ function MultiViewScreenImpl(): React.ReactElement {
   });
   const todoCount = undoneTodos + undoneChecklist;
 
-  // Block tap is owned by <MultiKidGrid /> — it toggles an inline tooltip
-  // popover (matches docs/design/amatta-v1/app-multi-grid.jsx). We don't
-  // open the edit sheet from here because the tooltip is the only
-  // affordance the prototype offers on this surface; editing happens
-  // from the daily view (where tapping a block opens editAll). The
-  // `openEditSheet` binding is still in scope — `handlePressAdd` below
-  // calls it for the '+' button.
-  const handleBlockPress = (_occ: Occurrence): void => {
-    // no-op — tooltip is handled internally by MultiKidGrid
+  // Block tap toggles the inline tooltip popover (inside MultiKidGrid).
+  // Tapping the tooltip CARD calls this → opens the read-only detail modal for
+  // that occurrence's specific date (mirrors the daily view's block-press).
+  const handleBlockPress = (occ: Occurrence): void => {
+    router.push({
+      pathname: '/event/detail',
+      params: {
+        scheduleId: String(occ.scheduleId),
+        occurrenceDate: occ.date as unknown as string,
+      },
+    });
   };
 
   const handlePressAdd = (): void => {
@@ -372,7 +374,15 @@ function MultiViewScreenImpl(): React.ReactElement {
         <TodoTabContent />
       )}
 
-      <BottomDock onPressAdd={handlePressAdd} onPressGear={handlePressGear} />
+      <BottomDock
+        onPressHome={() => {
+          // Home = back to today's daily view from the multi-kid week view.
+          setCurrentDate(todayIso());
+          router.replace('/(tabs)');
+        }}
+        onPressAdd={handlePressAdd}
+        onPressGear={handlePressGear}
+      />
     </SafeAreaView>
   );
 }

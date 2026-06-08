@@ -252,11 +252,14 @@ export function ScheduleEditContent({
     const effectiveDaysOfWeek = noRepeat
       ? weekdayMaskFromIso(form.validFrom)
       : form.daysOfWeek;
+    // There is no end-date (validUntil) UI: validUntil only exists to clamp a
+    // no-repeat schedule to its single day. So repeat selected => open-ended
+    // (null). This also FIXES editing a single-day schedule to add repeat — the
+    // stale validUntil=validFrom must be cleared or occurrences stay clamped to
+    // that one day (occurrences.ts skips date > validUntil).
     const effectiveValidUntil: ISODate | null = noRepeat
       ? (form.validFrom as unknown as ISODate)
-      : form.validUntil.length > 0
-        ? (form.validUntil as unknown as ISODate)
-        : null;
+      : null;
 
     if (sheetMode === 'create') {
       if (form.childId === null) return;

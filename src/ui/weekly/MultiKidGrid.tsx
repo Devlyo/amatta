@@ -228,7 +228,6 @@ function MultiKidGridImpl({
                                       ? null
                                       : k,
                                   );
-                                  onBlockPress?.(occ);
                                 }}
                                 accessibilityRole="button"
                                 accessibilityLabel={`${kid.name} ${occ.title}`}
@@ -257,8 +256,10 @@ function MultiKidGridImpl({
                                 </View>
                               </Pressable>
                               {isOpen ? (
-                                <View
-                                  pointerEvents="none"
+                                <Pressable
+                                  onPress={() => onBlockPress?.(occ)}
+                                  accessibilityRole="button"
+                                  accessibilityLabel={`${kid.name} ${occ.title} 상세 보기`}
                                   style={[
                                     styles.tooltip,
                                     placeAbove
@@ -289,7 +290,7 @@ function MultiKidGridImpl({
                                     {fmt12hrShort(occ.startMinutes)}–
                                     {fmt12hrShort(occ.endMinutes)}
                                   </Text>
-                                </View>
+                                </Pressable>
                               ) : null}
                             </View>
                           );

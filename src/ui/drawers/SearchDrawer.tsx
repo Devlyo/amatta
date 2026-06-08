@@ -85,12 +85,14 @@ export function SearchContent({ onClose }: SearchContentProps): React.ReactEleme
     const out: Result[] = [];
 
     for (const s of schedules) {
-      if (matches(s.title, q) || matches(s.location, q)) {
+      const child = childById.get(s.childId);
+      // Also match the kid's name so e.g. "민준" surfaces all of 민준's schedules.
+      if (matches(s.title, q) || matches(s.location, q) || matches(child?.name, q)) {
         out.push({
           kind: 'schedule',
           key: `s-${s.id}`,
           schedule: s,
-          child: childById.get(s.childId),
+          child,
         });
       }
     }

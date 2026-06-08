@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   },
   viewport: {
     overflow: 'hidden',
-    borderRadius: RADIUS.xl,
+    borderRadius: RADIUS.lg,
     position: 'relative',
   },
   slide: {

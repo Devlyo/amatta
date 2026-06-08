@@ -39,7 +39,7 @@ import { TabStrip, type DailyTabKey } from '../../src/ui/daily/TabStrip';
 import { TodoTabContent } from '../../src/ui/daily/TodoTabContent';
 import { TopBar } from '../../src/ui/daily/TopBar';
 import { TOKENS } from '../../src/ui/palette';
-import { formatKoreanShortDate, isDueOnDate, isToday, shiftIsoDate } from '../../src/ui/utils/date';
+import { formatKoreanShortDate, isDueOnDate, isToday, shiftIsoDate, todayIso } from '../../src/ui/utils/date';
 
 const SWIPE_THRESHOLD = 60;
 
@@ -253,6 +253,11 @@ export default function DailyViewScreen(): React.ReactElement {
 
       {/* Section 7 — Floating bottom dock */}
       <BottomDock
+        onPressHome={() => {
+          // Home = jump back to today's daily view.
+          setCurrentDate(todayIso());
+          setTab('schedule');
+        }}
         onPressAdd={handlePressAdd}
         onPressGear={handlePressGear}
       />

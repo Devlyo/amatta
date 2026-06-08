@@ -124,17 +124,19 @@ const styles = StyleSheet.create({
     lineHeight: 20, // approximate the prototype's 1.0–1.2 line height
   },
   badge: {
-    minWidth: 18,
-    paddingHorizontal: SPACING.xxs,
-    paddingVertical: SPACING.xxs,
+    // Sized per the design-system Badge primitive (src/ui/components/Badge.tsx):
+    // minWidth/height SPACING.xl, paddingHorizontal SPACING.xs, radius full.
+    minWidth: SPACING.xl,
+    height: SPACING.xl,
+    paddingHorizontal: SPACING.xs,
     borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeLabel: {
     fontFamily: FONT_FAMILIES.pretendard, // 400
-    fontSize: 10,
-    lineHeight: 12,
+    fontSize: 12,
+    lineHeight: 14,
   },
   underline: {
     position: 'absolute',
