@@ -84,9 +84,10 @@ enforced rather than relying on discipline.
   <a href="https://devlyo.github.io/amatta/design-system/">
     <img src="docs/design-system/preview.png" alt="Amatta design-system page: color tokens, ink scale, surfaces, kid palette, and type specimen" width="660" />
   </a>
-  <br/><sub>A slice of the design system —
-  <a href="https://devlyo.github.io/amatta/design-system/"><b>open the interactive page ↗</b></a> ·
-  <a href="docs/design/DESIGN_SYSTEM.md">full token reference (DESIGN_SYSTEM.md)</a></sub>
+  <br/><sub>A slice of the design system — open the interactive page:
+  <a href="https://devlyo.github.io/amatta/design-system/en/"><b>English ↗</b></a> ·
+  <a href="https://devlyo.github.io/amatta/design-system/"><b>한국어 ↗</b></a> ·
+  <a href="docs/design/DESIGN_SYSTEM.md">token reference (markdown)</a></sub>
 </p>
 
 ## Architecture & engineering
