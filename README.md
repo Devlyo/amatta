@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/hero.gif" alt="Walkthrough: the daily child-by-time grid, day swiping, pickup card, and tab switching" width="300" />
+  <img src="docs/screenshots/walkthrough.gif" alt="Walkthrough: the daily child-by-time grid, day swiping, pickup card, and tab switching" width="300" />
 </p>
 
 **My role.** The original idea and the core child × time-grid concept came from my collaborator
