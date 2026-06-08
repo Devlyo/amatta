@@ -202,7 +202,7 @@ function MultiKidGridImpl({
                           return (
                             <View
                               key={`${occ.scheduleId}|${occ.date as unknown as string}`}
-                              style={[styles.blockSlot, { zIndex: isOpen ? 20 : 1 }]}
+                              style={[styles.blockSlot, { zIndex: isOpen ? 20 : 0 }]}
                             >
                               <Pressable
                                 onPress={() => {
