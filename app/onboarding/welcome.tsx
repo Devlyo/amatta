@@ -17,10 +17,9 @@ import { memo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import Constants from 'expo-constants';
-import Svg, { Path } from 'react-native-svg';
 
 import { MASCOTS } from '../../src/ui/assets';
+import { IS_EXPO_GO, loadRNSvg } from '../../src/ui/icons';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { TOKENS } from '../../src/ui/palette';
 import { RADIUS } from '../../src/ui/radius';
@@ -42,9 +41,7 @@ function OnbWelcomeImpl(): React.ReactElement {
               <View style={styles.limeBlob} pointerEvents="none" />
             ) : (
               <View style={styles.blobWrap} pointerEvents="none">
-                <Svg width={BLOB_SVG_W} height={BLOB_SVG_H} viewBox="0 0 280 120">
-                  <Path d={BLOB_PATH} fill={BLOB_CITRUS} />
-                </Svg>
+                <WelcomeBlob />
               </View>
             )}
             <Image
@@ -95,10 +92,9 @@ export default memo(OnbWelcomeImpl);
 const MASCOT_PINK_SIZE = 120;
 const MASCOT_ORANGE_SIZE = 130;
 // The organic lime "tray" under the mascots is an SVG path (app-onboarding.jsx).
-// react-native-svg can't render in Expo Go (Fabric components unregistered), so:
-//   - Expo Go  → a plain 2px line approximation (no crash)
-//   - EAS build → the real organic blob
-const IS_EXPO_GO = Constants.appOwnership === 'expo';
+// react-native-svg can't load in Expo Go (Fabric components unregistered), so:
+//   - Expo Go  → a plain 2px line approximation (no crash; IS_EXPO_GO from icons)
+//   - EAS build → the real organic blob (loadRNSvg, lazily required)
 // eslint-disable-next-line no-restricted-syntax -- kid-palette Citrus Green, no TOKENS mapping
 const BLOB_CITRUS = '#E0E446';
 const BLOB_SVG_W = 270;
@@ -108,6 +104,17 @@ const BLOB_PATH =
 // Expo Go fallback line dims.
 const BLOB_W = 230;
 const BLOB_H = 2;
+
+// Native-build-only blob. loadRNSvg() lazily require()s react-native-svg, so it
+// never loads in Expo Go (this component is only rendered when !IS_EXPO_GO).
+function WelcomeBlob(): React.ReactElement {
+  const { Svg, Path } = loadRNSvg();
+  return (
+    <Svg width={BLOB_SVG_W} height={BLOB_SVG_H} viewBox="0 0 280 120">
+      <Path d={BLOB_PATH} fill={BLOB_CITRUS} />
+    </Svg>
+  );
+}
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKENS.surface },

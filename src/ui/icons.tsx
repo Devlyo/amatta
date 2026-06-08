@@ -11,11 +11,10 @@
 // are wired below; the rest stay on @expo/vector-icons. All exported component
 // names + IconProps / IconComponent / KIND_ICON types are preserved.
 
-import { memo, type ComponentType } from 'react';
+import { memo, type ComponentType, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Constants from 'expo-constants';
-import Svg, { Path } from 'react-native-svg';
 
 import type { ScheduleType } from '../domain/types';
 import { TOKENS } from './palette';
@@ -33,9 +32,36 @@ export type IconComponent = ComponentType<IconProps>;
 // <Svg>/<Path> hard-crashes the render). So in Expo Go we keep the
 // @expo/vector-icons approximation; on the EAS dev/prod build the real amatta
 // icons render. Detected via appOwnership ('expo' === Expo Go).
-const IS_EXPO_GO = Constants.appOwnership === 'expo';
+// Render the amatta SVG icons ONLY on a real native build (EAS dev/prod).
+// IMPORTING react-native-svg in Expo Go SDK 54 crashes the bundle at load time
+// (its Fabric component modules can't resolve a native component config — e.g.
+// CircleNativeComponent), so we (a) NEVER static-import it and (b) only lazily
+// require it when we POSITIVELY detect a native build. Anything else (Expo Go =
+// 'storeClient', or unknown) → @expo/vector-icons fallback, so it can't crash.
+const IS_EXPO_GO = !(
+  Constants.executionEnvironment === 'standalone' ||
+  Constants.executionEnvironment === 'bare'
+);
+
+interface SvgRootProps { width: number; height: number; viewBox: string; children?: ReactNode }
+interface SvgPathProps { d: string; fill: string }
+let rnsvgCache: { Svg: ComponentType<SvgRootProps>; Path: ComponentType<SvgPathProps> } | null = null;
+export function loadRNSvg(): { Svg: ComponentType<SvgRootProps>; Path: ComponentType<SvgPathProps> } {
+  if (rnsvgCache === null) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const m = require('react-native-svg') as {
+      default: ComponentType<SvgRootProps>;
+      Path: ComponentType<SvgPathProps>;
+    };
+    rnsvgCache = { Svg: m.default, Path: m.Path };
+  }
+  return rnsvgCache;
+}
+
+export { IS_EXPO_GO };
 
 function AmattaSvg({ size, color, d }: { size: number; color: string; d: string }) {
+  const { Svg, Path } = loadRNSvg();
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Path d={d} fill={color} />
