@@ -59,11 +59,11 @@ levels — a single day, or a whole week.
 | | |
 |---|---|
 | <img src="docs/screenshots/02-pickup-carousel.png" alt="Daily grid with a lavender pickup card showing the next pickup time and remaining minutes" width="250"/> | **Pickup carousel** — surfaces the next pickup(s) as swipeable cards; conflict-aware when two pickups collide, with **no notification spam** (ADR-003). |
-| <img src="docs/screenshots/04-todos-checklist.png" alt="Prep-items and todos tab grouped per child, with items checked off" width="250"/> | **Todos & checklists** — per-schedule checklist items auto-prepend into the reminder body (≤80 chars); todos fire their own due-time push. |
+| <img src="docs/screenshots/04-todos-checklist.png" alt="Prep-items and todos tab grouped per child, with items checked off" width="250"/> | **Todos & checklists** — the day's prep items (per child) and the parent's todos, all on one page. Per-schedule checklist items auto-prepend into that schedule's reminder (≤80 chars); todos don't fire a separate deadline alarm. |
 | <img src="docs/screenshots/08-schedule-form.png" alt="New-schedule form with child, type, weekday repeat, reminder, pickup toggle, and prep items" width="250"/> | **Fast schedule entry** — type, **weekday-repeat bitmask**, per-child reminder offset, pickup toggle, and checklist — all in one sheet. |
-| <img src="docs/screenshots/06-search.png" alt="Search results grouped by child for the typed query" width="250"/> | **Search across kids** — find any schedule by name, grouped per child. |
+| <img src="docs/screenshots/06-search.png" alt="Search results grouped by child for the typed query" width="250"/> | **Search** — by child, place, or schedule name. |
 | <img src="docs/screenshots/05-onboarding.png" alt="Onboarding add-child step with name field and an avatar picker" width="250"/> | **Onboarding** — a playful avatar picker; add up to 4 children. |
-| <img src="docs/screenshots/07-settings-data.png" alt="Settings with reminder defaults, JSON export and import, and app version 1.0.0" width="250"/> | **Data stays on device** — **JSON export/restore** instead of a cloud; reminder defaults; design-system gallery. |
+| <img src="docs/screenshots/07-settings-data.png" alt="Settings with reminder defaults, JSON export and import, and app version 1.0.0" width="250"/> | **Data stays on device** — **JSON export/restore** instead of a cloud, plus a per-child reminder default. |
 
 ## Design system
 
