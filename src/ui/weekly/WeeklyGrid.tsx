@@ -273,14 +273,7 @@ export function WeeklyGrid({
                           i < 6 ? StyleSheet.hairlineWidth : 0,
                       },
                     ]}
-                  >
-                    {Array.from({ length: HOUR_COUNT + 1 }).map((_, h) => (
-                      <View
-                        key={h}
-                        style={[styles.hairLine, { top: h * HOUR_H }]}
-                      />
-                    ))}
-                  </View>
+                  />
                 );
               })}
             </View>
@@ -311,6 +304,19 @@ export function WeeklyGrid({
                 }
               />
             ))}
+
+            {/* Hour gridlines drawn AFTER (on top of) the blocks — the time
+                grid should read above the colored blocks. Sits under the NOW
+                line (rendered outside the surface). pointerEvents none so the
+                tap surface / blocks keep receiving touches. */}
+            <View
+              pointerEvents="none"
+              style={[styles.gridlinesOverlay, { width: totalWidth }]}
+            >
+              {Array.from({ length: HOUR_COUNT + 1 }).map((_, h) => (
+                <View key={h} style={[styles.hairLine, { top: h * HOUR_H }]} />
+              ))}
+            </View>
           </View>
         </View>
 
@@ -526,6 +532,12 @@ const styles = StyleSheet.create({
     height: GRID_H,
     position: 'relative',
     borderRightColor: TOKENS.hair,
+  },
+  gridlinesOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: GRID_H,
   },
   hairLine: {
     position: 'absolute',
