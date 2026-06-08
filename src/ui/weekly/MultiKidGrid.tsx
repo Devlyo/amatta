@@ -290,9 +290,14 @@ function MultiKidGridImpl({
                 </View>
 
                 {/* Hour gridlines ON TOP of the kid blocks (the time grid reads
-                    above the colored blocks; under the NOW line). pointerEvents
-                    none so blocks keep receiving taps. */}
-                <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                    above the colored blocks; under the NOW line). zIndex 10 so
+                    it beats the blocks' inline zIndex:1 (rendering-after isn't
+                    enough vs an explicit zIndex); under the open tooltip (30).
+                    pointerEvents none so blocks keep receiving taps. */}
+                <View
+                  pointerEvents="none"
+                  style={[StyleSheet.absoluteFill, { zIndex: 10 }]}
+                >
                   {HOURS.map((h) => (
                     <View
                       key={h}
