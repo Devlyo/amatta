@@ -42,3 +42,18 @@ New open questions introduced by the v2 revision (still user/Architect-gated).
 Open question introduced by the v2.1 NEW-1 correction (the precedence-resolver claim was fiction; the real gap is store durability).
 
 - [ ] Q9 — `systemEnabled` ("시스템 알림") toggle does nothing at schedule time — Verified: the scheduler reads only the per-row `notifyMinutesBefore` (`scheduler.ts:91,146`); the toggle (`settings.tsx:93,103`) only mutates the Zustand store and never calls `rescheduleAll`/`cancelAll`, so toggling it off suppresses no notifications. A toggle that does nothing = soft Guideline 2.3.8 / UX-honesty risk. v1 sub-decision of 3.1: (a) wire `systemEnabled` to a minimal suppress/reschedule path if cheap, else (b) hide the toggle until v1.1. Default (a) if cheap, else (b). Not necessarily v1-fixed.
+
+## ralplan-ios-launch-v2 (iOS App Store v1.0.0 / 아마따) - 2026-06-22
+
+RESOLVED in Revision Loop 1 (founder scope decisions locked — moved out of open):
+- [x] J1 — chosen J1-A; day-specific checklist membership IS in v1 scope (scope question answered YES).
+- [x] J1-(i) legacy `is_done/done_at` — FROZEN (kept in v6, not written, not read for completion; drop in v7).
+- [x] J1-(ii) backfill — "completed-for-today only" (M1): each existing `is_done=1` → one completion row at today's `occurrence_date`.
+- [x] J1-(iii) day-specific entry point + 반복 toggle — default OFF; EditSheet adds recurring (NULL), daily/detail adds day-specific (D); toggle ON ⇒ NULL.
+- [x] Notification body — Option A (suppress items completed for that occurrence; keep current UX).
+
+Still open (execution-time confirmations, not design forks):
+- [ ] M4 — does the prebuilt `ios/` privacy aggregation require UserDefaults (C56D.1) and/or FileTimestamp (C617.1) declarations from transitive SDK54 modules? Derive from the artifact; do not assert "SQLite-only" (Phase 2.1).
+- [ ] Q7 — confirm the EAS build LOG shows `patch-package` applying under managed install (patches/ is empty; fix still rides the postinstall script). Wrong call ships a broken native bundle with react-native-svg unresolved (Phase 1a.2 / Pre-mortem Scenario 3).
+- [ ] Build number — does `eas.json appVersionSource:"remote"` + `production.autoIncrement` supply `ios.buildNumber` without an `app.json` seed value? Missing buildNumber blocks repeated TestFlight uploads (Phase 7.1).
+- [ ] Export stale columns (flag, not blocker) — stop serializing `is_done/done_at` at `db-export.ts:87`, or keep + document "completion log is authoritative" for the disabled v1.1 restore path (Phase 3.2e).

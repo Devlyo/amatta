@@ -108,12 +108,14 @@
 - [ ] **P3.4** 시스템알림 토글 실제 연결(Q9-a) + 부팅 재arm + 권한거부 graceful
 - [ ] **P4** 실기기 QA 스윕 (CRUD/날짜스코프todo/4명/모달/알림 ≥65 guard/백업복원) `[BLOCKER]`
 - [ ] **P5** 에셋 교체(1024 아이콘·스플래시·adaptive·블롭·빈상태) + App Store 스크린샷(6.9"+6.5") `[BLOCKER]`
-- [ ] **PREP-RECUR** ⚠️출시 전 수정 — 준비물/할일 반복 vs 당일 귀속 분리. 현재 준비물은
+- [x] **PREP-RECUR** ✅ 완료 (ADR-006, 마이그레이션 v6, jest 399 green) — 준비물 반복 vs 당일 귀속 분리 + 회차별 완료 로그(`checklist_completion`). J1-A 채택, 항목별 반복 토글(기본 OFF/당일, EditSheet는 반복 기본), 알림 본문 Option A. 실기기 검증은 Phase 4b. 아래는 원 이슈 기록:
+- [~] ~~**PREP-RECUR** ⚠️출시 전 수정 — 준비물/할일 반복 vs 당일 귀속 분리. 현재 준비물은
   스케줄(템플릿) 레벨 + done이 단일 플래그라, 반복 일정에서 한 번 체크하면 매 발생일에
   완료로 남고 안 풀림. 모델: 목록은 반복(occurrence_date NULL) + **당일 항목(occurrence_date)**
   추가, **완료는 회차별 로그**(픽업 완료 패턴). 당일 항목은 그날 맥락(일정 상세/일간 준비물)
-  진입점 필요. ADR-002 보완 + 마이그레이션 v6. ralplan 권장. (qa 2차 논의)
+  진입점 필요. ADR-002 보완 + 마이그레이션 v6. ralplan 권장. (qa 2차 논의)~~
 - [ ] **A-ICONS** amatta 커스텀 SVG 아이콘 재도입(홈/설정 nav·종류 4종·온보딩 블롭) — `docs/design/amatta-icons/`. ⚠️ react-native-svg가 **Expo Go SDK54에선 로드 자체가 크래시**(Circle/Defs "component config 없음")라 Expo Go에선 불가; **EAS dev 빌드에서만** 도입+검증. 현재는 @expo/vector-icons 폴백.
+- [ ] **UI-POLISH** 출시 전 UI 폴리시 1패스 (한 번에 몰아서) — PREP-RECUR 반복 토글 행 시안화, 빈상태, 간격/토큰 정합, amatta-v1 fidelity 재점검 등. 기능 동작은 OK, 비주얼만. (2026-06-30 사용자 deferred)
 - [ ] **P6** 약관/개인정보 본문 확정 + 공개 https URL 호스팅 + 메타데이터(설명·키워드·생산성·4+) `[BLOCKER]`
 - [ ] **P7** version 1.0.0 + ios.buildNumber 추가/autoIncrement + app.json에 아마따/supportsTablet:false 반영
 - [ ] **P8** TestFlight 내부베타 → 심사 제출(리뷰어 노트: 로컬전용/계정없음) → 리뷰 대응 `[FINAL]`

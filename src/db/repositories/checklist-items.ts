@@ -7,6 +7,9 @@ export interface NewChecklistItem {
   scheduleId: number;
   label: string;
   sortOrder?: number;
+  // PREP-RECUR (v6) membership. Omitted/undefined ⇒ NULL = recurring.
+  // Set to a yyyymmdd int to bind the item to a single occurrence date.
+  occurrenceDate?: number | null;
 }
 
 export async function getById(
@@ -14,7 +17,7 @@ export async function getById(
   id: number,
 ): Promise<ChecklistItem | null> {
   const row = await db.getFirstAsync<ChecklistItemRow>(
-    `SELECT id, schedule_id, label, sort_order, is_done, done_at
+    `SELECT id, schedule_id, label, sort_order, is_done, done_at, occurrence_date
      FROM checklist_items WHERE id = ?`,
     [id],
   );
@@ -26,7 +29,7 @@ export async function listBySchedule(
   scheduleId: number,
 ): Promise<ChecklistItem[]> {
   const rows = await db.getAllAsync<ChecklistItemRow>(
-    `SELECT id, schedule_id, label, sort_order, is_done, done_at
+    `SELECT id, schedule_id, label, sort_order, is_done, done_at, occurrence_date
      FROM checklist_items
      WHERE schedule_id = ?
      ORDER BY sort_order ASC, id ASC`,
@@ -40,9 +43,9 @@ export async function create(
   input: NewChecklistItem,
 ): Promise<ChecklistItem> {
   const result = await db.runAsync(
-    `INSERT INTO checklist_items (schedule_id, label, sort_order)
-     VALUES (?, ?, ?)`,
-    [input.scheduleId, input.label, input.sortOrder ?? 0],
+    `INSERT INTO checklist_items (schedule_id, label, sort_order, occurrence_date)
+     VALUES (?, ?, ?, ?)`,
+    [input.scheduleId, input.label, input.sortOrder ?? 0, input.occurrenceDate ?? null],
   );
   const item = await getById(db, result.lastInsertRowId);
   if (!item) throw new Error('Failed to retrieve newly created checklist item');
@@ -72,6 +75,10 @@ export async function update(
   if (patch.doneAt !== undefined) {
     fields.push('done_at = ?');
     values.push(patch.doneAt);
+  }
+  if (patch.occurrenceDate !== undefined) {
+    fields.push('occurrence_date = ?');
+    values.push(patch.occurrenceDate);
   }
 
   if (fields.length > 0) {

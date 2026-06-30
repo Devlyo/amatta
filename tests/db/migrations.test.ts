@@ -18,6 +18,7 @@ import { DatabaseSync } from 'node:sqlite';
 
 import { runMigrations, type TxMode } from '../../src/db/migrations';
 import { migration001 } from '../../src/db/migrations/001_init.sql';
+import { buildMigration006 } from '../../src/db/migrations/006_v6_checklist_recurrence.sql';
 
 const TX_LOG_PATH = resolve(__dirname, '..', '..', '.omc', 'logs', 'phase1-tx-mode.txt');
 
@@ -116,12 +117,12 @@ describe('runMigrations', () => {
     return { real: new DatabaseSync(path), path };
   }
 
-  test('Test A: fresh DB → user_version=5 and all 8 tables exist', async () => {
+  test('Test A: fresh DB → user_version=6 and all 9 tables exist', async () => {
     const { real } = makeDb();
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(5);
+    expect(userVersion(real)).toBe(6);
     const tables = tableNames(real);
     expect(tables).toEqual(
       expect.arrayContaining([
@@ -133,12 +134,17 @@ describe('runMigrations', () => {
         'todos',
         'schedule_pickup_log',
         'app_settings',
+        'checklist_completion',
       ]),
     );
     real.close();
   });
 
-  test('Test B: idempotent — running twice yields no error and version stays 5', async () => {
+  test('Test B: version-gate — running twice yields no error and version stays 6', async () => {
+    // NOTE: this is NOT an idempotency test. It only asserts the runner's
+    // version gate (index.ts:38) — the second run finds user_version already at
+    // the max migration version and applies nothing. The migration SQL itself
+    // is NOT required to be re-runnable (002/006 use bare ADD COLUMN).
     const { real } = makeDb();
     const wrapped = wrap(real);
 
@@ -147,7 +153,7 @@ describe('runMigrations', () => {
       runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]),
     ).resolves.toBeUndefined();
 
-    expect(userVersion(real)).toBe(5);
+    expect(userVersion(real)).toBe(6);
     real.close();
   });
 
@@ -192,8 +198,9 @@ describe('runMigrations', () => {
       { logTxModeTo: (m) => modes.push(m) },
     );
 
-    // Happy path now applies v1 + v2 + v3 + v4 + v5 — one log per migration.
+    // Happy path now applies v1..v6 — one log per migration.
     expect(modes).toEqual([
+      'explicit-begin',
       'explicit-begin',
       'explicit-begin',
       'explicit-begin',
@@ -232,8 +239,9 @@ describe('runMigrations', () => {
       'explicit-begin',
       'explicit-begin',
       'explicit-begin',
+      'explicit-begin',
     ]);
-    expect(userVersion(real)).toBe(5);
+    expect(userVersion(real)).toBe(6);
     real.close();
   });
 
@@ -242,7 +250,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(5);
+    expect(userVersion(real)).toBe(6);
 
     const tables = tableNames(real);
     expect(tables).toEqual(
@@ -270,7 +278,7 @@ describe('runMigrations', () => {
     real.close();
   });
 
-  test('Test F: v1-applied DB → runMigrations applies v2..v5, ends at user_version=5', async () => {
+  test('Test F: v1-applied DB → runMigrations applies v2..v6, ends at user_version=6', async () => {
     const { real } = makeDb();
 
     // Land at v1 first by execing migration001 directly + setting user_version=1.
@@ -283,10 +291,16 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(5);
+    expect(userVersion(real)).toBe(6);
     const tables = tableNames(real);
     expect(tables).toEqual(
-      expect.arrayContaining(['checklist_items', 'todos', 'schedule_pickup_log', 'app_settings']),
+      expect.arrayContaining([
+        'checklist_items',
+        'todos',
+        'schedule_pickup_log',
+        'app_settings',
+        'checklist_completion',
+      ]),
     );
     real.close();
   });
@@ -312,7 +326,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(5);
+    expect(userVersion(real)).toBe(6);
     expect(columnNames(real, 'schedules')).toEqual(
       expect.arrayContaining(['needs_pickup']),
     );
@@ -385,7 +399,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(5);
+    expect(userVersion(real)).toBe(6);
     expect(columnNames(real, 'children')).toEqual(
       expect.arrayContaining(['avatar']),
     );
@@ -402,7 +416,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(5);
+    expect(userVersion(real)).toBe(6);
     expect(tableNames(real)).toEqual(expect.arrayContaining(['app_settings']));
 
     // Schema shape: exactly key + value columns, key is the PK, both NOT NULL.
@@ -438,18 +452,26 @@ describe('runMigrations', () => {
   test('Test K: v4-applied DB with data → v5 adds app_settings, preserves all existing rows', async () => {
     const { real } = makeDb();
 
-    // Bring the DB fully up to v4 via the real runner, then populate every
+    // Bring the DB fully up to date via the real runner, then populate every
     // user-data table so we can prove v5 is purely additive.
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
-    expect(userVersion(real)).toBe(5);
+    expect(userVersion(real)).toBe(6);
 
-    // Simulate a pre-v5 install by rolling user_version back to 4 and dropping
-    // app_settings, then re-seeding data as it would exist on a v4 device.
+    // Simulate a pre-v5 install by rolling user_version back to 4 and undoing
+    // every post-v4 artifact, then re-seeding data as it would exist on a v4
+    // device. We must remove BOTH the v5 (app_settings) and v6
+    // (checklist_completion + checklist_items.occurrence_date) artifacts so the
+    // forward run re-applies them cleanly — v6's bare ADD COLUMN would fail if
+    // the column already existed (statement-idempotency is NOT guaranteed; only
+    // the version gate is).
     real.exec('DROP TABLE app_settings');
+    real.exec('DROP TABLE checklist_completion');
+    real.exec('ALTER TABLE checklist_items DROP COLUMN occurrence_date');
     real.exec('PRAGMA user_version = 4');
     expect(userVersion(real)).toBe(4);
     expect(tableNames(real)).not.toContain('app_settings');
+    expect(tableNames(real)).not.toContain('checklist_completion');
 
     real.exec(
       `INSERT INTO children (name, color_index, created_at, avatar)
@@ -480,12 +502,14 @@ describe('runMigrations', () => {
        VALUES (1, 15, 1, 1)`,
     );
 
-    // Now upgrade v4 → v5.
+    // Now upgrade v4 → v6 (applies v5 + v6).
     const wrapped2 = wrap(real);
     await runMigrations(wrapped2 as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(5);
-    expect(tableNames(real)).toEqual(expect.arrayContaining(['app_settings']));
+    expect(userVersion(real)).toBe(6);
+    expect(tableNames(real)).toEqual(
+      expect.arrayContaining(['app_settings', 'checklist_completion']),
+    );
 
     // Every pre-existing row survived the migration untouched.
     const counts = (t: string) =>
@@ -551,6 +575,184 @@ describe('runMigrations', () => {
     // The half-applied v5 table must NOT exist.
     expect(tables).not.toContain('app_settings');
     second.close();
+  });
+
+  // -------------------------------------------------------------------------
+  // v6 — PREP-RECUR (checklist_completion + checklist_items.occurrence_date)
+  // -------------------------------------------------------------------------
+
+  // Brings a fresh DB up to exactly user_version = 5 via the real runner, then
+  // rolls the version marker forward-stop back to 5 by undoing only v6 — used by
+  // the v6-specific tests that want a clean "just before v6" starting point.
+  async function bringToV5(real: DatabaseSync): Promise<void> {
+    const wrapped = wrap(real);
+    await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
+    expect(userVersion(real)).toBe(6);
+    // Undo v6 artifacts and drop the version back to 5 so the next forward run
+    // re-applies v6 against a clean pre-v6 schema.
+    real.exec('DROP TABLE checklist_completion');
+    real.exec('ALTER TABLE checklist_items DROP COLUMN occurrence_date');
+    real.exec('PRAGMA user_version = 5');
+    expect(userVersion(real)).toBe(5);
+    expect(tableNames(real)).not.toContain('checklist_completion');
+    expect(columnNames(real, 'checklist_items')).not.toEqual(
+      expect.arrayContaining(['occurrence_date']),
+    );
+  }
+
+  test('Test M: version-guard — runner skips v6 when user_version >= 6', async () => {
+    // This is NOT an idempotency test; it only asserts the runner's version gate
+    // (index.ts:38). We park user_version at 6 with NO v6 schema present, then
+    // run the runner: because 6 <= current, v6 is skipped entirely, so the
+    // (bare, non-idempotent) v6 DDL never executes and nothing is created.
+    const { real } = makeDb();
+    await bringToV5(real);
+    // Pretend v6 already ran by bumping the marker without its schema.
+    real.exec('PRAGMA user_version = 6');
+
+    const wrapped = wrap(real);
+    await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
+
+    // Gate held: v6 was skipped, so checklist_completion was NOT created.
+    expect(userVersion(real)).toBe(6);
+    expect(tableNames(real)).not.toContain('checklist_completion');
+    real.close();
+  });
+
+  test('Test N: atomicity (explicit-begin) — v6 2nd-statement failure leaves user_version=5, no artifacts', async () => {
+    const path = tmpDbPath();
+    created.push(path);
+    const first = new DatabaseSync(path);
+    await bringToV5(first);
+
+    // Pre-create the column that v6's 2nd statement (ALTER TABLE … ADD COLUMN
+    // occurrence_date) tries to add, so that statement throws "duplicate column"
+    // — a real, natural failure on the 2nd DDL statement of the v6 blob, AFTER
+    // the 1st statement (CREATE TABLE checklist_completion) already ran inside
+    // the same BEGIN IMMEDIATE…COMMIT.
+    first.exec('ALTER TABLE checklist_items ADD COLUMN occurrence_date INTEGER');
+
+    const wrapped = wrap(first);
+    await expect(
+      runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]),
+    ).rejects.toThrow(/duplicate column/i);
+    first.close();
+
+    // Re-open: the whole v6 transaction rolled back. user_version stays 5, the
+    // half-created checklist_completion is gone. (occurrence_date remains only
+    // because WE added it manually above, not v6.)
+    const second = new DatabaseSync(path);
+    expect(userVersion(second)).toBe(5);
+    expect(tableNames(second)).not.toContain('checklist_completion');
+    second.close();
+  });
+
+  test('Test O: atomicity (withTransactionAsync fallback) — v6 2nd-statement failure leaves user_version=5, no artifacts', async () => {
+    const path = tmpDbPath();
+    created.push(path);
+    const first = new DatabaseSync(path);
+    await bringToV5(first);
+    first.exec('ALTER TABLE checklist_items ADD COLUMN occurrence_date INTEGER');
+
+    // Force the BEGIN IMMEDIATE path to be rejected so v6 routes through the
+    // withTransactionAsync fallback (index.ts:65-68); the duplicate-column
+    // failure then occurs inside that fallback transaction, which must also roll
+    // back atomically.
+    const wrapped = wrap(first, {
+      execThrowOnce: {
+        match: /^BEGIN IMMEDIATE$/,
+        error: new Error('cannot start a transaction within a DDL statement'),
+      },
+    });
+    const modes: TxMode[] = [];
+    await expect(
+      runMigrations(
+        wrapped as unknown as Parameters<typeof runMigrations>[0],
+        { logTxModeTo: (m) => modes.push(m) },
+      ),
+    ).rejects.toThrow(/duplicate column/i);
+    // The fallback path was the one that failed (it never logs success on throw).
+    expect(modes).not.toContain('fallback-with-transaction');
+    first.close();
+
+    const second = new DatabaseSync(path);
+    expect(userVersion(second)).toBe(5);
+    expect(tableNames(second)).not.toContain('checklist_completion');
+    second.close();
+  });
+
+  test('Test P: M1 backfill — legacy rows keep occurrence_date NULL; one completion at injected "today" per is_done=1', async () => {
+    const { real } = makeDb();
+    await bringToV5(real);
+
+    // Seed a child + schedule, then checklist_items: two is_done=1, two is_done=0.
+    real.exec(
+      `INSERT INTO children (name, color_index, created_at) VALUES ('민준', 0, '2026-06-02')`,
+    );
+    real.exec(
+      `INSERT INTO schedules (child_id, title, type, days_of_week, start_minutes, end_minutes, valid_from)
+       VALUES (1, '수영', 'academy', 64, 1080, 1140, '2026-06-01')`,
+    );
+    // is_done = 1 → should backfill exactly one completion row at today.
+    real.exec(`INSERT INTO checklist_items (schedule_id, label, sort_order, is_done, done_at)
+               VALUES (1, '수영복', 0, 1, 1749000000000)`);
+    real.exec(`INSERT INTO checklist_items (schedule_id, label, sort_order, is_done, done_at)
+               VALUES (1, '수건', 1, 1, 1749000000001)`);
+    // is_done = 0 → no completion row.
+    real.exec(`INSERT INTO checklist_items (schedule_id, label, sort_order, is_done)
+               VALUES (1, '간식', 2, 0)`);
+    real.exec(`INSERT INTO checklist_items (schedule_id, label, sort_order, is_done)
+               VALUES (1, '물통', 3, 0)`);
+    const beforeCount = (
+      real.prepare('SELECT COUNT(*) AS n FROM checklist_items').get() as { n: number }
+    ).n;
+    expect(beforeCount).toBe(4);
+
+    // Apply v6 with a DETERMINISTIC injected "today" + "now" via the migration
+    // factory (the runner can't take an injected date — Migration is {version,
+    // sql:string} and runMigrations only execs m.sql — so we drive the v6 SQL
+    // directly through the same atomic envelope the runner uses).
+    const TODAY = 20260630;
+    const NOW_MS = 1751000000000;
+    real.exec('BEGIN IMMEDIATE');
+    real.exec(buildMigration006(TODAY, NOW_MS));
+    real.exec('PRAGMA user_version = 6');
+    real.exec('COMMIT');
+    expect(userVersion(real)).toBe(6);
+
+    // Zero row loss on checklist_items.
+    const afterCount = (
+      real.prepare('SELECT COUNT(*) AS n FROM checklist_items').get() as { n: number }
+    ).n;
+    expect(afterCount).toBe(4);
+
+    // Every legacy row keeps occurrence_date = NULL (recurring membership).
+    const nulls = (
+      real
+        .prepare('SELECT COUNT(*) AS n FROM checklist_items WHERE occurrence_date IS NULL')
+        .get() as { n: number }
+    ).n;
+    expect(nulls).toBe(4);
+
+    // Exactly one completion row per former is_done=1 (two), all at TODAY.
+    const completions = real
+      .prepare('SELECT checklist_item_id, occurrence_date, completed_at FROM checklist_completion ORDER BY checklist_item_id')
+      .all() as { checklist_item_id: number; occurrence_date: number; completed_at: number }[];
+    expect(completions).toHaveLength(2);
+    expect(completions.map((c) => c.checklist_item_id)).toEqual([1, 2]);
+    for (const c of completions) {
+      expect(c.occurrence_date).toBe(TODAY);
+      expect(c.completed_at).toBe(NOW_MS);
+    }
+
+    // None on any other date.
+    const onOtherDate = (
+      real
+        .prepare('SELECT COUNT(*) AS n FROM checklist_completion WHERE occurrence_date != ?')
+        .get(TODAY) as { n: number }
+    ).n;
+    expect(onOtherDate).toBe(0);
+    real.close();
   });
 });
 

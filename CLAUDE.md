@@ -15,7 +15,8 @@
 - **그리드**: 06:00–23:00 / 30분 슬롯 / 자녀 최대 4명 / 6색 팔레트 / 일정 타입 4종 (school|academy|activity|other)
 - **TS**: strict + noUncheckedIndexedAccess (NO exactOptionalPropertyTypes)
 - **온라인 기능 일체 없음**: 회원가입·로그인·가족공유·클라우드동기화 모두 비목표
-- **Entities (ADR-002)**: Child / Schedule / ScheduleException / NotificationSetting + **ChecklistItem · Todo · SchedulePickupLog** (총 7 tables)
+- **Entities (ADR-002, ADR-006)**: Child / Schedule / ScheduleException / NotificationSetting + **ChecklistItem · Todo · SchedulePickupLog · ChecklistCompletion** (총 8 tables)
+- **준비물 반복/완료 (ADR-006, PREP-RECUR)**: ChecklistItem 완료는 **회차별 로그** `checklist_completion(checklist_item_id, occurrence_date, completed_at)` UNIQUE — 픽업 로그 패턴 미러. 완료 단일 출처(`is_done/done_at`는 FROZEN, v7에서 drop). 항목별 `occurrence_date` nullable = **NULL 반복 / 값 당일전용**. 항목별 "반복" 토글 기본 OFF(당일), 단 EditSheet 추가는 기본 반복(NULL)·일간/상세 추가는 기본 당일(D). `occurrence_date`는 **yyyymmdd INT**(`isoToYyyymmdd`). 알림 본문은 그 회차 완료분 제외(Option A). 마이그레이션 v6 = atomicity-gated(idempotency 아님).
 - **Schedule extra (ADR-002)**: `needs_pickup` boolean. ScheduleException은 손대지 않음 (kind CHECK 제약 유지). 회차별 픽업 완료는 `schedule_pickup_log(schedule_id, occurrence_date, completed_at)` UNIQUE 제약으로 별도 기록.
 - **알림 정책 (ADR-002)**: 일정 알림 본문에 ChecklistItem 자동 prepend(≤80자). Todo는 dueAt 기반 단독 푸시. **그 외 새 푸시 surface 금지** (충돌 푸시 X).
 - **픽업 시각화 (ADR-003, ADR-002 supersede)**: 일간 그리드 상단 `PickupCarousel` 단일 위치. 다음 픽업 1+개를 swipe 가능 카드(Sunset Orange / French Lavender bg)로 표시. 동시 시간 픽업 ≥ 2 → carousel 추가 카드. 블록 오버레이·푸시 둘 다 금지. `⚠ {hh:mm} 픽업 충돌` sub-bar pill은 ADR-003에서 폐기.

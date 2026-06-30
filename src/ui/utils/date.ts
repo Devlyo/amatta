@@ -34,6 +34,24 @@ export function shiftIsoDate(iso: ISODate, deltaDays: number): ISODate {
   return `${yy}-${mm}-${dd}` as unknown as ISODate;
 }
 
+/**
+ * Parses an `YYYY-MM-DD` ISO date into a `YYYYMMDD` integer — the shape used by
+ * the `occurrence_date` columns on `schedule_pickup_log` and
+ * `checklist_completion`, and by `checklist_items.occurrence_date`. Computed by
+ * pure string slicing (no Date / no timezone), so it is exact and TZ-immune.
+ *
+ * Shared by the pickup path (`src/ui/daily/pickup-data.ts`) and the notification
+ * scheduler (`src/notifications/scheduler.ts`); lives here so neither layer has
+ * to reach into the other. NEVER compare an ISODate TEXT against this INT.
+ */
+export function isoToYyyymmdd(iso: ISODate): number {
+  const s = iso as unknown as string;
+  const y = Number(s.slice(0, 4));
+  const m = Number(s.slice(5, 7));
+  const d = Number(s.slice(8, 10));
+  return y * 10000 + m * 100 + d;
+}
+
 export function todayIso(): ISODate {
   const now = new Date();
   const yy = String(now.getFullYear()).padStart(4, '0');

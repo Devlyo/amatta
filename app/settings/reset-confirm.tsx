@@ -9,6 +9,7 @@ import { useChildrenStore } from '../../src/state/children-store';
 import { useChecklistStore } from '../../src/state/checklist-store';
 import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
 import { usePickupLogStore } from '../../src/state/pickup-log-store';
+import { useChecklistCompletionStore } from '../../src/state/checklist-completion-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useTodosStore } from '../../src/state/todos-store';
 import { TOKENS } from '../../src/ui/palette';
@@ -33,6 +34,7 @@ export default function ResetConfirmRoute(): React.ReactElement {
       useChecklistStore.getState().load(db),
       useTodosStore.getState().load(db),
       usePickupLogStore.getState().load(db),
+      useChecklistCompletionStore.getState().load(db),
     ]);
     // Reconcile the OS queue against the now-empty DB — cancelAll-first
     // clears every pending push left over from the wiped schedules/todos.

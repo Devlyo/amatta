@@ -10,7 +10,6 @@
 // sees in the OS banner" logic lives here.
 
 import type {
-  ChecklistItem,
   Minutes,
   Schedule,
   Todo,
@@ -29,30 +28,31 @@ function fmt12hr(min: Minutes): string {
 
 /**
  * Schedule push — title = kid context + schedule title,
- * body = pending checklist items (joined) · time range, capped at 80.
+ * body = pending checklist labels (joined) · time range, capped at 80.
  *
  * Title-side context (kid name) is folded in here so the user can
  * tell whose schedule is firing without expanding the banner.
+ *
+ * v6 / PREP-RECUR: this function NO LONGER reads `is_done` (FROZEN as of v6).
+ * Per-occurrence membership + completion is resolved by the caller
+ * (`candidatesForSchedule` in scheduler.ts) against `checklist_completion`,
+ * and the already-pending LABELS for THAT occurrence are handed in here.
  */
 export function formatScheduleNotification(input: {
   schedule: Schedule;
   startMinutes: Minutes;
   endMinutes: Minutes;
   kidName: string;
-  checklist: readonly ChecklistItem[];
+  /** Already-resolved pending checklist labels for this single occurrence. */
+  pendingLabels: readonly string[];
 }): { title: string; body: string } {
-  const { schedule, startMinutes, endMinutes, kidName, checklist } = input;
+  const { schedule, startMinutes, endMinutes, kidName, pendingLabels } = input;
   const title = `${kidName} · ${schedule.title}`;
   const timeRange = `${fmt12hr(startMinutes)}–${fmt12hr(endMinutes)}`;
 
-  // Pending = not-done items only — completed items shouldn't nag.
-  const pending = checklist
-    .filter((c) => !c.isDone)
-    .map((c) => c.label);
+  if (pendingLabels.length === 0) return { title, body: timeRange };
 
-  if (pending.length === 0) return { title, body: timeRange };
-
-  const items = pending.join(', ');
+  const items = pendingLabels.join(', ');
   const full = `${items} · ${timeRange}`;
   if (full.length <= BODY_MAX) return { title, body: full };
 

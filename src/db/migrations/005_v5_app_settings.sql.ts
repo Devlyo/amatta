@@ -13,7 +13,9 @@
 // so the table starts empty. A fresh install therefore creates an empty
 // app_settings and lands at user_version = 5.
 //
-// IF NOT EXISTS keeps this re-run safe, matching 001/002.
+// IF NOT EXISTS keeps this re-run safe, matching 001 (which uses IF NOT EXISTS
+// on every CREATE TABLE). NOTE: 002 does NOT use IF NOT EXISTS — it relies on
+// bare CREATE TABLE, leaning solely on the version-gated runner for safety.
 export const migration005 = `
 CREATE TABLE IF NOT EXISTS app_settings (
   key TEXT PRIMARY KEY NOT NULL,

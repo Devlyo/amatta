@@ -67,6 +67,7 @@ const sampleChecklist: ChecklistItem[] = [
     sortOrder: 0,
     isDone: false,
     doneAt: null,
+    occurrenceDate: null,
   },
   {
     id: 2,
@@ -75,6 +76,7 @@ const sampleChecklist: ChecklistItem[] = [
     sortOrder: 1,
     isDone: true,
     doneAt: 1717000000000,
+    occurrenceDate: null,
   },
 ];
 

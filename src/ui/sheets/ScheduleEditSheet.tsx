@@ -45,6 +45,7 @@ import {
 import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
+import { isoToYyyymmdd } from '../daily/pickup-data';
 import { fmtKoTime, weekdayKo } from '../utils/date';
 import {
   DOW_LABELS_KO,
@@ -70,9 +71,14 @@ void DOW_LABELS_KO;
 
 // Drafted checklist row. `id===null` = brand-new (not yet persisted) so save
 // knows whether to INSERT vs UPDATE.
+//
+// PREP-RECUR (v6): `occurrenceDate` controls list membership.
+//   null = recurring (반복 ON — shows on every occurrence of the schedule);
+//   yyyymmdd int = day-specific (반복 OFF — shows only on that one date).
 interface ChecklistDraft {
   id: number | null;
   label: string;
+  occurrenceDate: number | null;
 }
 
 type PickerState =
@@ -166,6 +172,18 @@ export function ScheduleEditContent({
     return exceptions.find((x) => x.scheduleId === sid && x.date === date);
   }, [exceptions, editSheetState.scheduleId, editSheetState.occurrenceDate]);
 
+  // The date a checklist row binds to when 반복 is toggled OFF (day-specific).
+  // create → the daily/detail date the sheet was opened for (preFill.date);
+  // editAll → the currently viewed day (the schedule has no single concrete
+  // date). Resolved to a yyyymmdd int once per open.
+  const boundDateInt = useMemo<number>(() => {
+    const iso =
+      editSheetState.preFill?.date ??
+      editSheetState.occurrenceDate ??
+      useUiStore.getState().currentDate;
+    return isoToYyyymmdd(iso);
+  }, [editSheetState.preFill?.date, editSheetState.occurrenceDate]);
+
   const [form, setForm] = useState<EditFormState>(() =>
     defaultFormState(null, null),
   );
@@ -201,7 +219,13 @@ export function ScheduleEditContent({
       setForm(formFromSchedule(existingSchedule));
       const items = checklistItemsByScheduleId.get(existingSchedule.id) ?? [];
       originalChecklistRef.current = items;
-      setChecklist(items.map((it) => ({ id: it.id, label: it.label })));
+      setChecklist(
+        items.map((it) => ({
+          id: it.id,
+          label: it.label,
+          occurrenceDate: it.occurrenceDate,
+        })),
+      );
     } else if (
       sheetMode === 'editOccurrence' &&
       existingSchedule !== undefined
@@ -277,15 +301,18 @@ export function ScheduleEditContent({
         notifyMinutesBefore: form.notifyMinutesBefore,
         needsPickup: form.needsPickup,
       });
-      // Persist the drafted checklist labels — empty/whitespace rows skipped.
-      const labels = checklist
-        .map((c) => c.label.trim())
-        .filter((s) => s.length > 0);
-      for (let i = 0; i < labels.length; i++) {
+      // Persist the drafted checklist rows — empty/whitespace rows skipped.
+      // Each row carries its own occurrenceDate (null = recurring / 반복 ON,
+      // yyyymmdd int = day-specific / 반복 OFF) per the v6 entry-point rule.
+      const rows = checklist.filter((c) => c.label.trim().length > 0);
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (row === undefined) continue;
         await checklistAdd(db, {
           scheduleId: created.id,
-          label: labels[i] ?? '',
+          label: row.label.trim(),
           sortOrder: i,
+          occurrenceDate: row.occurrenceDate,
         });
       }
     } else if (sheetMode === 'editAll' && existingSchedule !== undefined) {
@@ -685,44 +712,69 @@ export function ScheduleEditContent({
                   {checklist.map((item, idx) => (
                     <View
                       key={item.id ?? `new-${idx}`}
-                      style={[
-                        styles.checklistRow,
-                        idx > 0 ? styles.checklistRowTop : null,
-                      ]}
+                      style={idx > 0 ? styles.checklistRowTop : null}
                     >
-                      <View style={styles.checklistBullet} />
-                      <TextInput
-                        value={item.label}
-                        onChangeText={(v: string) =>
-                          setChecklist((cs) =>
-                            cs.map((c, i) =>
-                              i === idx ? { ...c, label: v } : c,
-                            ),
-                          )
-                        }
-                        placeholder="준비물 이름"
-                        placeholderTextColor={TOKENS.ink30}
-                        style={styles.checklistInput}
-                        maxLength={60}
-                        accessibilityLabel={`준비물 ${idx + 1}`}
-                        onFocus={() => scrollFieldIntoView(checklistYRef.current)}
-                      />
-                      <Pressable
-                        onPress={() =>
-                          setChecklist((cs) => cs.filter((_, i) => i !== idx))
-                        }
-                        hitSlop={6}
-                        accessibilityRole="button"
-                        accessibilityLabel="준비물 삭제"
-                        style={styles.checklistRemoveBtn}
-                      >
-                        <IconXMark size={16} color={TOKENS.inkSub} />
-                      </Pressable>
+                      <View style={styles.checklistRow}>
+                        <View style={styles.checklistBullet} />
+                        <TextInput
+                          value={item.label}
+                          onChangeText={(v: string) =>
+                            setChecklist((cs) =>
+                              cs.map((c, i) =>
+                                i === idx ? { ...c, label: v } : c,
+                              ),
+                            )
+                          }
+                          placeholder="준비물 이름"
+                          placeholderTextColor={TOKENS.ink30}
+                          style={styles.checklistInput}
+                          maxLength={60}
+                          accessibilityLabel={`준비물 ${idx + 1}`}
+                          onFocus={() => scrollFieldIntoView(checklistYRef.current)}
+                        />
+                        <Pressable
+                          onPress={() =>
+                            setChecklist((cs) => cs.filter((_, i) => i !== idx))
+                          }
+                          hitSlop={6}
+                          accessibilityRole="button"
+                          accessibilityLabel="준비물 삭제"
+                          style={styles.checklistRemoveBtn}
+                        >
+                          <IconXMark size={16} color={TOKENS.inkSub} />
+                        </Pressable>
+                      </View>
+                      {/* 반복 toggle (v6): ON = recurring (every occurrence,
+                          occurrence_date NULL); OFF = day-specific (this date
+                          only). Default per entry-point — recurring in the
+                          EditSheet template context. */}
+                      <View style={styles.checklistRepeatRow}>
+                        <Text style={styles.checklistRepeatLabel}>반복</Text>
+                        <ToggleSwitch
+                          value={item.occurrenceDate === null}
+                          onChange={(on) =>
+                            setChecklist((cs) =>
+                              cs.map((c, i) =>
+                                i === idx
+                                  ? { ...c, occurrenceDate: on ? null : boundDateInt }
+                                  : c,
+                              ),
+                            )
+                          }
+                          ariaLabel={`준비물 ${idx + 1} 반복`}
+                        />
+                      </View>
                     </View>
                   ))}
                   <Pressable
                     onPress={() =>
-                      setChecklist((cs) => [...cs, { id: null, label: '' }])
+                      setChecklist((cs) => [
+                        ...cs,
+                        // Entry-point rule (a): EditSheet new items default to
+                        // recurring (occurrence_date NULL); user flips 반복 OFF
+                        // to bind to boundDateInt.
+                        { id: null, label: '', occurrenceDate: null },
+                      ])
                     }
                     accessibilityRole="button"
                     accessibilityLabel="준비물 추가"
@@ -847,12 +899,25 @@ async function persistChecklistDiff(
       continue;
     }
     if (e.id === null) {
-      await ops.add(db, { scheduleId, label, sortOrder: i });
+      await ops.add(db, {
+        scheduleId,
+        label,
+        sortOrder: i,
+        occurrenceDate: e.occurrenceDate,
+      });
     } else {
       const prev = original.find((o) => o.id === e.id);
       if (prev === undefined) continue;
-      if (prev.label !== label || prev.sortOrder !== i) {
-        await ops.update(db, e.id, { label, sortOrder: i });
+      if (
+        prev.label !== label ||
+        prev.sortOrder !== i ||
+        prev.occurrenceDate !== e.occurrenceDate
+      ) {
+        await ops.update(db, e.id, {
+          label,
+          sortOrder: i,
+          occurrenceDate: e.occurrenceDate,
+        });
       }
     }
   }
@@ -1355,6 +1420,20 @@ const styles = StyleSheet.create({
   checklistRowTop: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: TOKENS.ink04,
+  },
+  checklistRepeatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    // Align under the input (past the 20pt bullet + 10pt gap).
+    paddingLeft: 30,
+    paddingBottom: SPACING.sm,
+  },
+  checklistRepeatLabel: {
+    fontSize: 13,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.inkSub,
+    letterSpacing: -0.2,
   },
   checklistBullet: {
     width: 20,

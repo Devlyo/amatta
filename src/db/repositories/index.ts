@@ -5,6 +5,7 @@ import * as notificationSettingsRepo from './notification-settings';
 import * as checklistItemsRepo from './checklist-items';
 import * as todosRepo from './todos';
 import * as schedulePickupLogRepo from './schedule-pickup-log';
+import * as checklistCompletionRepo from './checklist-completion';
 import * as appSettingsRepo from './app-settings';
 
 export {
@@ -15,6 +16,7 @@ export {
   checklistItemsRepo,
   todosRepo,
   schedulePickupLogRepo,
+  checklistCompletionRepo,
   appSettingsRepo,
 };
 
@@ -27,3 +29,4 @@ export type { NewNotificationSetting } from './notification-settings';
 export type { NewChecklistItem } from './checklist-items';
 export type { NewTodo } from './todos';
 export type { MarkCompleteInput } from './schedule-pickup-log';
+export type { MarkCompleteInput as MarkChecklistCompleteInput } from './checklist-completion';
