@@ -62,3 +62,95 @@ ADR-002의 `ChecklistItem`은 완료를 **스케줄(템플릿) 행의 단일 `is
 - **v7**: `is_done/done_at` 컬럼 + 구 `toggleDone` 제거.
 - **v1.1 복원 경로**: importer는 `checklist_completion`을 완료 권위로 취급(레거시 `is_done` 무시).
 - ADR-001 Drizzle 재검토 트리거 도달 기록 (실행은 보류).
+
+---
+
+# ADR-006a — 준비물 반복 토글 노출 = 일정 반복 종속 (A안)
+
+- **Date**: 2026-06-30
+- **Status**: Accepted (Architect + Critic APPROVE, founder-locked)
+- **Source**: design handoff `docs/design/handoffs/supplies-repeat/`, 합의계획 `.omc/plans/ralplan-supplies-repeat-rework.md`.
+- **Amends**: ADR-006의 EditSheet 준비물 UI/저장 매핑만 교체. 마이그레이션·완료 스토어·스케줄러·알림 본문은 불변.
+
+## Decision
+
+- **반복 토글 노출 조건**: 항목별 반복 컨트롤은 **일정이 반복일 때만** 렌더한다. "반복"은 편집 폼의 `daysOfWeek !== 0`(`suppliesRepeatable`)로 라이브 판정. 1회성 일정이면 토글을 **DOM에서 제거**(비활성/visibility 숨김이 아니라 조건부 렌더) — 준비물은 단순 리스트.
+- **비주얼 = A안 ↻ pill** (이전 라벨+스위치 대체). ON("매번") = `primaryTint` 배경 + `primaryDeep` 아이콘/텍스트, `IconRepeat`(≈13) + "매번"(12.5px/500, letter-spacing -0.2), radius 99, padding 4/9/4/7. OFF("이번만") = 투명 배경 + 아이콘 only, `ink30`, padding 4/5. 토큰만 사용(리터럴 색/크기 없음).
+- **새 항목 기본값** = 반복(`occurrence_date = NULL`). 반복·1회성 양쪽에 옳다(1회성은 토글이 가려지고 저장 시 어차피 NULL로 정규화).
+- **당일전용("이번만") 귀속 시맨틱 (founder-locked)**: 행을 OFF로 토글하면 **편집을 연 날짜**에 귀속된다 — `boundDateInt = preFill.date ?? occurrenceDate ?? currentDate` (`ScheduleEditSheet.tsx`). 즉 그 항목은 `occurrence_date =` 보던/편집-컨텍스트 날짜를 갖고 그 날짜에만 노출. 임의 날짜 당일전용은 "그 날짜로 이동 → 일정 편집 → 이번만 OFF"로 달성 — **별도 일간 추가 surface·날짜 피커 불필요**.
+- **fix-1 (필수)**: `EventDetailDrawer.handleEditAll`이 `detail.occurrenceDate`를 라우트로 전달해야 한다(이전엔 누락해 검색/단일자녀-주간 편집이 `currentDate`에 귀속됐다). 전달 후 모든 진입 경로에서 보던 회차에 정확히 귀속. `app/schedule/edit.tsx`는 이미 `params.occurrenceDate`를 시트로 plumb.
+- **1회성 정규화 (Decision C)**: 저장 시 `daysOfWeek === 0`이면 **diff 이전 단일 변환**으로 모든 행의 `occurrence_date`를 NULL로 정규화(`rowsToPersist = checklist.map(c => ({...c, occurrenceDate: null}))`). 이 한 변환이 **세 저장 지점**(create loop, `persistChecklistDiff` INSERT, UPDATE)을 모두 커버 — 1회성 일정에 고아 당일전용 행이 절대 기록되지 않음. 반복 일정은 그대로 통과(행별 `occurrence_date` 보존).
+- 매핑 `repeat=true ⇄ occurrence_date=NULL`, `repeat=false ⇄ occurrence_date=편집-컨텍스트 날짜` 유지. **마이그레이션 변경 없음.**
+
+## Drivers
+
+1. 조건부 렌더 정확성을 라이브 폼 신호(`daysOfWeek`)에 고정.
+2. A안의 반복-기본을 기존 반복-기본과 화해(반복은 no-op, 1회성은 hide+normalize).
+3. 1회성 + 요일 전체 해제 엣지의 결정적 저장(양 write 경로 NULL 정규화).
+
+## Alternatives considered
+
+- **별도 일간/상세 당일전용 추가 surface(고유 기본값)** — 폼 기본값과 충돌하는 2nd 추가 기본값 도입(ADR-006이 없애려던 이중 기본값 혼란); navigate-to-date + 이번만 OFF로 이미 임의 날짜 커버되므로 불필요. 오너 기각.
+- **1회성 항목을 `occurrence_date = 그 날짜`로 저장** — 단일 회차 멤버십은 동일하나 이후 반복 편집에 취약 + 추가 기본값 분기 강제. NULL이 단순·편집-견고. 기각.
+- **기존 라벨+스위치 UI 유지** — A안 hi-fi + amatta-v1 충실도 위반. 기각.
+
+## Consequences
+
+- 변경 범위: EditSheet 준비물 UI + 드로어 한 줄(fix-1) + 저장 매핑(단일 pre-diff 변환, 3 지점) + 테스트. 데이터/마이그레이션/스케줄러/완료 스토어/`body.ts` 불변.
+- `boundDateInt`의 편집-컨텍스트-날짜 fallback이 load-bearing — fix-1로 보던 회차에 귀속.
+- ↻ 글리프 = `@expo/vector-icons` Ionicons `repeat` (A-ICONS, EAS 빌드 전까지 inline SVG/react-native-svg 금지).
+
+## Follow-ups (006a)
+
+- EAS 빌드 후 커스텀 ↻ SVG 글리프 재검토(A-ICONS).
+- v7의 `is_done/done_at` drop은 ADR-006 그대로(불변). 별도 일간 추가 surface 없음(오너 종결).
+
+---
+
+# ADR-006b — 준비물 `recurring` 플래그 + 앵커 멤버십 (마이그레이션 v7)
+
+- **Date**: 2026-06-30
+- **Status**: Accepted (ADR-006/006a 보완)
+- **Source**: 오너 버그 리포트 2건 + 모델 확인. 직접 구현 + 별도 코드리뷰.
+
+## 문제 (오너 리포트)
+
+1. **상세 화면이 멤버십 필터를 안 함** — `EventDetailDrawer`가 일정의 준비물 전체를 날짜 무관하게 표시 → "이번만" 항목이 모든 회차 상세에 뜸. (일간 준비물&할일 탭은 맞게 필터링.)
+2. **"매번" 항목이 등록일 이전 회차에도 표시** — v6 모델에서 `occurrence_date NULL` = 모든 회차(과거 포함). 오너는 **매번 = 등록일 기준 forward**를 원함.
+
+## Decision
+
+`checklist_items`에 **`recurring` 플래그** 추가, `occurrence_date`를 **앵커 날짜**로 일원화.
+
+- 멤버십 (회차 날짜 O, yyyymmdd int) — 단일 출처 `src/domain/checklist-membership.ts` `isChecklistItemVisibleOn`:
+  - `occurrence_date IS NULL` → **항상 표시** (레거시/무제한 반복).
+  - `recurring = 1` (매번) → `O >= occurrence_date` (등록일부터 forward). ← Bug 2 해결.
+  - `recurring = 0` (이번만) → `O === occurrence_date` (그 날짜만).
+- 이 헬퍼를 **3곳에 동일 적용**: 일간 탭(`ChecklistSection`), 알림 본문(`scheduler`), **상세(`EventDetailDrawer`)** ← Bug 1 해결.
+- **EditSheet**: 새 항목은 `occurrence_date = boundDateInt`(편집-컨텍스트 앵커) + `recurring = true`(매번 기본). ↻ pill은 이제 `recurring`을 반영/토글(앵커 유지). 1회성 일정 저장은 모든 행을 `occurrence_date = null, recurring = true`로 정규화(단일 pre-diff 변환, 3 지점).
+
+## 마이그레이션 v7 (`007_v7_checklist_recurring`)
+
+```sql
+ALTER TABLE checklist_items ADD COLUMN recurring INTEGER NOT NULL DEFAULT 1;
+UPDATE checklist_items SET recurring = 0 WHERE occurrence_date IS NOT NULL;
+```
+
+- 백필: 기존 day-specific 행(occ SET) → `recurring = 0` (O===anchor 의미 보존); 기존 매번 행(occ NULL) → `recurring = 1`/무제한 (하위호환). 무손실.
+- 안전성 = **atomicity-gated** (버전 게이트 러너 + user_version 트랜잭션 내부 + withTransactionAsync fallback), statement-idempotency 아님. `ADD COLUMN`은 IF NOT EXISTS 불가 — 버전 게이트로 단일 적용 보장.
+- `is_done/done_at` FROZEN 유지.
+
+## Alternatives considered
+
+- **`created_at` 재사용** — `checklist_items`엔 created_at 없음(todos만). 명시적 앵커가 더 정확(편집-컨텍스트 날짜 = 사용자가 인지하는 "등록일").
+- **별도 `effective_from` 컬럼(occurrence_date는 day-specific 전용 유지)** — 날짜 컬럼 2개. `recurring` 플래그 + 단일 앵커가 더 단순. 기각.
+
+## Consequences
+
+- 멤버십 규칙이 단일 헬퍼로 통합 → 3곳 분기(divergence) 위험 제거.
+- 테이블 8개 유지(컬럼만 추가). 완료 로그 keying(회차 viewed-date) 불변 → 체크-한번=영구완료 버그 재발 불가.
+- 기존 매번 항목(v6에서 occ NULL로 생성된 것)은 무제한(과거 포함)으로 남음 — 레거시 호환. 신규 매번은 앵커부터 forward.
+
+## Follow-ups
+
+- v8: `is_done/done_at` + 레거시 `occurrence_date NULL=무제한` 경로 정리 검토.

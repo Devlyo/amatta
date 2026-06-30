@@ -70,12 +70,17 @@ export interface ChecklistItem {
   sortOrder: number;
   isDone: boolean;
   doneAt: number | null;
-  // v6 / PREP-RECUR membership:
-  //   null = recurring (belongs to EVERY occurrence of its schedule)
-  //   yyyymmdd int = day-specific (belongs only to that one occurrence date)
+  // v6/v7 / PREP-RECUR membership (ADR-006b). `occurrenceDate` is the ANCHOR
+  // date (yyyymmdd int) and `recurring` chooses the membership rule for an
+  // occurrence whose date is O:
+  //   occurrenceDate === null  → always visible (legacy/unbounded recurring).
+  //   else recurring === true  → visible iff O >= occurrenceDate (매번, forward).
+  //   else recurring === false → visible iff O === occurrenceDate (이번만, only).
+  // See src/domain/checklist-membership.ts (single source of the rule).
   // Completion is NOT stored here as of v6 — it lives in checklist_completion,
   // keyed by (checklist_item_id, occurrence_date). is_done/done_at are FROZEN.
   occurrenceDate: number | null;
+  recurring: boolean;
 }
 
 export interface Todo {

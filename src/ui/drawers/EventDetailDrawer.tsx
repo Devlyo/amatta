@@ -16,6 +16,7 @@ import { useChildrenStore } from '../../state/children-store';
 import { useSchedulesStore } from '../../state/schedules-store';
 import { useUiStore } from '../../state/ui-store';
 import { getDb } from '../../db/client';
+import { isChecklistItemVisibleOn } from '../../domain/checklist-membership';
 import type {
   ChecklistItem,
   Child,
@@ -30,7 +31,7 @@ import { IconCheck } from '../icons';
 import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
-import { fmtKoTime, formatKoreanDateLabel } from '../utils/date';
+import { fmtKoTime, formatKoreanDateLabel, isoToYyyymmdd } from '../utils/date';
 import { TYPE_LABELS_KO } from '../sheets/edit-sheet-form';
 
 // Sunday-first labels for the repeat-day display row. Our mask is
@@ -80,10 +81,17 @@ export function EventDetailContent({
     return children.find((c) => c.id === schedule.childId);
   }, [children, schedule]);
 
+  // Filter the schedule's checklist to the items VISIBLE on this occurrence
+  // (ADR-006b membership): a day-specific (이번만) item shows only on its anchor
+  // date; a 매번 item shows from its anchor forward; legacy NULL shows always.
+  // Without this filter the detail screen showed every item on every date.
   const checklist: ChecklistItem[] = useMemo(() => {
     if (schedule === undefined) return [];
-    return itemsByScheduleId.get(schedule.id) ?? [];
-  }, [itemsByScheduleId, schedule]);
+    const all = itemsByScheduleId.get(schedule.id) ?? [];
+    if (detail.occurrenceDate === undefined) return all;
+    const occInt = isoToYyyymmdd(detail.occurrenceDate);
+    return all.filter((it) => isChecklistItemVisibleOn(it, occInt));
+  }, [itemsByScheduleId, schedule, detail.occurrenceDate]);
 
   // Apply any modify-exception overrides so the displayed values match what
   // the daily/weekly grid renders for this occurrence.
@@ -124,9 +132,19 @@ export function EventDetailContent({
     if (schedule === undefined) return;
     router.replace({
       pathname: '/schedule/edit',
-      params: { mode: 'editAll', scheduleId: String(schedule.id) },
+      params: {
+        mode: 'editAll',
+        scheduleId: String(schedule.id),
+        // fix-1 (ADR-006a): forward the viewed occurrence so a 이번만-OFF row
+        // binds to the date the user is looking at (boundDateInt's 2nd
+        // fallback), not the week-anchor currentDate. Mirrors
+        // handleEditOccurrence above.
+        ...(detail.occurrenceDate !== undefined
+          ? { occurrenceDate: detail.occurrenceDate }
+          : {}),
+      },
     });
-  }, [schedule, router]);
+  }, [schedule, detail.occurrenceDate, router]);
 
   const handleCancelOccurrence = useCallback(() => {
     if (schedule === undefined || detail.occurrenceDate === undefined) return;

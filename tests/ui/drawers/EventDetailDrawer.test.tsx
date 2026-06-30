@@ -40,6 +40,7 @@ const sampleChild: Child = {
   id: 1,
   name: '민준',
   colorIndex: 0,
+  avatar: 'face-wink',
   createdAt: ISO('2026-05-01'),
 };
 
@@ -68,6 +69,7 @@ const sampleChecklist: ChecklistItem[] = [
     isDone: false,
     doneAt: null,
     occurrenceDate: null,
+    recurring: true,
   },
   {
     id: 2,
@@ -77,8 +79,25 @@ const sampleChecklist: ChecklistItem[] = [
     isDone: true,
     doneAt: 1717000000000,
     occurrenceDate: null,
+    recurring: true,
   },
 ];
+
+// v7 / ADR-006b membership fixtures for the Bug-1 filter tests. anchor = the
+// occurrence_date integer; recurring chooses the membership rule.
+function mkItem(over: Partial<ChecklistItem>): ChecklistItem {
+  return {
+    id: 100,
+    scheduleId: 7,
+    label: 'item',
+    sortOrder: 0,
+    isDone: false,
+    doneAt: null,
+    occurrenceDate: null,
+    recurring: true,
+    ...over,
+  } as ChecklistItem;
+}
 
 function primeStores(): void {
   useChildrenStore.setState({ children: [sampleChild], isLoaded: true });
@@ -153,5 +172,83 @@ describe('EventDetailContent', () => {
         }),
       }),
     );
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Bug-1 (ADR-006b): the detail screen filters its checklist by membership on the
+// VIEWED occurrence via isChecklistItemVisibleOn(item, isoToYyyymmdd(occ)). Before
+// the fix it showed every item on every date. EventDetailContent applies the
+// filter (a useMemo over the store) before passing the list to DetailBody, so we
+// mount EventDetailContent and seed the store + occurrenceDate, then assert the
+// label is present/absent. The membership rule itself is exhaustively unit-tested
+// in tests/domain/checklist-membership.test.ts; these are the component-level
+// integration checks that the filter is actually wired into the screen.
+// -----------------------------------------------------------------------------
+
+function primeDetail(items: ChecklistItem[], occurrenceDate: string): void {
+  useChildrenStore.setState({ children: [sampleChild], isLoaded: true } as never);
+  useSchedulesStore.setState({
+    schedules: [sampleSchedule],
+    exceptions: [],
+    isLoaded: true,
+  } as never);
+  useChecklistStore.setState({
+    itemsByScheduleId: new Map([[sampleSchedule.id, items]]),
+    isLoaded: true,
+  } as never);
+  useUiStore.setState({
+    eventDetailState: {
+      mode: 'open',
+      scheduleId: sampleSchedule.id,
+      occurrenceDate: ISO(occurrenceDate),
+    },
+  } as never);
+}
+
+describe('EventDetailContent — Bug-1 membership filter', () => {
+  afterEach(() => {
+    act(() => {
+      useUiStore.setState({
+        eventDetailState: { mode: 'closed' },
+        editSheetState: { mode: 'closed' },
+      } as never);
+    });
+  });
+
+  test('이번만 item is HIDDEN when the viewed occurrence ≠ its anchor', () => {
+    primeDetail(
+      [mkItem({ id: 10, label: '체험학습준비물', occurrenceDate: 20260620, recurring: false })],
+      '2026-06-21', // one day after the anchor
+    );
+    const { queryByText } = render(<EventDetailContent onClose={() => {}} />);
+    expect(queryByText('체험학습준비물')).toBeNull();
+  });
+
+  test('이번만 item is VISIBLE when the viewed occurrence === its anchor', () => {
+    primeDetail(
+      [mkItem({ id: 10, label: '체험학습준비물', occurrenceDate: 20260620, recurring: false })],
+      '2026-06-20', // exactly the anchor
+    );
+    const { queryByText } = render(<EventDetailContent onClose={() => {}} />);
+    expect(queryByText('체험학습준비물')).not.toBeNull();
+  });
+
+  test('매번 item is HIDDEN on a date BEFORE its anchor', () => {
+    primeDetail(
+      [mkItem({ id: 11, label: '매번준비물', occurrenceDate: 20260620, recurring: true })],
+      '2026-06-13', // a week before the anchor
+    );
+    const { queryByText } = render(<EventDetailContent onClose={() => {}} />);
+    expect(queryByText('매번준비물')).toBeNull();
+  });
+
+  test('매번 item is VISIBLE on a date AFTER its anchor', () => {
+    primeDetail(
+      [mkItem({ id: 11, label: '매번준비물', occurrenceDate: 20260620, recurring: true })],
+      '2026-06-27', // a week after the anchor
+    );
+    const { queryByText } = render(<EventDetailContent onClose={() => {}} />);
+    expect(queryByText('매번준비물')).not.toBeNull();
   });
 });

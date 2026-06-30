@@ -57,3 +57,11 @@ Still open (execution-time confirmations, not design forks):
 - [ ] Q7 — confirm the EAS build LOG shows `patch-package` applying under managed install (patches/ is empty; fix still rides the postinstall script). Wrong call ships a broken native bundle with react-native-svg unresolved (Phase 1a.2 / Pre-mortem Scenario 3).
 - [ ] Build number — does `eas.json appVersionSource:"remote"` + `production.autoIncrement` supply `ios.buildNumber` without an `app.json` seed value? Missing buildNumber blocks repeated TestFlight uploads (Phase 7.1).
 - [ ] Export stale columns (flag, not blocker) — stop serializing `is_done/done_at` at `db-export.ts:87`, or keep + document "completion log is authoritative" for the disabled v1.1 restore path (Phase 3.2e).
+
+## ralplan-supplies-repeat-rework (준비물 반복 토글 A안) - 2026-06-30
+
+RESOLVED (founder decision, locked 2026-06-30):
+- [x] Day-specific add model — A안 with "navigate-to-date + 이번만 OFF" binding: toggling a row OFF binds it to the edit-context date (`boundDateInt`); arbitrary dates reachable via navigation. NO separate daily-add surface. `boundDateInt`'s edit-context fallback is intended design (not a smell). ADR-006a documents this as THE day-specific mechanism.
+
+Still open (implementation-time, low-risk, non-blocking):
+- [ ] Final ↻ glyph: ship Ionicons `repeat` by default; swap to MaterialCommunityIcons `repeat-variant` only if it reads visibly closer to `docs/design/handoffs/supplies-repeat/Supplies Repeat (A안).html` during the visual pass. react-native-svg is BLOCKED (A-ICONS) so the handoff's inline SVG cannot be used; vector-icons only.
