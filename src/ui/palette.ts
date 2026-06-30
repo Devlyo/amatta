@@ -97,6 +97,43 @@ export const TOKENS = {
   saturday: '#3F66D8',
   // Pickup carousel alternate card background (lavender), pairs with `primary`.
   pickupLavender: '#D4B4FA',
+  // Pickup carousel cards 3 & 4 backgrounds (handoff #4 PICKUPS table). Cards 1
+  // & 2 reuse `primary` / `pickupLavender`; these two complete the 4-color cycle.
+  pickupMint: '#A5DC85', // card 3 bg
+  pickupSky: '#A9C8F5', // card 4 bg
+
+  // CartoonCar fill colors per pickup card (handoff #4). Each card threads a
+  // body/window pair into the SVG; wheel is shared `ink`, hub = body, shine =
+  // `carShine`. Literal hexes live here (token group) so call sites stay clean.
+  carBody1: '#FFF4E5', // card 1 (primary/orange) body
+  carWindow1: '#FFD8C2', // card 1 window
+  carBody2: '#FFFFFF', // card 2 (lavender) body
+  carWindow2: '#E8F2C9', // card 2 window
+  carBody3: '#FFFFFF', // card 3 (mint) body
+  carWindow3: '#FFE2D0', // card 3 window
+  carBody4: '#FFFFFF', // card 4 (sky) body
+  carWindow4: '#FFF0C2', // card 4 window
+  carWheel: '#1D1D1B', // shared tire color (= ink)
+  carShine: 'rgba(255,255,255,0.92)', // headlight glint (handoff 0.9~0.95)
+
   // Pure black — drop-shadow color ONLY (never a UI surface/text color).
   shadow: '#000000',
 } as const;
+
+// Pickup carousel card spec (handoff #4). Index → palette[index % 4]; shape
+// alternates sedan/round. Card 1 follows the live app theme `primary` at the
+// call site (PickupCard substitutes TOKENS.primary), the rest keep their bg.
+// Colors are token references — no raw literals here or at the call site.
+export interface PickupCardPalette {
+  bg: string;
+  carBody: string;
+  carWindow: string;
+  shape: 'sedan' | 'round';
+}
+
+export const PICKUP_CARD_PALETTE: readonly PickupCardPalette[] = [
+  { bg: TOKENS.primary, carBody: TOKENS.carBody1, carWindow: TOKENS.carWindow1, shape: 'sedan' },
+  { bg: TOKENS.pickupLavender, carBody: TOKENS.carBody2, carWindow: TOKENS.carWindow2, shape: 'round' },
+  { bg: TOKENS.pickupMint, carBody: TOKENS.carBody3, carWindow: TOKENS.carWindow3, shape: 'sedan' },
+  { bg: TOKENS.pickupSky, carBody: TOKENS.carBody4, carWindow: TOKENS.carWindow4, shape: 'round' },
+] as const;

@@ -1,96 +1,93 @@
-// CartoonCar — placeholder using RN <View> shapes.
+// CartoonCar — illustrated pickup car, real SVG (react-native-svg).
 //
-// TODO(asset-swap): replace with a PNG illustration (assets/amatta/car-*.png
-// or similar) once the designer hands one off. The current View-shape
-// composition is a placeholder approximating the amatta-v1 SVG (chubby body
-// + cabin pill + two black wheels). When the PNG lands, drop these shapes
-// and render <Image source={CAR_IMG} style={{width: 68, height: 40}} />.
+// 1:1 port of the handoff assets docs/design/handoffs/pickup-banner/{car-sedan,
+// car-round}.svg (both viewBox 130×78), rendered at 68×40. The handoff swaps
+// fill values per card, so body/window/wheel/hub/shine come in as props (each a
+// design token from TOKENS — see PICKUP_CARD_PALETTE). `shape` picks the sedan
+// or round silhouette.
 //
-// Why we're not using the prototype SVG directly: react-native-svg's Fabric
-// components don't register in the SDK 54 Expo Go binary, so <Path/> paths
-// can't render here. PNG sidesteps that.
+// ⚠️ react-native-svg does NOT load in the Expo Go SDK 54 binary (RNSVG Fabric
+// components throw "Could not find component config"). This needs an EAS dev/
+// prod build — already the project runtime (ADR-005, A-ICONS). Do NOT run in
+// Expo Go.
 
-import { StyleSheet, View } from 'react-native';
-
-import { TOKENS } from '../palette';
-import { RADIUS } from '../radius';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 interface Props {
-  onBg: string; // '#1d1d1b' or '#fff' — dark text on the card → dark car parts
+  shape: 'sedan' | 'round';
+  body: string;
+  window: string;
+  wheel: string;
+  hub: string;
+  shine: string;
 }
 
 const W = 68;
 const H = 40;
+const VIEW_BOX = '0 0 130 78';
 
-export function CartoonCar({ onBg }: Props): React.ReactElement {
-  // When the host card is dark (white text), draw the car in white; when the
-  // card is light (ink text), draw the car in ink.
-  const bodyColor = onBg;
-  const windowColor =
-    onBg === TOKENS.surface ? 'rgba(255,255,255,0.7)' : 'rgba(29,29,27,0.7)';
-  const wheelColor = TOKENS.ink;
-  const hubColor = TOKENS.surface;
+// Sedan silhouette — low-slung body, rounded roof, two windows split by a door
+// line, headlight glint front-right.
+const SEDAN_BODY =
+  'M14 54 Q14 40 28 38 L42 24 Q47 19 55 19 L82 19 Q90 19 95 26 L104 38 Q118 40 118 54 L118 56 Q118 60 114 60 L102 60 Q102 68 95 68 Q88 68 88 60 L44 60 Q44 68 37 68 Q30 68 30 60 L18 60 Q14 60 14 56 Z';
+const SEDAN_WINDOW_FRONT = 'M50 28 Q53 24 58 24 L66 24 L66 38 L46 38 Z';
+const SEDAN_WINDOW_REAR = 'M70 24 L82 24 Q86 24 88 27 L94 38 L70 38 Z';
+const SEDAN_DIVIDER = 'M68 24 L68 38';
+
+// Round/toy silhouette — bulbous body, domed cabin, door handle mid-side,
+// headlight glint front-left.
+const ROUND_BODY =
+  'M14 50 Q14 42 20 40 Q24 38 28 40 Q34 40 36 36 C38 24 48 18 60 18 L82 18 C102 18 116 30 116 54 L116 56 Q116 60 112 60 L102 60 Q102 68 95 68 Q88 68 88 60 L44 60 Q44 68 37 68 Q30 68 30 60 L18 60 Q14 60 14 56 L14 50 Z';
+const ROUND_WINDOW_FRONT = 'M40 38 C40 28 44 22 54 22 L66 22 L66 38 Z';
+const ROUND_WINDOW_REAR = 'M70 22 L82 22 C94 22 96 30 96 38 L70 38 Z';
+const ROUND_DIVIDER = 'M52 48 L62 48';
+
+export function CartoonCar({
+  shape,
+  body,
+  window: win,
+  wheel,
+  hub,
+  shine,
+}: Props): React.ReactElement {
+  const isRound = shape === 'round';
 
   return (
-    <View
-      style={styles.wrap}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
-      {/* main body — chubby rounded pill */}
-      <View style={[styles.body, { backgroundColor: bodyColor }]} />
-      {/* cabin/window — smaller pill sitting on top */}
-      <View style={[styles.cabin, { backgroundColor: windowColor }]} />
-      {/* wheels with hubs */}
-      <View style={[styles.wheel, styles.wheelLeft, { backgroundColor: wheelColor }]}>
-        <View style={[styles.hub, { backgroundColor: hubColor }]} />
-      </View>
-      <View style={[styles.wheel, styles.wheelRight, { backgroundColor: wheelColor }]}>
-        <View style={[styles.hub, { backgroundColor: hubColor }]} />
-      </View>
-    </View>
+    <Svg width={W} height={H} viewBox={VIEW_BOX} aria-hidden>
+      {isRound ? (
+        <>
+          <Path d={ROUND_BODY} fill={body} />
+          <Path d={ROUND_WINDOW_FRONT} fill={win} />
+          <Path d={ROUND_WINDOW_REAR} fill={win} />
+          <Path
+            d={ROUND_DIVIDER}
+            stroke={wheel}
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            opacity={0.6}
+          />
+          <Circle cx={18} cy={46} r={2.2} fill={shine} />
+        </>
+      ) : (
+        <>
+          <Path d={SEDAN_BODY} fill={body} />
+          <Path d={SEDAN_WINDOW_FRONT} fill={win} />
+          <Path d={SEDAN_WINDOW_REAR} fill={win} />
+          <Path
+            d={SEDAN_DIVIDER}
+            stroke={wheel}
+            strokeWidth={1.4}
+            strokeLinecap="round"
+            opacity={0.55}
+          />
+          <Circle cx={113} cy={48} r={2.2} fill={shine} />
+        </>
+      )}
+      {/* wheels — shared between shapes (outer tire + hub) */}
+      <Circle cx={37} cy={62} r={11} fill={wheel} />
+      <Circle cx={95} cy={62} r={11} fill={wheel} />
+      <Circle cx={37} cy={62} r={4.4} fill={hub} />
+      <Circle cx={95} cy={62} r={4.4} fill={hub} />
+    </Svg>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {
-    width: W,
-    height: H,
-    flexShrink: 0,
-  },
-  body: {
-    position: 'absolute',
-    left: 4,
-    right: 4,
-    top: 14,
-    height: 18,
-    borderRadius: RADIUS.md,
-  },
-  cabin: {
-    position: 'absolute',
-    left: 18,
-    right: 14,
-    top: 8,
-    height: 10,
-    borderTopLeftRadius: RADIUS.xs,
-    borderTopRightRadius: RADIUS.sm,
-    borderBottomLeftRadius: 2, // hairline
-    borderBottomRightRadius: 2, // hairline
-  },
-  wheel: {
-    position: 'absolute',
-    bottom: 0,
-    width: 14,
-    height: 14,
-    borderRadius: RADIUS.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wheelLeft: { left: 7 },
-  wheelRight: { right: 7 },
-  hub: {
-    width: 5,
-    height: 5,
-    borderRadius: RADIUS.full,
-  },
-});

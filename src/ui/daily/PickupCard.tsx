@@ -14,13 +14,11 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { FONT_FAMILIES } from '../fonts';
-import { TOKENS } from '../palette';
+import { PICKUP_CARD_PALETTE, TOKENS, type PickupCardPalette } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { CartoonCar } from './CartoonCar';
 import type { PickupCardData } from './pickup-data';
-
-const CARD_BGS = [TOKENS.primary, TOKENS.pickupLavender] as const;
 
 interface Props {
   data: PickupCardData;
@@ -28,7 +26,14 @@ interface Props {
 }
 
 export function PickupCard({ data, index }: Props): React.ReactElement {
-  const bg = CARD_BGS[index % CARD_BGS.length] as string;
+  // Card N → palette[N % 4]; shape + car fills come straight from the token
+  // group. Card 1 follows the live app theme `primary` (handoff §70) — the
+  // palette already points slot 0 at TOKENS.primary, so this stays in sync if
+  // the theme color is ever swapped.
+  const slot = PICKUP_CARD_PALETTE[
+    index % PICKUP_CARD_PALETTE.length
+  ] as PickupCardPalette;
+  const bg = slot.bg;
   const onBg = pickOnBg(bg);
   const onBgSub =
     onBg === TOKENS.surface ? 'rgba(255,255,255,0.85)' : 'rgba(29,29,27,0.6)';
@@ -112,7 +117,14 @@ export function PickupCard({ data, index }: Props): React.ReactElement {
         </Text>
       </View>
 
-      <CartoonCar onBg={onBg} />
+      <CartoonCar
+        shape={slot.shape}
+        body={slot.carBody}
+        window={slot.carWindow}
+        wheel={TOKENS.carWheel}
+        hub={slot.carBody}
+        shine={TOKENS.carShine}
+      />
     </View>
   );
 }

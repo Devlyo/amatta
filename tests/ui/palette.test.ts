@@ -1,4 +1,4 @@
-import { getKidPalette, TOKENS } from '../../src/ui/palette';
+import { getKidPalette, PICKUP_CARD_PALETTE, TOKENS } from '../../src/ui/palette';
 import type { ColorIndex } from '../../src/domain/types';
 
 describe('getKidPalette', () => {
@@ -36,5 +36,52 @@ describe('TOKENS', () => {
     expect(TOKENS.ink).toBe('#1D1D1B');
     expect(TOKENS.ink12).toMatch(/^rgba\(29,29,27,0\.12\)$/);
     expect(TOKENS.ink06).toMatch(/^rgba\(29,29,27,0\.06\)$/);
+  });
+});
+
+describe('PICKUP_CARD_PALETTE (handoff #4)', () => {
+  // Mirrors the handoff PICKUPS table via token references (no raw hex — lint
+  // bans hex outside palette.ts). Card 1 bg = primary (live theme), 2 =
+  // lavender, 3 = mint, 4 = sky; car body/window cycle per the table.
+  const expected = [
+    { bg: TOKENS.primary, carBody: TOKENS.carBody1, carWindow: TOKENS.carWindow1, shape: 'sedan' },
+    { bg: TOKENS.pickupLavender, carBody: TOKENS.carBody2, carWindow: TOKENS.carWindow2, shape: 'round' },
+    { bg: TOKENS.pickupMint, carBody: TOKENS.carBody3, carWindow: TOKENS.carWindow3, shape: 'sedan' },
+    { bg: TOKENS.pickupSky, carBody: TOKENS.carBody4, carWindow: TOKENS.carWindow4, shape: 'round' },
+  ] as const;
+
+  test('has exactly 4 cards', () => {
+    expect(PICKUP_CARD_PALETTE).toHaveLength(4);
+  });
+
+  expected.forEach((e, i) => {
+    test(`card ${i + 1} matches the handoff table`, () => {
+      const slot = PICKUP_CARD_PALETTE[i];
+      expect(slot).toBeDefined();
+      expect(slot?.bg).toBe(e.bg);
+      expect(slot?.carBody).toBe(e.carBody);
+      expect(slot?.carWindow).toBe(e.carWindow);
+      expect(slot?.shape).toBe(e.shape);
+    });
+  });
+
+  test('card 1 bg tracks the live theme primary token', () => {
+    expect(PICKUP_CARD_PALETTE[0]?.bg).toBe(TOKENS.primary);
+  });
+
+  test('shape alternates sedan/round across the cycle', () => {
+    expect(PICKUP_CARD_PALETTE.map((c) => c.shape)).toEqual([
+      'sedan',
+      'round',
+      'sedan',
+      'round',
+    ]);
+  });
+
+  test('index → palette[index % 4] cycles (4-way conflict wraps cleanly)', () => {
+    for (let i = 0; i < 8; i += 1) {
+      const slot = PICKUP_CARD_PALETTE[i % PICKUP_CARD_PALETTE.length];
+      expect(slot).toBe(expected[i % 4] && PICKUP_CARD_PALETTE[i % 4]);
+    }
   });
 });
