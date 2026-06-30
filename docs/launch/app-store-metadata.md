@@ -68,19 +68,23 @@
 ## 기타 App Store Connect 필드
 - **카테고리:** 기본 `생산성(Productivity)` · 보조 `라이프스타일(Lifestyle)`
 - **연령 등급:** `4+` (Kids 카테고리 아님)
-- **지원 URL (필수):** 간단한 안내 페이지 또는 개인정보처리방침 페이지 재사용 가능
-  (예: GitHub Pages의 privacy-policy.html 또는 별도 support 페이지)
-- **마케팅 URL (선택):** 없으면 비워둠
-- **저작권:** `© 2026 안새봄`
+- **번들 ID:** `io.devlyo.amatta`
+- **개인정보처리방침 URL (필수):** `https://devlyo.github.io/amatta-legal/privacy-policy.html` ✅ 호스팅됨
+- **지원 URL (필수):** `https://devlyo.github.io/amatta-legal/` ✅ (약관·개인정보 링크 + 문의 이메일)
+- **마케팅 URL (선택):** 비워둠
+- **저작권:** `© 2026 아마따` (본문에서 개인 실명 제외 정책과 일치 — 단 Apple 개인 계정은 "판매자(Seller)"에 실명이 노출될 수 있음)
+- **App Privacy(앱 개인정보):** 모든 카테고리 **"데이터를 수집하지 않음(Data Not Collected)"** (서버·계정·SDK 없음)
+- **암호화(Export Compliance):** 비면제 암호화 미사용 → `ITSAppUsesNonExemptEncryption=false` (app.json 반영됨)
 - **심사 메모(App Review Notes, 비공개):**
   ```
   로컬 전용 앱입니다. 계정/로그인/서버가 없어 테스트 계정이 필요 없습니다.
   모든 데이터는 기기에 저장되며 네트워크 전송이 없습니다. 알림은 로컬 알림만 사용합니다.
+  어떤 종류의 인증도 없으므로 Sign in with Apple은 해당 없음(N/A)입니다.
   ```
-- **개인정보처리방침 URL (필수):** docs/legal/privacy-policy.html 호스팅 주소
 - **심사 연락처:** 개인 이메일 가능(비공개). 공개 문의는 amatta.help@gmail.com
 
-## 확정 필요
-- 앱 이름: 디스크립터 버전 vs 브랜드만 — 택1
-- 부제·키워드 — 그대로 OK인지 검토
-- 지원 URL — 별도 페이지 만들지, 방침 페이지 재사용할지
+## 확정값 (2026-06-30 정리)
+- ✅ **앱 이름:** `아마따 – 자녀 일정 관리` (디스커버리용 디스크립터 버전 추천)
+- ✅ **부제·키워드:** 위 초안 그대로 사용
+- ✅ **지원/개인정보 URL:** GitHub Pages 호스팅(`devlyo.github.io/amatta-legal`) 재사용
+- 남은 선택: 저작권 표기(`아마따` vs 실명) — 위는 `아마따` 권장
