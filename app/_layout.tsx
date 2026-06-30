@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Appearance, AppState, Platform, Text, StyleSheet } from 'react-native';
+import { Appearance, AppState, Platform, Text, StyleSheet, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -182,10 +182,11 @@ export default function RootLayout() {
   }, [bootState]);
 
   if (!fontsLoaded || bootState === 'booting') {
-    // Render nothing — the native splash (held via preventAutoHideAsync) stays
-    // up until boot reaches 'ready' and calls SplashScreen.hideAsync(). No
-    // loading-text flash.
-    return null;
+    // Fill with the splash background color (no loading text, no white flash) so
+    // that if the native splash hides before the first content frame (dev client
+    // / fast JS) the gap reads as the splash, not a white screen. The native
+    // splash itself is held via preventAutoHideAsync until boot is 'ready'.
+    return <View style={styles.splashFill} />;
   }
 
   if (bootState === 'error') {
@@ -308,6 +309,7 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  splashFill: { flex: 1, backgroundColor: TOKENS.primary },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // eslint-disable-next-line no-restricted-syntax
   errorText: { fontSize: 16, color: '#c00', marginBottom: 8 },

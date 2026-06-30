@@ -15,7 +15,8 @@
 // the form port lands in R3.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AppState, StyleSheet, useWindowDimensions } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -29,7 +30,7 @@ import { Redirect, useRouter } from 'expo-router';
 import { MAX_CHILDREN } from '../../src/domain/constants';
 import { isKoreanHoliday } from '../../src/domain/korean-holidays';
 import { expandOccurrences } from '../../src/domain/occurrences';
-import type { Child, Occurrence } from '../../src/domain/types';
+import type { Child, ISODate, Occurrence } from '../../src/domain/types';
 import { useChecklistStore } from '../../src/state/checklist-store';
 import { useChecklistCompletionStore } from '../../src/state/checklist-completion-store';
 import { isChecklistItemVisibleOn } from '../../src/domain/checklist-membership';
@@ -64,33 +65,47 @@ export default function DailyViewScreen(): React.ReactElement {
   const currentDate = useUiStore((s) => s.currentDate);
   const setCurrentDate = useUiStore((s) => s.setCurrentDate);
   const router = useRouter();
-  const { width: screenWidth } = useWindowDimensions();
 
-  // Item 7/8 — page-slide transition on the daily ±1-day swipe.
+  // Refine #1 — the ±1-day swipe is a 3-PAGE CAROUSEL (prev / current / next),
+  // not a slide-to-white. We render the body for all three days side by side in
+  // a horizontal track of width 3×pageWidth and translate the track to center
+  // on the current day (rest = -pageWidth). While the user drags, the neighbor
+  // day's real schedule is already on-screen sliding in — no white gap.
   //
-  // `dragX` is driven directly off the pan translation on the UI thread (a
-  // reanimated worklet, never the JS thread) so the body tracks the finger at
-  // 60fps. On release we either (a) snap back to 0 if the swipe was below
-  // threshold, or (b) animate the body fully off-screen in the swipe
-  // direction, then — via runOnJS — commit the date ±1 and reset dragX to the
-  // opposite edge so the new day's content slides in from the far side.
+  // `dragX` (the live finger translation) is driven on the UI thread (a
+  // reanimated worklet, never the JS thread). On release past threshold we
+  // `withTiming` the track to the neighbor page, then via `runOnJS` commit
+  // setCurrentDate(±1) and snap the track back to the centered rest position so
+  // prev/next re-render around the NEW current day.
   //
-  // The gesture is hoisted to a single container that wraps BOTH the schedule
-  // body and the 준비물 & 할일 body (Item 8), so swiping either tab moves the
-  // date. activeOffsetX keeps predominantly-vertical drags (grid/list scroll,
-  // and the todo row's own swipe-to-delete Swipeable, which activates on a
-  // smaller horizontal offset within its row) from triggering the date swipe.
+  // The gesture wraps BOTH tab bodies (Item 8), so swiping either the 일정 grid
+  // or the 준비물 & 할일 list pages the date. activeOffsetX keeps
+  // predominantly-vertical drags (grid/list scroll, and the todo row's own
+  // swipe-to-delete Swipeable, which activates on a smaller horizontal offset
+  // within its row) from triggering the date swipe.
+  const [pageWidth, setPageWidth] = useState(0);
   const dragX = useSharedValue(0);
+  // Becomes true only after we have a measured pageWidth; until then the track
+  // stays centered with no animation (avoids a flash before first layout).
+  const pageWidthSv = useSharedValue(0);
+
+  const onTrackLayout = useCallback((e: LayoutChangeEvent): void => {
+    setPageWidth(e.nativeEvent.layout.width);
+  }, []);
+
+  useEffect(() => {
+    pageWidthSv.value = pageWidth;
+  }, [pageWidth, pageWidthSv]);
 
   const commitShift = useCallback(
     (dir: -1 | 1): void => {
       // dir = +1 → user swiped left → next day; -1 → swiped right → prev day.
       setCurrentDate(shiftIsoDate(currentDate, dir));
-      // Place incoming day's content just off the opposite edge, then let the
-      // post-commit layout effect (below) animate it to rest at 0.
-      dragX.value = dir === 1 ? screenWidth : -screenWidth;
+      // Snap the track instantly back to the centered rest (dragX 0): prev/next
+      // now re-render around the new current day, so no visible jump occurs.
+      dragX.value = 0;
     },
-    [currentDate, setCurrentDate, dragX, screenWidth],
+    [currentDate, setCurrentDate, dragX],
   );
 
   const panGesture = Gesture.Pan()
@@ -100,30 +115,32 @@ export default function DailyViewScreen(): React.ReactElement {
       dragX.value = e.translationX;
     })
     .onEnd((e) => {
+      const w = pageWidthSv.value;
+      if (w === 0) {
+        dragX.value = withTiming(0, { duration: 160 });
+        return;
+      }
       if (e.translationX <= -SWIPE_THRESHOLD) {
-        // Slide remaining distance off the left edge, then commit → next day.
-        dragX.value = withTiming(-screenWidth, { duration: 160 }, (done) => {
+        // Page to the next day: slide the track fully left by one page.
+        dragX.value = withTiming(-w, { duration: 160 }, (done) => {
           if (done) runOnJS(commitShift)(1);
         });
       } else if (e.translationX >= SWIPE_THRESHOLD) {
-        dragX.value = withTiming(screenWidth, { duration: 160 }, (done) => {
+        dragX.value = withTiming(w, { duration: 160 }, (done) => {
           if (done) runOnJS(commitShift)(-1);
         });
       } else {
-        // Below threshold — snap back to rest.
+        // Below threshold — snap back to the centered rest.
         dragX.value = withTiming(0, { duration: 160 });
       }
     });
 
-  // After a commit, dragX is parked at ±screenWidth (incoming content off the
-  // opposite edge); animate it home so the new day slides in. Keyed on
-  // currentDate so it runs exactly once per date change.
-  useEffect(() => {
-    dragX.value = withTiming(0, { duration: 200 });
-  }, [currentDate, dragX]);
-
-  const slideStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: dragX.value }],
+  // Track transform: rest position is -pageWidth (current day centered); the
+  // live drag adds on top. Width 3×page, so prev sits at [0,page], current at
+  // [page,2page], next at [2page,3page].
+  const trackStyle = useAnimatedStyle(() => ({
+    width: pageWidthSv.value * 3,
+    transform: [{ translateX: -pageWidthSv.value + dragX.value }],
   }));
 
   const [tab, setTab] = useState<DailyTabKey>('schedule');
@@ -181,15 +198,34 @@ export default function DailyViewScreen(): React.ReactElement {
     return m;
   }, [visibleChildren]);
 
+  // Carousel neighbour dates (Refine #1). Expand a single ±1-day window
+  // covering prev..next once, then bucket per day so each page renders its
+  // own occurrences with no white gap during the swipe.
+  const prevDate = useMemo(() => shiftIsoDate(currentDate, -1), [currentDate]);
+  const nextDate = useMemo(() => shiftIsoDate(currentDate, 1), [currentDate]);
+
+  const occurrencesByDate = useMemo<Map<string, Occurrence[]>>(() => {
+    const expanded = expandOccurrences(
+      schedules,
+      exceptions,
+      { from: prevDate, to: nextDate },
+      childrenById,
+    );
+    const m = new Map<string, Occurrence[]>();
+    m.set(prevDate as unknown as string, []);
+    m.set(currentDate as unknown as string, []);
+    m.set(nextDate as unknown as string, []);
+    for (const occ of expanded) {
+      const key = occ.date as unknown as string;
+      const bucket = m.get(key);
+      if (bucket !== undefined) bucket.push(occ);
+    }
+    return m;
+  }, [schedules, exceptions, prevDate, currentDate, nextDate, childrenById]);
+
   const occurrences = useMemo<Occurrence[]>(
-    () =>
-      expandOccurrences(
-        schedules,
-        exceptions,
-        { from: currentDate, to: currentDate },
-        childrenById,
-      ),
-    [schedules, exceptions, currentDate, childrenById],
+    () => occurrencesByDate.get(currentDate as unknown as string) ?? [],
+    [occurrencesByDate, currentDate],
   );
 
   const completionMap = usePickupLogStore((s) => s.completionMap);
@@ -262,6 +298,42 @@ export default function DailyViewScreen(): React.ReactElement {
     router.push('/multi');
   };
 
+  // One carousel page (Refine #1). Width = pageWidth so 3 pages tile the
+  // 3×page track. The schedule tab renders that day's own occurrences (real
+  // neighbour data → no white gap). The 준비물 & 할일 tab is date-bound through
+  // the store inside TodoTabContent (not threadable here), so neighbour pages
+  // render the same list as filler during the drag; after the commit the store
+  // date updates and the content refreshes to the new day.
+  const renderPage = (date: ISODate): React.ReactElement => {
+    const pageOccurrences =
+      occurrencesByDate.get(date as unknown as string) ?? [];
+    return (
+      <View key={date as unknown as string} style={[styles.page, { width: pageWidth }]}>
+        {tab === 'schedule' ? (
+          <>
+            <KidPillsHeader
+              kids={visibleChildren}
+              onPressKid={(id) => router.push(`/child/${id}`)}
+            />
+            {pageOccurrences.length === 0 ? (
+              <EmptyDayState />
+            ) : (
+              <ScheduleGrid
+                kids={visibleChildren}
+                occurrences={pageOccurrences}
+                nowMinutes={nowMinutes}
+                currentDate={date}
+                onBlockPress={handleBlockPress}
+              />
+            )}
+          </>
+        ) : (
+          <TodoTabContent />
+        )}
+      </View>
+    );
+  };
+
   // Zero-kids state: route into onboarding. Replace (not push) so the
   // back stack stays clean on first launch + post-wipe states.
   if (children.length === 0) {
@@ -293,36 +365,19 @@ export default function DailyViewScreen(): React.ReactElement {
       <TabStrip active={tab} onChange={setTab} todoCount={todoCount} />
 
       {/* Sections 5/6 (schedule) + 준비물 & 할일 body share one pan gesture
-          (Item 8) and one sliding Animated.View (Item 7) so a horizontal
-          swipe on EITHER tab pages the date ±1 with a slide transition. */}
-      <GestureDetector gesture={panGesture}>
-        <Animated.View style={[styles.scheduleBody, slideStyle]}>
-          {tab === 'schedule' ? (
-            <>
-              {/* Section 5 — Kid pill header row */}
-              <KidPillsHeader
-                kids={visibleChildren}
-                onPressKid={(id) => router.push(`/child/${id}`)}
-              />
-              {/* Section 6 — Day grid (scrolls vertically), or an empty-day
-                  hint when nothing is scheduled for the viewed date. */}
-              {occurrences.length === 0 ? (
-                <EmptyDayState />
-              ) : (
-                <ScheduleGrid
-                  kids={visibleChildren}
-                  occurrences={occurrences}
-                  nowMinutes={nowMinutes}
-                  currentDate={currentDate}
-                  onBlockPress={handleBlockPress}
-                />
-              )}
-            </>
-          ) : (
-            <TodoTabContent />
-          )}
-        </Animated.View>
-      </GestureDetector>
+          (Item 8) and a 3-page carousel track (Refine #1) so a horizontal
+          swipe on EITHER tab pages the date ±1 with the neighbour day already
+          visible (no white gap). Outer View is the viewport (1 page wide,
+          overflow hidden); the inner Animated track is 3 pages wide. */}
+      <View style={styles.viewport} onLayout={onTrackLayout}>
+        <GestureDetector gesture={panGesture}>
+          <Animated.View style={[styles.track, trackStyle]}>
+            {renderPage(prevDate)}
+            {renderPage(currentDate)}
+            {renderPage(nextDate)}
+          </Animated.View>
+        </GestureDetector>
+      </View>
 
       {/* Section 7 — Floating bottom dock */}
       <BottomDock
@@ -339,6 +394,13 @@ export default function DailyViewScreen(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
-  scheduleBody: { flex: 1 },
+  // Viewport = exactly one page wide; clips the 3-page track so only the
+  // current day is visible at rest.
+  viewport: { flex: 1, overflow: 'hidden' },
+  // Track holds prev/current/next pages in a row; width + translate are set
+  // by the animated `trackStyle`.
+  track: { height: '100%', flexDirection: 'row' },
+  // Each page fills the viewport height; width is set inline from pageWidth.
+  page: { height: '100%' },
   safe: { flex: 1, backgroundColor: TOKENS.surface },
 });
