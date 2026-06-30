@@ -40,6 +40,7 @@ import { FONT_FAMILIES } from '../fonts';
 import {
   IconChevronDown,
   IconPlus,
+  IconRepeat,
   IconXMark,
 } from '../icons';
 import { TOKENS } from '../palette';
@@ -187,6 +188,10 @@ export function ScheduleEditContent({
   const [form, setForm] = useState<EditFormState>(() =>
     defaultFormState(null, null),
   );
+  // A안 (ADR-006a): the per-준비물 반복 토글 (↻ pill) is shown ONLY when the
+  // schedule is recurring (≥1 weekday selected). One-time schedules render a
+  // plain supplies list with no pill (conditional render, not hidden).
+  const suppliesRepeatable = form.daysOfWeek !== 0;
   const [submitted, setSubmitted] = useState(false);
   const [picker, setPicker] = useState<PickerState>(null);
   const [checklist, setChecklist] = useState<ChecklistDraft[]>([]);
@@ -273,6 +278,16 @@ export function ScheduleEditContent({
     if (formType === null) return;
 
     const noRepeat = form.daysOfWeek === 0;
+    // Decision C / ADR-006a: a one-time schedule (daysOfWeek===0) has no
+    // recurrence, so 반복 is meaningless. Normalize EVERY draft row's
+    // occurrenceDate to NULL BEFORE the create loop and the diff run — this
+    // single transform covers all three persist sites (create loop, diff
+    // INSERT, diff UPDATE), so a previously day-specific row can never be left
+    // orphaned (member of no occurrence). Recurring schedules pass through
+    // unchanged, preserving each row's occurrenceDate exactly.
+    const rowsToPersist: ChecklistDraft[] = noRepeat
+      ? checklist.map((c) => ({ ...c, occurrenceDate: null }))
+      : checklist;
     const effectiveDaysOfWeek = noRepeat
       ? weekdayMaskFromIso(form.validFrom)
       : form.daysOfWeek;
@@ -304,7 +319,9 @@ export function ScheduleEditContent({
       // Persist the drafted checklist rows — empty/whitespace rows skipped.
       // Each row carries its own occurrenceDate (null = recurring / 반복 ON,
       // yyyymmdd int = day-specific / 반복 OFF) per the v6 entry-point rule.
-      const rows = checklist.filter((c) => c.label.trim().length > 0);
+      // rowsToPersist is the normalized list (Decision C): one-time schedules
+      // have already had every occurrenceDate nulled.
+      const rows = rowsToPersist.filter((c) => c.label.trim().length > 0);
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (row === undefined) continue;
@@ -333,7 +350,10 @@ export function ScheduleEditContent({
         db,
         existingSchedule.id,
         originalChecklistRef.current,
-        checklist,
+        // Decision C: feed the normalized list so an EXISTING day-specific row
+        // on a now-one-time schedule is diffed as changed → UPDATE writes NULL
+        // (not the stale int).
+        rowsToPersist,
         { add: checklistAdd, update: checklistUpdate, remove: checklistRemove },
       );
     } else if (
@@ -732,6 +752,31 @@ export function ScheduleEditContent({
                           accessibilityLabel={`준비물 ${idx + 1}`}
                           onFocus={() => scrollFieldIntoView(checklistYRef.current)}
                         />
+                        {/* 반복 ↻ pill (A안 / ADR-006a): rendered ONLY for a
+                            recurring schedule. ON (occurrence_date NULL) = 매번
+                            (every occurrence); OFF (occurrence_date = bound
+                            date int) = 이번만 (this date only). Tapping flips
+                            between null ⇄ boundDateInt. */}
+                        {suppliesRepeatable ? (
+                          <RepeatPill
+                            on={item.occurrenceDate === null}
+                            onToggle={() =>
+                              setChecklist((cs) =>
+                                cs.map((c, i) =>
+                                  i === idx
+                                    ? {
+                                        ...c,
+                                        occurrenceDate:
+                                          c.occurrenceDate === null
+                                            ? boundDateInt
+                                            : null,
+                                      }
+                                    : c,
+                                ),
+                              )
+                            }
+                          />
+                        ) : null}
                         <Pressable
                           onPress={() =>
                             setChecklist((cs) => cs.filter((_, i) => i !== idx))
@@ -744,35 +789,17 @@ export function ScheduleEditContent({
                           <IconXMark size={16} color={TOKENS.inkSub} />
                         </Pressable>
                       </View>
-                      {/* 반복 toggle (v6): ON = recurring (every occurrence,
-                          occurrence_date NULL); OFF = day-specific (this date
-                          only). Default per entry-point — recurring in the
-                          EditSheet template context. */}
-                      <View style={styles.checklistRepeatRow}>
-                        <Text style={styles.checklistRepeatLabel}>반복</Text>
-                        <ToggleSwitch
-                          value={item.occurrenceDate === null}
-                          onChange={(on) =>
-                            setChecklist((cs) =>
-                              cs.map((c, i) =>
-                                i === idx
-                                  ? { ...c, occurrenceDate: on ? null : boundDateInt }
-                                  : c,
-                              ),
-                            )
-                          }
-                          ariaLabel={`준비물 ${idx + 1} 반복`}
-                        />
-                      </View>
                     </View>
                   ))}
                   <Pressable
                     onPress={() =>
                       setChecklist((cs) => [
                         ...cs,
-                        // Entry-point rule (a): EditSheet new items default to
-                        // recurring (occurrence_date NULL); user flips 반복 OFF
-                        // to bind to boundDateInt.
+                        // A안 / decision B: new items default to recurring
+                        // (occurrence_date NULL) — correct for BOTH recurring
+                        // (매번 default) and one-time schedules (the pill is
+                        // hidden; save normalizes the row to NULL anyway). A
+                        // user flips the ↻ pill OFF to bind to boundDateInt.
                         { id: null, label: '', occurrenceDate: null },
                       ])
                     }
@@ -1071,6 +1098,36 @@ function ToggleSwitch({
           value ? styles.switchKnobOn : styles.switchKnobOff,
         ]}
       />
+    </Pressable>
+  );
+}
+
+// ↻ 반복 pill (A안 / ADR-006a). ON = 매번 (tint bg + primaryDeep icon+label);
+// OFF = 이번만 (transparent bg, ink30 icon-only). Tap flips. Rendered only for
+// recurring schedules (caller-gated by suppliesRepeatable).
+function RepeatPill({
+  on,
+  onToggle,
+}: {
+  on: boolean;
+  onToggle: () => void;
+}): React.ReactElement {
+  return (
+    <Pressable
+      onPress={onToggle}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      accessibilityLabel={
+        on ? '매번 챙김 (탭하면 이번만)' : '이번만 (탭하면 매번)'
+      }
+      style={[
+        styles.checklistRepeatPill,
+        on ? styles.checklistRepeatPillOn : styles.checklistRepeatPillOff,
+      ]}
+    >
+      <IconRepeat size={13} color={on ? TOKENS.primaryDeep : TOKENS.ink30} />
+      {on ? <Text style={styles.checklistRepeatPillLabel}>매번</Text> : null}
     </Pressable>
   );
 }
@@ -1421,18 +1478,32 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: TOKENS.ink04,
   },
-  checklistRepeatRow: {
+  // ↻ 반복 pill (A안). radius 99; transition feel (.14s) is implicit in RN
+  // Pressable state swaps. Tokens only — no color/shadow literals.
+  checklistRepeatPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    // Align under the input (past the 20pt bullet + 10pt gap).
-    paddingLeft: 30,
-    paddingBottom: SPACING.sm,
+    gap: SPACING.xs,
+    borderRadius: RADIUS.full,
   },
-  checklistRepeatLabel: {
-    fontSize: 13,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
+  // ON (매번): tint bg, padding 4/9/4/7 (top/right/bottom/left).
+  checklistRepeatPillOn: {
+    backgroundColor: TOKENS.primaryTint,
+    paddingTop: 4,
+    paddingRight: 9,
+    paddingBottom: 4,
+    paddingLeft: 7,
+  },
+  // OFF (이번만): transparent bg, icon-only, padding 4/5.
+  checklistRepeatPillOff: {
+    backgroundColor: 'transparent',
+    paddingVertical: 4,
+    paddingHorizontal: 5,
+  },
+  checklistRepeatPillLabel: {
+    fontSize: 12.5,
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+    color: TOKENS.primaryDeep,
     letterSpacing: -0.2,
   },
   checklistBullet: {

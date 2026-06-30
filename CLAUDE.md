@@ -16,7 +16,8 @@
 - **TS**: strict + noUncheckedIndexedAccess (NO exactOptionalPropertyTypes)
 - **온라인 기능 일체 없음**: 회원가입·로그인·가족공유·클라우드동기화 모두 비목표
 - **Entities (ADR-002, ADR-006)**: Child / Schedule / ScheduleException / NotificationSetting + **ChecklistItem · Todo · SchedulePickupLog · ChecklistCompletion** (총 8 tables)
-- **준비물 반복/완료 (ADR-006, PREP-RECUR)**: ChecklistItem 완료는 **회차별 로그** `checklist_completion(checklist_item_id, occurrence_date, completed_at)` UNIQUE — 픽업 로그 패턴 미러. 완료 단일 출처(`is_done/done_at`는 FROZEN, v7에서 drop). 항목별 `occurrence_date` nullable = **NULL 반복 / 값 당일전용**. 항목별 "반복" 토글 기본 OFF(당일), 단 EditSheet 추가는 기본 반복(NULL)·일간/상세 추가는 기본 당일(D). `occurrence_date`는 **yyyymmdd INT**(`isoToYyyymmdd`). 알림 본문은 그 회차 완료분 제외(Option A). 마이그레이션 v6 = atomicity-gated(idempotency 아님).
+- **준비물 반복/완료 (ADR-006, PREP-RECUR)**: ChecklistItem 완료는 **회차별 로그** `checklist_completion(checklist_item_id, occurrence_date, completed_at)` UNIQUE — 픽업 로그 패턴 미러. 완료 단일 출처(`is_done/done_at`는 FROZEN, v7에서 drop). 항목별 `occurrence_date` nullable = **NULL 반복 / 값 당일전용**. `occurrence_date`는 **yyyymmdd INT**(`isoToYyyymmdd`). 알림 본문은 그 회차 완료분 제외(Option A). 마이그레이션 v6 = atomicity-gated(idempotency 아님).
+- **준비물 반복 토글 UI (ADR-006a, A안)**: 항목별 반복 컨트롤 = **↻ pill**(이전 라벨+스위치 폐기). **반복 일정(`daysOfWeek !== 0`)일 때만 렌더**(1회성은 조건부 미렌더 = 단순 리스트). 새 항목 기본 **매번**(`occurrence_date = NULL`). ON="매번"(primaryTint/primaryDeep), OFF=아이콘 only(ink30) — 토큰만(리터럴 금지). ↻ 글리프 = `@expo/vector-icons` Ionicons `repeat`(react-native-svg 금지, A-ICONS). **이번만 OFF = 편집을 연 날짜에 귀속**(`boundDateInt`; fix-1로 `EventDetailDrawer.handleEditAll`이 `occurrenceDate` 전달). 1회성 저장(`daysOfWeek===0`) 시 **diff 이전 단일 변환**으로 전 행 `occurrence_date`→NULL(create/INSERT/UPDATE 3 지점 모두 커버 → 고아 행 방지).
 - **Schedule extra (ADR-002)**: `needs_pickup` boolean. ScheduleException은 손대지 않음 (kind CHECK 제약 유지). 회차별 픽업 완료는 `schedule_pickup_log(schedule_id, occurrence_date, completed_at)` UNIQUE 제약으로 별도 기록.
 - **알림 정책 (ADR-002)**: 일정 알림 본문에 ChecklistItem 자동 prepend(≤80자). Todo는 dueAt 기반 단독 푸시. **그 외 새 푸시 surface 금지** (충돌 푸시 X).
 - **픽업 시각화 (ADR-003, ADR-002 supersede)**: 일간 그리드 상단 `PickupCarousel` 단일 위치. 다음 픽업 1+개를 swipe 가능 카드(Sunset Orange / French Lavender bg)로 표시. 동시 시간 픽업 ≥ 2 → carousel 추가 카드. 블록 오버레이·푸시 둘 다 금지. `⚠ {hh:mm} 픽업 충돌` sub-bar pill은 ADR-003에서 폐기.
@@ -32,7 +33,7 @@
 | Architect/Critic 리뷰 | `.omc/plans/ralplan-schedul-app-v2.{architect,critic}-review.md` |
 | 보류된 결정 | `.omc/plans/open-questions.md` |
 | 제품 PRD·페르소나 | `docs/product/` |
-| 아키텍처·ADR | `docs/architecture/` (ADR-001 stack lock, ADR-002 prep·todos·pickup, ADR-003 pickup carousel + NOW tick, **ADR-004 modal sheets — 네이티브 formSheet/modal, gorhom 미사용**) |
+| 아키텍처·ADR | `docs/architecture/` (ADR-001 stack lock, ADR-002 prep·todos·pickup, ADR-003 pickup carousel + NOW tick, **ADR-004 modal sheets — 네이티브 formSheet/modal, gorhom 미사용**, ADR-006 PREP-RECUR 회차별 완료, **ADR-006a 준비물 반복 ↻ pill — 반복 일정 종속 노출**) |
 | UI/UX 가이드 | `docs/design/` |
 | 회의록 | `docs/meetings/` |
 | 로드맵·백로그·스프린트 | `schedule/` |

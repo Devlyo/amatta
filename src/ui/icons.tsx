@@ -82,6 +82,10 @@ export const IconTrash = memo(function IconTrash({ size = 18, color = TOKENS.ink
   return <Ionicons name="trash-outline" size={size} color={color} />;
 });
 
+export const IconRepeat = memo(function IconRepeat({ size = 13, color = TOKENS.ink }: IconProps) {
+  return <Ionicons name="repeat" size={size} color={color} />;
+});
+
 // ── Category icons (학교/학원/활동/기타) ───────────────────────────────────────
 // Approximations of the amatta set; replaced by the real SVG icons on EAS build.
 

@@ -124,9 +124,19 @@ export function EventDetailContent({
     if (schedule === undefined) return;
     router.replace({
       pathname: '/schedule/edit',
-      params: { mode: 'editAll', scheduleId: String(schedule.id) },
+      params: {
+        mode: 'editAll',
+        scheduleId: String(schedule.id),
+        // fix-1 (ADR-006a): forward the viewed occurrence so a 이번만-OFF row
+        // binds to the date the user is looking at (boundDateInt's 2nd
+        // fallback), not the week-anchor currentDate. Mirrors
+        // handleEditOccurrence above.
+        ...(detail.occurrenceDate !== undefined
+          ? { occurrenceDate: detail.occurrenceDate }
+          : {}),
+      },
     });
-  }, [schedule, router]);
+  }, [schedule, detail.occurrenceDate, router]);
 
   const handleCancelOccurrence = useCallback(() => {
     if (schedule === undefined || detail.occurrenceDate === undefined) return;
