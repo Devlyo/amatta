@@ -222,7 +222,7 @@ function ScheduleBlockDaily({ occ, palette, compact, onPress }: BlockProps): Rea
   // without clipping or overlapping its neighbour (no height inflation).
   const durationMin = occ.endMinutes - occ.startMinutes;
   const isShort = durationMin <= 40;
-  const shortFontSize = durationMin <= 20 ? 6 : 9;
+  const shortFontSize = durationMin <= 20 ? 7 : 9;
   const hideTime = durationMin <= 30;
 
   // The schedule occurrence has no `location` (the v1 prototype's `place`).

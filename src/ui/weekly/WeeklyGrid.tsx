@@ -407,11 +407,17 @@ function WeeklyScheduleBlock({
         },
       ]}
     >
+      {/* Icon is absolutely positioned at the top-left so it sits on the FIRST
+          line only; the title fills the full block width and wraps to line 2+
+          with NO left indent. The leading spaces clear the icon on line 1. */}
       <View style={blockStyles.titleRow}>
         <View style={blockStyles.iconWrap}>
           <KindIcon size={9} color={TOKENS.ink} />
         </View>
-        <Text style={blockStyles.title}>{block.title}</Text>
+        <Text style={blockStyles.title}>
+          {'   '}
+          {block.title}
+        </Text>
       </View>
       {height > 26 ? (
         <Text style={blockStyles.time}>
@@ -432,15 +438,11 @@ const blockStyles = StyleSheet.create({
     overflow: 'hidden',
     gap: 1,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start', // icon sits on the FIRST text line; title wraps beside it
-    gap: SPACING.xxs,
-  },
-  iconWrap: { opacity: 0.85, marginTop: 1 }, // nudge the icon onto the title's first-line baseline
+  titleRow: { position: 'relative' },
+  // Absolute so the icon occupies only the first line; the title flows full-width
+  // beneath/around it (leading spaces in the title clear the icon on line 1).
+  iconWrap: { position: 'absolute', top: 1, left: 0, opacity: 0.85, zIndex: 1 },
   title: {
-    flex: 1,
-    minWidth: 0,
     fontSize: 9,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
