@@ -26,6 +26,7 @@ import { expandOccurrences } from '../../src/domain/occurrences';
 import type { Child, Occurrence } from '../../src/domain/types';
 import { useChecklistStore } from '../../src/state/checklist-store';
 import { useChecklistCompletionStore } from '../../src/state/checklist-completion-store';
+import { isChecklistItemVisibleOn } from '../../src/domain/checklist-membership';
 import { useChildrenStore } from '../../src/state/children-store';
 import { usePickupLogStore } from '../../src/state/pickup-log-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
@@ -155,10 +156,13 @@ export default function DailyViewScreen(): React.ReactElement {
     () => todos.filter((t) => !t.isDone && isDueOnDate(t.dueAt, currentDate)).length,
     [todos, currentDate],
   );
-  // Checklist badge mirrors ChecklistSection (v6): count items whose schedule
-  // occurs on the viewed date, respecting membership (NULL = recurring, set =
-  // day-specific) and per-occurrence completion (checklist_completion), NOT the
-  // frozen is_done. Keeps the badge in sync with the date-filtered 준비물 list.
+  // Checklist badge mirrors ChecklistSection (v7, ADR-006b): count items VISIBLE
+  // on the viewed date via the shared membership helper (NULL = always; recurring
+  // = anchor-forward; 이번만 = that date only) and not yet completed for that
+  // occurrence (checklist_completion), NOT the frozen is_done. Keeps the badge in
+  // sync with the date-filtered 준비물 list. Using the helper (not the old inline
+  // NULL||===dInt filter) is required so 매번 items count on dates after their
+  // anchor, not only on the anchor day.
   const itemsByScheduleId = useChecklistStore((s) => s.itemsByScheduleId);
   const checklistCompletionMap = useChecklistCompletionStore((s) => s.completionMap);
   const undoneChecklist = useMemo(() => {
@@ -168,7 +172,7 @@ export default function DailyViewScreen(): React.ReactElement {
       const items = itemsByScheduleId.get(occ.scheduleId);
       if (items === undefined) continue;
       for (const item of items) {
-        if (item.occurrenceDate !== null && item.occurrenceDate !== dateInt) continue;
+        if (!isChecklistItemVisibleOn(item, dateInt)) continue;
         if (!checklistCompletionMap.has(`${item.id}|${dateInt}`)) n += 1;
       }
     }
