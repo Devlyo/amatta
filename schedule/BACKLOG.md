@@ -116,7 +116,9 @@
   진입점 필요. ADR-002 보완 + 마이그레이션 v6. ralplan 권장. (qa 2차 논의)~~
 - [ ] **A-ICONS** amatta 커스텀 SVG 아이콘 재도입(홈/설정 nav·종류 4종·온보딩 블롭) — `docs/design/amatta-icons/`. ⚠️ react-native-svg가 **Expo Go SDK54에선 로드 자체가 크래시**(Circle/Defs "component config 없음"). 현재는 @expo/vector-icons 폴백.
   - **2026-06-30 발견**: 코드 구현은 끝(커밋 `eb71a99`, 11개 SVG → RN-SVG 포팅, jest green)이나 **현재 dev 빌드에도 RNSVG 네이티브(Fabric)가 등록 안 됨** → 같은 "component config 없음" 크래시. `scripts/fix-react-native-svg-manifest.js` postinstall 패치는 **Metro JS 해석만** 교정(`react-native` 필드 → `lib/module/index.js`), 네이티브 codegen은 별개. → 되돌림(vector-icons 유지).
-  - **풀려면**: RNSVG Fabric이 바이너리에 포함되도록 빌드 정비 후 **새 dev/prod 빌드** 필요. codegen이 패치된 manifest를 EAS install→prebuild 순서에서 보는지 확인(필요 시 `expo prebuild` 재생성 / `react-native-svg` 업그레이드 검토). 빌드되면 `eb71a99` 재적용+검증. **P1b production 빌드와 함께 처리 권장.**
+  - **2026-06-30 빌드 정비 조사 결론**: 패키지는 **완전 정상**. codegenConfig(RNSVGCircle 등) + `src/fabric` 스펙 35개 + `apple/` 네이티브 소스 + `RNSVG.podspec` 모두 존재, autolink 제외 없음, newArch on. 게다가 `react-native` 필드 manifest 버그는 **upstream 15.12.1에서 이미 수정됨**(patch-package "변경 없음" 확인) → `scripts/fix-react-native-svg-manifest.js`는 현재 **no-op**(무해, 방어적, 유지). **고칠 설정 없음.**
+  - **원인**: 02:22(UTC) dev 빌드가 RNSVG 네이티브를 안 담은 채 구워짐(stale/EAS 캐시).
+  - **풀려면 (코드 변경 X)**: 클린 리빌드 → `eas build --profile development --platform ios --clear-cache` (또는 P1b production 빌드). 새 빌드 설치 후 `git cherry-pick eb71a99`(또는 `git revert 8df77e3`)로 A-ICONS 재적용 → 리로드 → 검증. **P1b와 함께 처리 권장.**
 - [ ] **UI-POLISH** 출시 전 UI 폴리시 1패스 (한 번에 몰아서) — PREP-RECUR 반복 토글 행 시안화, 빈상태, 간격/토큰 정합, amatta-v1 fidelity 재점검 등. 기능 동작은 OK, 비주얼만. (2026-06-30 사용자 deferred)
 - [ ] **P6** 약관/개인정보 본문 확정 + 공개 https URL 호스팅 + 메타데이터(설명·키워드·생산성·4+) `[BLOCKER]`
 - [ ] **P7** version 1.0.0 + ios.buildNumber 추가/autoIncrement + app.json에 아마따/supportsTablet:false 반영
