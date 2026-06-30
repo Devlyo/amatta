@@ -434,10 +434,10 @@ const blockStyles = StyleSheet.create({
   },
   titleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start', // icon sits on the FIRST text line; title wraps beside it
     gap: SPACING.xxs,
   },
-  iconWrap: { opacity: 0.85 },
+  iconWrap: { opacity: 0.85, marginTop: 1 }, // nudge the icon onto the title's first-line baseline
   title: {
     flex: 1,
     minWidth: 0,
