@@ -8,7 +8,7 @@
 
 ## Decision (사용자 확정)
 1. **Apple 계정 = 개인(individual)** — D-U-N-S 불필요, 최단 경로. (A1)
-2. **스토어 표시명 = "아마따"** — bundleId `io.starzip.schedulapp` 유지. (A2)
+2. **스토어 표시명 = "아마따"** — bundleId `io.devlyo.amatta` (2026-06-30 QA7: 레거시 `io.starzip.schedulapp`에서 Devlyo/아마따 브랜드에 맞게 변경, ASC 레코드/첫 제출 전이라 안전). (A2)
 3. **v1은 아이폰 전용** — `supportsTablet:false`. iPad는 v1.1로 연기(그리드는 fluid해서 깨지진 않으나 범위 최소화). 재개 시 WeeklyGrid/MultiKidGrid 고정폭 감사 필요(구 Q8). (A3)
 4. **iCloud 표면 전부 제거** — `usesIcloudStorage`(app.json:19) + entitlements + `NSUbiquitousContainers`. 코드에 iCloud 사용 0이라 미사용 capability 거절(Guideline 2.1) 제거. 진짜 백업은 v1.1. (A4)
 5. **개인정보처리방침 공개 https URL 호스팅** (GitHub Pages/Notion). (A5)
