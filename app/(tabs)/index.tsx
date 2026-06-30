@@ -25,6 +25,7 @@ import { isKoreanHoliday } from '../../src/domain/korean-holidays';
 import { expandOccurrences } from '../../src/domain/occurrences';
 import type { Child, Occurrence } from '../../src/domain/types';
 import { useChecklistStore } from '../../src/state/checklist-store';
+import { useChecklistCompletionStore } from '../../src/state/checklist-completion-store';
 import { useChildrenStore } from '../../src/state/children-store';
 import { usePickupLogStore } from '../../src/state/pickup-log-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
@@ -33,6 +34,7 @@ import { useUiStore } from '../../src/state/ui-store';
 import { BottomDock } from '../../src/ui/common/BottomDock';
 import { EmptyDayState } from '../../src/ui/daily/EmptyDayState';
 import { KidPillsHeader } from '../../src/ui/daily/KidPillsHeader';
+import { isoToYyyymmdd } from '../../src/ui/daily/pickup-data';
 import { PickupCarousel } from '../../src/ui/daily/PickupCarousel';
 import { ScheduleGrid } from '../../src/ui/daily/ScheduleGrid';
 import { TabStrip, type DailyTabKey } from '../../src/ui/daily/TabStrip';
@@ -153,13 +155,25 @@ export default function DailyViewScreen(): React.ReactElement {
     () => todos.filter((t) => !t.isDone && isDueOnDate(t.dueAt, currentDate)).length,
     [todos, currentDate],
   );
-  const undoneChecklist = useChecklistStore((s) => {
+  // Checklist badge mirrors ChecklistSection (v6): count items whose schedule
+  // occurs on the viewed date, respecting membership (NULL = recurring, set =
+  // day-specific) and per-occurrence completion (checklist_completion), NOT the
+  // frozen is_done. Keeps the badge in sync with the date-filtered 준비물 list.
+  const itemsByScheduleId = useChecklistStore((s) => s.itemsByScheduleId);
+  const checklistCompletionMap = useChecklistCompletionStore((s) => s.completionMap);
+  const undoneChecklist = useMemo(() => {
+    const dateInt = isoToYyyymmdd(currentDate);
     let n = 0;
-    for (const items of s.itemsByScheduleId.values()) {
-      for (const item of items) if (!item.isDone) n += 1;
+    for (const occ of occurrences) {
+      const items = itemsByScheduleId.get(occ.scheduleId);
+      if (items === undefined) continue;
+      for (const item of items) {
+        if (item.occurrenceDate !== null && item.occurrenceDate !== dateInt) continue;
+        if (!checklistCompletionMap.has(`${item.id}|${dateInt}`)) n += 1;
+      }
     }
     return n;
-  });
+  }, [occurrences, itemsByScheduleId, checklistCompletionMap, currentDate]);
   const todoCount = undoneTodos + undoneChecklist;
 
   const handleBlockPress = (occ: Occurrence): void => {

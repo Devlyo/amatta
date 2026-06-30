@@ -4,6 +4,7 @@ import { migration002 } from './002_v2_prep_todos_pickup.sql';
 import { migration003 } from './003_v3_child_avatar.sql';
 import { migration004 } from './004_v4_align_color_to_avatar.sql';
 import { migration005 } from './005_v5_app_settings.sql';
+import { migration006 } from './006_v6_checklist_recurrence.sql';
 
 export type TxMode = 'explicit-begin' | 'fallback-with-transaction';
 
@@ -22,6 +23,7 @@ export const MIGRATIONS: ReadonlyArray<Migration> = [
   { version: 3, sql: migration003 },
   { version: 4, sql: migration004 },
   { version: 5, sql: migration005 },
+  { version: 6, sql: migration006 },
 ];
 
 export async function runMigrations(

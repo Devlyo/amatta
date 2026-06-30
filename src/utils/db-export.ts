@@ -1,13 +1,14 @@
 // Pure DB → JSON export. Read-only against the live SQLite handle.
-// Spec: ralplan §Phase 4 §3 "데이터 내보내기 (JSON)". Schema v2 covers all
-// seven user entities (the full DB surface): children, schedules,
+// Spec: ralplan §Phase 4 §3 "데이터 내보내기 (JSON)". Schema v3 covers all
+// eight user entities (the full DB surface): children, schedules,
 // schedule_exceptions, notification_settings, checklist_items, todos,
-// schedule_pickup_log. The `schemaVersion` field lets a future importer
-// detect/reject incompatible bundles.
+// schedule_pickup_log, checklist_completion. The `schemaVersion` field lets a
+// future importer detect/reject incompatible bundles.
 
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type {
+  ChecklistCompletion,
   ChecklistItem,
   Child,
   NotificationSetting,
@@ -17,6 +18,7 @@ import type {
   Todo,
 } from '../domain/types';
 import {
+  rowToChecklistCompletion,
   rowToChecklistItem,
   rowToChild,
   rowToNotificationSetting,
@@ -24,6 +26,7 @@ import {
   rowToScheduleException,
   rowToSchedulePickupLog,
   rowToTodo,
+  type ChecklistCompletionRow,
   type ChecklistItemRow,
   type ChildRow,
   type NotificationSettingRow,
@@ -33,9 +36,10 @@ import {
   type TodoRow,
 } from '../db/row-mappers';
 
-// Bumped 1 → 2 when checklist_items / todos / schedule_pickup_log were added
-// to the envelope. A future importer keys off this to detect the format.
-export const EXPORT_SCHEMA_VERSION = 2 as const;
+// Bumped 1 → 2 when checklist_items / todos / schedule_pickup_log were added.
+// Bumped 2 → 3 when checklist_completion was added (PREP-RECUR, v6 schema).
+// A future importer keys off this to detect the format.
+export const EXPORT_SCHEMA_VERSION = 3 as const;
 
 export interface ExportEnvelope {
   exportedAt: string; // ISO timestamp (UTC)
@@ -47,6 +51,7 @@ export interface ExportEnvelope {
   checklistItems: ChecklistItem[];
   todos: Todo[];
   pickupLog: SchedulePickupLog[];
+  checklistCompletion: ChecklistCompletion[];
 }
 
 export interface ExportResult {
@@ -84,6 +89,10 @@ export async function exportDb(
      FROM notification_settings ORDER BY child_id ASC`,
   );
   const checklistRows = await db.getAllAsync<ChecklistItemRow>(
+    // FROZEN legacy fields — `checklist_completion` is the authoritative
+    // completion source for the v1.1 restore path. `is_done`/`done_at` are
+    // serialized here only for envelope shape stability; do NOT write them
+    // back on import (v1.1+). See PREP-RECUR / ADR-002.
     `SELECT id, schedule_id, label, sort_order, is_done, done_at
      FROM checklist_items ORDER BY id ASC`,
   );
@@ -96,6 +105,10 @@ export async function exportDb(
     `SELECT id, schedule_id, occurrence_date, completed_at
      FROM schedule_pickup_log ORDER BY id ASC`,
   );
+  const checklistCompletionRows = await db.getAllAsync<ChecklistCompletionRow>(
+    `SELECT id, checklist_item_id, occurrence_date, completed_at
+     FROM checklist_completion ORDER BY id ASC`,
+  );
 
   const envelope: ExportEnvelope = {
     exportedAt: now.toISOString(),
@@ -107,6 +120,7 @@ export async function exportDb(
     checklistItems: checklistRows.map(rowToChecklistItem),
     todos: todoRows.map(rowToTodo),
     pickupLog: pickupLogRows.map(rowToSchedulePickupLog),
+    checklistCompletion: checklistCompletionRows.map(rowToChecklistCompletion),
   };
 
   return {

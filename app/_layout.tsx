@@ -19,6 +19,7 @@ import { useSchedulesStore } from '../src/state/schedules-store';
 import { useChecklistStore } from '../src/state/checklist-store';
 import { useTodosStore } from '../src/state/todos-store';
 import { usePickupLogStore } from '../src/state/pickup-log-store';
+import { useChecklistCompletionStore } from '../src/state/checklist-completion-store';
 import { useNotifSettingsStore } from '../src/state/notif-settings-store';
 import { TOKENS } from '../src/ui/palette';
 
@@ -102,6 +103,7 @@ export default function RootLayout() {
           useChecklistStore.getState().load(db),
           useTodosStore.getState().load(db),
           usePickupLogStore.getState().load(db),
+          useChecklistCompletionStore.getState().load(db),
         ]);
         for (const r of v2Results) {
           if (r.status === 'rejected') {

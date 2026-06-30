@@ -38,12 +38,13 @@ import type {
 } from '../domain/types';
 import {
   childrenRepo,
+  checklistCompletionRepo,
   checklistItemsRepo,
   exceptionsRepo,
   schedulesRepo,
   todosRepo,
 } from '../db/repositories';
-import { shiftIsoDate, todayIso } from '../ui/utils/date';
+import { isoToYyyymmdd, shiftIsoDate, todayIso } from '../ui/utils/date';
 import { useNotifSettingsStore } from '../state/notif-settings-store';
 import {
   formatScheduleNotification,
@@ -105,6 +106,12 @@ function candidatesForSchedule(input: {
   exceptions: readonly ScheduleException[];
   childrenById: Map<number, Child>;
   checklistByScheduleId: Map<number, ChecklistItem[]>;
+  /**
+   * Per-occurrence completion lookup: dInt (yyyymmdd) → set of checklist item
+   * ids completed FOR THAT date (from `checklist_completion`). Missing date =
+   * empty set. This is the v6 source of truth for completion; `is_done` is dead.
+   */
+  completedByDate: Map<number, Set<number>>;
   horizonDays: number;
   now: Date;
 }): Candidate[] {
@@ -113,6 +120,7 @@ function candidatesForSchedule(input: {
     exceptions,
     childrenById,
     checklistByScheduleId,
+    completedByDate,
     horizonDays,
     now,
   } = input;
@@ -143,12 +151,28 @@ function candidatesForSchedule(input: {
     );
     if (fireAt.getTime() <= now.getTime()) continue;
 
+    // Per-occurrence resolution (Option A, ralplan-ios-launch-v2 §3.2f):
+    //   member of THIS date D  ⇔  occurrenceDate === null (recurring)
+    //                              OR occurrenceDate === dInt (day-specific).
+    //   pending                ⇔  member AND not in checklist_completion for D.
+    // Compare yyyymmdd INT to yyyymmdd INT — never ISODate TEXT to an int.
+    const dInt = isoToYyyymmdd(occ.date);
+    const completedIds = completedByDate.get(dInt);
+    const pendingLabels: string[] = [];
+    for (const item of checklist) {
+      const isMember =
+        item.occurrenceDate === null || item.occurrenceDate === dInt;
+      if (!isMember) continue;
+      if (completedIds !== undefined && completedIds.has(item.id)) continue;
+      pendingLabels.push(item.label);
+    }
+
     const { title, body } = formatScheduleNotification({
       schedule,
       startMinutes: occ.startMinutes,
       endMinutes: occ.endMinutes,
       kidName: child.name,
-      checklist,
+      pendingLabels,
     });
 
     candidates.push({
@@ -260,6 +284,25 @@ export async function rescheduleAll(
     checklistByScheduleId.set(s.id, items);
   }
 
+  // Load per-occurrence completions across the whole rolling horizon in ONE
+  // query (v6 source of truth; is_done is frozen). Keyed dInt → set of completed
+  // item ids so candidatesForSchedule can suppress items completed FOR that day
+  // while keeping them pending on every other occurrence (Option A).
+  const horizonFrom = todayIso();
+  const horizonTo = shiftIsoDate(horizonFrom, horizonDays);
+  const completions = await checklistCompletionRepo.listForDateRange(
+    db,
+    isoToYyyymmdd(horizonFrom),
+    isoToYyyymmdd(horizonTo),
+  );
+  const completedByDate = new Map<number, Set<number>>();
+  for (const c of completions) {
+    const set = completedByDate.get(c.occurrenceDate);
+    if (set === undefined)
+      completedByDate.set(c.occurrenceDate, new Set([c.checklistItemId]));
+    else set.add(c.checklistItemId);
+  }
+
   // P3.2 — collect ALL candidate triggers (schedules + todos) WITHOUT
   // scheduling inline, sort soonest-first, then truncate to MAX_SCHEDULED.
   // This guarantees the soonest triggers win the limited iOS slots instead
@@ -272,6 +315,7 @@ export async function rescheduleAll(
         exceptions: exceptionsByScheduleId.get(s.id) ?? [],
         childrenById,
         checklistByScheduleId,
+        completedByDate,
         horizonDays,
         now,
       }),

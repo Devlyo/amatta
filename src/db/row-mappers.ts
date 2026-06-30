@@ -7,6 +7,7 @@ import type {
   Schedule,
   ScheduleException,
   SchedulePickupLog,
+  ChecklistCompletion,
   ScheduleType,
   Todo,
 } from '../domain/types';
@@ -119,6 +120,7 @@ export interface ChecklistItemRow {
   sort_order: number;
   is_done: number;
   done_at: number | null;
+  occurrence_date: number | null;
 }
 
 export interface TodoRow {
@@ -147,6 +149,7 @@ export function rowToChecklistItem(r: ChecklistItemRow): ChecklistItem {
     sortOrder: r.sort_order,
     isDone: r.is_done === 1,
     doneAt: r.done_at,
+    occurrenceDate: r.occurrence_date,
   };
 }
 
@@ -167,6 +170,22 @@ export function rowToSchedulePickupLog(r: SchedulePickupLogRow): SchedulePickupL
   return {
     id: r.id,
     scheduleId: r.schedule_id,
+    occurrenceDate: r.occurrence_date,
+    completedAt: r.completed_at,
+  };
+}
+
+export interface ChecklistCompletionRow {
+  id: number;
+  checklist_item_id: number;
+  occurrence_date: number;
+  completed_at: number;
+}
+
+export function rowToChecklistCompletion(r: ChecklistCompletionRow): ChecklistCompletion {
+  return {
+    id: r.id,
+    checklistItemId: r.checklist_item_id,
     occurrenceDate: r.occurrence_date,
     completedAt: r.completed_at,
   };

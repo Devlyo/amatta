@@ -87,10 +87,10 @@ describe('exportDb', () => {
     if (existsSync(dbPath)) rmSync(dbPath, { force: true });
   });
 
-  test('empty DB → envelope has all seven arrays empty + schemaVersion bump', async () => {
+  test('empty DB → envelope has all eight arrays empty + schemaVersion bump', async () => {
     const result = await exportDb(db as never);
     expect(result.envelope.schemaVersion).toBe(EXPORT_SCHEMA_VERSION);
-    expect(EXPORT_SCHEMA_VERSION).toBeGreaterThanOrEqual(2);
+    expect(EXPORT_SCHEMA_VERSION).toBeGreaterThanOrEqual(3);
     expect(result.envelope.children).toEqual([]);
     expect(result.envelope.schedules).toEqual([]);
     expect(result.envelope.exceptions).toEqual([]);
@@ -98,17 +98,19 @@ describe('exportDb', () => {
     expect(result.envelope.checklistItems).toEqual([]);
     expect(result.envelope.todos).toEqual([]);
     expect(result.envelope.pickupLog).toEqual([]);
+    expect(result.envelope.checklistCompletion).toEqual([]);
   });
 
   // Reject-vector guard (P3.3): every category the data screen counts/displays
   // under "내보낼 정보" — 자녀(children) / 일정(schedules) / 준비물(checklist) /
   // 할일(todos) — plus the rest of the DB surface MUST be an exported envelope
   // key. If the UI ever shows a category the export drops, this fails.
-  test('exported categories cover all seven DB entities (no silent data loss)', async () => {
+  test('exported categories cover all eight DB entities (no silent data loss)', async () => {
     const result = await exportDb(db as never);
     const exportedKeys = Object.keys(result.envelope).sort();
     expect(exportedKeys).toEqual(
       [
+        'checklistCompletion',
         'checklistItems',
         'children',
         'exceptions',
@@ -126,6 +128,8 @@ describe('exportDb', () => {
     expect(result.envelope.schedules).toBeDefined(); // 일정
     expect(result.envelope.checklistItems).toBeDefined(); // 준비물
     expect(result.envelope.todos).toBeDefined(); // 할일
+    // Authoritative per-occurrence completion table (v6 / PREP-RECUR).
+    expect(result.envelope.checklistCompletion).toBeDefined();
   });
 
   test('exportedAt is a valid ISO 8601 UTC timestamp', async () => {
@@ -184,6 +188,13 @@ describe('exportDb', () => {
       `INSERT INTO schedule_pickup_log (schedule_id, occurrence_date, completed_at)
        VALUES (2, 1717000000000, 1717003600000)`,
     );
+    // checklist_completion: two per-occurrence completions for checklist items
+    // that already exist above (item id 1 = '교재' on schedule 2, item id 3 = '물통' on schedule 1).
+    real.exec(
+      `INSERT INTO checklist_completion (checklist_item_id, occurrence_date, completed_at)
+       VALUES (1, 20260602, 1717000001000),
+              (3, 20260602, 1717000002000)`,
+    );
 
     // Expected counts straight from the seed above — these are the source of
     // truth the export must mirror per table.
@@ -195,6 +206,7 @@ describe('exportDb', () => {
       checklistItems: 3,
       todos: 2,
       pickupLog: 1,
+      checklistCompletion: 2,
     };
 
     const result = await exportDb(db as never);
@@ -209,6 +221,9 @@ describe('exportDb', () => {
     );
     expect(result.envelope.todos).toHaveLength(expectedCounts.todos);
     expect(result.envelope.pickupLog).toHaveLength(expectedCounts.pickupLog);
+    expect(result.envelope.checklistCompletion).toHaveLength(
+      expectedCounts.checklistCompletion,
+    );
 
     // Cross-check each export array length against the live DB row count, so a
     // future schema change that drops rows from a table is caught.
@@ -220,6 +235,7 @@ describe('exportDb', () => {
       ['checklistItems', 'SELECT COUNT(*) AS c FROM checklist_items'],
       ['todos', 'SELECT COUNT(*) AS c FROM todos'],
       ['pickupLog', 'SELECT COUNT(*) AS c FROM schedule_pickup_log'],
+      ['checklistCompletion', 'SELECT COUNT(*) AS c FROM checklist_completion'],
     ] as const) {
       const dbCount = Number(
         (real.prepare(sql).get() as { c: number | bigint }).c,
@@ -262,6 +278,11 @@ describe('exportDb', () => {
     expect(result.envelope.pickupLog[0]).toMatchObject({
       scheduleId: 2,
       occurrenceDate: 1717000000000,
+    });
+    expect(result.envelope.checklistCompletion[0]).toMatchObject({
+      checklistItemId: 1,
+      occurrenceDate: 20260602,
+      completedAt: 1717000001000,
     });
   });
 

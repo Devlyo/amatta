@@ -70,6 +70,12 @@ export interface ChecklistItem {
   sortOrder: number;
   isDone: boolean;
   doneAt: number | null;
+  // v6 / PREP-RECUR membership:
+  //   null = recurring (belongs to EVERY occurrence of its schedule)
+  //   yyyymmdd int = day-specific (belongs only to that one occurrence date)
+  // Completion is NOT stored here as of v6 — it lives in checklist_completion,
+  // keyed by (checklist_item_id, occurrence_date). is_done/done_at are FROZEN.
+  occurrenceDate: number | null;
 }
 
 export interface Todo {
@@ -88,4 +94,11 @@ export interface SchedulePickupLog {
   scheduleId: number;
   occurrenceDate: number;
   completedAt: number;
+}
+
+export interface ChecklistCompletion {
+  id: number;
+  checklistItemId: number;
+  occurrenceDate: number; // yyyymmdd int
+  completedAt: number; // epoch ms
 }

@@ -1,7 +1,13 @@
 import { Fragment, memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { useChecklistStore, useChildrenStore, useSchedulesStore, useUiStore } from '../../state';
+import {
+  useChecklistCompletionStore,
+  useChecklistStore,
+  useChildrenStore,
+  useSchedulesStore,
+  useUiStore,
+} from '../../state';
 import { getDb } from '../../db/client';
 import { expandOccurrences } from '../../domain/occurrences';
 import type { Child, ChecklistItem, Occurrence } from '../../domain/types';
@@ -11,6 +17,7 @@ import { IconCheck } from '../icons';
 import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
+import { isoToYyyymmdd } from './pickup-data';
 
 interface KidGroupItem {
   item: ChecklistItem;
@@ -26,6 +33,7 @@ function buildGroups(
   children: Child[],
   scheduleOccurrencesToday: Map<number, Occurrence>,
   itemsByScheduleId: Map<number, ChecklistItem[]>,
+  dateInt: number,
 ): KidGroup[] {
   const childIdToItems = new Map<number, KidGroupItem[]>();
   for (const [scheduleId, occ] of scheduleOccurrencesToday) {
@@ -37,6 +45,8 @@ function buildGroups(
     const dueLabel = formatHhmm(occ.startMinutes);
     const bucket = childIdToItems.get(occ.childId) ?? [];
     for (const item of items) {
+      // v6 membership: NULL = recurring (every date), set = day-specific.
+      if (item.occurrenceDate !== null && item.occurrenceDate !== dateInt) continue;
       bucket.push({ item, dueLabel });
     }
     childIdToItems.set(occ.childId, bucket);
@@ -75,7 +85,18 @@ function ChecklistSectionImpl(): React.ReactElement {
   const schedules = useSchedulesStore((s) => s.schedules);
   const exceptions = useSchedulesStore((s) => s.exceptions);
   const itemsByScheduleId = useChecklistStore((s) => s.itemsByScheduleId);
+  const completionMap = useChecklistCompletionStore((s) => s.completionMap);
   const currentDate = useUiStore((s) => s.currentDate);
+
+  // The viewed day as a yyyymmdd int — the key both for membership filtering
+  // (day-specific items show only on their date) and per-occurrence completion
+  // (checking on day D never marks D+1).
+  const dateInt = useMemo(() => isoToYyyymmdd(currentDate), [currentDate]);
+
+  const isComplete = useMemo(
+    () => (itemId: number): boolean => completionMap.has(`${itemId}|${dateInt}`),
+    [completionMap, dateInt],
+  );
 
   const childrenById = useMemo(() => {
     const m = new Map<number, Child>();
@@ -96,17 +117,19 @@ function ChecklistSectionImpl(): React.ReactElement {
   }, [schedules, exceptions, currentDate, childrenById]);
 
   const groups = useMemo(
-    () => buildGroups(children, occurrencesToday, itemsByScheduleId),
-    [children, occurrencesToday, itemsByScheduleId],
+    () => buildGroups(children, occurrencesToday, itemsByScheduleId, dateInt),
+    [children, occurrencesToday, itemsByScheduleId, dateInt],
   );
 
   const flatItems = useMemo(() => groups.flatMap((g) => g.items.map((i) => i.item)), [groups]);
   const total = flatItems.length;
-  const done = flatItems.filter((i) => i.isDone).length;
+  // Completion is per-occurrence (v6): "done" iff a checklist_completion row
+  // exists for (itemId, viewed date). is_done is FROZEN and never read here.
+  const done = flatItems.filter((i) => isComplete(i.id)).length;
 
   const onToggle = async (itemId: number): Promise<void> => {
     const db = await getDb();
-    await useChecklistStore.getState().toggleDone(db, itemId);
+    await useChecklistStore.getState().toggleDone(db, itemId, dateInt);
   };
 
   return (
@@ -118,7 +141,7 @@ function ChecklistSectionImpl(): React.ReactElement {
         ) : (
           groups.map((group, idx) => {
           const palette = getKidPalette(group.kid.colorIndex);
-          const remaining = group.items.filter((i) => !i.item.isDone).length;
+          const remaining = group.items.filter((i) => !isComplete(i.item.id)).length;
           return (
             <Fragment key={group.kid.id}>
               {idx > 0 ? <View style={styles.divider} /> : null}
@@ -130,7 +153,7 @@ function ChecklistSectionImpl(): React.ReactElement {
                 </Text>
               </View>
               {group.items.map(({ item, dueLabel }) => {
-                const isDone = item.isDone;
+                const isDone = isComplete(item.id);
                 return (
                   <Pressable
                     key={item.id}

@@ -108,6 +108,8 @@ describe('checklistItemsRepo', () => {
     expect(created.sortOrder).toBe(0);
     expect(created.isDone).toBe(false);
     expect(created.doneAt).toBeNull();
+    // v6: defaults to recurring membership (occurrence_date NULL).
+    expect(created.occurrenceDate).toBeNull();
 
     const fetched = await checklistItemsRepo.getById(db as never, created.id);
     expect(fetched).toEqual(created);
@@ -122,6 +124,21 @@ describe('checklistItemsRepo', () => {
     await checklistItemsRepo.remove(db as never, created.id);
     const after = await checklistItemsRepo.getById(db as never, created.id);
     expect(after).toBeNull();
+  });
+
+  test('create() with occurrenceDate binds the item day-specific (v6)', async () => {
+    const day = await checklistItemsRepo.create(db as never, {
+      scheduleId,
+      label: '오늘만',
+      occurrenceDate: 20260602,
+    });
+    expect(day.occurrenceDate).toBe(20260602);
+
+    // update() can flip membership recurring ↔ day-specific.
+    const flipped = await checklistItemsRepo.update(db as never, day.id, {
+      occurrenceDate: null,
+    });
+    expect(flipped.occurrenceDate).toBeNull();
   });
 
   test('listBySchedule() returns items ordered by sort_order ASC, id ASC', async () => {

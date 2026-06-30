@@ -10,6 +10,7 @@ import { runMigrations } from '../../src/db/migrations';
 import * as childrenRepo from '../../src/db/repositories/children';
 import * as schedulesRepo from '../../src/db/repositories/schedules';
 import { useChecklistStore } from '../../src/state/checklist-store';
+import { useChecklistCompletionStore } from '../../src/state/checklist-completion-store';
 import type { ISODate } from '../../src/domain/types';
 
 interface MinimalDb {
@@ -88,6 +89,7 @@ describe('useChecklistStore', () => {
     scheduleB = await makeSchedule(db, child.id);
 
     useChecklistStore.setState({ itemsByScheduleId: new Map(), isLoaded: false });
+    useChecklistCompletionStore.setState({ completionMap: new Map(), isLoaded: false });
   });
 
   afterEach(() => {
@@ -132,6 +134,43 @@ describe('useChecklistStore', () => {
     expect(items?.[0]?.label).toBe('간식');
   });
 
+  test('add() defaults to recurring (occurrenceDate null) when omitted', async () => {
+    await useChecklistStore.getState().load(db as never);
+    const item = await useChecklistStore.getState().add(db as never, {
+      scheduleId: scheduleA,
+      label: '반복준비물',
+    });
+    expect(item.occurrenceDate).toBeNull();
+    const stored = useChecklistStore.getState().itemsByScheduleId.get(scheduleA)?.[0];
+    expect(stored?.occurrenceDate).toBeNull();
+  });
+
+  test('add() binds to a date when occurrenceDate is supplied (day-specific)', async () => {
+    await useChecklistStore.getState().load(db as never);
+    const item = await useChecklistStore.getState().add(db as never, {
+      scheduleId: scheduleA,
+      label: '당일준비물',
+      occurrenceDate: 20260602,
+    });
+    expect(item.occurrenceDate).toBe(20260602);
+    const stored = useChecklistStore.getState().itemsByScheduleId.get(scheduleA)?.[0];
+    expect(stored?.occurrenceDate).toBe(20260602);
+  });
+
+  test('updateOne() can flip membership via occurrenceDate', async () => {
+    await useChecklistStore.getState().load(db as never);
+    const item = await useChecklistStore.getState().add(db as never, {
+      scheduleId: scheduleA,
+      label: '플립',
+      occurrenceDate: 20260602,
+    });
+    await useChecklistStore.getState().updateOne(db as never, item.id, {
+      occurrenceDate: null,
+    });
+    const stored = useChecklistStore.getState().itemsByScheduleId.get(scheduleA)?.[0];
+    expect(stored?.occurrenceDate).toBeNull();
+  });
+
   test('updateOne() mutates label in store', async () => {
     await useChecklistStore.getState().load(db as never);
     const item = await useChecklistStore.getState().add(db as never, {
@@ -158,22 +197,52 @@ describe('useChecklistStore', () => {
     expect(useChecklistStore.getState().itemsByScheduleId.get(scheduleA)).toHaveLength(0);
   });
 
-  test('toggleDone() flips isDone and stamps doneAt', async () => {
+  test('toggleDone() writes per-occurrence completion (v6), NOT is_done', async () => {
     await useChecklistStore.getState().load(db as never);
+    await useChecklistCompletionStore.getState().load(db as never);
     const item = await useChecklistStore.getState().add(db as never, {
       scheduleId: scheduleA,
       label: '토글',
     });
 
-    await useChecklistStore.getState().toggleDone(db as never, item.id);
-    let items = useChecklistStore.getState().itemsByScheduleId.get(scheduleA);
-    expect(items?.[0]?.isDone).toBe(true);
-    expect(items?.[0]?.doneAt).not.toBeNull();
+    const D = 20260602;
+    const key = `${item.id}|${D}`;
 
-    await useChecklistStore.getState().toggleDone(db as never, item.id);
-    items = useChecklistStore.getState().itemsByScheduleId.get(scheduleA);
-    expect(items?.[0]?.isDone).toBe(false);
-    expect(items?.[0]?.doneAt).toBeNull();
+    // Check on day D → completion row exists for (item, D).
+    await useChecklistStore.getState().toggleDone(db as never, item.id, D);
+    expect(useChecklistCompletionStore.getState().completionMap.has(key)).toBe(true);
+    const rowsAfterCheck = real
+      .prepare('SELECT * FROM checklist_completion WHERE checklist_item_id = ? AND occurrence_date = ?')
+      .all(item.id, D);
+    expect(rowsAfterCheck).toHaveLength(1);
+
+    // is_done is FROZEN — never written by toggleDone.
+    const tmpl = real
+      .prepare('SELECT is_done, done_at FROM checklist_items WHERE id = ?')
+      .get(item.id) as { is_done: number; done_at: number | null };
+    expect(tmpl.is_done).toBe(0);
+    expect(tmpl.done_at).toBeNull();
+
+    // Toggle again on D → completion row removed.
+    await useChecklistStore.getState().toggleDone(db as never, item.id, D);
+    expect(useChecklistCompletionStore.getState().completionMap.has(key)).toBe(false);
+  });
+
+  test('toggleDone() is per-occurrence: checking day D leaves day D+1 unchecked', async () => {
+    await useChecklistStore.getState().load(db as never);
+    await useChecklistCompletionStore.getState().load(db as never);
+    const item = await useChecklistStore.getState().add(db as never, {
+      scheduleId: scheduleA,
+      label: '준비물',
+    });
+
+    const D = 20260602;
+    const D1 = 20260603;
+    await useChecklistStore.getState().toggleDone(db as never, item.id, D);
+
+    const map = useChecklistCompletionStore.getState().completionMap;
+    expect(map.has(`${item.id}|${D}`)).toBe(true);
+    expect(map.has(`${item.id}|${D1}`)).toBe(false);
   });
 
   test('reorder() applies new sort order', async () => {

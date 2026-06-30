@@ -74,6 +74,7 @@ const CHECKLIST_ITEM: ChecklistItem = {
   sortOrder: 0,
   isDone: false,
   doneAt: null,
+  occurrenceDate: null,
 };
 
 describe('SearchDrawer', () => {

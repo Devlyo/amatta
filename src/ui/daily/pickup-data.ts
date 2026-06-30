@@ -20,7 +20,12 @@
 // formatted "Nh Nm" / "Nm" / "곧" Korean shorthand.
 
 import type { Child, ColorIndex, ISODate, Occurrence } from '../../domain/types';
-import { fmtKoTime, todayIso } from '../utils/date';
+import { fmtKoTime, isoToYyyymmdd, todayIso } from '../utils/date';
+
+// Re-exported from the shared date util (src/ui/utils/date.ts) so existing
+// pickup callers keep importing it from here while the notification layer can
+// import it from the util without a src/ui ↔ src/notifications cross-dependency.
+export { isoToYyyymmdd };
 
 export interface PickupCardData {
   scheduleId: number;
@@ -32,18 +37,6 @@ export interface PickupCardData {
   what: string;
   etaText: string;
   childColorIndex: ColorIndex;
-}
-
-/**
- * Parses an `YYYY-MM-DD` ISO date into a `YYYYMMDD` integer used by the
- * pickup-log table's `occurrence_date` column.
- */
-export function isoToYyyymmdd(iso: ISODate): number {
-  const s = iso as unknown as string;
-  const y = Number(s.slice(0, 4));
-  const m = Number(s.slice(5, 7));
-  const d = Number(s.slice(8, 10));
-  return y * 10000 + m * 100 + d;
 }
 
 function fmtTimeShort(minutes: number): string {

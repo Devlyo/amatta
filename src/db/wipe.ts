@@ -14,6 +14,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 const TABLES_LEAF_FIRST = [
   'schedule_pickup_log',
+  'checklist_completion',
   'checklist_items',
   'schedule_exceptions',
   'todos',
