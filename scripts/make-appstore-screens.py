@@ -26,13 +26,18 @@ WHITE = (255, 255, 255)
 DARK = (35, 34, 32)
 
 # (screenshot, background hex, text color, headline)
+# Per-screen color scheme (user-specified).
+# NOTE: screen 3 text color is a PLACEHOLDER — user wrote #C0F0AB (== bg, invisible).
 SCREENS = [
-    ("IMG_8453.PNG", "#FF7144", WHITE, "여러 자녀의 일정과 픽업 정보를 한 화면에"),
-    ("IMG_8456.PNG", "#C7B0FF", DARK,  "한 주의 타임 테이블을 한 눈에"),
-    ("IMG_8454.PNG", "#A5DC85", DARK,  "준비물과 할일도 간편하게!"),
-    ("IMG_8460.PNG", "#A9C8F5", DARK,  "가입 없이 사용하세요"),
-    ("IMG_8462.PNG", "#F7A8C4", DARK,  "자녀마다 귀여운 캐릭터를 등록해주세요"),
-    ("IMG_8458.PNG", "#F4D85A", DARK,  "한 아이의 한 주를 자세히"),
+    # bg unchanged; text darkened within the same hue family for higher contrast.
+    ("IMG_8453.PNG", "#C8B0FF", "#4E2E8F",  # was #FBF2FF (white) → deep lavender
+     "여러 자녀의 일정과 픽업을\n한눈에 관리하세요"),
+    ("IMG_8456.PNG", "#D9E7FE", "#29355C",  # was #3B4B7A → deeper navy
+     "한 주 모든 자녀 일정을 한눈에,\n가족을 위한 시간을 찾아볼까요?"),
+    ("IMG_8454.PNG", "#C0F0AB", "#1F3320",  # was #33473B → deeper green
+     "자녀들의 준비물과 할일까지\n간편하게 챙기세요"),
+    ("IMG_8462.PNG", "#FFE8D2", "#8E5238",  # was #BD7A65 → deeper brown
+     "가입 없이,\n귀여운 캐릭터와 함께"),
 ]
 
 
@@ -57,17 +62,26 @@ def wrap_to_lines(draw, text, font, max_w):
     return lines
 
 
-def fit_headline(draw, text, max_w, max_lines=2):
-    """Largest font size (78→48) that wraps within max_lines and max_w."""
-    for size in range(78, 47, -2):
+def fit_headline(draw, text, max_w):
+    """Honor explicit "\\n" breaks; pick a uniform size (cap 64) that fits.
+
+    Each paragraph (split on "\\n") becomes its own line; if a paragraph is
+    still too wide it soft-wraps. Capping at 64 keeps headline size consistent
+    across all 6 screens regardless of 1- vs 2-line copy.
+    """
+    paras = text.split("\n")
+    for size in range(64, 41, -2):
         font = ImageFont.truetype(FONT, size, index=FONT_INDEX)
-        lines = wrap_to_lines(draw, text, font, max_w)
-        if len(lines) <= max_lines and all(
-            draw.textlength(ln, font=font) <= max_w for ln in lines
-        ):
+        lines = []
+        for p in paras:
+            lines.extend(wrap_to_lines(draw, p, font, max_w))
+        if all(draw.textlength(ln, font=font) <= max_w for ln in lines):
             return font, lines
-    font = ImageFont.truetype(FONT, 48, index=FONT_INDEX)
-    return font, wrap_to_lines(draw, text, font, max_w)
+    font = ImageFont.truetype(FONT, 42, index=FONT_INDEX)
+    lines = []
+    for p in paras:
+        lines.extend(wrap_to_lines(draw, p, font, max_w))
+    return font, lines
 
 
 def rounded_top_mask(size, radius):
@@ -113,9 +127,11 @@ def compose(screenshot, bg_hex, text_color, headline, out_path):
     # --- headline in the top band (0 .. y) ---
     font, lines = fit_headline(draw, headline, TEXT_MAX_W)
     asc, desc = font.getmetrics()
-    line_h = int((asc + desc) * 1.18)
+    line_h = int((asc + desc) * 1.1)
     block_h = line_h * len(lines)
-    ty = (y - block_h) // 2 + int(line_h * 0.04)
+    # Center the headline block within the top band, nudged up slightly so it
+    # sits comfortably above the device rather than crowding it.
+    ty = int((y - block_h) * 0.46)
     for ln in lines:
         w = draw.textlength(ln, font=font)
         draw.text(((CANVAS_W - w) / 2, ty), ln, font=font, fill=text_color)
