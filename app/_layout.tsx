@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Appearance, AppState, Platform, Text, StyleSheet, View } from 'react-native';
+import { Appearance, AppState, Platform, Text, StyleSheet, View, Image } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -182,11 +182,18 @@ export default function RootLayout() {
   }, [bootState]);
 
   if (!fontsLoaded || bootState === 'booting') {
-    // Fill with the splash background color (no loading text, no white flash) so
-    // that if the native splash hides before the first content frame (dev client
-    // / fast JS) the gap reads as the splash, not a white screen. The native
-    // splash itself is held via preventAutoHideAsync until boot is 'ready'.
-    return <View style={styles.splashFill} />;
+    // Replicate the splash (아마따 wordmark on orange) so the hand-off from the
+    // native splash to JS is seamless — no white flash, and the wordmark doesn't
+    // blink out. The native splash is held via preventAutoHideAsync until 'ready'.
+    return (
+      <View style={styles.splashFill}>
+        <Image
+          source={require('../assets/images/splash-icon.png')}
+          style={styles.splashWordmark}
+          resizeMode="contain"
+        />
+      </View>
+    );
   }
 
   if (bootState === 'error') {
@@ -309,7 +316,13 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  splashFill: { flex: 1, backgroundColor: TOKENS.primary },
+  splashFill: {
+    flex: 1,
+    backgroundColor: TOKENS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  splashWordmark: { width: 140, height: 50 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // eslint-disable-next-line no-restricted-syntax
   errorText: { fontSize: 16, color: '#c00', marginBottom: 8 },

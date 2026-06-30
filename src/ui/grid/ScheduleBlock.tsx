@@ -16,7 +16,7 @@ import { fmt12hrShort } from '../utils/date';
 // linearly toward a readable floor for shorter blocks (e.g. a 15-min block
 // gets a smaller title than a 30-min one), never below the floor.
 const TITLE_FONT_FULL = 12; // matches styles.title (normal small text token)
-const TITLE_FONT_FLOOR = 9; // readability floor — do not go below
+const TITLE_FONT_FLOOR = 6; // very-short-block floor (founder: shrink to 6px)
 
 /** Proportional title size for a block of `durationMin` minutes. */
 function shortBlockFontSize(durationMin: number): number {
