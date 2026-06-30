@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "io.starzip.schedulapp",
+      "bundleIdentifier": "io.devlyo.amatta",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -39,7 +39,7 @@
       }
     },
     "android": {
-      "package": "io.starzip.schedulapp",
+      "package": "io.devlyo.amatta",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"

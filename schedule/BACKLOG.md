@@ -130,7 +130,7 @@
 > Expo 크로스플랫폼이라 로직/UI/아이콘(dual-path SVG)/알림/백업 전부 재사용.
 > iOS 자산(방침 URL·스토어 문구·QA 체크리스트) 재활용. 아래는 Android 전용 델타만.
 
-- [x] **A-PKG** `android.package = io.starzip.schedulapp` (app.json) — 완료
+- [x] **A-PKG** `android.package = io.devlyo.amatta` (app.json) — 완료 (QA7에서 starzip→devlyo 변경)
 - [ ] **A-ACCT** Google Play 개발자 계정($25 1회) + 신원 확인 `[BLOCKER]`
 - [ ] **A-TEST** ⚠️ 신규 **개인** 계정이면 프로덕션 전 closed testing **12~20명 × 14일** 의무 — 가장 큰 일정 허들 (법인은 면제) `[BLOCKER]`
 - [ ] **A-ALARM** Android 12+ 정시 알림 정밀도 점검(SCHEDULE_EXACT_ALARM 필요 여부) — 기본으로 충분한지 실기기 확인
