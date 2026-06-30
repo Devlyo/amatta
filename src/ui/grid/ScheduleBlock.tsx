@@ -49,6 +49,15 @@ function ScheduleBlockImpl({
   // ≥ 2 slots (60 min) gives us two text rows comfortably.
   const showTimePill = block.heightSlots >= 2;
 
+  // Item 10 (founder option C) — short blocks (≤ 1 slot / ≤ 30 min) render a
+  // COMPACT layout: title only, single line, ellipsised, at the existing small
+  // text token (no tiny auto-shrink). The time pill / location are already
+  // dropped here (showTimePill is false below 2 slots), and inner padding is
+  // tightened so the one legible title line fits a 15–30 min block. We do NOT
+  // inflate `height` — the true slot height is preserved so a short block
+  // never overlaps the block beneath it.
+  const isCompact = block.heightSlots < 2;
+
   return (
     <Pressable
       onPress={onPress}
@@ -56,6 +65,7 @@ function ScheduleBlockImpl({
       accessibilityLabel={block.title}
       style={[
         styles.block,
+        isCompact ? styles.blockCompact : null,
         {
           top,
           height,
@@ -95,6 +105,16 @@ const styles = StyleSheet.create({
     paddingTop: 5,
     paddingBottom: SPACING.xs,
     overflow: 'hidden',
+  },
+  // Item 10 — compact (≤ 30 min) blocks: tighten vertical padding and center
+  // the single title row so the legible 12px title fits inside the true
+  // (un-inflated) ~22px block height without being clipped, and pull the
+  // horizontal padding in slightly so a longer title ellipsises later.
+  blockCompact: {
+    justifyContent: 'center',
+    paddingTop: SPACING.xxs,
+    paddingBottom: SPACING.xxs,
+    paddingHorizontal: SPACING.xs,
   },
   titleRow: {
     flexDirection: 'row',

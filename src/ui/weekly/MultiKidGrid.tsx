@@ -34,6 +34,9 @@ export const MG_HOUR_END = 25;
 export const MG_HOUR_PX = 56;
 // Unified across all three grids (daily/weekly/multi) per user direction.
 const MG_GUTTER = 40;
+// Tap-block tooltip width. Hoisted so the edge-column anchor math (which flips
+// the tooltip inward at the week edges, see render) and the style agree.
+const TOOLTIP_W = 140;
 const NOW_BADGE_DEAD_ZONE = 14; // skip hour label too close to NOW pill
 const TIME_START_MIN = MG_HOUR_START * 60;
 const TIME_END_MIN = MG_HOUR_END * 60;
@@ -133,6 +136,18 @@ function MultiKidGridImpl({
   const HOURS: number[] = [];
   for (let h = MG_HOUR_START; h <= MG_HOUR_END; h++) HOURS.push(h);
 
+  // Day column holding the currently-open tooltip (-1 if none). RN orders
+  // sibling Views by source order unless a zIndex is set on the sibling
+  // itself; a tooltip that flips inward (item 5) overlaps the NEXT column,
+  // which paints later and would cover it. Lift the open column's dayCol so
+  // its tooltip sits above neighbouring columns' blocks.
+  const openDayIdx =
+    tooltipKey === null
+      ? -1
+      : weekDates.findIndex(
+          (d) => (d as unknown as string) === tooltipKey.date,
+        );
+
   return (
     <ScrollView
       ref={scrollRef}
@@ -177,12 +192,32 @@ function MultiKidGridImpl({
         <View style={styles.daysRow}>
           {weekDates.map((date, dayIdx) => {
             const isToday = dayIdx === todayIdx;
+            // Tooltip is TOOLTIP_W wide and by default centers over its lane
+            // (left:'50%', marginLeft:-TOOLTIP_W/2), which sits inside a narrow
+            // flex:1 day column. For the leftmost columns that center-anchor
+            // overflows off the screen's left edge; for the rightmost, off the
+            // right. Flip the anchor inward at the edges: left-edge columns
+            // (0/1) open RIGHTward (left edge at lane center → marginLeft:0);
+            // right-edge columns (5/6) open LEFTward (right edge at lane center
+            // → marginLeft:-TOOLTIP_W). Keeps the tooltip tied to its block
+            // while staying fully on-screen. All `left:'50%'` so the anchor
+            // stays over the lane regardless.
+            const tooltipAnchor: { marginLeft: number } | null =
+              dayIdx <= 1
+                ? { marginLeft: 0 }
+                : dayIdx >= 5
+                  ? { marginLeft: -TOOLTIP_W }
+                  : null;
             return (
               <View
                 key={date as unknown as string}
                 style={[
                   styles.dayCol,
                   isToday ? styles.dayColToday : null,
+                  // Raise the column with the open tooltip above its siblings
+                  // so an inward-flipped tooltip is never covered by the next
+                  // column (item 5).
+                  dayIdx === openDayIdx ? styles.dayColRaised : null,
                 ]}
               >
                 {/* Kid lanes — flex:1 each so they share the column equally */}
@@ -202,7 +237,7 @@ function MultiKidGridImpl({
                           return (
                             <View
                               key={`${occ.scheduleId}|${occ.date as unknown as string}`}
-                              style={[styles.blockSlot, { zIndex: isOpen ? 20 : 0 }]}
+                              style={[styles.blockSlot, { zIndex: isOpen ? 20 : 1 }]}
                             >
                               <Pressable
                                 onPress={() => {
@@ -254,6 +289,9 @@ function MultiKidGridImpl({
                                     placeAbove
                                       ? { top: top - 62 }
                                       : { top: top + h + 6 },
+                                    // Edge columns flip the tooltip inward so
+                                    // it never overflows off-screen (item 5).
+                                    tooltipAnchor,
                                   ]}
                                 >
                                   <View style={styles.tooltipKidRow}>
@@ -289,14 +327,16 @@ function MultiKidGridImpl({
                   })}
                 </View>
 
-                {/* Hour gridlines ON TOP of the kid blocks (the time grid reads
-                    above the colored blocks; under the NOW line). zIndex 10 so
-                    it beats the blocks' inline zIndex:1 (rendering-after isn't
-                    enough vs an explicit zIndex); under the open tooltip (30).
-                    pointerEvents none so blocks keep receiving taps. */}
+                {/* Hour gridlines UNDER the kid blocks (item 6: the founder
+                    wants the time grid to read BELOW the colored blocks — a
+                    block fully hides the gridlines it covers; empty areas still
+                    show the grid). Final z-order: gridlines (0) < resting blocks
+                    (blockSlot zIndex:1) < open tooltip (blockSlot zIndex:20 +
+                    tooltip zIndex:30). This reverses the earlier "gridlines on
+                    top" fix on purpose. pointerEvents none so blocks keep taps. */}
                 <View
                   pointerEvents="none"
-                  style={[StyleSheet.absoluteFill, { zIndex: 10 }]}
+                  style={[StyleSheet.absoluteFill, { zIndex: 0 }]}
                 >
                   {HOURS.map((h) => (
                     <View
@@ -385,6 +425,11 @@ const styles = StyleSheet.create({
     // ~3% primary tint — same intent as the prototype's `${A.primary}06`.
     backgroundColor: 'rgba(255,113,68,0.06)',
   },
+  dayColRaised: {
+    // Lifts the open-tooltip column above its sibling columns so the
+    // inward-flipped tooltip isn't clipped/covered by the next column.
+    zIndex: 5,
+  },
   hourLine: {
     position: 'absolute',
     left: 0,
@@ -428,8 +473,8 @@ const styles = StyleSheet.create({
   tooltip: {
     position: 'absolute',
     left: '50%',
-    width: 140,
-    marginLeft: -70,
+    width: TOOLTIP_W,
+    marginLeft: -TOOLTIP_W / 2,
     backgroundColor: TOKENS.surface,
     borderRadius: 9,
     paddingVertical: 6,

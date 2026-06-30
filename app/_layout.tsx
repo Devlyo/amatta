@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Appearance, AppState, Platform, Text, StyleSheet } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -37,6 +38,12 @@ export const unstable_settings = {
 // this forces light there too — otherwise native chrome (the formSheet sheet
 // container, date picker) renders with the device's dark-mode system colors.
 Appearance.setColorScheme('light');
+
+// Keep the native splash visible until boot is READY (migrations + stores +
+// notif reconcile). Without this, expo-router would tear down the splash as
+// soon as the JS mounts, flashing a bare loading screen before the app is
+// usable. Hidden in the boot effect's success path via SplashScreen.hideAsync().
+void SplashScreen.preventAutoHideAsync();
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -135,10 +142,14 @@ export default function RootLayout() {
         }
 
         setBootState('ready');
+        // App is fully ready — drop the native splash now (no loading-text flash).
+        void SplashScreen.hideAsync();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e ?? 'Unknown error');
         setBootError(msg);
         setBootState('error');
+        // Reveal the error screen instead of leaving the splash stuck.
+        void SplashScreen.hideAsync();
       }
     }
 
@@ -171,11 +182,10 @@ export default function RootLayout() {
   }, [bootState]);
 
   if (!fontsLoaded || bootState === 'booting') {
-    return (
-      <SafeAreaView style={styles.center}>
-        <Text style={styles.text}>준비 중...</Text>
-      </SafeAreaView>
-    );
+    // Render nothing — the native splash (held via preventAutoHideAsync) stays
+    // up until boot reaches 'ready' and calls SplashScreen.hideAsync(). No
+    // loading-text flash.
+    return null;
   }
 
   if (bootState === 'error') {
@@ -299,8 +309,6 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // eslint-disable-next-line no-restricted-syntax
-  text: { fontSize: 16, color: '#333' },
   // eslint-disable-next-line no-restricted-syntax
   errorText: { fontSize: 16, color: '#c00', marginBottom: 8 },
   // eslint-disable-next-line no-restricted-syntax

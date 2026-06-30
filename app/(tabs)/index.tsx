@@ -15,9 +15,15 @@
 // the form port lands in R3.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { AppState, StyleSheet, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { Redirect, useRouter } from 'expo-router';
 
 import { MAX_CHILDREN } from '../../src/domain/constants';
@@ -58,23 +64,67 @@ export default function DailyViewScreen(): React.ReactElement {
   const currentDate = useUiStore((s) => s.currentDate);
   const setCurrentDate = useUiStore((s) => s.setCurrentDate);
   const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
 
-  // Horizontal swipe ±1 day on the schedule body. activeOffsetX delays
-  // activation until the user commits to a horizontal motion so vertical
-  // scroll inside ScheduleGrid wins for predominantly-vertical drags.
-  // Until R3 ships the CalendarDrawer, this is the user's primary
-  // date-navigation gesture.
+  // Item 7/8 — page-slide transition on the daily ±1-day swipe.
+  //
+  // `dragX` is driven directly off the pan translation on the UI thread (a
+  // reanimated worklet, never the JS thread) so the body tracks the finger at
+  // 60fps. On release we either (a) snap back to 0 if the swipe was below
+  // threshold, or (b) animate the body fully off-screen in the swipe
+  // direction, then — via runOnJS — commit the date ±1 and reset dragX to the
+  // opposite edge so the new day's content slides in from the far side.
+  //
+  // The gesture is hoisted to a single container that wraps BOTH the schedule
+  // body and the 준비물 & 할일 body (Item 8), so swiping either tab moves the
+  // date. activeOffsetX keeps predominantly-vertical drags (grid/list scroll,
+  // and the todo row's own swipe-to-delete Swipeable, which activates on a
+  // smaller horizontal offset within its row) from triggering the date swipe.
+  const dragX = useSharedValue(0);
+
+  const commitShift = useCallback(
+    (dir: -1 | 1): void => {
+      // dir = +1 → user swiped left → next day; -1 → swiped right → prev day.
+      setCurrentDate(shiftIsoDate(currentDate, dir));
+      // Place incoming day's content just off the opposite edge, then let the
+      // post-commit layout effect (below) animate it to rest at 0.
+      dragX.value = dir === 1 ? screenWidth : -screenWidth;
+    },
+    [currentDate, setCurrentDate, dragX, screenWidth],
+  );
+
   const panGesture = Gesture.Pan()
     .activeOffsetX([-12, 12])
     .failOffsetY([-12, 12])
+    .onUpdate((e) => {
+      dragX.value = e.translationX;
+    })
     .onEnd((e) => {
       if (e.translationX <= -SWIPE_THRESHOLD) {
-        setCurrentDate(shiftIsoDate(currentDate, 1));
+        // Slide remaining distance off the left edge, then commit → next day.
+        dragX.value = withTiming(-screenWidth, { duration: 160 }, (done) => {
+          if (done) runOnJS(commitShift)(1);
+        });
       } else if (e.translationX >= SWIPE_THRESHOLD) {
-        setCurrentDate(shiftIsoDate(currentDate, -1));
+        dragX.value = withTiming(screenWidth, { duration: 160 }, (done) => {
+          if (done) runOnJS(commitShift)(-1);
+        });
+      } else {
+        // Below threshold — snap back to rest.
+        dragX.value = withTiming(0, { duration: 160 });
       }
-    })
-    .runOnJS(true);
+    });
+
+  // After a commit, dragX is parked at ±screenWidth (incoming content off the
+  // opposite edge); animate it home so the new day slides in. Keyed on
+  // currentDate so it runs exactly once per date change.
+  useEffect(() => {
+    dragX.value = withTiming(0, { duration: 200 });
+  }, [currentDate, dragX]);
+
+  const slideStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: dragX.value }],
+  }));
 
   const [tab, setTab] = useState<DailyTabKey>('schedule');
   const [nowMinutes, setNowMinutes] = useState<number>(() => currentMinutes());
@@ -242,32 +292,37 @@ export default function DailyViewScreen(): React.ReactElement {
       {/* Section 4 — Tabs */}
       <TabStrip active={tab} onChange={setTab} todoCount={todoCount} />
 
-      {tab === 'schedule' ? (
-        <GestureDetector gesture={panGesture}>
-          <View style={styles.scheduleBody}>
-            {/* Section 5 — Kid pill header row */}
-            <KidPillsHeader
-              kids={visibleChildren}
-              onPressKid={(id) => router.push(`/child/${id}`)}
-            />
-            {/* Section 6 — Day grid (scrolls vertically), or an empty-day
-                hint when nothing is scheduled for the viewed date. */}
-            {occurrences.length === 0 ? (
-              <EmptyDayState />
-            ) : (
-              <ScheduleGrid
+      {/* Sections 5/6 (schedule) + 준비물 & 할일 body share one pan gesture
+          (Item 8) and one sliding Animated.View (Item 7) so a horizontal
+          swipe on EITHER tab pages the date ±1 with a slide transition. */}
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[styles.scheduleBody, slideStyle]}>
+          {tab === 'schedule' ? (
+            <>
+              {/* Section 5 — Kid pill header row */}
+              <KidPillsHeader
                 kids={visibleChildren}
-                occurrences={occurrences}
-                nowMinutes={nowMinutes}
-                currentDate={currentDate}
-                onBlockPress={handleBlockPress}
+                onPressKid={(id) => router.push(`/child/${id}`)}
               />
-            )}
-          </View>
-        </GestureDetector>
-      ) : (
-        <TodoTabContent />
-      )}
+              {/* Section 6 — Day grid (scrolls vertically), or an empty-day
+                  hint when nothing is scheduled for the viewed date. */}
+              {occurrences.length === 0 ? (
+                <EmptyDayState />
+              ) : (
+                <ScheduleGrid
+                  kids={visibleChildren}
+                  occurrences={occurrences}
+                  nowMinutes={nowMinutes}
+                  currentDate={currentDate}
+                  onBlockPress={handleBlockPress}
+                />
+              )}
+            </>
+          ) : (
+            <TodoTabContent />
+          )}
+        </Animated.View>
+      </GestureDetector>
 
       {/* Section 7 — Floating bottom dock */}
       <BottomDock
