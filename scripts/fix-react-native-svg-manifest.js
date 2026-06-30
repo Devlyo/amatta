@@ -1,57 +1,60 @@
-// Workaround for react-native-svg 15.12.1 whose npm tarball ships a
-// `react-native` field pointing at `src/index.ts` — a source file that
-// isn't included in the published tarball. Metro picks `react-native` over
-// `main`, then fails to resolve the missing file. The package's built
-// output at `lib/module/index.js` is shipped fine.
+// react-native-svg 15.12.1 + Expo SDK 54 / RN 0.81 (new architecture) fix.
 //
-// Some npm caches resolve the package correctly (patch-package's clean
-// install did) while ours from `expo install` did not. To be robust against
-// either, this postinstall step idempotently rewrites the manifest field
-// if it still points at `src/index.ts`.
+// THE BUG: react-native-svg's published `package.json` sets
+//   "react-native": "lib/module/index.js"  (the COMPILED output).
+// Under the new architecture, `@react-native/babel-plugin-codegen` runs during
+// Metro bundling on every file that calls `codegenNativeComponent(...)` and must
+// read the TypeScript generic type argument (e.g.
+//   codegenNativeComponent<NativeProps>('RNSVGCircle', …))
+// to generate the Fabric view config. The compiled `lib/module/fabric/
+// *NativeComponent.js` files have that type argument STRIPPED, so codegen throws
+//   "Could not find component config for native component"
+// the moment any react-native-svg component is actually imported into the bundle
+// (e.g. our amatta SVG icons / pickup-banner cars). This fails the Metro bundle
+// itself — both `expo start` and the EAS build's JS-bundle phase.
 //
-// Tracked upstream: https://github.com/software-mansion/react-native-svg/issues
-// Remove this script + the postinstall hook once the upstream tarball ships
-// a working `react-native` field (or once the dep is upgraded past the bug).
+// THE FIX: point the `react-native` field at the TYPED SOURCE
+//   "react-native": "src/index.ts"
+// so Metro resolves react-native-svg to `src/fabric/*.ts`, where the
+// `codegenNativeComponent<NativeProps>(…)` type argument is intact and codegen
+// succeeds. (This also matches the package's own `codegenConfig.jsSrcsDir:
+// "./src/fabric"`.) Verified: `npx expo export -p ios` bundles cleanly with the
+// source field, and crashes with the compiled field.
+//
+// Idempotent postinstall so EAS builds (which run `npm install`) get the fix too.
+// Remove once react-native-svg ships a `react-native` field pointing at source,
+// or the dep is upgraded past the bug.
 
 'use strict';
 
 const fs = require('node:fs');
 const path = require('node:path');
 
-const manifestPath = path.join(
-  __dirname,
-  '..',
-  'node_modules',
-  'react-native-svg',
-  'package.json',
-);
+const pkgDir = path.join(__dirname, '..', 'node_modules', 'react-native-svg');
+const manifestPath = path.join(pkgDir, 'package.json');
+const desired = 'src/index.ts';
 
 if (!fs.existsSync(manifestPath)) {
   // Dependency not installed yet (e.g. first npm install with --ignore-scripts).
-  // Nothing to fix — exit cleanly.
+  process.exit(0);
+}
+
+// The source entry must actually exist in this install; if a future tarball
+// drops `src/`, bail rather than point at a missing file.
+if (!fs.existsSync(path.join(pkgDir, 'src', 'index.ts'))) {
+  console.warn(
+    '[fix-react-native-svg-manifest] react-native-svg/src/index.ts missing — skipping (cannot point at source)',
+  );
   process.exit(0);
 }
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-const current = manifest['react-native'];
-const desired = 'lib/module/index.js';
-
-if (current === desired) {
-  // Already correct (e.g. upstream fixed, or a previous postinstall ran).
-  process.exit(0);
-}
-
-if (current !== 'src/index.ts') {
-  // Some other unexpected value — log and bail so we don't clobber an
-  // intentional override.
-  console.warn(
-    `[fix-react-native-svg-manifest] expected "react-native": "src/index.ts", got ${JSON.stringify(current)} — skipping`,
-  );
-  process.exit(0);
+if (manifest['react-native'] === desired) {
+  process.exit(0); // already correct
 }
 
 manifest['react-native'] = desired;
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
 console.log(
-  '[fix-react-native-svg-manifest] patched react-native-svg/package.json react-native field → lib/module/index.js',
+  '[fix-react-native-svg-manifest] patched react-native-svg/package.json react-native field → src/index.ts (new-arch codegen needs the typed source)',
 );
