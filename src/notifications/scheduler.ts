@@ -28,6 +28,7 @@ import * as Notifications from 'expo-notifications';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { expandOccurrences } from '../domain/occurrences';
+import { isChecklistItemVisibleOn } from '../domain/checklist-membership';
 import type {
   ChecklistItem,
   Child,
@@ -151,18 +152,16 @@ function candidatesForSchedule(input: {
     );
     if (fireAt.getTime() <= now.getTime()) continue;
 
-    // Per-occurrence resolution (Option A, ralplan-ios-launch-v2 §3.2f):
-    //   member of THIS date D  ⇔  occurrenceDate === null (recurring)
-    //                              OR occurrenceDate === dInt (day-specific).
-    //   pending                ⇔  member AND not in checklist_completion for D.
+    // Per-occurrence resolution (Option A, ralplan-ios-launch-v2 §3.2f /
+    // ADR-006b): member of THIS date D is decided by the shared membership
+    // helper (NULL = always; recurring = anchor-forward; 이번만 = that date).
+    //   pending ⇔ member AND not in checklist_completion for D.
     // Compare yyyymmdd INT to yyyymmdd INT — never ISODate TEXT to an int.
     const dInt = isoToYyyymmdd(occ.date);
     const completedIds = completedByDate.get(dInt);
     const pendingLabels: string[] = [];
     for (const item of checklist) {
-      const isMember =
-        item.occurrenceDate === null || item.occurrenceDate === dInt;
-      if (!isMember) continue;
+      if (!isChecklistItemVisibleOn(item, dInt)) continue;
       if (completedIds !== undefined && completedIds.has(item.id)) continue;
       pendingLabels.push(item.label);
     }

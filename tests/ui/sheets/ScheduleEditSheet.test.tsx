@@ -1,10 +1,14 @@
 // Component tests for the EditSheet 준비물 (supplies) checklist UI rework
-// (A안 / ADR-006a). Covers:
+// (A안 / ADR-006a + v7 PREP-RECUR / ADR-006b). Covers:
 //   - ↻ pill conditional render (absent one-time, present recurring)
-//   - ON shows "매번" + icon, OFF icon-only
-//   - founder navigate-to-date binding (toggle OFF → occurrence_date = viewed)
+//   - ON/OFF state driven by `item.recurring` (NOT occurrence_date): ON shows
+//     "매번" + icon, OFF icon-only; toggling flips `recurring`
+//   - founder navigate-to-date binding: a new item / a recurring→이번만 toggle
+//     anchors occurrenceDate to boundDateInt (the viewed date)
 //   - fix-1 bind target (editAll opened for date X binds to X, not currentDate)
+//   - new item persists { occurrenceDate: <anchor>, recurring: true }
 //   - Decision C save normalization across create + UPDATE persist sites
+//     (one-time schedule → { occurrenceDate: null, recurring: true })
 //
 // Stores are seeded directly; getDb + the mutating store methods are replaced
 // with jest mocks so save payloads are observable without real SQLite.
@@ -63,6 +67,9 @@ function mkSchedule(over: Partial<Schedule> = {}): Schedule {
   };
 }
 
+// v7 / ADR-006b: a checklist item now carries BOTH the `occurrenceDate` anchor
+// AND a `recurring` flag. The ↻ pill ON state reflects `recurring` (매번), not
+// the anchor. Default fixture = recurring with a NULL anchor (legacy/unbounded).
 function mkItem(over: Partial<ChecklistItem> = {}): ChecklistItem {
   return {
     id: 100,
@@ -70,6 +77,7 @@ function mkItem(over: Partial<ChecklistItem> = {}): ChecklistItem {
     label: '교재',
     sortOrder: 0,
     occurrenceDate: null,
+    recurring: true,
     isDone: false,
     doneAt: null,
     ...over,
@@ -127,10 +135,11 @@ afterEach(() => {
 });
 
 describe('EditSheet 준비물 ↻ pill — conditional render', () => {
-  test('recurring schedule renders the ↻ pill (ON shows 매번)', () => {
+  test('recurring schedule + recurring item renders the ↻ pill ON (매번)', () => {
     seedStores({
       schedule: mkSchedule({ daysOfWeek: TUE_BIT }),
-      items: [mkItem({ occurrenceDate: null })],
+      // v7: ON state is driven by `recurring`, not the anchor.
+      items: [mkItem({ recurring: true, occurrenceDate: 20260602 })],
       mode: 'editAll',
     });
     const { queryByLabelText, queryByText } = render(
@@ -141,10 +150,11 @@ describe('EditSheet 준비물 ↻ pill — conditional render', () => {
     expect(queryByText('매번')).toBeTruthy();
   });
 
-  test('OFF state is icon-only (no 매번 label)', () => {
+  test('OFF state (recurring=false) is icon-only (no 매번 label)', () => {
     seedStores({
       schedule: mkSchedule({ daysOfWeek: TUE_BIT }),
-      items: [mkItem({ occurrenceDate: 20260602 })],
+      // v7: a 이번만 item — recurring=false with the anchor as its bind date.
+      items: [mkItem({ recurring: false, occurrenceDate: 20260602 })],
       mode: 'editAll',
     });
     const { queryByLabelText, queryByText } = render(
@@ -157,7 +167,7 @@ describe('EditSheet 준비물 ↻ pill — conditional render', () => {
   test('one-time (all weekdays off) hides the pill entirely', () => {
     seedStores({
       schedule: mkSchedule({ daysOfWeek: TUE_BIT }),
-      items: [mkItem({ occurrenceDate: null })],
+      items: [mkItem({ recurring: true, occurrenceDate: null })],
       mode: 'editAll',
     });
     const { queryByLabelText, getByLabelText } = render(
@@ -171,69 +181,150 @@ describe('EditSheet 준비물 ↻ pill — conditional render', () => {
   });
 });
 
-describe('EditSheet 준비물 — founder navigate-to-date binding', () => {
-  test('toggle OFF binds occurrence_date to the viewed date (= occurrenceDate)', async () => {
+describe('EditSheet 준비물 — recurring toggle (↻ pill flips `recurring`)', () => {
+  test('toggle OFF on a day-specific row flips recurring true→false, keeps the anchor', async () => {
+    // v7: the ↻ pill flips ONLY `recurring`; the occurrenceDate anchor is kept.
+    // Seed a row already anchored to the viewed date so the resulting 이번만 row
+    // is well-formed { occurrenceDate: anchor, recurring: false }.
     const mocks = seedStores({
       schedule: mkSchedule({ daysOfWeek: TUE_BIT }),
-      items: [mkItem({ id: 100, occurrenceDate: null })],
+      items: [mkItem({ id: 100, occurrenceDate: 20260620, recurring: true })],
       mode: 'editAll',
       occurrenceDate: iso('2026-06-20'),
       currentDate: iso('2026-06-15'),
     });
     const { getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
-    // Flip the row OFF (이번만) — binds to boundDateInt = 2026-06-20.
+    // Flip the row OFF (매번 → 이번만).
     fireEvent.press(getByLabelText('매번 챙김 (탭하면 이번만)'));
+    fireEvent.press(getByLabelText('저장'));
+    await waitFor(() => expect(mocks.update).toHaveBeenCalled());
+    // recurring flipped to false; the anchor is preserved (not re-written).
+    expect(mocks.update).toHaveBeenCalledWith(
+      expect.anything(),
+      100,
+      expect.objectContaining({ occurrenceDate: 20260620, recurring: false }),
+    );
+  });
+
+  test('toggle ON on a day-specific row flips recurring false→true, keeps the anchor', async () => {
+    const mocks = seedStores({
+      schedule: mkSchedule({ daysOfWeek: TUE_BIT }),
+      items: [mkItem({ id: 100, occurrenceDate: 20260620, recurring: false })],
+      mode: 'editAll',
+    });
+    const { getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
+    // Flip the row ON (이번만 → 매번).
+    fireEvent.press(getByLabelText('이번만 (탭하면 매번)'));
     fireEvent.press(getByLabelText('저장'));
     await waitFor(() => expect(mocks.update).toHaveBeenCalled());
     expect(mocks.update).toHaveBeenCalledWith(
       expect.anything(),
       100,
-      expect.objectContaining({ occurrenceDate: 20260620 }),
+      expect.objectContaining({ occurrenceDate: 20260620, recurring: true }),
     );
   });
 
-  test('fix-1: editAll opened for date X (≠ currentDate) binds to X, not currentDate', async () => {
+  test('toggle OFF on a legacy NULL-anchor row re-anchors to the viewed date (else 이번만 is a no-op)', async () => {
+    // A legacy/unbounded recurring row (occurrenceDate NULL — e.g. a v6-era 매번
+    // item kept unbounded by v7) toggled to 이번만 MUST gain an anchor, or the
+    // membership NULL short-circuit (always-visible) would silently ignore
+    // recurring=false and the item would still show on every occurrence.
     const mocks = seedStores({
       schedule: mkSchedule({ daysOfWeek: TUE_BIT }),
-      items: [mkItem({ id: 100, occurrenceDate: null })],
+      items: [mkItem({ id: 100, occurrenceDate: null, recurring: true })],
       mode: 'editAll',
-      occurrenceDate: iso('2026-07-09'), // X
-      currentDate: iso('2026-06-15'), // different anchor
+      occurrenceDate: iso('2026-06-20'),
+      currentDate: iso('2026-06-15'),
     });
     const { getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
     fireEvent.press(getByLabelText('매번 챙김 (탭하면 이번만)'));
     fireEvent.press(getByLabelText('저장'));
     await waitFor(() => expect(mocks.update).toHaveBeenCalled());
+    // recurring=false AND re-anchored to the viewed date (20260620) so 이번만
+    // membership (O === anchor) actually takes effect.
     expect(mocks.update).toHaveBeenCalledWith(
       expect.anything(),
       100,
-      expect.objectContaining({ occurrenceDate: 20260709 }),
+      expect.objectContaining({ occurrenceDate: 20260620, recurring: false }),
+    );
+  });
+});
+
+describe('EditSheet 준비물 — fix-1 new-item anchor binding (boundDateInt)', () => {
+  test('new item on a recurring schedule persists { occurrenceDate: <viewed>, recurring: true }', async () => {
+    // A fresh row anchors occurrenceDate to boundDateInt (= the viewed date) and
+    // defaults recurring=true. editAll viewed-date 2026-06-20 ≠ currentDate.
+    const mocks = seedStores({
+      schedule: mkSchedule({ daysOfWeek: TUE_BIT }),
+      items: [],
+      mode: 'editAll',
+      occurrenceDate: iso('2026-06-20'),
+      currentDate: iso('2026-06-15'),
+    });
+    const { getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
+    fireEvent.press(getByLabelText('준비물 추가'));
+    fireEvent.changeText(getByLabelText('준비물 1'), '교재');
+    fireEvent.press(getByLabelText('저장'));
+    await waitFor(() => expect(mocks.add).toHaveBeenCalled());
+    expect(mocks.add).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        label: '교재',
+        occurrenceDate: 20260620,
+        recurring: true,
+      }),
+    );
+  });
+
+  test('fix-1: editAll opened for date X (≠ currentDate) anchors a new item to X', async () => {
+    const mocks = seedStores({
+      schedule: mkSchedule({ daysOfWeek: TUE_BIT }),
+      items: [],
+      mode: 'editAll',
+      occurrenceDate: iso('2026-07-09'), // X
+      currentDate: iso('2026-06-15'), // different week anchor
+    });
+    const { getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
+    fireEvent.press(getByLabelText('준비물 추가'));
+    fireEvent.changeText(getByLabelText('준비물 1'), '도시락');
+    // Flip it 이번만 so the anchor is the membership-bearing field.
+    fireEvent.press(getByLabelText('매번 챙김 (탭하면 이번만)'));
+    fireEvent.press(getByLabelText('저장'));
+    await waitFor(() => expect(mocks.add).toHaveBeenCalled());
+    expect(mocks.add).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        label: '도시락',
+        occurrenceDate: 20260709,
+        recurring: false,
+      }),
     );
   });
 });
 
 describe('EditSheet 준비물 — Decision C save normalization', () => {
-  test('UPDATE-path regression: existing day-specific row + all weekdays OFF → UPDATE writes NULL', async () => {
+  test('UPDATE-path regression: existing day-specific row + all weekdays OFF → UPDATE writes { null, recurring:true }', async () => {
     const mocks = seedStores({
       schedule: mkSchedule({ daysOfWeek: TUE_BIT }),
-      // Existing row already day-specific (stale int from a prior edit).
-      items: [mkItem({ id: 100, occurrenceDate: 20260602 })],
+      // Existing row already day-specific (이번만): stale anchor + recurring=false.
+      items: [mkItem({ id: 100, occurrenceDate: 20260602, recurring: false })],
       mode: 'editAll',
     });
     const { getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
-    // All weekdays off → one-time schedule.
+    // All weekdays off → one-time schedule → Decision C normalizes every row.
     fireEvent.press(getByLabelText('요일 화'));
     fireEvent.press(getByLabelText('저장'));
     await waitFor(() => expect(mocks.update).toHaveBeenCalled());
-    // The stale int must be re-written to NULL (no orphaned row).
+    // The stale day-specific row must be re-written to the unbounded form
+    // { occurrenceDate: null, recurring: true } (no orphaned 이번만 row).
     expect(mocks.update).toHaveBeenCalledWith(
       expect.anything(),
       100,
-      expect.objectContaining({ occurrenceDate: null }),
+      expect.objectContaining({ occurrenceDate: null, recurring: true }),
     );
   });
 
-  test('create-path: one-time create (no weekdays) persists checklist rows as NULL', async () => {
+  test('create-path: one-time create (no weekdays) persists rows as { null, recurring:true }', async () => {
     const add = jest.fn().mockResolvedValue(mkItem());
     const addSchedule = jest.fn().mockResolvedValue(mkSchedule());
     useChildrenStore.setState({ children: [mkChild(1)] });
@@ -263,33 +354,37 @@ describe('EditSheet 준비물 — Decision C save normalization', () => {
     fireEvent.press(getByLabelText('자녀: 민준'));
     fireEvent.press(getByLabelText('학원'));
     fireEvent.changeText(getByTestId('sheet-title-input'), '체험학습');
-    // Add a 준비물 row (defaults to recurring/NULL; pill hidden while one-time).
+    // Add a 준비물 row (anchors to boundDateInt; pill hidden while one-time).
     fireEvent.press(getByLabelText('준비물 추가'));
     fireEvent.changeText(getByLabelText('준비물 1'), '도시락');
-    // daysOfWeek === 0 (one-time) → normalization applies (row stays NULL).
+    // daysOfWeek === 0 (one-time) → normalization nulls the anchor + recurring=true.
     fireEvent.press(getByLabelText('추가'));
     await waitFor(() => expect(mocks.addSchedule).toHaveBeenCalled());
     await waitFor(() => expect(mocks.add).toHaveBeenCalled());
     expect(mocks.add).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ label: '도시락', occurrenceDate: null }),
+      expect.objectContaining({
+        label: '도시락',
+        occurrenceDate: null,
+        recurring: true,
+      }),
     );
   });
 
-  test('inverse: recurring save preserves a day-specific row’s bound int', async () => {
+  test('inverse: recurring save preserves a day-specific row’s anchor + recurring flag', async () => {
     const mocks = seedStores({
       schedule: mkSchedule({ daysOfWeek: TUE_BIT }),
-      items: [mkItem({ id: 100, occurrenceDate: 20260602 })],
+      items: [mkItem({ id: 100, occurrenceDate: 20260602, recurring: false })],
       mode: 'editAll',
     });
     const { getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
-    // Save with the schedule still recurring → row keeps its int (no UPDATE,
-    // or an UPDATE that preserves the value). Assert no NULL-ing occurred.
+    // Save with the schedule still recurring → the row passes through unchanged,
+    // so no normalizing UPDATE to { null, recurring:true } occurs.
     fireEvent.press(getByLabelText('저장'));
     await waitFor(() => expect(mocks.updateSchedule).toHaveBeenCalled());
-    const nulledCall = mocks.update.mock.calls.find(
+    const normalizedCall = mocks.update.mock.calls.find(
       (c) => c[2]?.occurrenceDate === null,
     );
-    expect(nulledCall).toBeUndefined();
+    expect(normalizedCall).toBeUndefined();
   });
 });

@@ -73,13 +73,18 @@ void DOW_LABELS_KO;
 // Drafted checklist row. `id===null` = brand-new (not yet persisted) so save
 // knows whether to INSERT vs UPDATE.
 //
-// PREP-RECUR (v6): `occurrenceDate` controls list membership.
-//   null = recurring (반복 ON — shows on every occurrence of the schedule);
-//   yyyymmdd int = day-specific (반복 OFF — shows only on that one date).
+// PREP-RECUR (v6/v7, ADR-006b): `occurrenceDate` is the ANCHOR date and
+// `recurring` chooses the membership rule for an occurrence whose date is O:
+//   occurrenceDate === null  → always visible (legacy/unbounded recurring);
+//   recurring === true (매번) → visible iff O >= occurrenceDate (forward);
+//   recurring === false(이번만)→ visible iff O === occurrenceDate (that date).
+// New items anchor occurrenceDate to boundDateInt (the edit-context date) and
+// default recurring=true. The ↻ pill flips `recurring`; the anchor is kept.
 interface ChecklistDraft {
   id: number | null;
   label: string;
   occurrenceDate: number | null;
+  recurring: boolean;
 }
 
 type PickerState =
@@ -229,6 +234,7 @@ export function ScheduleEditContent({
           id: it.id,
           label: it.label,
           occurrenceDate: it.occurrenceDate,
+          recurring: it.recurring,
         })),
       );
     } else if (
@@ -278,15 +284,16 @@ export function ScheduleEditContent({
     if (formType === null) return;
 
     const noRepeat = form.daysOfWeek === 0;
-    // Decision C / ADR-006a: a one-time schedule (daysOfWeek===0) has no
-    // recurrence, so 반복 is meaningless. Normalize EVERY draft row's
-    // occurrenceDate to NULL BEFORE the create loop and the diff run — this
-    // single transform covers all three persist sites (create loop, diff
-    // INSERT, diff UPDATE), so a previously day-specific row can never be left
-    // orphaned (member of no occurrence). Recurring schedules pass through
-    // unchanged, preserving each row's occurrenceDate exactly.
+    // Decision C / ADR-006a+b: a one-time schedule (daysOfWeek===0) has no
+    // recurrence, so 반복/이번만 is meaningless. Normalize EVERY draft row to
+    // `occurrenceDate=null, recurring=true` (unbounded → visible on the single
+    // occurrence) BEFORE the create loop and the diff run — this single
+    // transform covers all three persist sites (create loop, diff INSERT, diff
+    // UPDATE), so a previously day-specific row can never be left orphaned
+    // (member of no occurrence). Recurring schedules pass through unchanged,
+    // preserving each row's occurrenceDate anchor + recurring flag exactly.
     const rowsToPersist: ChecklistDraft[] = noRepeat
-      ? checklist.map((c) => ({ ...c, occurrenceDate: null }))
+      ? checklist.map((c) => ({ ...c, occurrenceDate: null, recurring: true }))
       : checklist;
     const effectiveDaysOfWeek = noRepeat
       ? weekdayMaskFromIso(form.validFrom)
@@ -330,6 +337,7 @@ export function ScheduleEditContent({
           label: row.label.trim(),
           sortOrder: i,
           occurrenceDate: row.occurrenceDate,
+          recurring: row.recurring,
         });
       }
     } else if (sheetMode === 'editAll' && existingSchedule !== undefined) {
@@ -752,24 +760,30 @@ export function ScheduleEditContent({
                           accessibilityLabel={`준비물 ${idx + 1}`}
                           onFocus={() => scrollFieldIntoView(checklistYRef.current)}
                         />
-                        {/* 반복 ↻ pill (A안 / ADR-006a): rendered ONLY for a
-                            recurring schedule. ON (occurrence_date NULL) = 매번
-                            (every occurrence); OFF (occurrence_date = bound
-                            date int) = 이번만 (this date only). Tapping flips
-                            between null ⇄ boundDateInt. */}
+                        {/* 반복 ↻ pill (A안 / ADR-006a+b): rendered ONLY for a
+                            recurring schedule. ON (recurring=true) = 매번 (from
+                            the anchor date forward); OFF (recurring=false) =
+                            이번만 (the anchor date only). Tapping flips
+                            `recurring`; the occurrenceDate anchor is kept. */}
                         {suppliesRepeatable ? (
                           <RepeatPill
-                            on={item.occurrenceDate === null}
+                            on={item.recurring}
                             onToggle={() =>
                               setChecklist((cs) =>
                                 cs.map((c, i) =>
                                   i === idx
                                     ? {
                                         ...c,
+                                        recurring: !c.recurring,
+                                        // Re-anchor a legacy NULL-anchor row when
+                                        // switching to 이번만 — otherwise the
+                                        // membership NULL short-circuit (always
+                                        // visible) would ignore recurring=false.
                                         occurrenceDate:
+                                          c.recurring &&
                                           c.occurrenceDate === null
                                             ? boundDateInt
-                                            : null,
+                                            : c.occurrenceDate,
                                       }
                                     : c,
                                 ),
@@ -795,12 +809,18 @@ export function ScheduleEditContent({
                     onPress={() =>
                       setChecklist((cs) => [
                         ...cs,
-                        // A안 / decision B: new items default to recurring
-                        // (occurrence_date NULL) — correct for BOTH recurring
-                        // (매번 default) and one-time schedules (the pill is
-                        // hidden; save normalizes the row to NULL anyway). A
-                        // user flips the ↻ pill OFF to bind to boundDateInt.
-                        { id: null, label: '', occurrenceDate: null },
+                        // ADR-006b: new items anchor occurrenceDate to
+                        // boundDateInt (the edit-context date) and default
+                        // recurring=true (매번 from the anchor forward). Flipping
+                        // the ↻ pill OFF makes it 이번만 (anchor date only). For
+                        // a one-time schedule the pill is hidden and save
+                        // normalizes the row to occurrenceDate=null/recurring.
+                        {
+                          id: null,
+                          label: '',
+                          occurrenceDate: boundDateInt,
+                          recurring: true,
+                        },
                       ])
                     }
                     accessibilityRole="button"
@@ -931,6 +951,7 @@ async function persistChecklistDiff(
         label,
         sortOrder: i,
         occurrenceDate: e.occurrenceDate,
+        recurring: e.recurring,
       });
     } else {
       const prev = original.find((o) => o.id === e.id);
@@ -938,12 +959,14 @@ async function persistChecklistDiff(
       if (
         prev.label !== label ||
         prev.sortOrder !== i ||
-        prev.occurrenceDate !== e.occurrenceDate
+        prev.occurrenceDate !== e.occurrenceDate ||
+        prev.recurring !== e.recurring
       ) {
         await ops.update(db, e.id, {
           label,
           sortOrder: i,
           occurrenceDate: e.occurrenceDate,
+          recurring: e.recurring,
         });
       }
     }

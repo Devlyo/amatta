@@ -121,6 +121,7 @@ export interface ChecklistItemRow {
   is_done: number;
   done_at: number | null;
   occurrence_date: number | null;
+  recurring: number;
 }
 
 export interface TodoRow {
@@ -150,6 +151,7 @@ export function rowToChecklistItem(r: ChecklistItemRow): ChecklistItem {
     isDone: r.is_done === 1,
     doneAt: r.done_at,
     occurrenceDate: r.occurrence_date,
+    recurring: r.recurring === 1,
   };
 }
 

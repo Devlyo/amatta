@@ -104,3 +104,53 @@ ADR-002의 `ChecklistItem`은 완료를 **스케줄(템플릿) 행의 단일 `is
 
 - EAS 빌드 후 커스텀 ↻ SVG 글리프 재검토(A-ICONS).
 - v7의 `is_done/done_at` drop은 ADR-006 그대로(불변). 별도 일간 추가 surface 없음(오너 종결).
+
+---
+
+# ADR-006b — 준비물 `recurring` 플래그 + 앵커 멤버십 (마이그레이션 v7)
+
+- **Date**: 2026-06-30
+- **Status**: Accepted (ADR-006/006a 보완)
+- **Source**: 오너 버그 리포트 2건 + 모델 확인. 직접 구현 + 별도 코드리뷰.
+
+## 문제 (오너 리포트)
+
+1. **상세 화면이 멤버십 필터를 안 함** — `EventDetailDrawer`가 일정의 준비물 전체를 날짜 무관하게 표시 → "이번만" 항목이 모든 회차 상세에 뜸. (일간 준비물&할일 탭은 맞게 필터링.)
+2. **"매번" 항목이 등록일 이전 회차에도 표시** — v6 모델에서 `occurrence_date NULL` = 모든 회차(과거 포함). 오너는 **매번 = 등록일 기준 forward**를 원함.
+
+## Decision
+
+`checklist_items`에 **`recurring` 플래그** 추가, `occurrence_date`를 **앵커 날짜**로 일원화.
+
+- 멤버십 (회차 날짜 O, yyyymmdd int) — 단일 출처 `src/domain/checklist-membership.ts` `isChecklistItemVisibleOn`:
+  - `occurrence_date IS NULL` → **항상 표시** (레거시/무제한 반복).
+  - `recurring = 1` (매번) → `O >= occurrence_date` (등록일부터 forward). ← Bug 2 해결.
+  - `recurring = 0` (이번만) → `O === occurrence_date` (그 날짜만).
+- 이 헬퍼를 **3곳에 동일 적용**: 일간 탭(`ChecklistSection`), 알림 본문(`scheduler`), **상세(`EventDetailDrawer`)** ← Bug 1 해결.
+- **EditSheet**: 새 항목은 `occurrence_date = boundDateInt`(편집-컨텍스트 앵커) + `recurring = true`(매번 기본). ↻ pill은 이제 `recurring`을 반영/토글(앵커 유지). 1회성 일정 저장은 모든 행을 `occurrence_date = null, recurring = true`로 정규화(단일 pre-diff 변환, 3 지점).
+
+## 마이그레이션 v7 (`007_v7_checklist_recurring`)
+
+```sql
+ALTER TABLE checklist_items ADD COLUMN recurring INTEGER NOT NULL DEFAULT 1;
+UPDATE checklist_items SET recurring = 0 WHERE occurrence_date IS NOT NULL;
+```
+
+- 백필: 기존 day-specific 행(occ SET) → `recurring = 0` (O===anchor 의미 보존); 기존 매번 행(occ NULL) → `recurring = 1`/무제한 (하위호환). 무손실.
+- 안전성 = **atomicity-gated** (버전 게이트 러너 + user_version 트랜잭션 내부 + withTransactionAsync fallback), statement-idempotency 아님. `ADD COLUMN`은 IF NOT EXISTS 불가 — 버전 게이트로 단일 적용 보장.
+- `is_done/done_at` FROZEN 유지.
+
+## Alternatives considered
+
+- **`created_at` 재사용** — `checklist_items`엔 created_at 없음(todos만). 명시적 앵커가 더 정확(편집-컨텍스트 날짜 = 사용자가 인지하는 "등록일").
+- **별도 `effective_from` 컬럼(occurrence_date는 day-specific 전용 유지)** — 날짜 컬럼 2개. `recurring` 플래그 + 단일 앵커가 더 단순. 기각.
+
+## Consequences
+
+- 멤버십 규칙이 단일 헬퍼로 통합 → 3곳 분기(divergence) 위험 제거.
+- 테이블 8개 유지(컬럼만 추가). 완료 로그 keying(회차 viewed-date) 불변 → 체크-한번=영구완료 버그 재발 불가.
+- 기존 매번 항목(v6에서 occ NULL로 생성된 것)은 무제한(과거 포함)으로 남음 — 레거시 호환. 신규 매번은 앵커부터 forward.
+
+## Follow-ups
+
+- v8: `is_done/done_at` + 레거시 `occurrence_date NULL=무제한` 경로 정리 검토.

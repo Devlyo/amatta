@@ -10,6 +10,7 @@ import {
 } from '../../state';
 import { getDb } from '../../db/client';
 import { expandOccurrences } from '../../domain/occurrences';
+import { isChecklistItemVisibleOn } from '../../domain/checklist-membership';
 import type { Child, ChecklistItem, Occurrence } from '../../domain/types';
 import { KidAvatar } from '../common/KidAvatar';
 import { FONT_FAMILIES } from '../fonts';
@@ -45,8 +46,9 @@ function buildGroups(
     const dueLabel = formatHhmm(occ.startMinutes);
     const bucket = childIdToItems.get(occ.childId) ?? [];
     for (const item of items) {
-      // v6 membership: NULL = recurring (every date), set = day-specific.
-      if (item.occurrenceDate !== null && item.occurrenceDate !== dateInt) continue;
+      // v6/v7 membership (ADR-006b): NULL = always; recurring = anchor-forward;
+      // 이번만 = that date only. Single source: isChecklistItemVisibleOn.
+      if (!isChecklistItemVisibleOn(item, dateInt)) continue;
       bucket.push({ item, dueLabel });
     }
     childIdToItems.set(occ.childId, bucket);
