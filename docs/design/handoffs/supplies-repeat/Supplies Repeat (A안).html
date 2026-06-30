@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<title>준비물 · 반복 토글 (A안)</title>
+<meta name="design_doc_mode" content="canvas"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"/>
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Pretendard', -apple-system, system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<!-- Frame 1 — 일정 1회성 -->
+<div id="frame-once" style="position:absolute; left:80px; top:80px;"></div>
+<!-- Frame 2 — 일정 반복 -->
+<div id="frame-repeat" style="position:absolute; left:620px; top:80px;"></div>
+
+<script type="text/babel" data-presets="env,react">
+const A = {
+  ink: '#1D1D1B', inkSub: '#7A756E', ink30: 'rgba(29,29,27,0.30)',
+  ink04: 'rgba(29,29,27,0.04)', ink06: 'rgba(29,29,27,0.06)',
+  primary: '#FF7144', primaryTint: '#FFE2D0', primaryDeep: '#D8501F',
+  bg: '#F7F6F5'
+};
+const F = '"Pretendard", sans-serif';
+const T = {
+  caption: { fontSize: 13, fontWeight: 400, letterSpacing: -0.2 },
+  body:    { fontSize: 14, fontWeight: 400, letterSpacing: -0.2 },
+  pill:    { fontSize: 12.5, fontWeight: 500, letterSpacing: -0.2 }
+};
+
+// ── repeat (cycle) icon ──
+function RepeatIcon({ size = 15, stroke = 'currentColor', strokeWidth = 2 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 2l4 4-4 4"/>
+      <path d="M3 11V9a4 4 0 014-4h14"/>
+      <path d="M7 22l-4-4 4-4"/>
+      <path d="M21 13v2a4 4 0 01-4 4H3"/>
+    </svg>
+  );
+}
+function XIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={A.inkSub} strokeWidth="2.2" strokeLinecap="round">
+      <path d="M6 6l12 12M18 6L6 18"/>
+    </svg>
+  );
+}
+function PlusIcon({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={A.inkSub} strokeWidth="2.6" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14"/>
+    </svg>
+  );
+}
+
+// ── one supply row ──
+function SupplyRow({ item, showRepeat, onToggleRepeat, onRemove, first }) {
+  const on = item.repeat;
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '7px 0',
+      borderTop: first ? 'none' : `1px solid ${A.ink04}`
+    }}>
+      {/* check circle */}
+      <div style={{
+        width: 18, height: 18, borderRadius: 99,
+        border: `1.5px solid ${A.ink30}`, flex: '0 0 auto'
+      }}/>
+      {/* title */}
+      <span style={{ flex: 1, ...T.body, color: A.ink, fontFamily: F }}>
+        {item.title}
+      </span>
+
+      {/* repeat toggle — only when 일정 반복 ON */}
+      {showRepeat &&
+        <button onClick={onToggleRepeat} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          border: 'none', cursor: 'pointer',
+          background: on ? A.primaryTint : 'transparent',
+          color: on ? A.primaryDeep : A.ink30,
+          borderRadius: 99,
+          padding: on ? '4px 9px 4px 7px' : '4px 5px',
+          flex: '0 0 auto', transition: 'all .14s'
+        }}>
+          <RepeatIcon size={13} strokeWidth={2.2}/>
+          {on &&
+            <span style={{ ...T.pill, fontFamily: F, lineHeight: 1 }}>매번</span>
+          }
+        </button>
+      }
+
+      {/* delete */}
+      <button onClick={onRemove} style={{
+        border: 'none', background: 'transparent', cursor: 'pointer',
+        padding: 4, display: 'grid', placeItems: 'center', flex: '0 0 auto'
+      }}>
+        <XIcon/>
+      </button>
+    </div>
+  );
+}
+
+// ── the 준비물 Group card ──
+function SuppliesCard({ showRepeat, initial }) {
+  const [items, setItems] = React.useState(initial);
+  const toggle = (id) => setItems(s => s.map(x => x.id === id ? { ...x, repeat: !x.repeat } : x));
+  const remove = (id) => setItems(s => s.filter(x => x.id !== id));
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 14, overflow: 'hidden',
+      padding: '10px 16px'
+    }}>
+      <div style={{ ...T.caption, color: A.inkSub, marginBottom: 6, fontFamily: F }}>준비물</div>
+      {items.map((it, i) =>
+        <SupplyRow key={it.id} item={it} first={i === 0}
+          showRepeat={showRepeat}
+          onToggleRepeat={() => toggle(it.id)}
+          onRemove={() => remove(it.id)}/>
+      )}
+      <button style={{
+        width: '100%', border: 'none', cursor: 'pointer', background: 'transparent',
+        padding: '8px 0 2px', display: 'flex', alignItems: 'center', gap: 8,
+        color: A.inkSub, ...T.pill, fontFamily: F,
+        borderTop: `1px solid ${A.ink04}`, marginTop: 4
+      }}>
+        <PlusIcon/> 추가
+      </button>
+    </div>
+  );
+}
+
+// ── the 반복 row above (context) ──
+function RepeatDaysRow({ days }) {
+  const DOW = ['일','월','화','수','목','금','토'];
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 14, overflow: 'hidden',
+      padding: '12px 16px', marginBottom: 10,
+      display: 'flex', alignItems: 'center', gap: 12
+    }}>
+      <div style={{ width: 56, flex: '0 0 auto', ...T.caption, color: A.inkSub, fontFamily: F }}>반복</div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {DOW.map((d, i) => {
+          const on = days.includes(i);
+          return (
+            <div key={d} style={{
+              width: 28, height: 28, borderRadius: 99,
+              display: 'grid', placeItems: 'center',
+              background: on ? '#2A2A29' : '#EBEAE9',
+              color: on ? '#fff' : A.inkSub,
+              ...T.pill, fontFamily: F
+            }}>{d}</div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Frame({ title, subtitle, children }) {
+  return (
+    <div style={{ width: 420 }}>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: A.ink, fontFamily: F,
+          letterSpacing: -0.2, display: 'inline-block',
+          background: '#fff', padding: '5px 11px', borderRadius: 99,
+          boxShadow: '0 1px 0 rgba(0,0,0,0.04)' }}>{title}</div>
+        <div style={{ fontSize: 12.5, color: A.inkSub, fontFamily: F, marginTop: 8,
+          lineHeight: 1.5, letterSpacing: -0.2 }}>{subtitle}</div>
+      </div>
+      <div style={{ background: A.bg, borderRadius: 20, padding: 16,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.05)' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('frame-once')).render(
+  <Frame
+    title="① 일정이 1회성일 때"
+    subtitle="반복 요일을 안 골랐으면 — 준비물에 반복 개념이 없으니 토글도 숨김. 깔끔한 단일 리스트.">
+    <SuppliesCard showRepeat={false} initial={[
+      { id: 'a', title: '현장학습 동의서', repeat: false },
+      { id: 'b', title: '도시락 · 물통', repeat: false },
+      { id: 'c', title: '돗자리', repeat: false },
+    ]}/>
+  </Frame>
+);
+
+ReactDOM.createRoot(document.getElementById('frame-repeat')).render(
+  <Frame
+    title="② 일정이 반복일 때 (월·수·금)"
+    subtitle="준비물마다 ↻ 토글. 켜짐 = 프라이머리 + '매번' (매 수업마다 챙김), 꺼짐 = 회색 = 이번만. 눌러보세요.">
+    <RepeatDaysRow days={[1, 3, 5]}/>
+    <SuppliesCard showRepeat={true} initial={[
+      { id: 'a', title: '체육복', repeat: true },
+      { id: 'b', title: '실내화', repeat: true },
+      { id: 'c', title: '수행평가 제출물', repeat: false },
+    ]}/>
+  </Frame>
+);
+</script>
+</body>
+</html>
