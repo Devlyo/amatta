@@ -10,10 +10,12 @@ import type { TypeKey } from '../typography';
 // Padding values mirror the shipping form (md) with sm/lg derived around it.
 export type SelectChipSize = 'sm' | 'md' | 'lg';
 
+// Item 11: trimmed ~2px each side vs. the original (sm 7/12, md 7/13, lg 9/16)
+// so the new-event chips (자녀/종류/반복/알림) read tighter. Global to the primitive.
 const SIZE: Record<SelectChipSize, { padV: number; padH: number; label: TypeKey }> = {
-  sm: { padV: 5, padH: 10, label: 'caption' },
-  md: { padV: 7, padH: 13, label: 'caption' }, // = ScheduleEditSheet pill
-  lg: { padV: 9, padH: 16, label: 'body' },
+  sm: { padV: 3, padH: 8, label: 'caption2' },
+  md: { padV: 5, padH: 11, label: 'caption2' },
+  lg: { padV: 7, padH: 14, label: 'body' },
 };
 
 export interface SelectChipProps {

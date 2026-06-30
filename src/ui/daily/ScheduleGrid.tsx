@@ -216,6 +216,15 @@ function ScheduleBlockDaily({ occ, palette, compact, onPress }: BlockProps): Rea
   const height = span * SLOT_H - 2;
   const KindIcon = KIND_ICON[occ.type];
 
+  // Short-block tiers (founder): ≤20min → 6px title, ≤40min → 9px, else normal.
+  // Short blocks (≤40min) also tighten padding; the time row is dropped once
+  // there's no room for two lines (≤30min). Keeps a cramped block legible
+  // without clipping or overlapping its neighbour (no height inflation).
+  const durationMin = occ.endMinutes - occ.startMinutes;
+  const isShort = durationMin <= 40;
+  const shortFontSize = durationMin <= 20 ? 7 : 9;
+  const hideTime = durationMin <= 30;
+
   // The schedule occurrence has no `location` (the v1 prototype's `place`).
   // Schedule.location lives on the source Schedule row — `Occurrence` derived
   // from `expandOccurrences()` drops it. R3 will plumb `location` through.
@@ -232,6 +241,7 @@ function ScheduleBlockDaily({ occ, palette, compact, onPress }: BlockProps): Rea
       accessibilityLabel={`${occ.title} 일정`}
       style={[
         styles.block,
+        isShort ? styles.blockShort : null,
         {
           top,
           height,
@@ -245,7 +255,11 @@ function ScheduleBlockDaily({ occ, palette, compact, onPress }: BlockProps): Rea
           <KindIcon size={compact ? 11 : 13} color={TOKENS.ink} />
         </View>
         <Text
-          style={[styles.blockTitle, compact ? styles.blockTextCompact : null]}
+          style={[
+            styles.blockTitle,
+            compact ? styles.blockTextCompact : null,
+            isShort ? { fontSize: shortFontSize, lineHeight: shortFontSize + 2 } : null,
+          ]}
           numberOfLines={1}
           ellipsizeMode="tail"
         >
@@ -255,9 +269,12 @@ function ScheduleBlockDaily({ occ, palette, compact, onPress }: BlockProps): Rea
         {/* TODO(EAS-dev-build): add 2px white outline ring (boxShadow inset)
             when react-native-svg works in our Expo Go binary. */}
       </View>
-      <Text style={[styles.blockTime, compact ? styles.blockTextCompact : null]}>
-        {fmt12hrShort(occ.startMinutes)}–{fmt12hrShort(occ.endMinutes)}
-      </Text>
+      {/* Drop the time row once there's no room for two lines (≤30min). */}
+      {hideTime ? null : (
+        <Text style={[styles.blockTime, compact ? styles.blockTextCompact : null]}>
+          {fmt12hrShort(occ.startMinutes)}–{fmt12hrShort(occ.endMinutes)}
+        </Text>
+      )}
       {height > 64 && place ? (
         <Text
           style={[styles.blockPlace, compact ? styles.blockTextCompact : null]}
@@ -376,6 +393,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     // gap: 1 between rows
     gap: 1,
+  },
+  // Short blocks (≤40min): tighter padding so the small title fills the cramped
+  // height. Overrides the padding above when applied after `block`.
+  blockShort: {
+    paddingTop: 2,
+    paddingRight: 5,
+    paddingBottom: 2,
+    paddingLeft: 5,
+    gap: 0,
   },
   blockTitleRow: {
     flexDirection: 'row',

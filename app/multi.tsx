@@ -13,14 +13,17 @@ import { MAX_CHILDREN } from '../src/domain/constants';
 import { expandOccurrences } from '../src/domain/occurrences';
 import type { Child, ISODate, Occurrence } from '../src/domain/types';
 import { isKoreanHoliday } from '../src/domain/korean-holidays';
+import { isChecklistItemVisibleOn } from '../src/domain/checklist-membership';
 import { useChildrenStore } from '../src/state/children-store';
 import { useChecklistStore } from '../src/state/checklist-store';
+import { useChecklistCompletionStore } from '../src/state/checklist-completion-store';
 import { useSchedulesStore } from '../src/state/schedules-store';
 import { useTodosStore } from '../src/state/todos-store';
 import { useUiStore } from '../src/state/ui-store';
 import { BottomDock } from '../src/ui/common/BottomDock';
 import { KidAvatar } from '../src/ui/common/KidAvatar';
 import { ViewToggle } from '../src/ui/common/ViewToggle';
+import { isoToYyyymmdd } from '../src/ui/daily/pickup-data';
 import { TabStrip, type DailyTabKey } from '../src/ui/daily/TabStrip';
 import { TodoTabContent } from '../src/ui/daily/TodoTabContent';
 import { FONT_FAMILIES } from '../src/ui/fonts';
@@ -193,13 +196,29 @@ function MultiViewScreenImpl(): React.ReactElement {
     () => todos.filter((t) => !t.isDone && isDueOnDate(t.dueAt, currentDate)).length,
     [todos, currentDate],
   );
-  const undoneChecklist = useChecklistStore((s) => {
+  // Checklist badge must match the 준비물 & 할일 tab, which shows only the
+  // CURRENT DAY's items (founder option a). Mirror app/(tabs)/index.tsx exactly:
+  // count items VISIBLE on currentDate via the shared membership helper, scoped
+  // to schedules occurring on currentDate, and not yet completed for that
+  // occurrence (checklist_completion, NOT the frozen is_done). `occurrences`
+  // here spans the whole week, so filter to the currentDate's lane first.
+  const itemsByScheduleId = useChecklistStore((s) => s.itemsByScheduleId);
+  const checklistCompletionMap = useChecklistCompletionStore((s) => s.completionMap);
+  const undoneChecklist = useMemo(() => {
+    const dateInt = isoToYyyymmdd(currentDate);
+    const currentDateStr = currentDate as unknown as string;
     let n = 0;
-    for (const items of s.itemsByScheduleId.values()) {
-      for (const item of items) if (!item.isDone) n += 1;
+    for (const occ of occurrences) {
+      if ((occ.date as unknown as string) !== currentDateStr) continue;
+      const items = itemsByScheduleId.get(occ.scheduleId);
+      if (items === undefined) continue;
+      for (const item of items) {
+        if (!isChecklistItemVisibleOn(item, dateInt)) continue;
+        if (!checklistCompletionMap.has(`${item.id}|${dateInt}`)) n += 1;
+      }
     }
     return n;
-  });
+  }, [occurrences, itemsByScheduleId, checklistCompletionMap, currentDate]);
   const todoCount = undoneTodos + undoneChecklist;
 
   // Block tap toggles the inline tooltip popover (inside MultiKidGrid).

@@ -180,20 +180,9 @@ export default function SettingsScreen(): React.ReactElement {
           />
         </Card>
 
-        {/* Dev-only — design-system gallery. Stripped from production builds. */}
-        {__DEV__ ? (
-          <>
-            <SectionHeader label="개발자" />
-            <Card>
-              <NavRow
-                label="🎨 디자인 시스템 갤러리"
-                onPress={() => router.push('/dev-gallery')}
-                accessibilityLabel="디자인 시스템 갤러리"
-                testID="settings-row-ds-gallery"
-              />
-            </Card>
-          </>
-        ) : null}
+        {/* Design-system gallery entry point removed (Item 9). The route
+            (app/dev-gallery.tsx) still exists; only the Settings UI link is
+            gone, so the gallery never shows — even in dev. */}
 
         <View style={styles.bottomSpacer} />
       </ScrollView>

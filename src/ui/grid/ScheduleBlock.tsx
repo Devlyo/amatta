@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ROW_HEIGHT } from '../../domain/constants';
+import { ROW_HEIGHT, SLOT_MIN } from '../../domain/constants';
 import type { BlockLayout } from '../../domain/grid';
 import type { ScheduleType } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
@@ -10,6 +10,22 @@ import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { fmt12hrShort } from '../utils/date';
+
+// Refine #2 — short-block title font scales PROPORTIONALLY to the block's
+// duration (Apple-like). Full size at a whole slot (30 min) and above; shrinks
+// linearly toward a readable floor for shorter blocks (e.g. a 15-min block
+// gets a smaller title than a 30-min one), never below the floor.
+const TITLE_FONT_FULL = 12; // matches styles.title (normal small text token)
+const TITLE_FONT_FLOOR = 6; // very-short-block floor (founder: shrink to 6px)
+
+/** Proportional title size for a block of `durationMin` minutes. */
+function shortBlockFontSize(durationMin: number): number {
+  // Fraction of a full 30-min slot the block occupies, clamped to [0, 1].
+  const frac = Math.max(0, Math.min(1, durationMin / SLOT_MIN));
+  const size = TITLE_FONT_FLOOR + (TITLE_FONT_FULL - TITLE_FONT_FLOOR) * frac;
+  // Round to a whole pixel for crisp text; clamp to the floor as a guard.
+  return Math.max(TITLE_FONT_FLOOR, Math.round(size));
+}
 
 interface Props {
   block: BlockLayout;
@@ -49,6 +65,18 @@ function ScheduleBlockImpl({
   // ≥ 2 slots (60 min) gives us two text rows comfortably.
   const showTimePill = block.heightSlots >= 2;
 
+  // Item 10 + Refine #2 — short blocks (≤ 1 slot / ≤ 30 min) render a COMPACT
+  // layout: title only, single line, ellipsised. The time pill / location are
+  // already dropped here (showTimePill is false below 2 slots), and inner
+  // padding is tightened so the one title line fits. The title font scales
+  // proportionally to the block's true duration (15-min < 30-min) down to a
+  // readable floor — no tiny auto-shrink, no height inflation, so the true slot
+  // height is preserved and a short block never overlaps the one beneath it.
+  const isCompact = block.heightSlots < 2;
+  const compactFontSize = isCompact
+    ? shortBlockFontSize(block.endMinutes - block.startMinutes)
+    : TITLE_FONT_FULL;
+
   return (
     <Pressable
       onPress={onPress}
@@ -56,6 +84,7 @@ function ScheduleBlockImpl({
       accessibilityLabel={block.title}
       style={[
         styles.block,
+        isCompact ? styles.blockCompact : null,
         {
           top,
           height,
@@ -68,8 +97,11 @@ function ScheduleBlockImpl({
       ]}
     >
       <View style={styles.titleRow}>
-        <Icon size={12} color={TOKENS.ink} />
-        <Text numberOfLines={1} style={styles.title}>
+        <Icon size={isCompact ? 10 : 12} color={TOKENS.ink} />
+        <Text
+          numberOfLines={1}
+          style={[styles.title, isCompact ? { fontSize: compactFontSize } : null]}
+        >
           {block.title}
         </Text>
       </View>
@@ -95,6 +127,16 @@ const styles = StyleSheet.create({
     paddingTop: 5,
     paddingBottom: SPACING.xs,
     overflow: 'hidden',
+  },
+  // Item 10 — compact (≤ 30 min) blocks: tighten vertical padding and center
+  // the single title row so the legible 12px title fits inside the true
+  // (un-inflated) ~22px block height without being clipped, and pull the
+  // horizontal padding in slightly so a longer title ellipsises later.
+  blockCompact: {
+    justifyContent: 'center',
+    paddingTop: SPACING.xxs,
+    paddingBottom: SPACING.xxs,
+    paddingHorizontal: SPACING.xs,
   },
   titleRow: {
     flexDirection: 'row',

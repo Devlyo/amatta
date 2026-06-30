@@ -8,11 +8,6 @@
     "scheme": "schedulapp",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FF7144"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "io.starzip.schedulapp",
@@ -58,7 +53,16 @@
       "expo-notifications",
       "expo-sqlite",
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 120,
+          "resizeMode": "contain",
+          "backgroundColor": "#FF7144"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

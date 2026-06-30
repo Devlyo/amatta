@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Appearance, AppState, Platform, Text, StyleSheet } from 'react-native';
+import { Appearance, AppState, Platform, Text, StyleSheet, View, Image } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -37,6 +38,12 @@ export const unstable_settings = {
 // this forces light there too — otherwise native chrome (the formSheet sheet
 // container, date picker) renders with the device's dark-mode system colors.
 Appearance.setColorScheme('light');
+
+// Keep the native splash visible until boot is READY (migrations + stores +
+// notif reconcile). Without this, expo-router would tear down the splash as
+// soon as the JS mounts, flashing a bare loading screen before the app is
+// usable. Hidden in the boot effect's success path via SplashScreen.hideAsync().
+void SplashScreen.preventAutoHideAsync();
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -135,15 +142,29 @@ export default function RootLayout() {
         }
 
         setBootState('ready');
+        // NOTE: do NOT hideAsync here — that fires before the 'ready' content
+        // paints, so the native splash drops to the (smaller) JS view for a frame
+        // = the "wordmark huge then shrinks" glitch. Hide it from a useEffect on
+        // bootState==='ready' instead, which runs AFTER the content mounts, so the
+        // native splash hands straight off to real content.
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e ?? 'Unknown error');
         setBootError(msg);
         setBootState('error');
+        // Reveal the error screen instead of leaving the splash stuck.
+        void SplashScreen.hideAsync();
       }
     }
 
     void boot();
   }, [fontsLoaded]);
+
+  // Hide the native splash only AFTER the 'ready' content has mounted (this
+  // effect runs post-commit), so the native splash hands directly off to real
+  // content with no intermediate JS-splash frame (no wordmark size jump).
+  useEffect(() => {
+    if (bootState === 'ready') void SplashScreen.hideAsync();
+  }, [bootState]);
 
   // AppState 'active' → debounced re-reconcile (≥ 60 min since last run).
   // Catches: device clock drift, push to a new timezone, edits made in a
@@ -171,10 +192,17 @@ export default function RootLayout() {
   }, [bootState]);
 
   if (!fontsLoaded || bootState === 'booting') {
+    // Replicate the splash (아마따 wordmark on orange) so the hand-off from the
+    // native splash to JS is seamless — no white flash, and the wordmark doesn't
+    // blink out. The native splash is held via preventAutoHideAsync until 'ready'.
     return (
-      <SafeAreaView style={styles.center}>
-        <Text style={styles.text}>준비 중...</Text>
-      </SafeAreaView>
+      <View style={styles.splashFill}>
+        <Image
+          source={require('../assets/images/splash-icon.png')}
+          style={styles.splashWordmark}
+          resizeMode="contain"
+        />
+      </View>
     );
   }
 
@@ -298,9 +326,14 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  splashFill: {
+    flex: 1,
+    backgroundColor: TOKENS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  splashWordmark: { width: 120, height: 40 }, // match native splash imageWidth (120)
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // eslint-disable-next-line no-restricted-syntax
-  text: { fontSize: 16, color: '#333' },
   // eslint-disable-next-line no-restricted-syntax
   errorText: { fontSize: 16, color: '#c00', marginBottom: 8 },
   // eslint-disable-next-line no-restricted-syntax

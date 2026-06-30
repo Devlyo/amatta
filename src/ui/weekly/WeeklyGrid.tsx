@@ -407,15 +407,15 @@ function WeeklyScheduleBlock({
         },
       ]}
     >
+      {/* Icon is absolutely positioned at the top-left so it sits on the FIRST
+          line only; the title fills the full block width and wraps to line 2+
+          with NO left indent. The leading spaces clear the icon on line 1. */}
       <View style={blockStyles.titleRow}>
         <View style={blockStyles.iconWrap}>
-          <KindIcon size={11} color={TOKENS.ink} />
+          <KindIcon size={9} color={TOKENS.ink} />
         </View>
-        <Text
-          numberOfLines={1}
-          ellipsizeMode="tail"
-          style={blockStyles.title}
-        >
+        <Text style={blockStyles.title}>
+          {'   '}
           {block.title}
         </Text>
       </View>
@@ -433,31 +433,27 @@ const blockStyles = StyleSheet.create({
     position: 'absolute',
     borderWidth: 1,
     borderRadius: RADIUS.xs,
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
     paddingVertical: SPACING.xs,
     overflow: 'hidden',
     gap: 1,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xxs,
-  },
-  iconWrap: { opacity: 0.85 },
+  titleRow: { position: 'relative' },
+  // Absolute so the icon occupies only the first line; the title flows full-width
+  // beneath/around it (leading spaces in the title clear the icon on line 1).
+  iconWrap: { position: 'absolute', top: 1, left: 0, opacity: 0.85, zIndex: 1 },
   title: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: 10,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
-    letterSpacing: -0.2,
-    lineHeight: 12,
-  },
-  time: {
     fontSize: 9,
     fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
+    color: TOKENS.ink,
+    letterSpacing: -0.3,
     lineHeight: 11,
+  },
+  time: {
+    fontSize: 8,
+    fontFamily: FONT_FAMILIES.pretendard,
+    color: TOKENS.inkSub,
+    lineHeight: 10,
   },
 });
 

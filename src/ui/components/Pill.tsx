@@ -20,9 +20,12 @@ export interface PillProps {
   style?: ViewStyle;
 }
 
+// Item 11: trimmed ~2px each side vs. the original (sm xxs/sm, md xs/md) so the
+// chips read tighter. Composed from spacing tokens (no raw literals). Global to
+// the primitive.
 const PAD: Record<PillSize, { v: number; h: number }> = {
-  sm: { v: SPACING.xxs, h: SPACING.sm },
-  md: { v: SPACING.xs, h: SPACING.md },
+  sm: { v: 0, h: SPACING.xs + SPACING.xxs }, //  v 2→0, h 8→6
+  md: { v: SPACING.xxs, h: SPACING.sm + SPACING.xxs }, // v 4→2, h 12→10
 };
 
 export function Pill({

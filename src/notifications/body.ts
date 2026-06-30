@@ -14,17 +14,12 @@ import type {
   Schedule,
   Todo,
 } from '../domain/types';
+import { fmtKoTime } from '../ui/utils/date';
 
-const BODY_MAX = 80; // ADR-002 cap.
+const BODY_MAX = 80; // ADR-002 cap (applies to the prep portion).
 const ELLIPSIS = '…';
-
-function fmt12hr(min: Minutes): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  const ap = h < 12 ? '오전' : '오후';
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${ap} ${h12}:${String(m).padStart(2, '0')}`;
-}
+const PREP_PREFIX = '챙길 것: ';
+const ITEM_SEP = '·';
 
 /**
  * Schedule push — title = kid context + schedule title,
@@ -48,23 +43,20 @@ export function formatScheduleNotification(input: {
 }): { title: string; body: string } {
   const { schedule, startMinutes, endMinutes, kidName, pendingLabels } = input;
   const title = `${kidName} · ${schedule.title}`;
-  const timeRange = `${fmt12hr(startMinutes)}–${fmt12hr(endMinutes)}`;
+  const timeRange = `${fmtKoTime(startMinutes)}–${fmtKoTime(endMinutes)}`;
+  const lead = `${timeRange} 일정이에요.`;
 
-  if (pendingLabels.length === 0) return { title, body: timeRange };
+  if (pendingLabels.length === 0) return { title, body: lead };
 
-  const items = pendingLabels.join(', ');
-  const full = `${items} · ${timeRange}`;
-  if (full.length <= BODY_MAX) return { title, body: full };
-
-  // Over cap. Reserve room for ` · ${timeRange}` + ellipsis at the end of items.
-  const tailRoom = ` · ${timeRange}`.length;
-  const itemsRoom = BODY_MAX - tailRoom - ELLIPSIS.length;
-  if (itemsRoom <= 0) {
-    // Pathological case: time range alone exceeds the budget. Hard-trim.
-    return { title, body: full.slice(0, BODY_MAX - ELLIPSIS.length) + ELLIPSIS };
+  // Prep portion: `챙길 것: {항목1}·{항목2}…`, itself ≤ 80 chars (ADR-002).
+  const items = pendingLabels.join(ITEM_SEP);
+  let prep = `${PREP_PREFIX}${items}`;
+  if (prep.length > BODY_MAX) {
+    const itemsRoom = BODY_MAX - PREP_PREFIX.length - ELLIPSIS.length;
+    // itemsRoom is always > 0 here: PREP_PREFIX + ELLIPSIS is far under BODY_MAX.
+    prep = `${PREP_PREFIX}${items.slice(0, itemsRoom)}${ELLIPSIS}`;
   }
-  const trimmed = items.slice(0, itemsRoom) + ELLIPSIS;
-  return { title, body: `${trimmed} · ${timeRange}` };
+  return { title, body: `${lead} ${prep}` };
 }
 
 /**

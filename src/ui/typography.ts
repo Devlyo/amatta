@@ -64,6 +64,14 @@ export const TYPE = {
     lineHeight: 17,
     letterSpacing: 0,
   },
+  // Caption2 11 / 500 — tighter chip label (SelectChip 자녀/종류/반복/알림). One
+  // step below caption; intentional scale extension for the dense form chips.
+  caption2: {
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+    fontSize: 11,
+    lineHeight: 15,
+    letterSpacing: 0,
+  },
   // Mono 12 / 400 / 1.00 / normal — grid time column
   mono: {
     fontFamily: FONT_FAMILIES.mono,
