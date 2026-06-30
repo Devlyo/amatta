@@ -38,14 +38,17 @@ export const TYPE_LABELS_KO: Readonly<Record<ScheduleType, string>> = {
 } as const;
 
 // Unified to Settings § '기본 알림 시점' (app-settings.jsx). The user-facing
-// picker only exposes these three; existing schedules that were saved
-// with any other value (legacy null / 5 / 15) are coerced to the store
-// default at form-load time.
+// picker exposes these three plus an explicit "없음" (null) pill. Existing
+// schedules saved with a legacy non-option value (5 / 15) are coerced to the
+// store default at form-load time; null is preserved as the "없음" choice
+// (it already means "no notification" to the scheduler).
 export const NOTIFY_OPTIONS: readonly number[] = [10, 30, 60] as const;
 
-function coerceToNotifyOption(v: number | null): number {
+function coerceToNotifyOption(v: number | null): number | null {
+  // null = 없음 — preserve the user's explicit "no notification" choice
+  // (matches scheduler semantics: null ⇒ no trigger is armed).
+  if (v === null) return null;
   const fallback = useNotifSettingsStore.getState().defaultMinutesBefore;
-  if (v === null) return fallback;
   return (NOTIFY_OPTIONS as readonly number[]).includes(v) ? v : fallback;
 }
 

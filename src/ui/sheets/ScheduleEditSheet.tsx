@@ -668,11 +668,24 @@ export function ScheduleEditContent({
           <Group>
             <Row label="알림" align="top">
               <View style={styles.pillWrapRow}>
+                {/* 없음(null) first; then 10/30/60. `dense` shrinks padding+font
+                    so all 4 chips fit the 1/4-width slot on one line ("30분 전"
+                    wraps at full size). */}
+                <Pill
+                  key="none"
+                  dense
+                  active={form.notifyMinutesBefore === null}
+                  onPress={() =>
+                    setForm({ ...form, notifyMinutesBefore: null })
+                  }
+                  label="없음"
+                />
                 {NOTIFY_OPTIONS.map((opt) => {
                   const selected = form.notifyMinutesBefore === opt;
                   return (
                     <Pill
                       key={opt}
+                      dense
                       active={selected}
                       onPress={() =>
                         setForm({ ...form, notifyMinutesBefore: opt })
@@ -1040,6 +1053,9 @@ interface PillProps {
   onPress: () => void;
   label: string;
   leading?: React.ReactNode;
+  // `dense` = tighter padding + smaller font + single line. Used by the 알림
+  // row so 4 chips with "30분 전"(공백 포함) fit one line at 1/4 width.
+  dense?: boolean;
 }
 
 function Pill({
@@ -1047,6 +1063,7 @@ function Pill({
   onPress,
   label,
   leading,
+  dense = false,
 }: PillProps): React.ReactElement {
   return (
     <Pressable
@@ -1054,12 +1071,14 @@ function Pill({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected: active }}
-      style={[styles.pill, active ? styles.pillActive : null]}
+      style={[styles.pill, dense ? styles.pillDense : null, active ? styles.pillActive : null]}
     >
       {leading}
       <Text
+        numberOfLines={1}
         style={[
           styles.pillLabel,
+          dense ? styles.pillLabelDense : null,
           active ? styles.pillLabelActive : null,
         ]}
       >
@@ -1572,7 +1591,7 @@ const styles = StyleSheet.create({
   pillRowGrow: { flexDirection: 'row', gap: 6, width: '100%' },
   pillWrapRow: { flexDirection: 'row', gap: 6, width: '100%' },
   pill: {
-    flex: 1, // toggle pills share the row evenly (4 종류 / 3 알림 fill the width)
+    flex: 1, // toggle pills share the row evenly (4 종류 / 4 알림 fill the width)
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1583,6 +1602,9 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.full,
   },
   pillActive: { backgroundColor: TOKENS.controlActive },
+  // Dense variant for the 4-up 알림 row: tighter horizontal padding so the
+  // longer "30분 전" labels fit one line at 1/4 width.
+  pillDense: { paddingHorizontal: SPACING.xs },
   pillLabel: {
     fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
@@ -1590,6 +1612,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
     lineHeight: 20,
   },
+  pillLabelDense: { fontSize: 14, lineHeight: 18, letterSpacing: -0.3 },
   pillLabelActive: { color: TOKENS.surface },
 
   // --- Kid pill row ----------------------------------------------------
