@@ -411,13 +411,7 @@ function WeeklyScheduleBlock({
         <View style={blockStyles.iconWrap}>
           <KindIcon size={9} color={TOKENS.ink} />
         </View>
-        <Text
-          numberOfLines={1}
-          ellipsizeMode="tail"
-          style={blockStyles.title}
-        >
-          {block.title}
-        </Text>
+        <Text style={blockStyles.title}>{block.title}</Text>
       </View>
       {height > 26 ? (
         <Text style={blockStyles.time}>
@@ -447,17 +441,17 @@ const blockStyles = StyleSheet.create({
   title: {
     flex: 1,
     minWidth: 0,
-    fontSize: 8,
+    fontSize: 9,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
     letterSpacing: -0.3,
-    lineHeight: 10,
+    lineHeight: 11,
   },
   time: {
-    fontSize: 7,
+    fontSize: 8,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
-    lineHeight: 9,
+    lineHeight: 10,
   },
 });
 
