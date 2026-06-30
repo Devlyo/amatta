@@ -409,7 +409,7 @@ function WeeklyScheduleBlock({
     >
       <View style={blockStyles.titleRow}>
         <View style={blockStyles.iconWrap}>
-          <KindIcon size={11} color={TOKENS.ink} />
+          <KindIcon size={9} color={TOKENS.ink} />
         </View>
         <Text
           numberOfLines={1}
@@ -433,7 +433,7 @@ const blockStyles = StyleSheet.create({
     position: 'absolute',
     borderWidth: 1,
     borderRadius: RADIUS.xs,
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
     paddingVertical: SPACING.xs,
     overflow: 'hidden',
     gap: 1,
@@ -447,17 +447,17 @@ const blockStyles = StyleSheet.create({
   title: {
     flex: 1,
     minWidth: 0,
-    fontSize: 10,
+    fontSize: 8,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.ink,
-    letterSpacing: -0.2,
-    lineHeight: 12,
+    letterSpacing: -0.3,
+    lineHeight: 10,
   },
   time: {
-    fontSize: 9,
+    fontSize: 7,
     fontFamily: FONT_FAMILIES.pretendard,
     color: TOKENS.inkSub,
-    lineHeight: 11,
+    lineHeight: 9,
   },
 });
 

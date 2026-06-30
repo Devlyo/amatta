@@ -142,8 +142,11 @@ export default function RootLayout() {
         }
 
         setBootState('ready');
-        // App is fully ready — drop the native splash now (no loading-text flash).
-        void SplashScreen.hideAsync();
+        // NOTE: do NOT hideAsync here — that fires before the 'ready' content
+        // paints, so the native splash drops to the (smaller) JS view for a frame
+        // = the "wordmark huge then shrinks" glitch. Hide it from a useEffect on
+        // bootState==='ready' instead, which runs AFTER the content mounts, so the
+        // native splash hands straight off to real content.
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e ?? 'Unknown error');
         setBootError(msg);
@@ -155,6 +158,13 @@ export default function RootLayout() {
 
     void boot();
   }, [fontsLoaded]);
+
+  // Hide the native splash only AFTER the 'ready' content has mounted (this
+  // effect runs post-commit), so the native splash hands directly off to real
+  // content with no intermediate JS-splash frame (no wordmark size jump).
+  useEffect(() => {
+    if (bootState === 'ready') void SplashScreen.hideAsync();
+  }, [bootState]);
 
   // AppState 'active' → debounced re-reconcile (≥ 60 min since last run).
   // Catches: device clock drift, push to a new timezone, edits made in a
@@ -322,7 +332,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  splashWordmark: { width: 140, height: 50 },
+  splashWordmark: { width: 120, height: 40 }, // match native splash imageWidth (120)
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // eslint-disable-next-line no-restricted-syntax
   errorText: { fontSize: 16, color: '#c00', marginBottom: 8 },
