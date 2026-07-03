@@ -15,8 +15,14 @@
 </p>
 
 <p align="center">
+  <a href="https://apps.apple.com/kr/app/amatta-kids-schedule-planner/id6785950309">
+    <img src="https://img.shields.io/badge/Download_on_the-App_Store-0D96F6?style=for-the-badge&logo=apple&logoColor=white" alt="Download Amatta on the App Store" />
+  </a>
+</p>
+
+<p align="center">
   <code>Expo 54</code> · <code>React Native 0.81 (new arch)</code> · <code>TypeScript strict</code> ·
-  <code>SQLite (local-only)</code> · <code>0 servers</code> · <code>pre-launch · QA in progress</code>
+  <code>SQLite (local-only)</code> · <code>0 servers</code> · <code>🟢 Live on the App Store</code>
 </p>
 
 <p align="center">
