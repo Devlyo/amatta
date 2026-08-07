@@ -148,8 +148,7 @@ significant choice is written down before it's coded. The **UI was designed with
 
 ## Status & roadmap
 
-**Pre-launch — QA in progress.** Feature-complete and in iOS App Store submission (privacy policy,
-terms, and a QA checklist are prepared). On the roadmap: home-screen widgets / Live Activities,
+**Live on the App Store (KR) since 2026-07-01.** On the roadmap: home-screen widgets / Live Activities,
 optional cloud sync (would require a new ADR), i18n, and attendance/fee tracking.
 
 ## Run locally
