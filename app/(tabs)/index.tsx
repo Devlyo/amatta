@@ -5,7 +5,7 @@
 // Always shows TODAY, independent of the calendar's selected date:
 //   1. date caption + large "오늘" title (new event = the dock's +)
 //   2. 다음 픽업 card(s) — the existing pickup carousel, today's occurrences
-//   3. 지금 · 다음 — per kid: running / next event + status chip
+//   3. 지금 — per kid: running / next event + status chip
 //   4. 오늘 챙길 것 — today's checklist (per-occurrence completion, ADR-006)
 //   5. 오늘 할 일 — todos due today
 
@@ -113,7 +113,7 @@ export default function HomeScreen(): React.ReactElement {
           pickupLogIsComplete={pickupLogIsComplete}
         />
 
-        <HomeSection title="지금 · 다음" actionLabel="캘린더" onPressAction={handleOpenCalendar}>
+        <HomeSection title="지금" actionLabel="캘린더" onPressAction={handleOpenCalendar}>
           <NowNextList kids={kids} rows={nowNext} />
         </HomeSection>
 

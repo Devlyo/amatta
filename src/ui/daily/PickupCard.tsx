@@ -104,7 +104,7 @@ export function PickupCard({ data, index }: Props): React.ReactElement {
             ]}
           />
           <Text style={[styles.eyebrow, { color: onBgSub }]}>
-            NEXT PICKUP · {data.etaText}
+            Next pickup · {data.etaText}
           </Text>
         </View>
         <Text
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   card: {
     position: 'relative',
     overflow: 'hidden',
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.box,
     paddingTop: 6,
     paddingHorizontal: 14,
     paddingBottom: 10,
@@ -184,10 +184,10 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 12,
     fontFamily: FONT_FAMILIES.mono,
-    letterSpacing: 0.8,
+    letterSpacing: 0.2,
   },
   title: {
-    marginTop: SPACING.xxs,
+    marginTop: SPACING.sm, // 8px between "Next pickup" and the kid / event line
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     fontSize: 16,
     letterSpacing: -0.4,

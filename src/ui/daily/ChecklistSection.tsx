@@ -18,6 +18,7 @@ import { IconCheck } from '../icons';
 import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
+import { TYPE } from '../typography';
 import { isoToYyyymmdd } from './pickup-data';
 
 interface KidGroupItem {
@@ -204,32 +205,21 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
 export const ChecklistSection = memo(ChecklistSectionImpl);
 
 const styles = StyleSheet.create({
+  // Matches HomeSection (home screen headings): headline + muted count,
+  // 6px above the box. These sections now live only on the home screen.
   header: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: SPACING.sm,
-    paddingTop: 14,
+    gap: 6,
     paddingHorizontal: SPACING.xs,
-    paddingBottom: SPACING.sm,
+    paddingBottom: 6,
   },
-  headerLabel: {
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: -0.4,
-    color: TOKENS.ink,
-  },
-  headerCount: {
-    fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 12,
-    fontWeight: '400',
-    color: TOKENS.inkSub,
-  },
+  headerLabel: { ...TYPE.headline, color: TOKENS.ink },
+  headerCount: { ...TYPE.subhead, color: TOKENS.inkSub },
   card: {
     backgroundColor: TOKENS.surface,
-    borderRadius: RADIUS.xl,
+    borderRadius: RADIUS.box,
     padding: 6,
-    marginBottom: SPACING.lg,
   },
   emptyText: {
     fontFamily: FONT_FAMILIES.pretendard,

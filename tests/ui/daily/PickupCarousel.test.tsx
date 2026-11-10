@@ -94,8 +94,8 @@ describe('PickupCarousel', () => {
     // The single card title row contains "민준 · 수영".
     expect(getAllByText(/민준 · 수영/).length).toBeGreaterThan(0);
     // Eyebrow renders once for the only card.
-    expect(getAllByText(/NEXT PICKUP/).length).toBe(1);
-    // No second card → no extra "NEXT PICKUP" eyebrow.
+    expect(getAllByText(/Next pickup/).length).toBe(1);
+    // No second card → no extra "Next pickup" eyebrow.
     expect(queryByText(/서연/)).toBeNull();
   });
 
@@ -118,7 +118,7 @@ describe('PickupCarousel', () => {
       />,
     );
     // Three eyebrows = three cards rendered.
-    expect(getAllByText(/NEXT PICKUP/).length).toBe(3);
+    expect(getAllByText(/Next pickup/).length).toBe(3);
     expect(getAllByText(/민준 · 수영/).length).toBe(1);
     expect(getAllByText(/서연 · 미술/).length).toBe(1);
     expect(getAllByText(/도윤 · 발레/).length).toBe(1);
