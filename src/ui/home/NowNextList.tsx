@@ -49,11 +49,10 @@ function NowNextListImpl({ kids, rows }: Props): React.ReactElement {
           >
             <KidAvatar child={kid} size={30} />
             <View style={styles.text}>
-              {/* Whose row it is — the avatar alone was hard to tell apart. */}
-              <Text style={[styles.name, { color: getKidPalette(kid.colorIndex).deep }]} numberOfLines={1}>
-                {kid.name}
-              </Text>
               <Text style={styles.title} numberOfLines={1}>
+                {/* Whose row it is, right before what they do — the avatar
+                    alone was hard to tell apart. */}
+                <Text style={{ color: getKidPalette(kid.colorIndex).deep }}>{kid.name} </Text>
                 {d.title}
                 {d.detail !== '' ? <Text style={styles.detail}> · {d.detail}</Text> : null}
               </Text>
@@ -97,8 +96,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: TOKENS.ink12,
   },
-  text: { flex: 1, minWidth: 0, gap: 1 },
-  name: { ...TYPE.caption, fontFamily: TYPE.headline.fontFamily },
+  text: { flex: 1, minWidth: 0, gap: 2 },
   title: { ...TYPE.subhead, fontFamily: TYPE.headline.fontFamily, color: TOKENS.ink },
   detail: { ...TYPE.subhead, color: TOKENS.inkSub },
   sub: { ...TYPE.footnote, color: TOKENS.inkSub },

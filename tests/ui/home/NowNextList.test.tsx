@@ -11,7 +11,7 @@ const kid = (id: number, name: string): Child => ({
   createdAt: '2026-01-01' as unknown as ISODate,
 });
 
-test('each row names its kid above what they are doing', () => {
+test('each row names its kid right before what they are doing', () => {
   render(
     <NowNextList
       kids={[kid(1, '민준'), kid(2, '서연')]}
@@ -27,7 +27,8 @@ test('each row names its kid above what they are doing', () => {
       ] as never}
     />,
   );
-  expect(screen.getByText('민준')).toBeTruthy();
-  expect(screen.getByText('서연')).toBeTruthy();
+  // Inline, right before the title.
+  expect(screen.getByText('민준 ')).toBeTruthy();
+  expect(screen.getByText('서연 ')).toBeTruthy();
   expect(screen.getByLabelText(/^민준, 영어학원 3:30PM까지/)).toBeTruthy();
 });
