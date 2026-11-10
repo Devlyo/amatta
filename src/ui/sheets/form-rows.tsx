@@ -61,6 +61,30 @@ export const FormInputRow = memo(function FormInputRow({
   );
 });
 
+/** Read-only text in the place of an input row (event detail: 제목 / 장소 / 메모). */
+export function FormTextRow({
+  text,
+  placeholder,
+  emphasis = false,
+  last = false,
+}: {
+  text: string;
+  /** Shown muted when `text` is empty. */
+  placeholder?: string;
+  /** Title style (event detail headline). */
+  emphasis?: boolean;
+  last?: boolean;
+}): React.ReactElement {
+  const empty = text.trim().length === 0;
+  return (
+    <RowFrame last={last}>
+      <Text style={[styles.input, emphasis ? styles.inputEmphasis : null, empty ? styles.inputPlaceholder : null]}>
+        {empty ? (placeholder ?? '') : text}
+      </Text>
+    </RowFrame>
+  );
+}
+
 /**
  * Label on the left, value + chevron on the right. Tapping toggles an inline
  * panel (`expanded` + `children`). `onPress` undefined → read-only row.
@@ -277,6 +301,8 @@ const styles = StyleSheet.create({
   },
   label: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
   input: { ...TYPE.row, color: TOKENS.ink, flex: 1, paddingVertical: 11 },
+  inputEmphasis: { ...TYPE.headline },
+  inputPlaceholder: { color: TOKENS.ink30 },
   valueWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
   value: { ...TYPE.row, color: TOKENS.inkSub, flexShrink: 1 },
   valueActive: { color: TOKENS.sunday },

@@ -53,6 +53,8 @@ import {
   TYPE_OPTIONS,
   VISUAL_TO_MASK_BIT,
   alertSummary,
+  fmt12hrShortSpaced,
+  formatKoDateChip,
   defaultFormState,
   formFromOccurrence,
   formFromSchedule,
@@ -137,17 +139,6 @@ function minutesToDate(min: Minutes): Date {
 }
 function dateToMinutes(d: Date): Minutes {
   return (d.getHours() * 60 + d.getMinutes()) as Minutes;
-}
-// "2026. 11. 10." — iPhone Calendar (ko-KR) date chip.
-function formatKoDateChip(iso: string): string {
-  if (iso.length === 0) return '날짜 선택';
-  return `${iso.slice(0, 4)}. ${Number(iso.slice(5, 7))}. ${Number(iso.slice(8, 10))}.`;
-}
-// "3:00 PM" — iPhone Calendar time chip (AM/PM kept, ADR-007).
-function fmt12hrShortSpaced(minutes: number): string {
-  const h = Math.floor(minutes / 60) % 24;
-  const m = minutes % 60;
-  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
 }
 
 /** 보호자 in the 자녀 options (ADR-008) — saved to the device calendar instead. */

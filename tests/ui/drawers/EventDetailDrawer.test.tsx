@@ -146,8 +146,22 @@ describe('EventDetailContent', () => {
     expect(queryByText('JLS어학원')).not.toBeNull();
     // Notify label
     expect(queryByText('30분 전')).not.toBeNull();
-    // Pickup badge (uses fmtKoTime on end minutes)
-    expect(queryByText('오후 5:30 픽업')).not.toBeNull();
+    // Pickup = end time, same "5:30 PM" chips as the form
+    expect(queryByText('5:30 PM 픽업')).not.toBeNull();
+  });
+
+  test('reads like the edit form: same rows, values and actions', () => {
+    const { getByLabelText, queryByLabelText } = render(<EventDetailContent onClose={() => {}} />);
+    expect(getByLabelText('자녀: 민준')).toBeTruthy();
+    expect(getByLabelText('종류: 학원')).toBeTruthy();
+    expect(getByLabelText(/^시작: \d{4}\. \d+\. \d+\. 4:00 PM$/)).toBeTruthy();
+    expect(getByLabelText('종료: 5:30 PM')).toBeTruthy();
+    expect(getByLabelText('시작 전 알림: 30분 전')).toBeTruthy();
+    expect(getByLabelText('종료 전 알림: 없음')).toBeTruthy();
+    expect(getByLabelText('이 회차만 수정')).toBeTruthy();
+    expect(getByLabelText('이 회차만 삭제')).toBeTruthy();
+    expect(getByLabelText('전체 삭제')).toBeTruthy();
+    expect(queryByLabelText('이 회차만 취소')).toBeNull();
   });
 
   test('renders the checklist items pulled from the checklist store', () => {
