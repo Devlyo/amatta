@@ -294,6 +294,10 @@ export function ScheduleEditContent({
     const store = useGuardianStore.getState();
     if (!(store.enabled && store.permission === 'granted')) {
       const ok = await store.setEnabled(db, true);
+      if (!ok && useGuardianStore.getState().permission === 'unavailable') {
+        Alert.alert('업데이트가 필요해요', '지금 설치된 앱에는 캘린더 연동 기능이 없어요. 앱을 최신 버전으로 업데이트해 주세요.');
+        return false;
+      }
       if (!ok) {
         Alert.alert('캘린더 접근이 필요해요', '보호자 일정은 아이폰 캘린더에 저장돼요. 설정에서 캘린더 접근을 허용해 주세요.', [
           { text: '취소', style: 'cancel' },

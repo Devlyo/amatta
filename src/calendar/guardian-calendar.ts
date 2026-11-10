@@ -4,14 +4,41 @@
 // calendars, writes guardian events the user adds in the app, and opens one
 // in the system event screen. Nothing here is stored in SQLite.
 
-import * as Calendar from 'expo-calendar';
 import { Platform } from 'react-native';
 
 import { dateAt, type GuardianRawEvent } from '../domain/guardian';
 import { ALL_DAY_ALERT_BASE_MINUTES } from '../notifications/scheduler';
 import type { ISODate } from '../domain/types';
 
-export type CalendarPermission = 'granted' | 'denied' | 'undetermined';
+/** 'unavailable' = this app build has no calendar module (an older dev client). */
+export type CalendarPermission = 'granted' | 'denied' | 'undetermined' | 'unavailable';
+
+type CalendarModule = typeof import('expo-calendar');
+let cachedModule: CalendarModule | null | undefined;
+/**
+ * expo-calendar, loaded on first use. A build without the native module
+ * (an older dev client) throws on import — the app must keep working then,
+ * with the calendar link simply unavailable.
+ */
+function calendarModule(): CalendarModule | null {
+  if (cachedModule === undefined) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      cachedModule = require('expo-calendar') as CalendarModule;
+    } catch {
+      cachedModule = null;
+    }
+  }
+  return cachedModule;
+}
+function need(): CalendarModule {
+  const m = calendarModule();
+  if (m === null) throw new Error('expo-calendar is not in this build');
+  return m;
+}
+export function isCalendarAvailable(): boolean {
+  return calendarModule() !== null;
+}
 
 export interface DeviceCalendar {
   id: string;
@@ -27,15 +54,18 @@ function permissionOf(r: { status: string }): CalendarPermission {
 }
 
 export async function getPermission(): Promise<CalendarPermission> {
-  return permissionOf(await Calendar.getCalendarPermissionsAsync());
+  const m = calendarModule();
+  return m === null ? 'unavailable' : permissionOf(await m.getCalendarPermissionsAsync());
 }
 
 export async function requestPermission(): Promise<CalendarPermission> {
-  return permissionOf(await Calendar.requestCalendarPermissionsAsync());
+  const m = calendarModule();
+  return m === null ? 'unavailable' : permissionOf(await m.requestCalendarPermissionsAsync());
 }
 
 /** Event calendars on the device (reminder lists excluded). */
 export async function listCalendars(): Promise<DeviceCalendar[]> {
+  const Calendar = need();
   const list = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
   return list
     .map((c) => ({
@@ -55,7 +85,7 @@ export async function fetchEvents(
   to: ISODate,
 ): Promise<GuardianRawEvent[]> {
   if (calendarIds.length === 0) return [];
-  const events = await Calendar.getEventsAsync([...calendarIds], dateAt(from, 0), dateAt(to, 24 * 60));
+  const events = await need().getEventsAsync([...calendarIds], dateAt(from, 0), dateAt(to, 24 * 60));
   return events.map((e) => ({
     id: e.id,
     calendarId: e.calendarId,
@@ -73,7 +103,7 @@ export async function resolveWriteCalendar(preferredId: string | null): Promise<
   if (preferred !== undefined) return preferred.id;
   if (Platform.OS === 'ios') {
     try {
-      const def = await Calendar.getDefaultCalendarAsync();
+      const def = await need().getDefaultCalendarAsync();
       if (def.allowsModifications) return def.id;
     } catch {
       /* no default calendar — fall through */
@@ -96,7 +126,7 @@ export interface NewGuardianEvent {
 
 /** Write a guardian event to the device calendar; resolves with its id. */
 export async function createGuardianEvent(calendarId: string, e: NewGuardianEvent): Promise<string> {
-  return Calendar.createEventAsync(calendarId, {
+  return need().createEventAsync(calendarId, {
     title: e.title,
     location: e.location ?? undefined,
     notes: e.notes ?? undefined,
@@ -114,7 +144,7 @@ export async function createGuardianEvent(calendarId: string, e: NewGuardianEven
 
 /** Show one event (one instance of a recurring one) in the system screen; editing allowed. */
 export async function openGuardianEvent(eventId: string, instanceStart: Date): Promise<void> {
-  await Calendar.openEventInCalendarAsync(
+  await need().openEventInCalendarAsync(
     { id: eventId, instanceStartDate: instanceStart },
     { allowsEditing: true },
   );

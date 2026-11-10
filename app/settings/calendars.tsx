@@ -62,6 +62,16 @@ export default function CalendarSettingsScreen(): React.ReactElement {
           캘린더에 저장돼요. 일정은 이 기기 밖으로 나가지 않아요.
         </Text>
 
+        {permission === 'unavailable' ? (
+          <View style={styles.block}>
+            <FormGroup>
+              <View style={styles.notice}>
+                <Text style={styles.noticeText}>지금 설치된 앱에는 캘린더 연동 기능이 없어요. 앱을 최신 버전으로 업데이트해 주세요.</Text>
+              </View>
+            </FormGroup>
+          </View>
+        ) : null}
+
         {permission === 'denied' ? (
           <View style={styles.block}>
             <FormGroup>
