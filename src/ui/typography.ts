@@ -81,6 +81,20 @@ export const TYPE = {
     lineHeight: 36,
     letterSpacing: -0.6,
   },
+  // Title2 22 / 700 — home section heading (ADR-014, iOS Title 2)
+  title2: {
+    fontFamily: FONT_FAMILIES.pretendardBold,
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: -0.5,
+  },
+  // Large title 34 — iOS large nav title (home "오늘", ADR-014)
+  largeTitle34: {
+    fontFamily: FONT_FAMILIES.pretendardBold,
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: -0.8,
+  },
   // Headline 17 / 600 — nav bar title, section heading
   headline: {
     fontFamily: FONT_FAMILIES.pretendardSemiBold,

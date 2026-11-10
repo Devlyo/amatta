@@ -155,6 +155,10 @@ const LIGHT = {
   // cards), white on strong fills (orange pills, guardian blocks in dark).
   onLight: '#1D1D1B',
   onDark: '#FFFFFF',
+  // Board H1 (home 지금 stack): pills / progress track sitting ON a kid fill —
+  // same in both schemes, like onLight.
+  surfaceOnFill: 'rgba(255,255,255,0.92)',
+  surfaceOnFillMuted: 'rgba(255,255,255,0.55)',
 } as const;
 
 export type TokenName = keyof typeof LIGHT;
@@ -219,6 +223,8 @@ export const DARK_TOKENS: Readonly<Record<TokenName, string>> = {
   shadow: '#000000',
   onLight: '#1D1D1B',
   onDark: '#FFFFFF',
+  surfaceOnFill: 'rgba(255,255,255,0.92)',
+  surfaceOnFillMuted: 'rgba(255,255,255,0.55)',
 };
 
 // Pickup carousel card spec (handoff #4). Index → palette[index % 4]; shape

@@ -240,13 +240,13 @@ const useStyles = makeStyles((th) => ({
     alignItems: 'baseline',
     gap: 6,
     paddingHorizontal: SPACING.xs,
-    paddingBottom: 6,
+    paddingBottom: SPACING.sm,
   },
-  headerLabel: { ...TYPE.headline, color: th.t.ink },
-  headerCount: { ...TYPE.subhead, color: th.t.inkSub },
+  headerLabel: { ...TYPE.title2, color: th.t.ink },
+  headerCount: { ...TYPE.footnote, color: th.t.inkSub },
   card: {
     backgroundColor: th.t.surface,
-    borderRadius: RADIUS.box,
+    borderRadius: RADIUS.card,
     padding: 6,
   },
   emptyText: {

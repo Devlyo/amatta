@@ -8,6 +8,7 @@ export const RADIUS = {
   md: 12, // button, input
   box: 14, // ADR-007 default card / grouped list box
   lg: 16, // sheet top corners
+  card: 22, // ADR-014: home cards (지금 stack, 준비물, 할 일) — iOS widget feel
   xl: 24, // bottom sheet top
   full: 9999, // FAB, avatar ring, status pill
 } as const;
