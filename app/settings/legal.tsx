@@ -81,7 +81,7 @@ const PRIVACY_SECTIONS: Section[] = [
   {
     title: '아동의 개인정보',
     paragraphs: [
-      '아마따는 자녀의 일정을 관리하는 보호자를 위한 도구로서, 자녀 본인이 직접 사용하는 것을 전제로 설계되지 않았습니다. 보호자가 입력하신 자녀 정보는 보호자의 책임 하에 관리되며, 운영자는 해당 정보를 외부와 공유하지 않습니다.',
+      'WeMoa는 자녀의 일정을 관리하는 보호자를 위한 도구로서, 자녀 본인이 직접 사용하는 것을 전제로 설계되지 않았습니다. 보호자가 입력하신 자녀 정보는 보호자의 책임 하에 관리되며, 운영자는 해당 정보를 외부와 공유하지 않습니다.',
     ],
   },
   {
@@ -106,7 +106,7 @@ const TERMS_SECTIONS: Section[] = [
   {
     title: '서비스의 목적',
     paragraphs: [
-      '본 약관은 사용자가 아마따(이하 “서비스”)를 이용함에 있어 운영자와 사용자 사이의 권리, 의무 및 책임 사항을 규정함을 목적으로 합니다. 본 서비스는 무료로 제공되며 앱 내 결제나 유료 기능이 없습니다. 서비스를 설치·이용함으로써 사용자는 본 약관에 동의하신 것으로 봅니다.',
+      '본 약관은 사용자가 WeMoa(이하 “서비스”)를 이용함에 있어 운영자와 사용자 사이의 권리, 의무 및 책임 사항을 규정함을 목적으로 합니다. 본 서비스는 무료로 제공되며 앱 내 결제나 유료 기능이 없습니다. 서비스를 설치·이용함으로써 사용자는 본 약관에 동의하신 것으로 봅니다.',
     ],
   },
   {
@@ -114,7 +114,7 @@ const TERMS_SECTIONS: Section[] = [
     paragraphs: ['본 약관에서 사용하는 용어의 정의는 다음과 같습니다.'],
     bullets: [
       '“운영자”란 본 서비스를 개발·제공하는 개인 개발자를 의미하며, 본 서비스는 법인이 아닌 개인이 운영합니다.',
-      '“서비스”란 아마따라는 이름으로 제공되는 모든 기능과 콘텐츠를 의미합니다.',
+      '“서비스”란 WeMoa라는 이름으로 제공되는 모든 기능과 콘텐츠를 의미합니다.',
       '“사용자”란 서비스를 설치하고 이용하는 자를 말합니다.',
       '“자녀”란 사용자가 서비스 내에 등록한 보호 대상을 의미합니다.',
       '“콘텐츠”란 사용자가 입력한 일정·준비물·할일·메모 등 모든 데이터를 포함합니다.',
@@ -193,7 +193,7 @@ export default function LegalScreen(): React.ReactElement {
           <Text style={styles.heroLabel}>시행일</Text>
           <Text style={styles.heroDate}>{EFFECTIVE_DATE}</Text>
           <Text style={styles.heroNote}>
-            아마따는 사용자가 안심하고 서비스를 이용하실 수 있도록 본 약관 및 개인정보처리방침을 마련하고 있습니다.
+            WeMoa는 사용자가 안심하고 서비스를 이용하실 수 있도록 본 약관 및 개인정보처리방침을 마련하고 있습니다.
           </Text>
         </View>
 
@@ -213,7 +213,7 @@ export default function LegalScreen(): React.ReactElement {
           testID="legal-group-terms"
         />
 
-        <Text style={styles.footer}>아마따 v1.0.0 · {EFFECTIVE_DATE} 기준</Text>
+        <Text style={styles.footer}>WeMoa v1.0.0 · {EFFECTIVE_DATE} 기준</Text>
     </SettingsDetailScreen>
   );
 }

@@ -25,6 +25,8 @@ const MIN_BLOCK_H = 20;
 const DOCK_CLEARANCE = 96;
 
 interface Props {
+  /** 보호자 as a person (pill / column). False while 보호자 일정 is off in 설정. */
+  guardian?: boolean;
   kids: readonly Child[];
   occurrences: readonly Occurrence[];
   /** Minutes-from-midnight when the shown day is today, else null. */
@@ -61,6 +63,7 @@ function DayViewImpl({
   onPressOccurrence,
   onLongPressSlot,
   guardianEvents = [],
+  guardian = true,
   onPressGuardian,
 }: Props): React.ReactElement {
   const theme = useTheme();
@@ -68,13 +71,13 @@ function DayViewImpl({
   // People switched off in the filter are hidden (no column, no blocks) —
   // only the people that are on share the width. Everyone off → every
   // column stays, empty.
-  const everyone = useMemo<PersonKey[]>(() => [...allKids.map((k) => k.id), 'guardian'], [allKids]);
+  const everyone = useMemo<PersonKey[]>(() => guardian ? [...allKids.map((k) => k.id), 'guardian'] : allKids.map((k) => k.id), [allKids, guardian]);
   const noneOn = everyone.every((k) => inactive.includes(k));
   const kids = useMemo(
     () => (noneOn ? allKids : allKids.filter((k) => !inactive.includes(k.id))),
     [allKids, inactive, noneOn],
   );
-  const showGuardian = noneOn || !inactive.includes('guardian');
+  const showGuardian = guardian && (noneOn || !inactive.includes('guardian'));
   const columnOfKid = useMemo(
     () => new Map(noneOn ? [] : kids.map((k, i) => [k.id, i])),
     [kids, noneOn],

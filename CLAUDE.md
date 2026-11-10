@@ -24,6 +24,7 @@
 - **픽업 시각화 (ADR-003, ADR-002 supersede)**: 일간 그리드 상단 `PickupCarousel` 단일 위치. 다음 픽업 1+개를 swipe 가능 카드(Sunset Orange / French Lavender bg)로 표시. 동시 시간 픽업 ≥ 2 → carousel 추가 카드(2026-11-10: **15분 안**의 픽업까지 묶고, 카드 아래 "… 픽업과 겹쳐요" 문구 — 보호자 일정 겹침 문구와 같은 디자인, 화면 표시만). 블록 오버레이·푸시 둘 다 금지. `⚠ {hh:mm} 픽업 충돌` sub-bar pill은 ADR-003에서 폐기. **→ ADR-007: 픽업 카드는 홈의 "다음 픽업"으로 이동, 일간에서는 숨김.**
 - **NOW 라인 (ADR-003, 색은 ADR-007)**: 주황 선+점+알약(흰 글씨). 일·주간 NOW 라인은 분 단위 실시간 갱신 (setInterval 60s + 다음 분 경계 align + AppState focus 즉시 동기화).
 - **모달/시트 (ADR-004)**: 모든 바텀시트·모달 = expo-router 네이티브 라우트. 짧은 시트 = `presentation:'formSheet'` + `sheetAllowedDetents`(분수/`'fitToContents'`); 큰 폼(새일정·수정·상세) = `presentation:'modal'`. **gorhom 미사용** (iOS "닫은 뒤 두 번 탭" 버그). ~~앱 라이트모드 런타임 고정~~ → **ADR-009: 화면 모드 = 시스템(기본)/라이트/다크**(설정 > 화면, `Appearance.setColorScheme`, 부팅 중 적용, `app_settings.appearance`). 키보드 = `ScrollView automaticallyAdjustKeyboardInsets`.
+- **앱 이름·온보딩 (ADR-011)**: 표시 이름 **WeMoa**(`APP_NAME`; 번들 ID `io.devlyo.amatta`·slug 유지). 온보딩 = 환영(3D 얼굴) → 아이 등록 → **마무리(알림·보호자 일정 opt-in, 시작하기 때만 권한 요청)**. 부팅 중 알림 권한 요청은 아이가 있고 알림이 켜졌을 때만.
 - **디자인 시스템 (ADR 없음, 2026-06 신설)**: `src/ui` 토큰(`spacing`·`radius`·`typography`·`elevation` + `palette` TOKENS) + `src/ui/components` primitives(Text·Button·Card·Input·Fab·Pill·Badge·SelectChip·DayCircle·Toggle·DateField·DashedAddButton·Segmented). **임의 색·크기·shadow 리터럴 금지 — 토큰 사용**(ADR-009: 색은 `useTheme()` / `makeStyles()`(`src/ui/appearance.tsx`)로만, `TOKENS` 없음, LIGHT/DARK 표 직접 import = lint 에러, `rgba(` 리터럴 금지). ADR-007: 기본 박스 `RADIUS.box`(14), 시스템 바탕 `TOKENS.groupedBg`, 자녀 `deep` 톤. dev 갤러리: 설정→개발자→🎨 (`__DEV__`, `app/dev-gallery.tsx`).
 
 ## Authoritative Documents
@@ -34,7 +35,7 @@
 | Architect/Critic 리뷰 | `.omc/plans/ralplan-schedul-app-v2.{architect,critic}-review.md` |
 | 보류된 결정 | `.omc/plans/open-questions.md` |
 | 제품 PRD·페르소나 | `docs/product/` |
-| 아키텍처·ADR | `docs/architecture/` (ADR-001 stack lock, ADR-002 prep·todos·pickup, ADR-003 pickup carousel + NOW tick, **ADR-004 modal sheets — 네이티브 formSheet/modal, gorhom 미사용**, ADR-006 PREP-RECUR 회차별 완료, **ADR-006a 준비물 반복 ↻ pill — 반복 일정 종속 노출**, **ADR-007 캘린더 개편 — 홈·일주월·보호자 캘린더·UI 통일**, **ADR-008 보호자 일정 쓰기 — 새 일정 화면에서 보호자 → 기기 캘린더**) |
+| 아키텍처·ADR | `docs/architecture/` (ADR-001 stack lock, ADR-002 prep·todos·pickup, ADR-003 pickup carousel + NOW tick, **ADR-004 modal sheets — 네이티브 formSheet/modal, gorhom 미사용**, ADR-006 PREP-RECUR 회차별 완료, **ADR-006a 준비물 반복 ↻ pill — 반복 일정 종속 노출**, **ADR-007 캘린더 개편 — 홈·일주월·보호자 캘린더·UI 통일**, **ADR-008 보호자 일정 쓰기 — 새 일정 화면에서 보호자 → 기기 캘린더**, ADR-009 다크 모드, **ADR-011 앱 이름 WeMoa·온보딩 개편**) |
 | UI/UX 가이드 | `docs/design/` |
 | 회의록 | `docs/meetings/` |
 | 로드맵·백로그·스프린트 | `schedule/` |

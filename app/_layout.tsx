@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Platform, Text, View, Image } from 'react-native';
+import { AppState, Platform, Text, View, Image, useColorScheme } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -24,7 +24,7 @@ import { useChecklistCompletionStore } from '../src/state/checklist-completion-s
 import { useNotifSettingsStore } from '../src/state/notif-settings-store';
 import { useGuardianStore } from '../src/state/guardian-store';
 import { useDisplayStore } from '../src/state/display-store';
-import { AppThemeProvider, LIGHT_THEME, makeStyles, useTheme } from '../src/ui/appearance';
+import { AppThemeProvider, DARK_THEME, LIGHT_THEME, makeStyles, useTheme } from '../src/ui/appearance';
 import {
   DarkTheme as NavDarkTheme,
   DefaultTheme as NavDefaultTheme,
@@ -62,6 +62,7 @@ type BootState = 'booting' | 'ready' | 'error';
 
 export default function RootLayout() {
   const styles = useStyles();
+  const scheme = useColorScheme();
   // Hooks must be declared at the top — above any conditional return — so
   // the call order is stable across renders. expo-font's `useFonts` returns
   // [loaded, error]; we block boot until `fontsLoaded` is true.
@@ -142,7 +143,14 @@ export default function RootLayout() {
               lightColor: LIGHT_THEME.t.primary, // brand orange LED, same in both schemes
             });
           }
-          await ensurePermission();
+          // First run (no kids yet): the onboarding finish step asks, with
+          // context. Afterwards only while 알림 is on in 설정.
+          if (
+            useChildrenStore.getState().children.length > 0 &&
+            useNotifSettingsStore.getState().systemEnabled
+          ) {
+            await ensurePermission();
+          }
           await rescheduleAll(db);
         } catch (notifErr) {
           console.warn('[boot] notification reconcile failed:', notifErr);
@@ -199,11 +207,17 @@ export default function RootLayout() {
   }, [bootState]);
 
   if (!fontsLoaded || bootState === 'booting') {
-    // Replicate the splash (아마따 wordmark on orange) so the hand-off from the
+    // Replicate the splash (orange WeMoa wordmark on white / dark) so the hand-off from the
     // native splash to JS is seamless — no white flash, and the wordmark doesn't
     // blink out. The native splash is held via preventAutoHideAsync until 'ready'.
     return (
-      <View style={styles.splashFill}>
+      <View
+        style={[
+          styles.splashFill,
+          // Same pair as app.json expo-splash-screen (light / dark).
+          { backgroundColor: scheme === 'dark' ? DARK_THEME.t.groupedBg : LIGHT_THEME.t.surface },
+        ]}
+      >
         <Image
           source={require('../assets/images/splash-icon.png')}
           style={styles.splashWordmark}
@@ -237,11 +251,10 @@ const useStyles = makeStyles((th) => ({
   flex: { flex: 1 },
   splashFill: {
     flex: 1,
-    backgroundColor: th.t.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  splashWordmark: { width: 120, height: 40 }, // match native splash imageWidth (120)
+  splashWordmark: { width: 200, height: 44 }, // match native splash imageWidth (200), image 1200×263
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // eslint-disable-next-line no-restricted-syntax
   errorText: { fontSize: 16, color: '#c00', marginBottom: 8 },
@@ -290,24 +303,16 @@ function AppStack(): React.ReactElement {
         name="onboarding/add-kid"
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="onboarding/finish"
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
       <Stack.Screen name="settings/kids" options={{ headerShown: false }} />
       <Stack.Screen name="settings/kid-edit" options={{ headerShown: false }} />
       <Stack.Screen name="settings/data" options={{ headerShown: false }} />
       <Stack.Screen name="settings/calendars" options={{ headerShown: false }} />
       <Stack.Screen name="settings/display" options={{ headerShown: false }} />
       <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
-      {/* Reset-all-data confirm — native formSheet route (app/settings/reset-confirm.tsx). */}
-      <Stack.Screen
-        name="settings/reset-confirm"
-        options={{
-          headerShown: false,
-          presentation: 'formSheet',
-          sheetAllowedDetents: 'fitToContents',
-          sheetGrabberVisible: true,
-          sheetCornerRadius: 22,
-          contentStyle: { backgroundColor: theme.t.surface },
-        }}
-      />
       {/* Dev-only design-system gallery. Entry point in Settings is __DEV__-gated. */}
       <Stack.Screen name="dev-gallery" options={{ title: 'DS Gallery', presentation: 'modal' }} />
       {/* Calendar — native SHORT sheet (formSheet + detents). NO gorhom

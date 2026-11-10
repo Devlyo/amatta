@@ -1,42 +1,25 @@
-// Scene 2 — Add Kid (multi-step, in-memory then commit-on-done).
-// 1:1 port of docs/design/amatta-v1/app-onboarding.jsx OnbAddKid.
+// Onboarding 2 — Add kids (design canvas "O2 첫째 등록" / "O3 둘째 등록").
 //
-// State machine (matches spec lines 153-208):
+// State machine (unchanged):
 //   - `registered` holds kids already added in earlier steps (in-memory).
-//   - `name` + `avatar` hold the current step's draft. avatar's palette
-//     slot is derived 1:1 via AVATAR_KEYS at commit time (see kid-edit).
-//   - Step indicator shows {registered.length + 1} / 4.
-//   - + 자녀 추가 keeps user on this screen and pushes the draft into
-//     `registered` (UI resets to empty for the next slot).
-//   - 완료 commits the draft + everything in `registered` into the DB
-//     via useChildrenStore.add (in order), then navigates to /.
-//   - Back chev pops the last registered kid back into the draft, or
-//     routes back to /onboarding/welcome on the first slot.
+//   - `name` + `avatar` hold the current step's draft; the palette slot is
+//     derived 1:1 from the avatar (colorIndexForAvatarKey).
+//   - "+ 다음 아이도 추가" pushes the draft into `registered` and resets.
+//   - 완료 commits everything to the DB (in order), then goes on to the
+//     finish step (알림 · 보호자 일정).
+//   - Back pops the last registered kid back into the draft, or returns to
+//     the welcome screen on the first slot.
 //
-// Sibling-used avatars get disabled in the swatch grid (same uniqueness
-// rule as kid-edit). The auto-picked palette slot for the current draft
-// is the first AVATAR_KEYS entry not yet used by `registered`.
+// A face a sibling already uses is dimmed and shows that sibling's name.
 
 import { useCallback, useMemo, useState } from 'react';
-import {
-  Alert,
-  Image,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { getDb } from '../../src/db/client';
 import { MAX_CHILDREN } from '../../src/domain/constants';
-import {
-  AVATAR_KEYS,
-  colorIndexForAvatarKey,
-  type AvatarKey,
-} from '../../src/domain/avatar';
+import { AVATAR_KEYS, colorIndexForAvatarKey, type AvatarKey } from '../../src/domain/avatar';
 import { useChildrenStore } from '../../src/state/children-store';
 import { AVATAR_IMAGE_BY_KEY } from '../../src/ui/assets';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
@@ -61,6 +44,21 @@ function nextAvailableAvatar(taken: readonly AvatarKey[]): AvatarKey {
   return AVATAR_KEYS[0];
 }
 
+/** One dot per kid slot: done = faded orange, current = orange bar. */
+function StepDots({ current }: { current: number }): React.ReactElement {
+  const styles = useStyles();
+  return (
+    <View style={styles.dots} accessible accessibilityLabel={`${current + 1}번째 아이, 최대 ${MAX_CHILDREN}명`}>
+      {Array.from({ length: MAX_CHILDREN }, (_, i) => (
+        <View
+          key={i}
+          style={[styles.dot, i === current ? styles.dotCurrent : i < current ? styles.dotDone : null]}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function OnbAddKidScreen(): React.ReactElement {
   const theme = useTheme();
   const styles = useStyles();
@@ -68,24 +66,17 @@ export default function OnbAddKidScreen(): React.ReactElement {
   const addChild = useChildrenStore((s) => s.add);
 
   const [registered, setRegistered] = useState<DraftKid[]>([]);
-
-  // Current step's draft. avatar defaults to the first unused AvatarKey
-  // so each successive step picks a different colour without the user
-  // needing to touch the grid.
   const [name, setName] = useState<string>('');
   const [avatar, setAvatar] = useState<AvatarKey>(AVATAR_KEYS[0]);
 
   const stepIdx = registered.length;
-  const stepNum = stepIdx + 1;
   const isFirst = stepIdx === 0;
-  const atLast = stepNum >= MAX_CHILDREN;
+  const atLast = stepIdx + 1 >= MAX_CHILDREN;
 
-  const usedAvatars = useMemo<AvatarKey[]>(
-    () => registered.map((r) => r.avatar),
-    [registered],
-  );
-
+  // Face → the sibling who already has it.
+  const takenBy = useMemo(() => new Map(registered.map((r) => [r.avatar, r.name])), [registered]);
   const canSubmit = name.trim().length > 0;
+  const palette = theme.kid(colorIndexForAvatarKey(avatar));
 
   const commitAll = useCallback(
     async (allDrafts: readonly DraftKid[]) => {
@@ -103,26 +94,19 @@ export default function OnbAddKidScreen(): React.ReactElement {
 
   const handleDone = useCallback(async () => {
     if (!canSubmit) return;
-    const drafts: DraftKid[] = [
-      ...registered,
-      { name: name.trim(), avatar },
-    ];
+    const drafts: DraftKid[] = [...registered, { name: name.trim(), avatar }];
     try {
       await commitAll(drafts);
     } catch (e) {
-      Alert.alert('자녀를 추가하지 못했어요', e instanceof Error ? e.message : String(e));
+      Alert.alert('아이를 추가하지 못했어요', e instanceof Error ? e.message : String(e));
       return;
     }
-    // Home is the first screen post-onboarding.
-    router.replace('/');
+    router.replace('/onboarding/finish');
   }, [canSubmit, registered, name, avatar, commitAll, router]);
 
   const handleAddAnother = useCallback(() => {
     if (!canSubmit) return;
-    const nextRegistered: DraftKid[] = [
-      ...registered,
-      { name: name.trim(), avatar },
-    ];
+    const nextRegistered: DraftKid[] = [...registered, { name: name.trim(), avatar }];
     setRegistered(nextRegistered);
     setName('');
     setAvatar(nextAvailableAvatar(nextRegistered.map((r) => r.avatar)));
@@ -141,376 +125,321 @@ export default function OnbAddKidScreen(): React.ReactElement {
   }, [isFirst, registered, router]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* ── Top bar ──────────────────────────────────────────── */}
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.topBar}>
         <Pressable
           onPress={handleBack}
           accessibilityRole="button"
           accessibilityLabel="뒤로"
           hitSlop={8}
-          style={styles.topBarBack}
+          style={styles.topBarSide}
         >
-          <IconChevronLeft size={22} color={theme.t.ink} />
+          <IconChevronLeft size={24} color={theme.t.ink} />
         </Pressable>
-        <Text style={styles.stepIndicator}>
-          {stepNum} <Text style={styles.stepDivider}>/</Text>{' '}
-          {MAX_CHILDREN}
-        </Text>
-        <View style={styles.topBarBack} />
+        <StepDots current={stepIdx} />
+        <View style={styles.topBarSide} />
       </View>
 
-      {/* No KeyboardAvoidingView — letting the keyboard cover the bottom
-          CTAs feels more natural than the lift-up behaviour, which made
-          the 완료 / 자녀 추가 buttons read as glued to the keyboard.
-          The ScrollView still scrolls the field into view. */}
-      <View style={styles.flex}>
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* ── Title + sub ────────────────────────────────── */}
-          <Text style={styles.title}>
-            {isFirst ? '자녀를 알려주세요' : `${STEP_LABELS[stepIdx]}도 알려주세요`}
-          </Text>
-          <Text style={styles.sub}>
-            {isFirst
-              ? `언제든 설정에서 추가할 수 있어요 (최대 ${MAX_CHILDREN}명).`
-              : '건너뛰고 나중에 추가할 수 있어요.'}
-          </Text>
+      {/* No KeyboardAvoidingView — the keyboard covering the bottom buttons
+          reads more naturally than buttons glued to it. */}
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
+        <Text style={styles.title} accessibilityRole="header">
+          {`${STEP_LABELS[stepIdx] ?? '다음'} 아이를\n알려 주세요`}
+        </Text>
+        <Text style={styles.sub}>{`나중에 설정에서 더 추가할 수 있어요 (최대 ${MAX_CHILDREN}명)`}</Text>
 
-          {/* ── Registered chips — 둘째 onward ─────────────── */}
-          {registered.length > 0 ? (
-            <View style={styles.chipsRow}>
-              <Text style={styles.chipsLabel}>등록 완료</Text>
-              {registered.map((k, i) => (
-                <View key={`${k.avatar}-${i}`} style={styles.chip}>
-                  <View style={styles.chipAvatarWrap}>
-                    <Image
-                      source={AVATAR_IMAGE_BY_KEY[k.avatar]}
-                      style={styles.chipAvatar}
-                      resizeMode="contain"
-                    />
-                  </View>
-                  <Text style={styles.chipName}>{k.name}</Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
-
-          {/* ── Hero preview ──────────────────────────────── */}
-          <View style={styles.heroWrap}>
-            <View style={styles.heroRing}>
-              <Image
-                source={AVATAR_IMAGE_BY_KEY[avatar]}
-                style={styles.heroImage}
-                resizeMode="contain"
-                accessibilityLabel="미리보기"
-              />
-            </View>
+        {registered.length > 0 ? (
+          <View style={styles.chipsRow}>
+            <Text style={styles.chipsLabel}>등록한 아이</Text>
+            {registered.map((k) => (
+              <View key={k.avatar} style={styles.chip}>
+                <Image source={AVATAR_IMAGE_BY_KEY[k.avatar]} style={styles.chipAvatar} resizeMode="contain" />
+                <Text style={styles.chipName}>{k.name}</Text>
+              </View>
+            ))}
           </View>
+        ) : null}
 
-          {/* ── 이름 ──────────────────────────────────────── */}
-          <Text style={styles.fieldLabel}>이름</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="자녀 이름"
-            placeholderTextColor={theme.t.inkSub}
-            maxLength={NAME_MAX}
-            style={styles.nameInput}
-            accessibilityLabel="자녀 이름"
-            testID="onb-name-input"
-          />
-
-          {/* ── 아바타 4-col ──────────────────────────────── */}
-          <Text style={styles.fieldLabel}>아바타</Text>
-          <View style={styles.avatarGrid}>
-            {AVATAR_KEYS.map((k) => {
-              const active = k === avatar;
-              const takenByOther = usedAvatars.includes(k);
-              const disabled = takenByOther && !active;
-              return (
-                <Pressable
-                  key={k}
-                  onPress={() => {
-                    if (disabled) return;
-                    setAvatar(k);
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={k}
-                  accessibilityState={{ selected: active, disabled }}
-                  style={[
-                    styles.avatarSwatch,
-                    active
-                      ? styles.avatarSwatchActive
-                      : styles.avatarSwatchIdle,
-                    disabled ? styles.avatarSwatchDisabled : null,
-                  ]}
-                >
-                  <Image
-                    source={AVATAR_IMAGE_BY_KEY[k]}
-                    style={styles.swatchImage}
-                    resizeMode="contain"
-                  />
-                  {active ? (
-                    <View style={styles.checkChip}>
-                      <IconCheck size={10} color={theme.t.surface} />
-                    </View>
-                  ) : null}
-                </Pressable>
-              );
-            })}
+        <View style={[styles.heroWrap, registered.length > 0 ? styles.heroWrapTight : null]}>
+          <View style={[styles.heroRing, { backgroundColor: withAlpha(palette.source, 0.38) }]}>
+            <Image
+              source={AVATAR_IMAGE_BY_KEY[avatar]}
+              style={styles.heroImage}
+              resizeMode="contain"
+              accessibilityLabel="미리보기"
+            />
           </View>
-        </ScrollView>
+        </View>
 
-        {/* ── Bottom CTAs ────────────────────────────────── */}
-        <View style={styles.ctaStack}>
-          <Pressable
-            onPress={() => void handleDone()}
-            disabled={!canSubmit}
-            accessibilityRole="button"
-            accessibilityLabel="완료"
-            accessibilityState={{ disabled: !canSubmit }}
-            style={({ pressed }) => [
-              styles.primaryCta,
-              !canSubmit ? styles.primaryCtaDisabled : null,
-              pressed && canSubmit ? styles.primaryCtaPressed : null,
-            ]}
-          >
-            <Text style={styles.primaryCtaLabel}>완료</Text>
-          </Pressable>
-          {!atLast ? (
-            <Pressable
-              onPress={handleAddAnother}
-              disabled={!canSubmit}
-              accessibilityRole="button"
-              accessibilityLabel="자녀 추가"
-              accessibilityState={{ disabled: !canSubmit }}
-              style={({ pressed }) => [
-                styles.ghostCta,
-                pressed && canSubmit ? styles.ghostCtaPressed : null,
-              ]}
-            >
-              <Text
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="이름"
+          placeholderTextColor={theme.t.ink30}
+          selectionColor={theme.t.primary}
+          maxLength={NAME_MAX}
+          style={styles.nameInput}
+          accessibilityLabel="아이 이름"
+          testID="onb-name-input"
+        />
+
+        <View style={styles.faceHeader}>
+          <Text style={styles.faceLabel}>아바타</Text>
+        </View>
+        <View style={styles.faceBox}>
+          {AVATAR_KEYS.map((k) => {
+            const active = k === avatar;
+            const owner = takenBy.get(k);
+            const disabled = owner !== undefined && !active;
+            const p = theme.kid(colorIndexForAvatarKey(k));
+            return (
+              <Pressable
+                key={k}
+                onPress={() => {
+                  if (!disabled) setAvatar(k);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={owner !== undefined ? `${k}, ${owner}` : k}
+                accessibilityState={{ selected: active, disabled }}
                 style={[
-                  styles.ghostCtaLabel,
-                  !canSubmit ? styles.ghostCtaLabelDisabled : null,
+                  styles.faceCell,
+                  active
+                    ? { backgroundColor: withAlpha(p.source, 0.32), borderColor: p.deep }
+                    : null,
                 ]}
               >
-                + 자녀 추가
-              </Text>
-            </Pressable>
-          ) : null}
+                <Image
+                  source={AVATAR_IMAGE_BY_KEY[k]}
+                  style={[styles.faceImage, disabled ? styles.faceImageTaken : null]}
+                  resizeMode="contain"
+                />
+                {active ? (
+                  <View style={[styles.checkChip, { backgroundColor: p.deep }]}>
+                    <IconCheck size={12} color={theme.t.onDark} />
+                  </View>
+                ) : null}
+                {disabled ? (
+                  <Text style={styles.faceOwner} numberOfLines={1}>
+                    {owner}
+                  </Text>
+                ) : null}
+              </Pressable>
+            );
+          })}
         </View>
+      </ScrollView>
+
+      <View style={styles.ctaStack}>
+        <Pressable
+          onPress={() => void handleDone()}
+          disabled={!canSubmit}
+          accessibilityRole="button"
+          accessibilityLabel="완료"
+          accessibilityState={{ disabled: !canSubmit }}
+          style={({ pressed }) => [
+            styles.cta,
+            !canSubmit ? styles.ctaDisabled : null,
+            pressed && canSubmit ? styles.ctaPressed : null,
+          ]}
+        >
+          <Text style={[styles.ctaLabel, !canSubmit ? styles.ctaLabelDisabled : null]}>완료</Text>
+        </Pressable>
+        {!atLast ? (
+          <Pressable
+            onPress={handleAddAnother}
+            disabled={!canSubmit}
+            accessibilityRole="button"
+            accessibilityLabel="다음 아이도 추가"
+            accessibilityState={{ disabled: !canSubmit }}
+            hitSlop={6}
+            style={({ pressed }) => [styles.more, pressed && canSubmit ? styles.morePressed : null]}
+          >
+            <Text style={[styles.moreLabel, !canSubmit ? styles.moreLabelDisabled : null]}>
+              + 다음 아이도 추가
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </SafeAreaView>
   );
 }
 
 const useStyles = makeStyles((th) => ({
-  safe: { flex: 1, backgroundColor: th.t.surface },
+  safe: { flex: 1, backgroundColor: th.t.groupedBg },
   flex: { flex: 1 },
 
   // ─── Top bar ─────────────────────────────────────────────
   topBar: {
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingTop: SPACING.xs,
-    paddingBottom: 6,
+    paddingHorizontal: SPACING.sm,
   },
-  topBarBack: {
-    width: 32,
-    height: 32,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  stepIndicator: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.mono,
-    color: th.t.inkSub,
-    letterSpacing: 0,
-  },
-  stepDivider: { color: th.t.ink30 },
+  topBarSide: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  dots: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },
+  dot: { width: 6, height: 6, borderRadius: RADIUS.full, backgroundColor: th.t.ink12 },
+  dotDone: { backgroundColor: withAlpha(th.t.primary, 0.45) },
+  dotCurrent: { width: 18, backgroundColor: th.t.primary },
 
-  scroll: { paddingHorizontal: 22, paddingBottom: SPACING.xxl },
+  scroll: { paddingHorizontal: SPACING.xl, paddingTop: 6, paddingBottom: SPACING.xl },
 
-  // ─── Title block ────────────────────────────────────────
+  // ─── Title ───────────────────────────────────────────────
   title: {
-    fontSize: 24,
     fontFamily: FONT_FAMILIES.pretendardBold,
+    fontSize: 26,
+    lineHeight: 34,
+    letterSpacing: -0.6,
     color: th.t.ink,
-    letterSpacing: -0.5,
-    lineHeight: 29, // ≈ 1.3 of 22
-    marginTop: 6,
   },
   sub: {
     marginTop: 6,
-    fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
-    color: th.t.inkSub,
-    letterSpacing: -0.2,
+    fontSize: 14,
     lineHeight: 20,
+    letterSpacing: -0.2,
+    color: th.t.inkSub,
   },
 
-  // ─── Registered chips ───────────────────────────────────
+  // ─── Registered kids ─────────────────────────────────────
   chipsRow: {
     marginTop: 14,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
     alignItems: 'center',
+    gap: SPACING.sm,
   },
-  chipsLabel: {
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: th.t.inkSub,
-    letterSpacing: 0.2,
-    marginRight: SPACING.xxs,
-  },
+  chipsLabel: { fontFamily: FONT_FAMILIES.pretendard, fontSize: 13, color: th.t.inkSub },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingLeft: SPACING.xs,
-    paddingRight: 10,
+    paddingRight: SPACING.md,
     paddingVertical: SPACING.xs,
     borderRadius: RADIUS.full,
-    backgroundColor: th.t.ink04,
-  },
-  chipAvatarWrap: {
-    width: 22,
-    height: 22,
-    borderRadius: RADIUS.full,
     backgroundColor: th.t.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
   },
-  chipAvatar: { width: 20, height: 20 },
+  chipAvatar: { width: 26, height: 26 },
   chipName: {
-    fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: th.t.ink,
+    fontSize: 14,
     letterSpacing: -0.2,
+    color: th.t.ink,
   },
 
-  // ─── Hero ──────────────────────────────────────────────
-  heroWrap: {
-    alignItems: 'center',
-    paddingTop: SPACING.xxl,
-    paddingBottom: SPACING.sm,
-  },
+  // ─── Hero ────────────────────────────────────────────────
+  heroWrap: { alignItems: 'center', paddingTop: SPACING.xxl, paddingBottom: 18 },
+  heroWrapTight: { paddingTop: 18 },
   heroRing: {
-    width: 132,
-    height: 132,
+    width: 128,
+    height: 128,
     borderRadius: RADIUS.full,
-    backgroundColor: th.t.ink04,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroImage: { width: 102, height: 102 },
+  heroImage: { width: 112, height: 112 },
 
-  // ─── Name input ────────────────────────────────────────
-  fieldLabel: {
-    paddingTop: SPACING.xl,
-    paddingHorizontal: SPACING.xxs,
-    paddingBottom: SPACING.sm,
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: th.t.inkSub,
-    letterSpacing: -0.2,
-  },
+  // ─── Name ────────────────────────────────────────────────
   nameInput: {
-    width: '100%',
-    backgroundColor: th.t.ink04,
-    borderRadius: 14,
-    paddingVertical: 14,
+    height: 54,
+    borderRadius: RADIUS.box,
+    backgroundColor: th.t.surface,
     paddingHorizontal: SPACING.lg,
-    fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: th.t.ink,
+    fontSize: 17,
     letterSpacing: -0.3,
+    color: th.t.ink,
   },
 
-  // ─── Avatar 4-col grid ─────────────────────────────────
-  avatarGrid: {
+  // ─── Faces ───────────────────────────────────────────────
+  faceHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingTop: SPACING.xl,
+    paddingHorizontal: SPACING.xs,
+    paddingBottom: SPACING.sm,
+  },
+  faceLabel: { fontFamily: FONT_FAMILIES.pretendardSemiBold, fontSize: 13, color: th.t.inkSub },
+  faceBox: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-  },
-  // 3-per-row to match /settings/kid-edit and fill the 6-avatar pool in
-  // exactly two rows of three (per user direction).
-  avatarSwatch: {
-    flexBasis: '31%',
-    flexGrow: 1,
-    paddingVertical: SPACING.md,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarSwatchIdle: { backgroundColor: th.t.ink04 },
-  avatarSwatchActive: {
-    backgroundColor: th.t.ink12,
-    borderWidth: 2,
-    borderColor: th.t.ink,
-  },
-  avatarSwatchDisabled: { opacity: 0.35 },
-  swatchImage: { width: 48, height: 48 },
-  checkChip: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 16,
-    height: 16,
-    borderRadius: RADIUS.full,
-    backgroundColor: th.t.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // ─── Bottom CTAs ────────────────────────────────────────
-  ctaStack: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: 22,
     gap: SPACING.sm,
+    padding: 10,
+    borderRadius: RADIUS.box,
+    backgroundColor: th.t.surface,
   },
-  primaryCta: {
-    width: '100%',
-    paddingVertical: 14,
-    paddingHorizontal: SPACING.lg,
-    borderRadius: RADIUS.full,
-    backgroundColor: th.t.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryCtaPressed: { opacity: 0.85 },
-  primaryCtaDisabled: { backgroundColor: withAlpha(th.t.ink, 0.18) },
-  primaryCtaLabel: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: th.t.surface,
-    letterSpacing: -0.3,
-  },
-  ghostCta: {
-    width: '100%',
-    paddingVertical: 14,
-    paddingHorizontal: SPACING.lg,
-    borderRadius: RADIUS.full,
+  faceCell: {
+    flexBasis: '30%',
+    flexGrow: 1,
+    height: 84,
+    borderRadius: SPACING.md,
+    borderWidth: 2,
+    borderColor: 'transparent',
     backgroundColor: th.t.ink04,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ghostCtaPressed: { opacity: 0.85 },
-  ghostCtaLabel: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: th.t.ink,
-    letterSpacing: -0.3,
+  faceImage: { width: 60, height: 60 },
+  faceImageTaken: { opacity: 0.35 },
+  faceOwner: {
+    position: 'absolute',
+    bottom: 5,
+    left: SPACING.xs,
+    right: SPACING.xs,
+    textAlign: 'center',
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    fontSize: 11,
+    color: th.t.inkSub,
   },
-  ghostCtaLabelDisabled: { color: th.t.ink30 },
+  checkChip: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 20,
+    height: 20,
+    borderRadius: RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // ─── Bottom buttons ──────────────────────────────────────
+  ctaStack: {
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.sm,
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  cta: {
+    alignSelf: 'stretch',
+    height: 54,
+    borderRadius: RADIUS.full,
+    backgroundColor: th.t.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaPressed: { backgroundColor: th.t.primaryDeep },
+  ctaDisabled: { backgroundColor: th.t.ink12 },
+  ctaLabel: {
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    fontSize: 17,
+    letterSpacing: -0.3,
+    color: th.t.onDark,
+  },
+  ctaLabelDisabled: { color: th.t.ink30 },
+  more: { height: 40, paddingHorizontal: SPACING.lg, justifyContent: 'center' },
+  morePressed: { opacity: 0.6 },
+  moreLabel: {
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+    fontSize: 15,
+    letterSpacing: -0.3,
+    color: th.t.inkSub,
+  },
+  moreLabelDisabled: { color: th.t.ink30 },
 }));

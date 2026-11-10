@@ -26,6 +26,8 @@ interface Props {
   inactive: readonly PersonKey[];
   onToggle: (key: PersonKey) => void;
   onSolo: (key: PersonKey) => void;
+  /** 보호자 as a person (pill / column). False while 보호자 일정 is off in 설정. */
+  guardian?: boolean;
 }
 
 /** Hold time for "this person only". */
@@ -87,10 +89,10 @@ function Pill({
   );
 }
 
-function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.ReactElement {
+function KidFilterBarImpl({ kids, inactive, onToggle, onSolo, guardian = true }: Props): React.ReactElement {
   const theme = useTheme();
   const styles = useStyles();
-  const everyone: PersonKey[] = [...kids.map((k) => k.id), 'guardian'];
+  const everyone: PersonKey[] = guardian ? [...kids.map((k) => k.id), 'guardian'] : kids.map((k) => k.id);
   const faded = (key: PersonKey): boolean => emphasisOf(inactive, everyone, key) === 'inactive';
   // Up to 6 people (5 kids + 보호자) must fit one row on a 375pt phone.
   const compact = everyone.length >= COMPACT_FROM;
@@ -121,6 +123,7 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.Re
           </Pill>
         );
       })}
+      {guardian ? (
       <Pill
         label="보호자"
         border={theme.t.guardianDeep}
@@ -137,6 +140,7 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.Re
           <IconPerson size={avatarOnly ? 15 : compact ? 12 : 14} color={theme.t.ink} />
         </View>
       </Pill>
+      ) : null}
     </View>
   );
 }

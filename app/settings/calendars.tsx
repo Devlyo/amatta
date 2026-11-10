@@ -81,7 +81,7 @@ export default function CalendarSettingsScreen(): React.ReactElement {
           <View style={styles.block}>
             <FormGroup>
               <View style={styles.notice}>
-                <Text style={styles.noticeText}>캘린더 접근이 꺼져 있어요. 설정 앱에서 아마따의 캘린더 접근을 켜 주세요.</Text>
+                <Text style={styles.noticeText}>캘린더 접근이 꺼져 있어요. 설정 앱에서 WeMoa의 캘린더 접근을 켜 주세요.</Text>
               </View>
               <FormActionRow label="설정 열기" onPress={() => void Linking.openSettings()} last />
             </FormGroup>

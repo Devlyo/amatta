@@ -35,3 +35,8 @@ export const MASCOTS = {
   yellow: require('../../assets/amatta/mascot-yellow.png'),
 } as const;
 export type MascotKey = keyof typeof MASCOTS;
+
+// Orange "WeM[face]a" wordmark (ADR-011) — also the native splash image.
+// 1200 × 263; keep that aspect when sizing.
+export const WORDMARK = require('../../assets/images/splash-icon.png');
+export const WORDMARK_ASPECT = 1200 / 263;

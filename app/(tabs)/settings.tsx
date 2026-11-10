@@ -9,7 +9,7 @@
 //   정보     앱 버전 · 약관 및 개인정보 →
 
 import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -21,6 +21,7 @@ import { useChildrenStore } from '../../src/state/children-store';
 import { useGuardianStore } from '../../src/state/guardian-store';
 import { useDisplayStore } from '../../src/state/display-store';
 import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
+import { resetAllData } from '../../src/state/reset-all';
 import { KidAvatar } from '../../src/ui/common/KidAvatar';
 import { HomeSection } from '../../src/ui/home/HomeSection';
 import { RADIUS } from '../../src/ui/radius';
@@ -181,7 +182,24 @@ export default function SettingsScreen(): React.ReactElement {
           <FormActionRow
             label="모든 데이터 초기화"
             tone="danger"
-            onPress={() => router.push('/settings/reset-confirm')}
+            onPress={() =>
+              // Native alert — same as the other destructive confirms.
+              Alert.alert(
+                '모든 데이터를 초기화할까요?',
+                '자녀, 일정, 할일, 알림 설정이 모두 삭제돼요. 이 작업은 되돌릴 수 없어요.',
+                [
+                  { text: '취소', style: 'cancel' },
+                  {
+                    text: '초기화하기',
+                    style: 'destructive',
+                    onPress: () =>
+                      void resetAllData()
+                        .then(() => router.replace('/'))
+                        .catch(() => Alert.alert('초기화하지 못했어요', '잠시 후 다시 시도해 주세요.')),
+                  },
+                ],
+              )
+            }
             last
           />
         </HomeSection>
