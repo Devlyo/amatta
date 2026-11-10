@@ -73,54 +73,60 @@ describe('WeekView', () => {
     });
   }
 
-  test('school = one bar per kid (column ÷ kids), icon only; other events keep their place', () => {
+  test('7 days: every event is a bar in its person’s lane (column ÷ people shown), no titles', () => {
     renderWeek(false);
-    // No block / title for 학교 — a lane per kid, side by side in the Tue column.
     expect(screen.queryByTestId('week-block-1|2026-11-10')).toBeNull();
+    expect(screen.queryByTestId('week-block-4|2026-11-10')).toBeNull();
     expect(screen.queryByText('학교')).toBeNull();
-    const a = style('week-school-1|2026-11-10');
-    const b = style('week-school-2|2026-11-10');
-    const lane = (50 - 2 - 1) / 2;
-    expect(a.width).toBeCloseTo(lane);
-    expect(b.width).toBeCloseTo(lane);
-    expect(a.left).toBeCloseTo(2 * 50 + 1);
-    expect(b.left).toBeCloseTo(2 * 50 + 1 + lane + 1);
-    // An event during school hours is not pushed aside by the bars.
-    expect(style('week-slot-6|2026-11-10').width).toBe(50 - 2);
-    expect(style('week-slot-6|2026-11-10').zIndex).toBeGreaterThan(a.zIndex);
-    // Other events still stack among themselves.
-    const e = style('week-slot-4|2026-11-10');
-    const m = style('week-slot-5|2026-11-10');
-    expect(m.left).toBeGreaterThan(e.left);
-    expect(m.zIndex).toBeGreaterThan(e.zIndex);
-    expect(screen.getByTestId('week-block-3|2026-11-12')).toBeTruthy();
-    expect(screen.queryByText('3–4PM')).toBeNull(); // compact: titles only
+    expect(screen.queryByText('영어')).toBeNull();
+    // 민준 · 서연 · 보호자 → three lanes in the Tue column.
+    const lane = (50 - 2 - 2) / 3;
+    const school1 = style('week-bar-1|2026-11-10');
+    const english1 = style('week-bar-4|2026-11-10');
+    const school2 = style('week-bar-2|2026-11-10');
+    expect(school1.width).toBeCloseTo(lane);
+    expect(school1.left).toBeCloseTo(2 * 50 + 1);
+    expect(english1.left).toBeCloseTo(school1.left); // same person, same lane
+    expect(school2.left).toBeCloseTo(2 * 50 + 1 + lane + 1);
+    // 서연's 현장학습 overlaps her 학교 → drawn on top in her lane.
+    const trip = style('week-bar-6|2026-11-10');
+    expect(trip.left).toBeCloseTo(school2.left);
+    expect(trip.zIndex).toBeGreaterThan(school2.zIndex);
+    expect(screen.getByLabelText(/^민준 학교, 화요일/)).toBeTruthy();
   });
 
-  test('zoomed shows 4 days and block times', () => {
+  test('a kid switched off frees their lane', () => {
+    renderWeek(false, { inactive: [1] });
+    expect(screen.queryByTestId('week-bar-1|2026-11-10')).toBeNull();
+    expect(style('week-bar-2|2026-11-10').width).toBeCloseTo((50 - 2 - 1) / 2); // 서연 + 보호자
+  });
+
+  test('보호자 일정 off → no guardian lane', () => {
+    renderWeek(false, { guardian: false });
+    expect(style('week-bar-2|2026-11-10').width).toBeCloseTo((50 - 2 - 1) / 2); // 민준 + 서연
+  });
+
+  test('≤ 4 days: titled blocks with times, school included, overlaps stack', () => {
     renderWeek(true);
     expect(screen.getByTestId('week-day-2026-11-13')).toBeTruthy();
     expect(screen.queryByTestId('week-day-2026-11-14')).toBeNull();
     expect(screen.getByText('3–4PM')).toBeTruthy();
-  });
-
-  test('switched-off kids are hidden', () => {
-    renderWeek(false, { inactive: [1] });
-    expect(screen.queryByTestId('week-block-1|2026-11-10')).toBeNull();
-    expect(style('week-block-3|2026-11-12').opacity).toBe(1);
+    expect(screen.getByTestId('week-block-1|2026-11-10')).toBeTruthy();
+    expect(screen.queryByTestId('week-bar-1|2026-11-10')).toBeNull();
+    const a = style('week-slot-1|2026-11-10');
+    const b = style('week-slot-2|2026-11-10');
+    expect(b.left).toBeGreaterThan(a.left);
+    expect(b.zIndex).toBeGreaterThan(a.zIndex);
   });
 
   test('one person picked alone → only their blocks, back to full width', () => {
-    renderWeek(false);
+    renderWeek(true);
     const narrowed = style('week-slot-5|2026-11-10').width; // overlaps 민준's 영어
     screen.unmount();
-    renderWeek(false, { inactive: [1, 'guardian'] }); // 서연 alone
+    renderWeek(true, { inactive: [1, 'guardian'] }); // 서연 alone
     expect(screen.queryByTestId('week-block-4|2026-11-10')).toBeNull();
     expect(style('week-slot-5|2026-11-10').width).toBeGreaterThan(narrowed);
     expect(style('week-slot-5|2026-11-10').width).toBe(50 - 2);
-    // 서연's school bar takes the whole column when she is the only kid shown.
-    expect(screen.queryByTestId('week-school-1|2026-11-10')).toBeNull();
-    expect(style('week-school-2|2026-11-10').width).toBeCloseTo(50 - 2);
   });
 
   test('tap a day header → that day; long press a slot → that date + hour', () => {
@@ -216,6 +222,7 @@ describe('WeekView — many people (6) in a narrow day column', () => {
         days={visibleWeekDays(ISO('2026-11-10'), 7)}
         today={ISO('2026-11-10')}
         kids={six}
+        span={4}
         occurrences={occ6}
         nowMinutes={13 * 60}
         inactive={[]}
@@ -226,7 +233,7 @@ describe('WeekView — many people (6) in a narrow day column', () => {
       />,
     );
     fireEvent(screen.getByTestId('week-view'), 'layout', {
-      nativeEvent: { layout: { x: 0, y: 0, width: TIME_GUTTER + 7 * 50, height: 600 } },
+      nativeEvent: { layout: { x: 0, y: 0, width: TIME_GUTTER + 4 * 50, height: 600 } },
     });
     const lefts = [1, 2, 3, 4, 5].map((id) => style(`week-slot-${id}|2026-11-10`).left);
     const widths = [1, 2, 3, 4, 5].map((id) => style(`week-slot-${id}|2026-11-10`).width);
@@ -346,7 +353,7 @@ describe('guardian events (device calendar, ADR-008)', () => {
     instanceStart: new Date(2026, 10, 10),
   });
 
-  test('week: grey guardian blocks; tap opens; solo kid hides them', () => {
+  test('week (7 days): grey guardian bar in its own lane; tap opens; solo kid hides it', () => {
     const onPressGuardian = jest.fn();
     const props = {
       days: visibleWeekDays(ISO('2026-11-10'), 7),
@@ -366,11 +373,12 @@ describe('guardian events (device calendar, ADR-008)', () => {
       nativeEvent: { layout: { x: 0, y: 0, width: TIME_GUTTER + 7 * 50, height: 600 } },
     });
     expect(screen.getByLabelText(/^보호자 회의, 목요일 3–5PM/)).toBeTruthy();
-    fireEvent.press(screen.getByTestId('week-block-g:e1|2026-11-12'));
+    expect(screen.getByTestId('week-bar-g:e1|2026-11-12')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText(/^보호자 회의, 목요일 3–5PM/));
     expect(onPressGuardian).toHaveBeenCalledWith(expect.objectContaining({ eventId: 'e1' }));
     screen.unmount();
     render(<WeekView {...props} inactive={[1, 'guardian']} />);
-    expect(screen.queryByTestId('week-block-g:e1|2026-11-12')).toBeNull();
+    expect(screen.queryByTestId('week-bar-g:e1|2026-11-12')).toBeNull();
   });
 
   test('month: guardian chips sit with the kids’ chips, all-day first', () => {

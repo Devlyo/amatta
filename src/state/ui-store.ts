@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 import { soloActive, toggleActive, type PersonKey } from '../domain/people-filter';
-import type { WeekSpan } from '../ui/calendar/calendar-layout';
+import { WEEK_SPAN_DEFAULT, type WeekSpan } from '../ui/calendar/calendar-layout';
 import type { ISODate } from '../domain/types';
 import { todayIso } from '../ui/utils/date';
 
@@ -90,7 +90,7 @@ export const useUiStore = create<UiState>()((set) => ({
 
   calendarView: 'day',
   setCalendarView: (view) => set({ calendarView: view }),
-  weekSpan: 7,
+  weekSpan: WEEK_SPAN_DEFAULT,
   setWeekSpan: (span) => set({ weekSpan: span }),
   monthRowH: 104,
   setMonthRowH: (h) => set({ monthRowH: h }),

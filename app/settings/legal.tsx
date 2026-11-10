@@ -11,6 +11,7 @@ import { SPACING } from '../../src/ui/spacing';
 import { TYPE } from '../../src/ui/typography';
 import { SettingsDetailScreen } from '../../src/ui/settings/SettingsChrome';
 import { makeStyles, useTheme } from '../../src/ui/appearance';
+import { APP_VERSION } from '../../src/utils/app-version';
 
 const EFFECTIVE_DATE = '2026년 6월 30일';
 
@@ -213,7 +214,7 @@ export default function LegalScreen(): React.ReactElement {
           testID="legal-group-terms"
         />
 
-        <Text style={styles.footer}>WeMoa v1.0.0 · {EFFECTIVE_DATE} 기준</Text>
+        <Text style={styles.footer}>WeMoa v{APP_VERSION} · {EFFECTIVE_DATE} 기준</Text>
     </SettingsDetailScreen>
   );
 }
