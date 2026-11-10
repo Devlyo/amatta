@@ -4,7 +4,15 @@
 // peeking out underneath like an iOS notification stack; tap to fan out.
 
 import { memo, useState } from 'react';
-import { LayoutAnimation, Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Reanimated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 
 import { formatUntil, type KidNowNext } from '../../domain/now-next';
 import type { Child } from '../../domain/types';
@@ -26,7 +34,6 @@ interface Props {
 /** Peeking cards drawn under the top one when collapsed. */
 const MAX_PEEK = 2;
 const PEEK_STEP = 9;
-const PEEK_INSET = 10;
 
 /** In progress (ending soonest) → upcoming (starting soonest) → nothing left. */
 export function orderForStack(rows: readonly KidNowNext[]): KidNowNext[] {
@@ -111,80 +118,150 @@ function formatLeft(minutes: number): string {
   return r === 0 ? `${h}시간 남음` : `${h}시간 ${r}분 남음`;
 }
 
+const GAP = SPACING.sm;
+const FOLD_H = 36;
+const DURATION = 340;
+const EST_H = 92;
+
+/** One card's resting place: folded (stacked under the top card) vs open (listed). */
+function StackCard({
+  index,
+  progress,
+  heights,
+  onHeight,
+  hidden,
+  children,
+}: {
+  index: number;
+  progress: SharedValue<number>;
+  heights: SharedValue<number[]>;
+  onHeight: (index: number, h: number) => void;
+  /** Folded and not one of the peeking cards — fully faded. */
+  hidden: boolean;
+  children: React.ReactNode;
+}): React.ReactElement {
+  const style = useAnimatedStyle(() => {
+    const hs = heights.value;
+    const h0 = hs[0] ?? EST_H;
+    const h = hs[index] ?? EST_H;
+    let openY = 0;
+    for (let i = 0; i < index; i++) openY += (hs[i] ?? EST_H) + GAP;
+    // Folded: the bottom of card i peeks PEEK_STEP·i below the top card.
+    const depth = Math.min(index, MAX_PEEK);
+    const foldScale = 1 - depth * 0.05;
+    // Scale is about the centre, so the scaled bottom sits at y + h·(1+s)/2.
+    const foldY = index === 0 ? 0 : h0 + depth * PEEK_STEP - (h * (1 + foldScale)) / 2;
+    const p = progress.value;
+    const foldOpacity = index === 0 ? 1 : index <= MAX_PEEK ? 1 - depth * 0.15 : 0;
+    return {
+      transform: [
+        { translateY: interpolate(p, [0, 1], [foldY, openY]) },
+        { scale: interpolate(p, [0, 1], [foldScale, 1]) },
+      ],
+      opacity: interpolate(p, [0, 1], [foldOpacity, 1]),
+      zIndex: index === 0 ? 10 : 10 - index,
+    };
+  });
+  // The text on cards under the top one fades in as they fan out.
+  const content = useAnimatedStyle(() => ({
+    opacity: index === 0 ? 1 : interpolate(progress.value, [0, 0.6, 1], [0, 0.2, 1]),
+  }));
+  return (
+    <Reanimated.View
+      style={[stackStyles.card, style]}
+      onLayout={(e) => onHeight(index, e.nativeEvent.layout.height)}
+      importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}
+      accessibilityElementsHidden={hidden}
+    >
+      <Reanimated.View style={content}>{children}</Reanimated.View>
+    </Reanimated.View>
+  );
+}
+
 function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | null {
-  const theme = useTheme();
   const styles = useStyles();
   const [open, setOpen] = useState(false);
+  const progress = useSharedValue(0);
+  const heights = useSharedValue<number[]>([]);
   const ordered = orderForStack(rows).filter((r) => kids.some((k) => k.id === r.childId));
   const kidOf = (id: number): Child | undefined => kids.find((k) => k.id === id);
   const toggle = (): void => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setOpen((o) => !o);
+    const next = !open;
+    setOpen(next);
+    progress.value = withTiming(next ? 1 : 0, { duration: DURATION, easing: Easing.out(Easing.cubic) });
   };
+  const onHeight = (index: number, h: number): void => {
+    const hs = [...heights.value];
+    if (hs[index] === h) return;
+    hs[index] = h;
+    heights.value = hs;
+  };
+  const n = ordered.length;
+  const box = useAnimatedStyle(() => {
+    const hs = heights.value;
+    const h0 = hs[0] ?? EST_H;
+    let openH = 0;
+    for (let i = 0; i < n; i++) openH += (hs[i] ?? EST_H) + GAP;
+    openH += FOLD_H;
+    const foldH = h0 + Math.min(n - 1, MAX_PEEK) * PEEK_STEP;
+    return { height: interpolate(progress.value, [0, 1], [foldH, openH]) };
+  });
+  const foldBtn = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0.5, 1], [0, 1], 'clamp') }));
+
   const first = ordered[0];
   if (first === undefined) return null;
   const firstKid = kidOf(first.childId);
   if (firstKid === undefined) return null;
+  if (n === 1) return <NowBlock kid={firstKid} row={first} nowMinutes={nowMinutes} />;
 
-  if (ordered.length === 1) return <NowBlock kid={firstKid} row={first} nowMinutes={nowMinutes} />;
-
-  if (open) {
-    return (
-      <View style={styles.list} testID="now-stack-open">
-        {ordered.map((r) => {
-          const kid = kidOf(r.childId);
-          return kid === undefined ? null : <NowBlock key={r.childId} kid={kid} row={r} nowMinutes={nowMinutes} />;
-        })}
+  return (
+    <Reanimated.View style={[stackStyles.box, box]} testID={open ? 'now-stack-open' : 'now-stack'}>
+      {ordered.map((r, i) => {
+        const kid = kidOf(r.childId);
+        if (kid === undefined) return null;
+        return (
+          <StackCard
+            key={r.childId}
+            index={i}
+            progress={progress}
+            heights={heights}
+            onHeight={onHeight}
+            hidden={!open && i > 0}
+          >
+            <NowBlock kid={kid} row={r} nowMinutes={nowMinutes} />
+          </StackCard>
+        );
+      })}
+      {/* Folded: the whole stack is one button. */}
+      {!open ? (
+        <Pressable
+          onPress={toggle}
+          accessibilityRole="button"
+          accessibilityLabel={`지금 일정 ${n}명, 펼치기`}
+          accessibilityHint="모든 아이의 일정을 펼쳐요"
+          testID="now-stack-toggle"
+          style={stackStyles.cover}
+        />
+      ) : null}
+      <Reanimated.View style={[stackStyles.foldRow, foldBtn]} pointerEvents={open ? 'auto' : 'none'}>
         <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel="접기" hitSlop={8} style={styles.fold}>
           <Text style={styles.foldLabel}>접기</Text>
         </Pressable>
-      </View>
-    );
-  }
-
-  const peeks = ordered.slice(1, 1 + MAX_PEEK);
-  return (
-    <Pressable
-      onPress={toggle}
-      accessibilityRole="button"
-      accessibilityLabel={`지금 일정 ${ordered.length}명, 펼치기`}
-      accessibilityHint="모든 아이의 일정을 펼쳐요"
-      testID="now-stack"
-      style={{ marginBottom: peeks.length * PEEK_STEP }}
-    >
-      {peeks.map((r, i) => {
-        const kid = kidOf(r.childId);
-        const fill = kid !== undefined && (r.current ?? r.next) !== null
-          ? withAlpha(theme.kid(kid.colorIndex).source, Math.max(0.15, theme.cardFill - (i + 1) * 0.08))
-          : theme.t.surface;
-        return (
-          <View
-            key={r.childId}
-            pointerEvents="none"
-            style={[
-              styles.peek,
-              {
-                left: (i + 1) * PEEK_INSET,
-                right: (i + 1) * PEEK_INSET,
-                bottom: -(i + 1) * PEEK_STEP,
-                zIndex: MAX_PEEK - i,
-                backgroundColor: fill,
-              },
-            ]}
-          />
-        );
-      })}
-      <View style={styles.topCard} pointerEvents="none">
-        <NowBlock kid={firstKid} row={first} nowMinutes={nowMinutes} />
-      </View>
-    </Pressable>
+      </Reanimated.View>
+    </Reanimated.View>
   );
 }
+
+const stackStyles = StyleSheet.create({
+  box: { position: 'relative' },
+  card: { position: 'absolute', left: 0, right: 0, top: 0 },
+  cover: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
+  foldRow: { position: 'absolute', left: 0, right: 0, bottom: 0, height: FOLD_H, alignItems: 'center', justifyContent: 'center' },
+});
 
 export const NowStack = memo(NowStackImpl);
 
 const useStyles = makeStyles((th) => ({
-  list: { gap: SPACING.sm },
   block: {
     borderRadius: RADIUS.card,
     paddingVertical: SPACING.md,
@@ -212,8 +289,6 @@ const useStyles = makeStyles((th) => ({
   track: { height: 4, borderRadius: RADIUS.full, backgroundColor: th.t.surfaceOnFillMuted, overflow: 'hidden' },
   fill: { height: 4, borderRadius: RADIUS.full },
   after: { ...TYPE.footnote, color: withAlpha(th.t.onLight, 0.75) },
-  peek: { position: 'absolute', height: 40, borderRadius: RADIUS.card - 4 },
-  topCard: { zIndex: MAX_PEEK + 1 },
-  fold: { alignSelf: 'center', paddingVertical: SPACING.xs },
+  fold: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.md },
   foldLabel: { ...TYPE.subhead, color: th.t.primaryDeep },
 }));

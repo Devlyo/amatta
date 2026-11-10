@@ -44,19 +44,21 @@ describe('NowStack', () => {
   test('collapsed: only the most pressing block; tap fans out every kid; 접기 folds', () => {
     render(<NowStack kids={kids} rows={rows} nowMinutes={NOW} />);
     expect(screen.getByTestId('now-stack')).toBeTruthy();
+    // Folded: only the top card is reachable (the rest are hidden from a11y).
     expect(screen.getByText('수학')).toBeTruthy();
     expect(screen.getByText('진행 중 · 40분 남음')).toBeTruthy();
     expect(screen.getByText('다음 4:30PM 수영')).toBeTruthy();
-    expect(screen.queryByText('피아노')).toBeNull();
+    expect(screen.queryByLabelText(/^서연, 피아노/)).toBeNull();
 
-    fireEvent.press(screen.getByTestId('now-stack'));
+    fireEvent.press(screen.getByTestId('now-stack-toggle'));
     expect(screen.getByTestId('now-stack-open')).toBeTruthy();
-    expect(screen.getByText('피아노')).toBeTruthy();
+    expect(screen.getByLabelText(/^서연, 피아노/)).toBeTruthy();
     expect(screen.getByText('40분 후')).toBeTruthy();
     expect(screen.getByText('오늘 일정 없음')).toBeTruthy();
 
     fireEvent.press(screen.getByLabelText('접기'));
-    expect(screen.queryByText('피아노')).toBeNull();
+    expect(screen.getByTestId('now-stack')).toBeTruthy();
+    expect(screen.queryByLabelText(/^서연, 피아노/)).toBeNull();
   });
 
   test('one kid: a single block, no stack', () => {
