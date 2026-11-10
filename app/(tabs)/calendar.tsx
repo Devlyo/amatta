@@ -26,7 +26,6 @@ import { DateStrip } from '../../src/ui/calendar/DateStrip';
 import { DayView } from '../../src/ui/calendar/DayView';
 import { KidFilterBar } from '../../src/ui/calendar/KidFilterBar';
 import { useNowMinutes } from '../../src/ui/calendar/useNowMinutes';
-import { newEventStart } from '../../src/ui/calendar/time-axis';
 import { TOKENS } from '../../src/ui/palette';
 import { shiftIsoDate, todayIso, weekdayKo } from '../../src/ui/utils/date';
 
@@ -93,7 +92,7 @@ export default function CalendarScreen(): React.ReactElement {
     const params: Record<string, string> = {
       mode: 'create',
       date: dateKey,
-      start: String(newEventStart(minutes)),
+      start: String(minutes),
     };
     if (person !== 'guardian') params.childId = String(person);
     router.push({ pathname: '/schedule/edit', params });

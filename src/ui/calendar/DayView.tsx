@@ -8,7 +8,7 @@ import { memo, useMemo } from 'react';
 import { layoutCascade, clipToDay } from '../../domain/layout';
 import type { Child, Occurrence } from '../../domain/types';
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
-import { getKidPalette } from '../palette';
+import { getKidPalette, TOKENS } from '../palette';
 import { fmtRange } from '../utils/date';
 import { TimeBlock } from './TimeBlock';
 import { TimeGrid } from './TimeGrid';
@@ -80,6 +80,12 @@ function DayViewImpl({
           ? undefined
           : (column, minutes) => onLongPressSlot(kids[column]?.id ?? 'guardian', minutes)
       }
+      draftColorOf={(column) => {
+        const kid = kids[column];
+        if (kid === undefined) return { color: TOKENS.guardian, deep: TOKENS.guardianDeep };
+        const p = getKidPalette(kid.colorIndex);
+        return { color: p.source, deep: p.deep };
+      }}
       renderColumns={({ columnWidth, y }) =>
         placed.map(({ id, column, start, end, level, occ }) => {
           const kid = kids[column];

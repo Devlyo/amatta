@@ -8,16 +8,10 @@
 // column — never how the axis is drawn.
 
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type GestureResponderEvent,
-  type LayoutChangeEvent,
-} from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Animated, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
+import { ELEVATION } from '../elevation';
 import { TOKENS, withAlpha } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
@@ -26,9 +20,11 @@ import {
   hourLabel,
   minutesAtY,
   minutesToY,
+  newEventStart,
   nowLabel,
   TIME_GUTTER,
 } from './time-axis';
+import { TimeBlock } from './TimeBlock';
 
 export interface TimeGridColumnsLayout {
   columnWidth: number;
@@ -52,15 +48,22 @@ export interface TimeGridProps {
   renderColumns: (layout: TimeGridColumnsLayout) => ReactNode;
   /**
    * Long press on an empty part of the grid (blocks sit above this layer and
-   * keep their own presses). Receives the column index and the pressed time,
-   * snapped to 30 minutes — used to create an event right there.
+   * keep their own presses). A one-hour "새 일정" block pops in on the pressed
+   * hour, then this fires with the column and that block's start time.
    */
-  onLongPressSlot?: (column: number, minutes: number) => void;
+  onLongPressSlot?: (column: number, startMinutes: number) => void;
+  /** Colour of the pop-in block per column (the column owner's colours). */
+  draftColorOf?: (column: number) => { color: string; deep: string };
   testID?: string;
 }
 
 /** Hold time before a long press on an empty slot creates an event. */
 const SLOT_LONG_PRESS_MS = 400;
+/** How long the pop-in block shows before the new-event form opens. */
+const DRAFT_SHOW_MS = 220;
+/** The pop-in block is cleared after the form has covered the grid. */
+const DRAFT_CLEAR_MS = 900;
+const DRAFT_LENGTH_MIN = 60;
 
 const HOURS = Array.from({ length: 25 }, (_, h) => h);
 
@@ -74,6 +77,7 @@ function TimeGridImpl({
   bottomInset = 0,
   renderColumns,
   onLongPressSlot,
+  draftColorOf,
   testID,
 }: TimeGridProps): React.ReactElement {
   const scrollRef = useRef<ScrollView>(null);
@@ -91,12 +95,32 @@ function TimeGridImpl({
 
   const onLayout = (e: LayoutChangeEvent): void => setWidth(e.nativeEvent.layout.width);
 
-  const handleSlotLongPress = (e: GestureResponderEvent): void => {
+  // Long press → "새 일정" block pops in on the pressed hour → form opens.
+  const [draft, setDraft] = useState<{ column: number; start: number } | null>(null);
+  const draftAnim = useRef(new Animated.Value(0)).current;
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
+  const startDraft = (x: number, yPx: number): void => {
     if (onLongPressSlot === undefined || columnWidth <= 0) return;
-    const { locationX, locationY } = e.nativeEvent;
-    const column = Math.min(columns - 1, Math.max(0, Math.floor(locationX / columnWidth)));
-    onLongPressSlot(column, minutesAtY(locationY, hourHeight));
+    const column = Math.min(columns - 1, Math.max(0, Math.floor(x / columnWidth)));
+    const start = newEventStart(minutesAtY(yPx, hourHeight, 60));
+    timers.current.forEach(clearTimeout);
+    setDraft({ column, start });
+    draftAnim.setValue(0);
+    Animated.spring(draftAnim, { toValue: 1, useNativeDriver: true, speed: 28, bounciness: 6 }).start();
+    timers.current = [
+      setTimeout(() => onLongPressSlot(column, start), DRAFT_SHOW_MS),
+      setTimeout(() => setDraft(null), DRAFT_CLEAR_MS),
+    ];
   };
+
+  const slotPress = Gesture.LongPress()
+    .minDuration(SLOT_LONG_PRESS_MS)
+    .maxDistance(10)
+    .runOnJS(true)
+    .withTestId('time-grid-slots')
+    .onStart((e) => startDraft(e.x, e.y));
 
   return (
     <ScrollView
@@ -143,15 +167,48 @@ function TimeGridImpl({
 
           <View style={[styles.columns, { width: width - TIME_GUTTER, height }]}>
             {onLongPressSlot !== undefined ? (
-              <Pressable
-                testID="time-grid-slots"
-                accessibilityLabel="빈 시간을 길게 눌러 일정 추가"
-                onLongPress={handleSlotLongPress}
-                delayLongPress={SLOT_LONG_PRESS_MS}
-                style={StyleSheet.absoluteFill}
-              />
+              <GestureDetector gesture={slotPress}>
+                <View
+                  collapsable={false}
+                  accessibilityLabel="빈 시간을 길게 눌러 일정 추가"
+                  style={StyleSheet.absoluteFill}
+                />
+              </GestureDetector>
             ) : null}
             {renderColumns({ columnWidth, y })}
+            {draft !== null ? (
+              <Animated.View
+                pointerEvents="none"
+                testID="time-grid-draft"
+                style={[
+                  styles.draft,
+                  {
+                    left: draft.column * columnWidth + 2,
+                    top: y(draft.start) + 1,
+                    width: columnWidth - 4,
+                    height: y(draft.start + DRAFT_LENGTH_MIN) - y(draft.start) - 2,
+                    opacity: draftAnim,
+                    transform: [
+                      { scale: draftAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) },
+                    ],
+                  },
+                ]}
+              >
+                <TimeBlock
+                  top={0}
+                  left={0}
+                  width={columnWidth - 4}
+                  height={y(draft.start + DRAFT_LENGTH_MIN) - y(draft.start) - 2}
+                  level={0}
+                  title="새 일정"
+                  startMinutes={draft.start}
+                  endMinutes={draft.start + DRAFT_LENGTH_MIN}
+                  focused
+                  {...(draftColorOf?.(draft.column) ?? { color: TOKENS.primary, deep: TOKENS.primaryDeep })}
+                  accessibilityLabel="새 일정"
+                />
+              </Animated.View>
+            ) : null}
           </View>
         </>
       ) : null}
@@ -216,6 +273,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     backgroundColor: withAlpha(TOKENS.primary, 0.06),
+  },
+  draft: {
+    position: 'absolute',
+    zIndex: 40,
+    ...ELEVATION.dock,
   },
   columns: {
     position: 'absolute',

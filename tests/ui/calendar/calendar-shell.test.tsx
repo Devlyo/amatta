@@ -1,4 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { State } from 'react-native-gesture-handler';
+import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 import { StyleSheet } from 'react-native';
 
 import type { Child, ColorIndex, ISODate, Occurrence } from '../../../src/domain/types';
@@ -127,20 +129,46 @@ describe('DayView', () => {
     expect(opacityOf('day-block-10')).toBe(BLOCK_DIMMED_OPACITY);
   });
 
-  test('long press on an empty slot reports the column person and the time', () => {
+  test('long press on an empty slot pops in a 1-hour block, then reports person + hour', () => {
+    jest.useFakeTimers();
     const onLongPressSlot = jest.fn();
     renderDay([], onLongPressSlot);
-    // columns are 100px wide: x=150 → column 1 (서연); y for 10:00 at 46px/h
-    fireEvent(screen.getByTestId('time-grid-slots'), 'longPress', {
-      nativeEvent: { locationX: 150, locationY: 8 + 10 * 46 + 5 },
+    // columns are 100px wide: x=150 → column 1 (서연); 10:05 → the 10 AM hour
+    act(() => {
+      fireGestureHandler(getByGestureTestId('time-grid-slots'), [
+        { state: State.BEGAN, x: 150, y: 8 + 10 * 46 + 4 },
+        { state: State.ACTIVE, x: 150, y: 8 + 10 * 46 + 4 },
+        { state: State.END, x: 150, y: 8 + 10 * 46 + 4 },
+      ]);
     });
-    // x=250 → column 2 → guardian
-    fireEvent(screen.getByTestId('time-grid-slots'), 'longPress', {
-      nativeEvent: { locationX: 250, locationY: 8 + 14.5 * 46 + 1 },
+    expect(screen.getByTestId('time-grid-draft')).toBeTruthy();
+    expect(screen.getByText('새 일정')).toBeTruthy();
+    expect(screen.getByText('10–11AM')).toBeTruthy();
+    expect(onLongPressSlot).not.toHaveBeenCalled(); // form opens after the pop-in
+    act(() => {
+      jest.advanceTimersByTime(250);
     });
-    expect(onLongPressSlot.mock.calls).toEqual([
-      [2, 10 * 60],
-      ['guardian', 14 * 60 + 30],
+    expect(onLongPressSlot).toHaveBeenCalledWith(2, 10 * 60);
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(screen.queryByTestId('time-grid-draft')).toBeNull();
+    jest.useRealTimers();
+  });
+
+  test('guardian column → guardian; pressed time snaps to the hour', () => {
+    jest.useFakeTimers();
+    const onLongPressSlot = jest.fn();
+    renderDay([], onLongPressSlot);
+    fireGestureHandler(getByGestureTestId('time-grid-slots'), [
+      { state: State.BEGAN, x: 250, y: 8 + 14.5 * 46 + 1 },
+      { state: State.ACTIVE, x: 250, y: 8 + 14.5 * 46 + 1 },
+      { state: State.END, x: 250, y: 8 + 14.5 * 46 + 1 },
     ]);
+    act(() => {
+      jest.advanceTimersByTime(250);
+    });
+    expect(onLongPressSlot).toHaveBeenCalledWith('guardian', 14 * 60);
+    jest.useRealTimers();
   });
 });
