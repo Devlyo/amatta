@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 
@@ -119,11 +119,13 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
     <View testID="todo-section">
       <SectionHeader label="할일" done={done} total={total} />
       <View style={styles.card}>
-        {sorted.map((todo) => {
+        {sorted.map((todo, i) => {
           const isDone = todo.isDone;
           return (
+            <Fragment key={todo.id}>
+            {/* Line between todos, inset to the labels (same as 준비물). */}
+            {i > 0 ? <View style={styles.itemSeparator} /> : null}
             <Swipeable
-              key={todo.id}
               renderRightActions={() => (
                 <Pressable
                   onPress={() => onDelete(todo.id, todo.title)}
@@ -161,6 +163,7 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
                 </Text>
               </Pressable>
             </Swipeable>
+            </Fragment>
           );
         })}
 
@@ -224,6 +227,13 @@ const styles = StyleSheet.create({
     backgroundColor: TOKENS.surface,
     borderRadius: RADIUS.box,
     padding: 6,
+  },
+  // Inset to the label: card padding 6 + row padding 10 + checkbox 22 + gap 10.
+  itemSeparator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: TOKENS.separator,
+    marginLeft: 42,
+    marginRight: 10,
   },
   itemRow: {
     flexDirection: 'row',
