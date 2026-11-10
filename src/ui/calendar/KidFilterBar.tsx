@@ -95,7 +95,10 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.Re
   // Up to 6 people (5 kids + 보호자) must fit one row on a 375pt phone.
   const compact = everyone.length >= COMPACT_FROM;
   const avatarOnly = everyone.length >= AVATAR_ONLY_FROM;
-  const avatar = avatarOnly ? 24 : compact ? 18 : 22;
+  // The 3D faces leave room around the head in their square, so kids get a
+  // larger box than the solid 보호자 circle to look the same size.
+  const avatar = avatarOnly ? 28 : compact ? 22 : 26;
+  const guardianDot = avatarOnly ? 24 : compact ? 18 : 22;
   return (
     <View style={styles.row}>
       {kids.map((kid) => {
@@ -130,7 +133,7 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.Re
         avatarOnly={avatarOnly}
         testID="kid-filter-guardian"
       >
-        <View style={[styles.guardianAvatar, { width: avatar, height: avatar }]}>
+        <View style={[styles.guardianAvatar, { width: guardianDot, height: guardianDot }]}>
           <IconPerson size={avatarOnly ? 15 : compact ? 12 : 14} color={theme.t.ink} />
         </View>
       </Pill>

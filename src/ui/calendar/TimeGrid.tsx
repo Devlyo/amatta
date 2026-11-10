@@ -156,6 +156,7 @@ function TimeGridImpl({
   const styles = useStyles();
   const scrollRef = useRef<ScrollView>(null);
   const [width, setWidth] = useState(0);
+  const [viewH, setViewH] = useState(0);
   const viewportW = Math.max(0, width - TIME_GUTTER);
   const columnWidth = width > 0 ? viewportW / visibleColumns : 0;
   const contentW = columnWidth * columns;
@@ -256,14 +257,23 @@ function TimeGridImpl({
   const height = axisHeight(hourHeight);
   const y = useMemo(() => (m: number) => minutesToY(m, hourHeight), [hourHeight]);
 
+  // Never open past the bottom: late in the evening "now − 90 min" sits lower
+  // than the last scrollable position, and iOS would show blank space below
+  // 12AM until the next drag.
+  const openY =
+    viewH > 0 ? Math.min(initialScrollY, Math.max(0, height + bottomInset - viewH)) : initialScrollY;
+  const measured = viewH > 0;
   useEffect(() => {
-    scrollRef.current?.scrollTo({ y: initialScrollY, animated: false });
+    scrollRef.current?.scrollTo({ y: openY, animated: false });
     // Only re-scroll when the caller says the content changed (date / view);
     // NOW ticks and re-renders must not yank the user's scroll position.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollKey]);
+  }, [scrollKey, measured]);
 
-  const onLayout = (e: LayoutChangeEvent): void => setWidth(e.nativeEvent.layout.width);
+  const onLayout = (e: LayoutChangeEvent): void => {
+    setWidth(e.nativeEvent.layout.width);
+    setViewH(e.nativeEvent.layout.height);
+  };
 
   // Long press → "새 일정" block pops in on the pressed hour → form opens.
   const [draft, setDraft] = useState<{ column: number; start: number } | null>(null);
@@ -297,7 +307,7 @@ function TimeGridImpl({
       ref={scrollRef}
       testID={testID}
       onLayout={onLayout}
-      contentOffset={{ x: 0, y: initialScrollY }}
+      contentOffset={{ x: 0, y: openY }}
       directionalLockEnabled
       onMomentumScrollEnd={onScrollEndY === undefined ? undefined : (e) => onScrollEndY(e.nativeEvent.contentOffset.y)}
       onScrollEndDrag={

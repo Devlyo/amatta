@@ -165,7 +165,7 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
                 <View testID={`checklist-class-${occ.scheduleId}`}>
                   {/* Whose and which class — the same line as the 지금 rows. */}
                   <View style={styles.kidRow}>
-                    <KidAvatar child={kid} size={30} />
+                    <KidAvatar child={kid} size={36} />
                     <View style={styles.kidLine}>
                       <ItemLine
                         name={kid.name}
