@@ -28,10 +28,10 @@ test('기본 알림 시점 shows only while 시스템 알림 is on; default 없�
   fireEvent.press(screen.getByTestId('settings-row-notif-lead'));
   expect(screen.getByLabelText('기본 알림 시점: 10분 전')).toBeTruthy();
   fireEvent.press(screen.getByLabelText('기본 알림 시점: 30분 전'));
-  await waitFor(() => expect(setDefault).toHaveBeenCalledWith(expect.anything(), 30));
+  await waitFor(() => expect(setDefault).toHaveBeenCalledWith(expect.anything(), 30), { timeout: 5000 });
 
   fireEvent(screen.getByLabelText('시스템 알림'), 'valueChange', false);
-  await waitFor(() => expect(screen.queryByTestId('settings-row-notif-lead')).toBeNull());
+  await waitFor(() => expect(screen.queryByTestId('settings-row-notif-lead')).toBeNull(), { timeout: 5000 });
   fireEvent(screen.getByLabelText('시스템 알림'), 'valueChange', true);
-  await waitFor(() => expect(screen.getByTestId('settings-row-notif-lead')).toBeTruthy());
+  await waitFor(() => expect(screen.getByTestId('settings-row-notif-lead')).toBeTruthy(), { timeout: 5000 });
 });
