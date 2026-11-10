@@ -21,14 +21,14 @@ import {
 } from 'react-native';
 
 import type { GuardianOccurrence } from '../../domain/guardian';
-import { guardianClashes } from '../../domain/pickup-conflict';
+import { guardianClashes, pickupsClash } from '../../domain/pickup-conflict';
 import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { TOKENS } from '../palette';
 import { IconAlertCircle } from '../icons';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
-import { fmtRange } from '../utils/date';
+import { fmt12hrShort, fmtRange } from '../utils/date';
 import { PickupCard } from './PickupCard';
 import { computePickupCards } from './pickup-data';
 
@@ -111,14 +111,32 @@ export function PickupCarousel({
       {(() => {
         // Screen only — never a push (ADR-007 owner decision, ADR-002/003).
         const card = cards[Math.min(activeIdx, cards.length - 1)];
-        const clash = card === undefined ? undefined : guardianClashes(card.pickupMinutes, guardianEvents)[0];
-        if (clash === undefined) return null;
+        if (card === undefined) return null;
+        // Another kid's pickup around the same time (the other cards).
+        const others = cards.filter((c) => c !== card && pickupsClash(c.pickupMinutes, card.pickupMinutes));
+        const first = others[0];
+        const kidLine =
+          first === undefined
+            ? null
+            : `${first.who} "${first.what}"${others.length > 1 ? ` 외 ${others.length - 1}명` : ''} 픽업(${fmt12hrShort(first.pickupMinutes)})과 겹쳐요`;
+        const clash = guardianClashes(card.pickupMinutes, guardianEvents)[0];
+        const guardianLine =
+          clash === undefined
+            ? null
+            : `보호자 일정 "${clash.title}"(${fmtRange(clash.startMinutes, clash.endMinutes)})와 겹쳐요`;
+        const lines = [
+          { key: 'kids', text: kidLine, testID: 'pickup-kids-clash' },
+          { key: 'guardian', text: guardianLine, testID: 'pickup-guardian-clash' },
+        ].filter((l): l is { key: string; text: string; testID: string } => l.text !== null);
+        if (lines.length === 0) return null;
         return (
-          <View style={styles.clash} testID="pickup-guardian-clash" accessibilityRole="alert">
-            <IconAlertCircle size={14} color={TOKENS.pickupWarn} />
-            <Text style={styles.clashText}>
-              보호자 일정 &quot;{clash.title}&quot;({fmtRange(clash.startMinutes, clash.endMinutes)})와 겹쳐요
-            </Text>
+          <View style={styles.clashes}>
+            {lines.map((l) => (
+              <View key={l.key} style={styles.clash} testID={l.testID} accessibilityRole="alert">
+                <IconAlertCircle size={14} color={TOKENS.pickupWarn} />
+                <Text style={styles.clashText}>{l.text}</Text>
+              </View>
+            ))}
           </View>
         );
       })()}
@@ -138,6 +156,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xs,
   },
   clashText: { ...TYPE.footnote, color: TOKENS.pickupWarn, flex: 1 },
+  clashes: { gap: SPACING.xs },
   viewport: {
     overflow: 'hidden',
     borderRadius: RADIUS.box,

@@ -14,6 +14,11 @@ export interface TimedSpan {
   allDay?: boolean;
 }
 
+/** Two pickups (same day) clash when they are less than PICKUP_BUFFER_MIN apart. */
+export function pickupsClash(a: number, b: number): boolean {
+  return Math.abs(a - b) < PICKUP_BUFFER_MIN;
+}
+
 /** Does a guardian event clash with a pickup at `pickupMinutes` (same day)? */
 export function clashesWithPickup(pickupMinutes: number, guardian: TimedSpan): boolean {
   if (guardian.allDay === true) return false;

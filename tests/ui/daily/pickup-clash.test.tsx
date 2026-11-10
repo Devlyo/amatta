@@ -54,3 +54,21 @@ test('no clash → no line', () => {
   renderCarousel([{ ...dinner, startMinutes: 19 * 60 }]);
   expect(screen.queryByTestId('pickup-guardian-clash')).toBeNull();
 });
+
+test('two kids\u2019 pickups around the same time: both cards + a line on each', () => {
+  const seoyeon: Child = { ...kid, id: 2, name: '서연', colorIndex: 5 as ColorIndex };
+  const swim: Occurrence = { ...piano, scheduleId: 8, childId: 2, title: '수영', endMinutes: 18 * 60 + 10 };
+  render(
+    <PickupCarousel
+      occurrences={[piano, swim]}
+      childrenById={new Map([[1, kid], [2, seoyeon]])}
+      nowMinutes={9 * 60}
+      currentDate={today}
+      pickupLogIsComplete={() => false}
+      guardianEvents={[dinner]}
+    />,
+  );
+  // First card = 민준 피아노 6PM → names 서연's 수영; the guardian line too.
+  expect(screen.getByText('서연 "수영" 픽업(6:10PM)과 겹쳐요')).toBeTruthy();
+  expect(screen.getByTestId('pickup-guardian-clash')).toBeTruthy();
+});

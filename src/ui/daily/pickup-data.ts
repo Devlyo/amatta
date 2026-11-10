@@ -19,6 +19,7 @@
 // `etaText` is the remaining time from now to the pickup's `endMinutes`,
 // formatted "Nh Nm" / "Nm" / "곧" Korean shorthand.
 
+import { pickupsClash } from '../../domain/pickup-conflict';
 import type { Child, ColorIndex, ISODate, Occurrence } from '../../domain/types';
 import { fmtKoTime, isoToYyyymmdd, todayIso } from '../utils/date';
 
@@ -88,15 +89,16 @@ export function computePickupCards(
   }
   if (eligible.length === 0) return [];
 
-  // Rule 4: only the soonest-end-time group, all pickups at that exact time.
+  // Rule 4: the soonest pickup plus every pickup that clashes with it (less
+  // than PICKUP_BUFFER_MIN later — two kids picked up around the same time),
+  // each its own carousel card.
   let soonestEnd = Infinity;
   for (const e of eligible) {
     if (e.occ.endMinutes < soonestEnd) soonestEnd = e.occ.endMinutes;
   }
-  const nextBatch = eligible.filter((e) => e.occ.endMinutes === soonestEnd);
-  // Stable order by scheduleId so the carousel always renders the same kid
-  // in the same slot across re-renders.
-  nextBatch.sort((a, b) => a.occ.scheduleId - b.occ.scheduleId);
+  const nextBatch = eligible.filter((e) => pickupsClash(e.occ.endMinutes, soonestEnd));
+  // Time order, then scheduleId, so each kid keeps its slot across re-renders.
+  nextBatch.sort((a, b) => a.occ.endMinutes - b.occ.endMinutes || a.occ.scheduleId - b.occ.scheduleId);
 
   return nextBatch.map<PickupCardData>(({ occ, child }) => ({
     scheduleId: occ.scheduleId,
