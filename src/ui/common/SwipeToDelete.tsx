@@ -22,10 +22,13 @@ import Reanimated, {
 } from 'react-native-reanimated';
 
 import { TOKENS } from '../palette';
+import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
 
 /** Width of the revealed 삭제 button. */
 const ACTION_W = 80;
+/** Space between the slid row and the red pill. */
+const GAP = 4;
 /** A swipe past this share of the row's width deletes on release. */
 const FULL_SWIPE = 0.55;
 
@@ -66,7 +69,7 @@ function SwipeToDeleteImpl({ children, onDelete, confirm, accessibilityLabel, te
       <ReanimatedSwipeable
         ref={ref}
         friction={1}
-        rightThreshold={ACTION_W / 2}
+        rightThreshold={(ACTION_W + GAP) / 2}
         overshootRight
         overshootFriction={1}
         onSwipeableWillOpen={() => {
@@ -114,8 +117,10 @@ function DeleteAction({
       armed.value = isFull;
     },
   );
-  // Fills the space the row has slid away from (at least the button width).
-  const grow = useAnimatedStyle(() => ({ width: Math.max(ACTION_W, -translation.value) }));
+  // Fills the space the row has slid away from (at least the button width),
+  // as a rounded pill GAP away from the row — the boxes it sits in are
+  // rounded and padded, so a square red block would look stuck on.
+  const grow = useAnimatedStyle(() => ({ width: Math.max(ACTION_W + GAP, -translation.value) }));
   return (
     <Reanimated.View style={[styles.action, grow]}>
       <Pressable
@@ -132,7 +137,14 @@ function DeleteAction({
 }
 
 const styles = StyleSheet.create({
-  action: { backgroundColor: TOKENS.danger, justifyContent: 'center', alignItems: 'flex-end' },
-  actionPress: { width: ACTION_W, height: '100%', alignItems: 'center', justifyContent: 'center' },
-  actionLabel: { ...TYPE.subhead, fontFamily: TYPE.headline.fontFamily, color: TOKENS.surface },
+  action: { paddingLeft: GAP, justifyContent: 'center' },
+  actionPress: {
+    flex: 1,
+    borderRadius: RADIUS.md,
+    backgroundColor: TOKENS.danger,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  // The label stays at the pill's right end while the pill grows.
+  actionLabel: { ...TYPE.subhead, fontFamily: TYPE.headline.fontFamily, color: TOKENS.surface, width: ACTION_W, textAlign: 'center' },
 });
