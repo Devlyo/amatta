@@ -138,28 +138,27 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
         {groups.length === 0 ? (
           <Text style={styles.emptyText}>오늘 챙길 준비물이 없어요</Text>
         ) : (
-          groups.map((group, idx) => {
-          const palette = getKidPalette(group.kid.colorIndex);
-          const remaining = group.items.filter((i) => !isComplete(i.id)).length;
+          groups.flatMap((group) => group.classes.map((c) => ({ kid: group.kid, ...c }))).map(({ kid, occ, items }, idx) => {
+          const palette = getKidPalette(kid.colorIndex);
+          const remaining = items.filter((i) => !isComplete(i.id)).length;
           return (
-            <Fragment key={group.kid.id}>
+            <Fragment key={occ.scheduleId}>
               {idx > 0 ? <View style={styles.divider} /> : null}
-              <View style={styles.kidRow}>
-                <KidAvatar child={group.kid} size={30} />
-                <Text style={styles.kidName}>{group.kid.name}</Text>
-                <Text style={styles.kidRemaining}>
-                  {remaining}/{group.items.length} 남음
-                </Text>
-              </View>
-              {group.classes.map(({ occ, items }) => (
-                <View key={occ.scheduleId} testID={`checklist-class-${occ.scheduleId}`}>
-                  {/* Which class these are for — same line as the 지금 rows. */}
-                  <View style={styles.classRow}>
-                    <ItemLine
-                      title={occ.title}
-                      type={occ.type}
-                      detail={occ.allDay === true ? '하루 종일' : fmtRange(occ.startMinutes, occ.endMinutes)}
-                    />
+                <View testID={`checklist-class-${occ.scheduleId}`}>
+                  {/* Whose and which class — the same line as the 지금 rows. */}
+                  <View style={styles.kidRow}>
+                    <KidAvatar child={kid} size={30} />
+                    <View style={styles.kidLine}>
+                      <ItemLine
+                        name={kid.name}
+                        title={occ.title}
+                        type={occ.type}
+                        detail={occ.allDay === true ? '하루 종일' : fmtRange(occ.startMinutes, occ.endMinutes)}
+                      />
+                    </View>
+                    <Text style={styles.kidRemaining}>
+                      {remaining}/{items.length}
+                    </Text>
                   </View>
                   {items.map((item) => {
                     const isDone = isComplete(item.id);
@@ -192,7 +191,6 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
                     );
                   })}
                 </View>
-              ))}
             </Fragment>
           );
           })
@@ -243,13 +241,6 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xs,
     paddingLeft: 10,
   },
-  kidName: {
-    fontFamily: FONT_FAMILIES.pretendardBold,
-    fontSize: 16,
-    fontWeight: '700',
-    color: TOKENS.ink,
-    letterSpacing: -0.3,
-  },
   kidRemaining: {
     marginLeft: 'auto',
     fontFamily: FONT_FAMILIES.pretendard,
@@ -291,12 +282,5 @@ const styles = StyleSheet.create({
   itemLabelDone: {
     textDecorationLine: 'line-through',
   },
-  classRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingTop: 6,
-    paddingBottom: 2,
-    paddingHorizontal: 12,
-  },
+  kidLine: { flex: 1, minWidth: 0 },
 });
