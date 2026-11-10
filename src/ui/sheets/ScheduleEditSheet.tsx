@@ -221,6 +221,7 @@ export function ScheduleEditContent({
         defaultFormState(
           editSheetState.preFill?.childId ?? null,
           editSheetState.preFill?.date ?? null,
+          editSheetState.preFill?.startMinutes,
         ),
       );
       originalChecklistRef.current = [];

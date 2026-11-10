@@ -8,7 +8,15 @@
 // column — never how the axis is drawn.
 
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type GestureResponderEvent,
+  type LayoutChangeEvent,
+} from 'react-native';
 
 import { TOKENS, withAlpha } from '../palette';
 import { RADIUS } from '../radius';
@@ -16,6 +24,7 @@ import { TYPE } from '../typography';
 import {
   axisHeight,
   hourLabel,
+  minutesAtY,
   minutesToY,
   nowLabel,
   TIME_GUTTER,
@@ -41,8 +50,17 @@ export interface TimeGridProps {
   /** Extra scroll space under 24:00 so the floating dock never hides the last hour. */
   bottomInset?: number;
   renderColumns: (layout: TimeGridColumnsLayout) => ReactNode;
+  /**
+   * Long press on an empty part of the grid (blocks sit above this layer and
+   * keep their own presses). Receives the column index and the pressed time,
+   * snapped to 30 minutes — used to create an event right there.
+   */
+  onLongPressSlot?: (column: number, minutes: number) => void;
   testID?: string;
 }
+
+/** Hold time before a long press on an empty slot creates an event. */
+const SLOT_LONG_PRESS_MS = 400;
 
 const HOURS = Array.from({ length: 25 }, (_, h) => h);
 
@@ -55,6 +73,7 @@ function TimeGridImpl({
   scrollKey,
   bottomInset = 0,
   renderColumns,
+  onLongPressSlot,
   testID,
 }: TimeGridProps): React.ReactElement {
   const scrollRef = useRef<ScrollView>(null);
@@ -71,6 +90,13 @@ function TimeGridImpl({
   }, [scrollKey]);
 
   const onLayout = (e: LayoutChangeEvent): void => setWidth(e.nativeEvent.layout.width);
+
+  const handleSlotLongPress = (e: GestureResponderEvent): void => {
+    if (onLongPressSlot === undefined || columnWidth <= 0) return;
+    const { locationX, locationY } = e.nativeEvent;
+    const column = Math.min(columns - 1, Math.max(0, Math.floor(locationX / columnWidth)));
+    onLongPressSlot(column, minutesAtY(locationY, hourHeight));
+  };
 
   return (
     <ScrollView
@@ -116,6 +142,15 @@ function TimeGridImpl({
           ) : null}
 
           <View style={[styles.columns, { width: width - TIME_GUTTER, height }]}>
+            {onLongPressSlot !== undefined ? (
+              <Pressable
+                testID="time-grid-slots"
+                accessibilityLabel="빈 시간을 길게 눌러 일정 추가"
+                onLongPress={handleSlotLongPress}
+                delayLongPress={SLOT_LONG_PRESS_MS}
+                style={StyleSheet.absoluteFill}
+              />
+            ) : null}
             {renderColumns({ columnWidth, y })}
           </View>
         </>

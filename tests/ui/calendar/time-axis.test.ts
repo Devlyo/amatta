@@ -3,7 +3,9 @@ import {
   axisHeight,
   hourLabel,
   initialScrollY,
+  minutesAtY,
   minutesToY,
+  newEventStart,
   nowLabel,
 } from '../../../src/ui/calendar/time-axis';
 
@@ -51,5 +53,26 @@ describe('initialScrollY', () => {
 
   test('never negative near midnight', () => {
     expect(initialScrollY({ hourHeight, nowMinutes: 30, firstStart: null })).toBe(0);
+  });
+});
+
+describe('minutesAtY / newEventStart (long press to create)', () => {
+  const hh = 46;
+  test('round-trips minutesToY on half-hour boundaries', () => {
+    expect(minutesAtY(minutesToY(15 * 60, hh), hh)).toBe(15 * 60);
+    expect(minutesAtY(minutesToY(15 * 60 + 30, hh), hh)).toBe(15 * 60 + 30);
+  });
+  test('snaps down to the half hour', () => {
+    expect(minutesAtY(minutesToY(15 * 60 + 29, hh), hh)).toBe(15 * 60);
+    expect(minutesAtY(minutesToY(15 * 60 + 31, hh), hh)).toBe(15 * 60 + 30);
+  });
+  test('clamps into the day', () => {
+    expect(minutesAtY(-50, hh)).toBe(0);
+    expect(minutesAtY(10_000, hh)).toBe(23 * 60 + 30);
+  });
+  test('new event start stays inside the form range (06:00–23:00)', () => {
+    expect(newEventStart(2 * 60)).toBe(6 * 60);
+    expect(newEventStart(15 * 60 + 30)).toBe(15 * 60 + 30);
+    expect(newEventStart(23 * 60 + 30)).toBe(23 * 60);
   });
 });

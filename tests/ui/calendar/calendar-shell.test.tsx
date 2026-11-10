@@ -90,7 +90,7 @@ describe('DateStrip', () => {
 });
 
 describe('DayView', () => {
-  function renderDay(inactive: (number | 'guardian')[]) {
+  function renderDay(inactive: (number | 'guardian')[], onLongPressSlot?: jest.Mock) {
     render(
       <DayView
         kids={kids}
@@ -103,6 +103,7 @@ describe('DayView', () => {
         inactive={inactive}
         scrollKey="2026-11-10"
         onPressOccurrence={() => {}}
+        onLongPressSlot={onLongPressSlot}
       />,
     );
     fireEvent(screen.getByTestId('day-view'), 'layout', {
@@ -124,5 +125,22 @@ describe('DayView', () => {
     renderDay([1, 'guardian']); // only 서연 (2) active → solo
     expect(opacityOf('day-block-20')).toBe(1);
     expect(opacityOf('day-block-10')).toBe(BLOCK_DIMMED_OPACITY);
+  });
+
+  test('long press on an empty slot reports the column person and the time', () => {
+    const onLongPressSlot = jest.fn();
+    renderDay([], onLongPressSlot);
+    // columns are 100px wide: x=150 → column 1 (서연); y for 10:00 at 46px/h
+    fireEvent(screen.getByTestId('time-grid-slots'), 'longPress', {
+      nativeEvent: { locationX: 150, locationY: 8 + 10 * 46 + 5 },
+    });
+    // x=250 → column 2 → guardian
+    fireEvent(screen.getByTestId('time-grid-slots'), 'longPress', {
+      nativeEvent: { locationX: 250, locationY: 8 + 14.5 * 46 + 1 },
+    });
+    expect(onLongPressSlot.mock.calls).toEqual([
+      [2, 10 * 60],
+      ['guardian', 14 * 60 + 30],
+    ]);
   });
 });

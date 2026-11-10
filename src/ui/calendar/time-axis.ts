@@ -17,6 +17,22 @@ export function minutesToY(minutes: number, hourHeight: number): number {
   return AXIS_TOP_PAD + ((minutes - AXIS_START_MIN) / 60) * hourHeight;
 }
 
+/** Inverse of minutesToY, snapped down to `snap` minutes and clamped to the day. */
+export function minutesAtY(y: number, hourHeight: number, snap = 30): number {
+  const raw = ((y - AXIS_TOP_PAD) / hourHeight) * 60 + AXIS_START_MIN;
+  const snapped = Math.floor(raw / snap) * snap;
+  return Math.min(Math.max(snapped, AXIS_START_MIN), AXIS_END_MIN - snap);
+}
+
+/**
+ * Start time to pre-fill when a new event is created by long-pressing the grid.
+ * The event form still only accepts 06:00–23:30 starts (ADR-007 OQ: input
+ * range), so the pressed slot is clamped into that window.
+ */
+export function newEventStart(pressedMinutes: number): number {
+  return Math.min(Math.max(pressedMinutes, 6 * 60), 23 * 60);
+}
+
 export function axisHeight(hourHeight: number): number {
   return AXIS_TOP_PAD + ((AXIS_END_MIN - AXIS_START_MIN) / 60) * hourHeight;
 }

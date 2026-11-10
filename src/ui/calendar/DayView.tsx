@@ -31,6 +31,8 @@ interface Props {
   /** Changes when the shown day changes — re-applies the opening scroll. */
   scrollKey: string;
   onPressOccurrence: (occ: Occurrence) => void;
+  /** Long press on an empty slot: the column's person and the pressed time. */
+  onLongPressSlot?: (person: PersonKey, minutes: number) => void;
 }
 
 function DayViewImpl({
@@ -40,6 +42,7 @@ function DayViewImpl({
   inactive,
   scrollKey,
   onPressOccurrence,
+  onLongPressSlot,
 }: Props): React.ReactElement {
   const columnOfKid = useMemo(() => new Map(kids.map((k, i) => [k.id, i])), [kids]);
   const columns = kids.length + 1; // + guardian
@@ -72,6 +75,11 @@ function DayViewImpl({
       initialScrollY={openAt}
       scrollKey={scrollKey}
       bottomInset={DOCK_CLEARANCE}
+      onLongPressSlot={
+        onLongPressSlot === undefined
+          ? undefined
+          : (column, minutes) => onLongPressSlot(kids[column]?.id ?? 'guardian', minutes)
+      }
       renderColumns={({ columnWidth, y }) =>
         placed.map(({ id, column, start, end, level, occ }) => {
           const kid = kids[column];

@@ -61,15 +61,21 @@ export const TYPE_OPTIONS: readonly ScheduleType[] = [
 
 export const DOW_LABELS_KO = ['월', '화', '수', '목', '금', '토', '일'] as const;
 
-export function defaultFormState(childId: number | null, date: ISODate | null): EditFormState {
+export function defaultFormState(
+  childId: number | null,
+  date: ISODate | null,
+  startMinutes?: number,
+): EditFormState {
   const validFrom = date !== null ? (date as unknown as string) : '';
+  // Long-press creation passes the pressed slot; otherwise 15:00–16:00.
+  const start = startMinutes ?? 15 * 60;
   return {
     childId,
     title: '',
     type: null, // 종류는 기본 선택 없음 — 사용자가 직접 골라야 저장 가능
     daysOfWeek: 0,
-    startMinutes: 15 * 60, // 15:00
-    endMinutes: 16 * 60, // 16:00
+    startMinutes: start,
+    endMinutes: Math.min(start + 60, 24 * 60),
     validFrom,
     validUntil: '',
     location: '',

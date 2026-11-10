@@ -20,12 +20,13 @@ import { expandOccurrences } from '../../src/domain/occurrences';
 import type { Child, ISODate, Occurrence } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
-import { useUiStore, type CalendarView } from '../../src/state/ui-store';
+import { useUiStore, type CalendarView, type PersonKey } from '../../src/state/ui-store';
 import { CalendarTopBar } from '../../src/ui/calendar/CalendarTopBar';
 import { DateStrip } from '../../src/ui/calendar/DateStrip';
 import { DayView } from '../../src/ui/calendar/DayView';
 import { KidFilterBar } from '../../src/ui/calendar/KidFilterBar';
 import { useNowMinutes } from '../../src/ui/calendar/useNowMinutes';
+import { newEventStart } from '../../src/ui/calendar/time-axis';
 import { TOKENS } from '../../src/ui/palette';
 import { shiftIsoDate, todayIso, weekdayKo } from '../../src/ui/utils/date';
 
@@ -86,6 +87,18 @@ export default function CalendarScreen(): React.ReactElement {
     });
   };
 
+  // Long press on an empty slot → new event there (kid column → that kid
+  // pre-selected; the guardian column has no kid, so the form asks).
+  const createAt = (person: PersonKey, minutes: number): void => {
+    const params: Record<string, string> = {
+      mode: 'create',
+      date: dateKey,
+      start: String(newEventStart(minutes)),
+    };
+    if (person !== 'guardian') params.childId = String(person);
+    router.push({ pathname: '/schedule/edit', params });
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <CalendarTopBar
@@ -114,6 +127,7 @@ export default function CalendarScreen(): React.ReactElement {
             inactive={inactivePeople}
             scrollKey={dateKey}
             onPressOccurrence={openDetail}
+            onLongPressSlot={createAt}
           />
         </View>
       </GestureDetector>

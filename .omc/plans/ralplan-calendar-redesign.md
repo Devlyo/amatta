@@ -214,3 +214,8 @@ Verdict: **APPROVE-WITH-REVISIONS**. 아래를 계획에 포함한다.
 - Phase 2 범위: 탭 구조 + **홈 화면**(다음 픽업 카드 · 지금·다음 · 오늘 챙길 것 · 오늘 할 일) + 캘린더 셸·일간. 기존 `TodoTabContent`/`TodoSection`/`ChecklistSection`의 로직을 홈 섹션으로 이식, 할 일 `전체 보기` 화면 신설.
 - 인벤토리 변경: `PickupCarousel`·`PickupCard`·`CartoonCar`·`pickup-data`·car/pickup 토큰 = **보류 → 유지(홈으로 이동)**. `IconHome` = 삭제 대상에서 제외(독에서 사용). `TodoTabContent` = 삭제(홈으로 대체).
 - 도메인 신규 순수 함수: `nowAndNextByKid(occurrences, now)`(진행 중/다음/상태 칩) — 테스트 포함.
+
+### F. 빈 칸 길게 눌러 일정 만들기 (2026-11-10, 오너 요청)
+- `TimeGrid.onLongPressSlot(column, minutes)` — 빈 영역 0.4초 길게 누르기 → 30분 단위 시각. 블록은 그 위 레이어라 자기 탭 유지.
+- 일간: 그 열의 아이가 미리 선택된 새 일정(보호자 열은 아이 미선택), 시작 = 누른 시각, 종료 = +1시간. **Phase 3 주간에도 같은 콜백으로 연결**(열 = 날짜).
+- 폼 입력 범위가 아직 06:00–23:30이라 시작 시각은 06:00–23:00으로 맞춤 — 0–24시 입력 허용은 Phase 4 폼 재작성 때 결정.

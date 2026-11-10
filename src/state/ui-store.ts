@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { soloActive, toggleActive, type PersonKey } from '../domain/people-filter';
 import type { ISODate } from '../domain/types';
 import { todayIso } from '../ui/utils/date';
 
@@ -8,6 +9,8 @@ export type EditSheetMode = 'closed' | 'create' | 'editAll' | 'editOccurrence';
 export interface EditSheetPreFill {
   childId?: number;
   date?: ISODate;
+  /** Start time (minutes from midnight) — set when created from a grid long press. */
+  startMinutes?: number;
 }
 
 export interface EditSheetState {
@@ -30,12 +33,6 @@ export interface EventDetailState {
 // local day and breaks isToday() comparisons. The canonical helper in
 // src/ui/utils/date.ts uses local-time getters and is the only source of
 // truth for "today" across the app.
-import {
-  soloActive,
-  toggleActive,
-  type PersonKey,
-} from '../domain/people-filter';
-
 // ADR-007 §1–2: calendar view and the people filter.
 export type CalendarView = 'day' | 'week' | 'month';
 export type { PersonKey };
