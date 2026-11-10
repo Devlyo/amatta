@@ -229,7 +229,7 @@ export default function RootLayout() {
           options={{
             headerShown: false,
             presentation: 'modal',
-            contentStyle: { backgroundColor: TOKENS.surface },
+            contentStyle: { backgroundColor: TOKENS.groupedBg },
           }}
         />
         <Stack.Screen

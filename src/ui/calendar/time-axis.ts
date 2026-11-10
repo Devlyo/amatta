@@ -25,12 +25,11 @@ export function minutesAtY(y: number, hourHeight: number, snap = 30): number {
 }
 
 /**
- * Start time to pre-fill when a new event is created by long-pressing the grid.
- * The event form still only accepts 06:00–23:30 starts (ADR-007 OQ: input
- * range), so the pressed slot is clamped into that window.
+ * Start time to pre-fill when a new event is created by long-pressing the grid:
+ * the pressed hour, kept so the default 1-hour event still ends by midnight.
  */
 export function newEventStart(pressedMinutes: number): number {
-  return Math.min(Math.max(pressedMinutes, 6 * 60), 23 * 60);
+  return Math.min(Math.max(pressedMinutes, 0), 23 * 60);
 }
 
 export function axisHeight(hourHeight: number): number {

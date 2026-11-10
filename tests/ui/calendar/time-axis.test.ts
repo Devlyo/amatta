@@ -70,8 +70,8 @@ describe('minutesAtY / newEventStart (long press to create)', () => {
     expect(minutesAtY(-50, hh)).toBe(0);
     expect(minutesAtY(10_000, hh)).toBe(23 * 60 + 30);
   });
-  test('new event start stays inside the form range (06:00–23:00)', () => {
-    expect(newEventStart(2 * 60)).toBe(6 * 60);
+  test('new event start keeps the 1-hour default inside the day', () => {
+    expect(newEventStart(2 * 60)).toBe(2 * 60);
     expect(newEventStart(15 * 60 + 30)).toBe(15 * 60 + 30);
     expect(newEventStart(23 * 60 + 30)).toBe(23 * 60);
   });

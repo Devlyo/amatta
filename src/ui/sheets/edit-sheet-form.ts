@@ -2,7 +2,6 @@
 // Extracted from the component so tests can exercise validation without
 // mounting the sheet.
 
-import { GRID_END_HOUR, GRID_START_HOUR } from '../../domain/constants';
 import { useNotifSettingsStore } from '../../state/notif-settings-store';
 import type {
   DaysOfWeekMask,
@@ -24,8 +23,12 @@ export interface EditFormState {
   validUntil: string; // optional; empty string means "no end"
   location: string;
   notes: string;
-  notifyMinutesBefore: number | null; // null = no notification
+  notifyMinutesBefore: number | null; // null = no notification (before start)
   needsPickup: boolean;
+  /** ADR-007 §8: all-day event (times hidden, saved as 0–1440, no pickup). */
+  allDay: boolean;
+  /** ADR-007 §8: alert before the END (null = none). */
+  notifyEndMinutesBefore: number | null;
 }
 
 // Korean labels for the type pill row in the amatta-v1 edit form. Order
@@ -82,6 +85,8 @@ export function defaultFormState(
     notes: '',
     notifyMinutesBefore: useNotifSettingsStore.getState().defaultMinutesBefore,
     needsPickup: false,
+    allDay: false,
+    notifyEndMinutesBefore: null,
   };
 }
 
@@ -99,6 +104,8 @@ export function formFromSchedule(s: Schedule): EditFormState {
     notes: s.notes ?? '',
     notifyMinutesBefore: coerceToNotifyOption(s.notifyMinutesBefore),
     needsPickup: s.needsPickup,
+    allDay: s.allDay === true,
+    notifyEndMinutesBefore: s.notifyEndMinutesBefore ?? null,
   };
 }
 
@@ -130,13 +137,9 @@ export interface ValidationResult {
 }
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
-const GRID_START_MIN = GRID_START_HOUR * 60;
-// Editor caps stay tied to a single calendar day (06:00 .. 24:00) regardless
-// of the daily-grid VIEW range extending past midnight to 25:00. Schedule
-// entities live within one day; the grid extension is purely for letting
-// users see late-night events.
-const EDIT_MAX_END_MIN = 24 * 60;        // 1440 — exclusive end of day
-const GRID_END_MIN = EDIT_MAX_END_MIN;   // back-compat alias used downstream
+// ADR-007: events live inside one calendar day on the 00:00–24:00 axis.
+const DAY_START_MIN = 0;
+const DAY_END_MIN = 24 * 60; // 1440 — exclusive end of day
 
 /**
  * @param requireChildId when true, the form is in `create` mode and a child
@@ -166,15 +169,16 @@ export function validate(
   if (options.requireDaysOfWeek && form.daysOfWeek === 0) {
     errors.daysOfWeek = '반복 요일을 하나 이상 선택하세요.';
   }
-  if (form.startMinutes < GRID_START_MIN || form.startMinutes > GRID_END_MIN) {
-    errors.startMinutes = '시작 시간은 06:00–23:30 사이여야 합니다.';
-  }
-  if (form.endMinutes <= form.startMinutes) {
-    errors.endMinutes = '종료 시간은 시작 시간보다 늦어야 합니다.';
-  }
-  if (form.endMinutes > GRID_END_MIN + 30) {
-    // hard cap at 24:00 (next-day midnight) so the block can be clamped by the grid layout
-    errors.endMinutes = '종료 시간은 24:00 이전이어야 합니다.';
+  // All-day events have no times to check (saved as 0–1440).
+  if (!form.allDay) {
+    if (form.startMinutes < DAY_START_MIN || form.startMinutes >= DAY_END_MIN) {
+      errors.startMinutes = '시작 시간이 올바르지 않습니다.';
+    }
+    if (form.endMinutes <= form.startMinutes) {
+      errors.endMinutes = '종료 시간은 시작 시간보다 늦어야 합니다.';
+    } else if (form.endMinutes > DAY_END_MIN) {
+      errors.endMinutes = '종료 시간은 자정을 넘을 수 없습니다.';
+    }
   }
   if (form.validFrom.length === 0) {
     errors.validFrom = '시작일을 입력하세요.';
@@ -206,11 +210,34 @@ export function formatHHMM(minutes: Minutes): string {
 }
 
 export function stepMinutes(current: Minutes, deltaSlots: number): Minutes {
-  // 30-min step; clamp 06:00..24:00.
+  // 30-min step; clamp 00:00..24:00 (ADR-007 0–24 axis).
   const next = current + deltaSlots * 30;
-  if (next < GRID_START_MIN) return GRID_START_MIN;
-  if (next > GRID_END_MIN) return GRID_END_MIN;
+  if (next < DAY_START_MIN) return DAY_START_MIN;
+  if (next > DAY_END_MIN) return DAY_END_MIN;
   return next;
+}
+
+// ── iPhone-style row summaries (ADR-007 §7) ─────────────────────────────────
+
+const SUN_FIRST = ['일', '월', '화', '수', '목', '금', '토'] as const;
+/** Sunday-first visual index → DaysOfWeekMask bit (Mon = bit 0 … Sun = bit 6). */
+export const VISUAL_TO_MASK_BIT: readonly number[] = [6, 0, 1, 2, 3, 4, 5];
+
+/** "안 함" / "매일" / "평일" / "주말" / "매주 화, 목". */
+export function repeatSummary(mask: DaysOfWeekMask): string {
+  if (mask === 0) return '안 함';
+  if (mask === 0b1111111) return '매일';
+  if (mask === 0b0011111) return '평일';
+  if (mask === 0b1100000) return '주말';
+  const days = SUN_FIRST.filter((_, i) => (mask & (1 << (VISUAL_TO_MASK_BIT[i] ?? 0))) !== 0);
+  return `매주 ${days.join(', ')}`;
+}
+
+/** "없음" / "10분 전" / "1시간 전". */
+export function alertSummary(minutes: number | null): string {
+  if (minutes === null) return '없음';
+  if (minutes % 60 === 0) return `${minutes / 60}시간 전`;
+  return `${minutes}분 전`;
 }
 
 export function toggleDayMask(mask: DaysOfWeekMask, dayIdx: number): DaysOfWeekMask {

@@ -56,5 +56,5 @@ export default function ScheduleEditRoute(): React.ReactElement {
 
 const styles = StyleSheet.create({
   // Top padding so the header isn't flush against the modal's top edge.
-  root: { flex: 1, paddingTop: SPACING.xl, backgroundColor: TOKENS.surfaceWarm },
+  root: { flex: 1, paddingTop: SPACING.sm, backgroundColor: TOKENS.groupedBg },
 });
