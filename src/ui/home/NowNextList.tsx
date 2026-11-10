@@ -61,7 +61,7 @@ function NowNextListImpl({ kids, rows }: Props): React.ReactElement {
             accessible
             accessibilityLabel={`${kid.name}, ${d.title} ${d.spoken}${d.sub !== null ? `, ${d.sub}` : ''}`}
           >
-            <KidAvatar child={kid} size={30} />
+            <KidAvatar child={kid} size={36} />
             <View style={styles.text}>
               {/* Whose row it is, right before what they do — the avatar
                   alone was hard to tell apart. */}
