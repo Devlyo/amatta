@@ -2,6 +2,13 @@
 
 형식: `## YYYY-MM-DD — 한 줄 요약`. 위가 최신.
 
+## 2026-11-10 — ADR-007 Phase 1 (겹침 레이아웃 · 공통 시간 그리드)
+
+- `src/domain/layout.ts`: `layoutCascade`(같은 열에서 시간이 겹치면 계단식 레벨 배정, 입력 순서 무관) + `clipToDay`. 테스트 18개.
+- `src/ui/calendar/`: 0–24시 공통 축(`time-axis.ts`), `TimeGrid`(시간 눈금 `9 AM`·세로 구분선·오늘 열·주황 NOW 선/점/알약), `TimeBlock`(60%/80% 채움·1.5px 진한 막대·`3–4PM`·집중 모드 20%·픽업 점).
+- NOW 갱신 로직을 `useNowMinutes` 훅으로 통합(일간·전체 주간의 중복 제거).
+- 기존 화면은 아직 옛 그리드 사용 — Phase 2/3에서 교체.
+
 ## 2026-11-10 — ADR-007 캘린더 개편 착수 · Phase 0 (토큰 기반)
 
 - ADR-007 Accepted + ralplan v2(`.omc/plans/ralplan-calendar-redesign.md`). 현 디자인 보존 태그 `ui-v1`.

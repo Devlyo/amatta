@@ -4,7 +4,7 @@
 // the actual time/lane layout to <MultiKidGrid />.
 
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
@@ -29,6 +29,7 @@ import { TodoTabContent } from '../src/ui/daily/TodoTabContent';
 import { FONT_FAMILIES } from '../src/ui/fonts';
 import { IconChevronDown, IconSearch } from '../src/ui/icons';
 import { getKidPalette, TOKENS } from '../src/ui/palette';
+import { useNowMinutes } from '../src/ui/calendar/useNowMinutes';
 import {
   isDueOnDate,
   shiftIsoDate,
@@ -40,10 +41,6 @@ import { MultiKidGrid } from '../src/ui/weekly/MultiKidGrid';
 
 const SWIPE_THRESHOLD = 60;
 
-function currentMinutes(): number {
-  const now = new Date();
-  return now.getHours() * 60 + now.getMinutes();
-}
 
 // "5월 3일 – 9일" / "5월 31일 – 6월 6일"
 function formatWeekRange(start: ISODate, end: ISODate): string {
@@ -73,37 +70,7 @@ function MultiViewScreenImpl(): React.ReactElement {
   const anchorDate = currentDate;
   const setAnchorDate = setCurrentDate;
   const [tab, setTab] = useState<DailyTabKey>('schedule');
-  const [nowMinutes, setNowMinutes] = useState<number>(() => currentMinutes());
-
-  // Tick the NOW line at the next minute boundary then every 60s, plus a
-  // re-sync on AppState=active. Matches the daily-grid pattern (ADR-003).
-  useEffect(() => {
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const tick = (): void => setNowMinutes(currentMinutes());
-    const start = (): void => {
-      if (timeoutId !== null) clearTimeout(timeoutId);
-      if (intervalId !== null) clearInterval(intervalId);
-      const now = new Date();
-      const msUntilNext = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
-      timeoutId = setTimeout(() => {
-        tick();
-        intervalId = setInterval(tick, 60_000);
-      }, msUntilNext);
-    };
-    start();
-    const sub = AppState.addEventListener('change', (status) => {
-      if (status === 'active') {
-        tick();
-        start();
-      }
-    });
-    return () => {
-      if (timeoutId !== null) clearTimeout(timeoutId);
-      if (intervalId !== null) clearInterval(intervalId);
-      sub.remove();
-    };
-  }, []);
+  const nowMinutes = useNowMinutes();
 
   // First MAX_CHILDREN kids, stable insertion order (matches daily index).
   const allKids = useMemo<Child[]>(

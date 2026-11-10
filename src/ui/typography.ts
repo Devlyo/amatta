@@ -116,6 +116,13 @@ export const TYPE = {
     lineHeight: 15,
     letterSpacing: -0.3,
   },
+  // Axis meridiem 9 / 500 — the small "AM"/"PM" after a time-axis hour label
+  axisMeridiem: {
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+    fontSize: 9,
+    lineHeight: 12,
+    letterSpacing: 0,
+  },
   // Mono 12 / 400 / 1.00 / normal — grid time column
   mono: {
     fontFamily: FONT_FAMILIES.mono,

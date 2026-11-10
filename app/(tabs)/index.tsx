@@ -16,7 +16,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
-import { AppState, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -49,14 +49,11 @@ import { TabStrip, type DailyTabKey } from '../../src/ui/daily/TabStrip';
 import { TodoTabContent } from '../../src/ui/daily/TodoTabContent';
 import { TopBar } from '../../src/ui/daily/TopBar';
 import { TOKENS } from '../../src/ui/palette';
+import { useNowMinutes } from '../../src/ui/calendar/useNowMinutes';
 import { formatKoreanShortDate, isDueOnDate, isToday, shiftIsoDate, todayIso } from '../../src/ui/utils/date';
 
 const SWIPE_THRESHOLD = 60;
 
-function currentMinutes(): number {
-  const now = new Date();
-  return now.getHours() * 60 + now.getMinutes();
-}
 
 export default function DailyViewScreen(): React.ReactElement {
   const children = useChildrenStore((s) => s.children);
@@ -144,46 +141,7 @@ export default function DailyViewScreen(): React.ReactElement {
   }));
 
   const [tab, setTab] = useState<DailyTabKey>('schedule');
-  const [nowMinutes, setNowMinutes] = useState<number>(() => currentMinutes());
-
-  // NOW line tick — ADR-003 §B. The grid's lime now-line + pill must
-  // advance every minute (8:30 → 8:31 → ...) without requiring user input,
-  // so we align to the next minute boundary, then fire setInterval(60s).
-  // AppState=active also re-syncs immediately + restarts the alignment in
-  // case the device was backgrounded across many minutes.
-  useEffect(() => {
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    const tick = (): void => setNowMinutes(currentMinutes());
-
-    const start = (): void => {
-      if (timeoutId !== null) clearTimeout(timeoutId);
-      if (intervalId !== null) clearInterval(intervalId);
-      const now = new Date();
-      const msUntilNextMinute =
-        (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
-      timeoutId = setTimeout(() => {
-        tick();
-        intervalId = setInterval(tick, 60_000);
-      }, msUntilNextMinute);
-    };
-
-    start();
-
-    const sub = AppState.addEventListener('change', (status) => {
-      if (status === 'active') {
-        tick();
-        start();
-      }
-    });
-
-    return () => {
-      if (timeoutId !== null) clearTimeout(timeoutId);
-      if (intervalId !== null) clearInterval(intervalId);
-      sub.remove();
-    };
-  }, []);
+  const nowMinutes = useNowMinutes();
 
   // First 4 children, sorted by id ASC (stable insertion order). Hooks must
   // run unconditionally — the empty-state branch happens below.
