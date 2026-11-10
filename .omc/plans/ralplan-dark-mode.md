@@ -40,7 +40,7 @@
 2. ✅ 2026-11-10 캘린더 화면 + 픽업 카드(`PickupCard`의 `onBg === TOKENS.surface` 비교 → `onLight/onDark` 고정 토큰) + `PICKUP_CARD_PALETTE`, `WeekView` 등 색을 굽는 `useMemo`에 `t` 의존성.
 3. ✅ 2026-11-10 홈 / 설정 / 설정 안쪽 / 온보딩(`BLOB_CITRUS`) / 검색 / 날짜 선택(`CalendarDrawer` `WEEKEND_COLOR_SAT`) / 상세·폼(DateTimePicker `themeVariant="light"`·`textColor` 하드코딩 제거).
    + React Navigation `ThemeProvider`(커스텀 Default/DarkTheme)로 탭·스택·헤더 바탕.
-4. `TOKENS` 별칭 제거, ESLint 경고 → **에러**.
+4. ✅ 2026-11-10 `TOKENS` 별칭 제거, ESLint 경고 → **에러**.
 5. 설정 > 화면 모드(시스템/라이트/다크) 노출. 저장값은 **부팅 중 `setBootState('ready')` 전에** 적용(스플래시가 가림). 초기화·JSON 가져오기 시 다시 적용. 실기기 확인(아래 §6).
 
 ## 5. 위험

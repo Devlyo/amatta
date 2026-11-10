@@ -14,7 +14,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, Text, View } from 'react-native';
 
 import { FONT_FAMILIES } from '../fonts';
-import { LIGHT_TOKENS, PICKUP_CARD_PALETTE, withAlpha, type PickupCardPalette } from '../palette';
+import { PICKUP_CARD_PALETTE, withAlpha, type PickupCardPalette } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { CartoonCar } from './CartoonCar';
@@ -40,8 +40,9 @@ export function PickupCard({ data, index }: Props): React.ReactElement {
   // ADR-009: text on the card uses the scheme-independent onLight / onDark,
   // so comparing against them stays right in dark (was theme.t.surface/ink,
   // which flip with the theme).
-  const onBg = pickOnBg(bg);
-  const lightText = onBg === theme.t.onDark;
+  // Fixed in both schemes: dark text on light cards, white on strong ones.
+  const lightText = !isLightFill(bg);
+  const onBg = lightText ? theme.t.onDark : theme.t.onLight;
   const onBgSub = withAlpha(onBg, lightText ? 0.85 : 0.6);
   const roadLineColor = lightText ? withAlpha(theme.t.onDark, 0.18) : withAlpha(theme.t.shadow, 0.1);
 
@@ -139,13 +140,13 @@ export function PickupCard({ data, index }: Props): React.ReactElement {
  * brighter than 0.65 we sit ink on the card, otherwise white. Keeping the
  * same threshold so theme tweaks pick up the same contrast policy.
  */
-function pickOnBg(hex: string): string {
+function isLightFill(hex: string): boolean {
   const h = hex.replace('#', '');
   const r = parseInt(h.slice(0, 2), 16);
   const g = parseInt(h.slice(2, 4), 16);
   const b = parseInt(h.slice(4, 6), 16);
   const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return lum > 0.65 ? LIGHT_TOKENS.onLight : LIGHT_TOKENS.onDark; // same in both schemes
+  return lum > 0.65; // light fill → dark text
 }
 
 const useStyles = makeStyles((th) => ({

@@ -13,7 +13,7 @@ import { FONT_FAMILIES } from './fonts';
 // points at the given size (em × size); 0 where README says "normal".
 //
 // Spread a preset into a Text style and override color/textAlign as needed:
-//   <Text style={[TYPE.title, { color: TOKENS.ink }]}>…</Text>
+//   <Text style={[TYPE.title, { color: theme.t.ink }]}>…</Text>
 export const TYPE = {
   // Display 32 / 700 / 1.15 / -0.02em
   display: {

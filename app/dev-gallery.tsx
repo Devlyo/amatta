@@ -6,7 +6,7 @@ import { Stack } from 'expo-router';
 import { IconPlus } from '../src/ui/icons';
 
 import type { ColorIndex } from '../src/domain/types';
-import { TOKENS, SPACING, RADIUS, getKidPalette, type TypeKey } from '../src/ui/theme';
+import { LIGHT_TOKENS as TOKENS, SPACING, RADIUS, getKidPalette, type TypeKey } from '../src/ui/theme';
 import {
   Text,
   Button,

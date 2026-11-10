@@ -24,8 +24,7 @@ import { useChecklistCompletionStore } from '../src/state/checklist-completion-s
 import { useNotifSettingsStore } from '../src/state/notif-settings-store';
 import { useGuardianStore } from '../src/state/guardian-store';
 import { useDisplayStore } from '../src/state/display-store';
-import { AppThemeProvider, makeStyles, useTheme } from '../src/ui/appearance';
-import { LIGHT_TOKENS } from '../src/ui/palette';
+import { AppThemeProvider, LIGHT_THEME, makeStyles, useTheme } from '../src/ui/appearance';
 import {
   DarkTheme as NavDarkTheme,
   DefaultTheme as NavDefaultTheme,
@@ -143,7 +142,7 @@ export default function RootLayout() {
               importance: Notifications.AndroidImportance.DEFAULT,
               sound: 'default',
               vibrationPattern: [0, 250, 250, 250],
-              lightColor: LIGHT_TOKENS.primary, // brand orange LED, same in both schemes
+              lightColor: LIGHT_THEME.t.primary, // brand orange LED, same in both schemes
             });
           }
           await ensurePermission();

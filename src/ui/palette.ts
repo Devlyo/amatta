@@ -69,7 +69,9 @@ export function kidFill(colorIndex: ColorIndex, alpha: number): string {
 }
 
 // Brand + neutral tokens. Source of truth: docs/design/README.md §2.
-export const TOKENS = {
+// Light theme values (ADR-009). Read colours through the theme
+// (useTheme / makeStyles in ./appearance), never this table directly.
+const LIGHT = {
   primary: '#FF7144',
   primaryDeep: '#D8501F',
   primaryTint: '#FFE2D0',
@@ -152,9 +154,9 @@ export const TOKENS = {
   onDark: '#FFFFFF',
 } as const;
 
-export type TokenName = keyof typeof TOKENS;
-/** The light values (TOKENS is the light theme, kept as an alias until ADR-009 step 4). */
-export const LIGHT_TOKENS: Readonly<Record<TokenName, string>> = TOKENS;
+export type TokenName = keyof typeof LIGHT;
+/** The light values (for the theme module, the palette tests and fixed-colour helpers). */
+export const LIGHT_TOKENS: Readonly<Record<TokenName, string>> = LIGHT;
 
 /**
  * ADR-009 dark values — every light token has one (the Record type makes a
@@ -217,7 +219,7 @@ export const DARK_TOKENS: Readonly<Record<TokenName, string>> = {
 
 // Pickup carousel card spec (handoff #4). Index → palette[index % 4]; shape
 // alternates sedan/round. Card 1 follows the live app theme `primary` at the
-// call site (PickupCard substitutes TOKENS.primary), the rest keep their bg.
+// call site (PickupCard substitutes LIGHT.primary), the rest keep their bg.
 // Colors are token references — no raw literals here or at the call site.
 export interface PickupCardPalette {
   bg: string;
@@ -227,8 +229,8 @@ export interface PickupCardPalette {
 }
 
 export const PICKUP_CARD_PALETTE: readonly PickupCardPalette[] = [
-  { bg: TOKENS.primary, carBody: TOKENS.carBody1, carWindow: TOKENS.carWindow1, shape: 'sedan' },
-  { bg: TOKENS.pickupLavender, carBody: TOKENS.carBody2, carWindow: TOKENS.carWindow2, shape: 'round' },
-  { bg: TOKENS.pickupMint, carBody: TOKENS.carBody3, carWindow: TOKENS.carWindow3, shape: 'sedan' },
-  { bg: TOKENS.pickupSky, carBody: TOKENS.carBody4, carWindow: TOKENS.carWindow4, shape: 'round' },
+  { bg: LIGHT.primary, carBody: LIGHT.carBody1, carWindow: LIGHT.carWindow1, shape: 'sedan' },
+  { bg: LIGHT.pickupLavender, carBody: LIGHT.carBody2, carWindow: LIGHT.carWindow2, shape: 'round' },
+  { bg: LIGHT.pickupMint, carBody: LIGHT.carBody3, carWindow: LIGHT.carWindow3, shape: 'sedan' },
+  { bg: LIGHT.pickupSky, carBody: LIGHT.carBody4, carWindow: LIGHT.carWindow4, shape: 'round' },
 ] as const;

@@ -43,16 +43,15 @@ module.exports = defineConfig([
         },
       ],
       // ADR-009 dark mode: read colours from the theme (useTheme / makeStyles
-      // in src/ui/appearance.tsx), not the static light TOKENS. Warning while
-      // screens are converted (steps 1–3); an error from step 4.
+      // in src/ui/appearance.tsx), never a fixed light / dark table.
       'no-restricted-imports': [
-        'warn',
+        'error',
         {
           patterns: [
             {
-              group: ['**/palette', '**/ui/palette'],
-              importNames: ['TOKENS'],
-              message: 'ADR-009: use useTheme() / makeStyles() from src/ui/appearance — TOKENS is light-only.',
+              group: ['**/palette', '**/ui/palette', '**/theme', '**/ui/theme'],
+              importNames: ['TOKENS', 'LIGHT_TOKENS', 'DARK_TOKENS'],
+              message: 'ADR-009: use useTheme() / makeStyles() from src/ui/appearance — colours must follow the scheme.',
             },
           ],
         },
@@ -68,7 +67,7 @@ module.exports = defineConfig([
   },
   // The theme module itself builds on the light / dark token tables.
   {
-    files: ['src/ui/appearance.tsx', 'src/ui/theme.ts', 'tests/**'],
+    files: ['src/ui/appearance.tsx', 'src/ui/theme.ts', 'src/ui/elevation.ts', 'app/dev-gallery.tsx', 'tests/**'],
     rules: {
       'no-restricted-imports': 'off',
     },
