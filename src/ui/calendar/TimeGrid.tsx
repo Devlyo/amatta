@@ -37,16 +37,16 @@ import {
 import { TimeBlock } from './TimeBlock';
 
 /**
- * Column width that follows a live pinch on the UI thread: viewport width ÷
- * the live column count. Read it in worklets with `liveWidth`.
+ * Column width during a live pinch. Normally everything is laid out by React
+ * at `columnWidth`; while `sizing` is on, worklets use viewport ÷ `span`
+ * instead (UI thread, every frame). Worklets read the fields as locals —
+ * destructure first, never call through the object.
  */
 export interface LiveColumns {
   span: SharedValue<number>;
+  sizing: SharedValue<boolean>;
   viewportW: number;
-}
-export function liveWidth(l: LiveColumns): number {
-  'worklet';
-  return l.viewportW > 0 && l.span.value > 0 ? l.viewportW / l.span.value : 0;
+  columnWidth: number;
 }
 
 export interface TimeGridColumnsLayout {
@@ -71,6 +71,8 @@ export interface TimeGridStrip {
   scrollRef: AnimatedRef<Reanimated.ScrollView>;
   /** True while pinching — the strip's own scrolling is switched off. */
   locked: SharedValue<boolean>;
+  /** True from pinch start until the new zoom has been rendered. */
+  sizing: SharedValue<boolean>;
   /** Column to show at the left edge after `key` changes. */
   initialColumn: number;
   key: string;
@@ -163,7 +165,10 @@ function TimeGridImpl({
   useEffect(() => {
     ownSpan.value = visibleColumns;
   }, [visibleColumns, ownSpan]);
-  const live: LiveColumns = { span: strip?.span ?? ownSpan, viewportW };
+  const ownSizing = useSharedValue(false);
+  const spanSV = strip?.span ?? ownSpan;
+  const sizingSV = strip?.sizing ?? ownSizing;
+  const live: LiveColumns = { span: spanSV, sizing: sizingSV, viewportW, columnWidth };
   // Native scrolling does the motion (iOS physics); the worklet only mirrors
   // the offset for the header and tells the screen which days are in view.
   const report = strip?.onVisibleColumn;
@@ -173,7 +178,7 @@ function TimeGridImpl({
   // *live* width (a pinch changes it before React re-renders), -1 = unknown.
   const columnAt = (x: number): number => {
     'worklet';
-    const w = liveWidth(live);
+    const w = sizingSV.value && spanSV.value > 0 ? viewportW / spanSV.value : columnWidth;
     return w > 0 ? Math.round(x / w) : -1;
   };
   const onHScroll = useAnimatedScrollHandler(
@@ -212,7 +217,7 @@ function TimeGridImpl({
         if (wasUser && !locked.value && report !== undefined && col >= 0) runOnJS(report)(col);
       },
     },
-    [viewportW, report],
+    [viewportW, columnWidth, report],
   );
   // A whole week on screen pages week by week; a zoomed week glides and
   // settles on a day boundary.
@@ -225,7 +230,10 @@ function TimeGridImpl({
     // Re-position only when the caller's key or the column size changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [strip?.key, columnWidth]);
-  const stageStyle = useAnimatedStyle(() => ({ width: columns * liveWidth(live) }));
+  const stageStyle = useAnimatedStyle(() => {
+    const w = sizingSV.value && spanSV.value > 0 ? viewportW / spanSV.value : columnWidth;
+    return { width: columns * w };
+  });
   const stripProps = useAnimatedProps(() => ({ scrollEnabled: scrollable && !locked.value }));
   const height = axisHeight(hourHeight);
   const y = useMemo(() => (m: number) => minutesToY(m, hourHeight), [hourHeight]);
@@ -412,11 +420,18 @@ function LiveColumn({
   style: React.ComponentProps<typeof View>['style'];
   testID?: string;
 }): React.ReactElement {
+  const { span, sizing, viewportW, columnWidth } = live;
   const sized = useAnimatedStyle(() => {
-    const w = liveWidth(live);
+    const w = sizing.value && span.value > 0 ? viewportW / span.value : columnWidth;
     return { left: column * w + inset, width: w - inset };
   });
-  return <Reanimated.View pointerEvents="none" testID={testID} style={[sized, style]} />;
+  return (
+    <Reanimated.View
+      pointerEvents="none"
+      testID={testID}
+      style={[{ left: column * columnWidth + inset, width: columnWidth - inset }, sized, style]}
+    />
+  );
 }
 
 const NOW_PILL_H = 19;

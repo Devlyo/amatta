@@ -216,6 +216,7 @@ export default function CalendarScreen(): React.ReactElement {
   // fingers stays put.
   const liveSpan = useSharedValue<number>(weekSpan);
   const stripLocked = useSharedValue(false);
+  const stripSizing = useSharedValue(false);
   const stripRef = useAnimatedRef<Animated.ScrollView>();
   const pinchFrom = useSharedValue({ span: 7, focalCol: 0, fScreen: 0 });
   useEffect(() => {
@@ -227,7 +228,9 @@ export default function CalendarScreen(): React.ReactElement {
   }, [view, monthZoomed, pinchView, stretch, dragX, stretchMin, stretchMax]);
   useEffect(() => {
     if (!stripLocked.value) liveSpan.value = weekSpan;
-  }, [weekSpan, liveSpan, stripLocked]);
+    // The new zoom is rendered → hand layout back to React.
+    if (!stripLocked.value) stripSizing.value = false;
+  }, [weekSpan, stripPos.n, liveSpan, stripLocked, stripSizing]);
 
   const commitMove = (dir: -1 | 1): void => {
     move(dir);
@@ -293,6 +296,7 @@ export default function CalendarScreen(): React.ReactElement {
         const vw = bodyW.value - TIME_GUTTER;
         const fScreen = e.focalX - TIME_GUTTER;
         stripLocked.value = true;
+        stripSizing.value = true;
         pinchFrom.value = {
           span: liveSpan.value,
           fScreen,
@@ -443,6 +447,7 @@ export default function CalendarScreen(): React.ReactElement {
                   span: liveSpan,
                   scrollRef: stripRef,
                   locked: stripLocked,
+                  sizing: stripSizing,
                   initialColumn: stripPos.col,
                   key: `${stripOrigin as unknown as string}-${weekSpan}-${stripPos.n}`,
                   onVisibleColumn: reportStripColumn,

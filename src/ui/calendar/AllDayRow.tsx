@@ -12,7 +12,7 @@ import { TOKENS, withAlpha } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
 import { monthCellChips } from './calendar-layout';
-import { liveWidth, type LiveColumns } from './TimeGrid';
+import type { LiveColumns } from './TimeGrid';
 import { TIME_GUTTER } from './time-axis';
 
 const MAX_PER_COLUMN = 2;
@@ -48,13 +48,22 @@ function AllDayRowImpl({
   firstColumn = 0,
   followStyle,
 }: Props): React.ReactElement | null {
-  const w = (): number => {
-    'worklet';
-    return live === undefined ? 0 : liveWidth(live);
-  };
-  const stripStyle = useAnimatedStyle(() => ({ width: w() * (firstColumn + columns) }));
-  const spacerStyle = useAnimatedStyle(() => ({ width: w() * firstColumn }));
-  const cellStyle = useAnimatedStyle(() => ({ width: w(), flex: 0 }));
+  const span = live?.span;
+  const sizing = live?.sizing;
+  const viewportW = live?.viewportW ?? 0;
+  const cw = live?.columnWidth ?? 0;
+  const stripStyle = useAnimatedStyle(() => {
+    const w = sizing?.value === true && span !== undefined && span.value > 0 ? viewportW / span.value : cw;
+    return { width: w * (firstColumn + columns) };
+  });
+  const spacerStyle = useAnimatedStyle(() => {
+    const w = sizing?.value === true && span !== undefined && span.value > 0 ? viewportW / span.value : cw;
+    return { width: w * firstColumn };
+  });
+  const cellStyle = useAnimatedStyle(() => {
+    const w = sizing?.value === true && span !== undefined && span.value > 0 ? viewportW / span.value : cw;
+    return { width: w, flex: 0 };
+  });
   if (items.length === 0) return null;
   const sized = live !== undefined;
   const byColumn = Array.from({ length: columns }, (_, c) => items.filter((i) => i.column === c));
@@ -68,15 +77,18 @@ function AllDayRowImpl({
         <Reanimated.View
           style={[
             styles.strip,
-            sized ? stripStyle : styles.stripFill,
+            sized ? [{ width: cw * (firstColumn + columns) }, stripStyle] : styles.stripFill,
             followStyle,
           ]}
         >
-          {sized && firstColumn > 0 ? <Reanimated.View style={spacerStyle} /> : null}
+          {sized && firstColumn > 0 ? <Reanimated.View style={[{ width: cw * firstColumn }, spacerStyle]} /> : null}
           {byColumn.map((list, c) => {
             const { shown, more } = monthCellChips(list, MAX_PER_COLUMN);
             return (
-              <Reanimated.View key={c} style={[styles.column, sized ? cellStyle : null]}>
+              <Reanimated.View
+                key={c}
+                style={[styles.column, sized ? [{ width: cw, flex: 0 }, cellStyle] : null]}
+              >
                 {shown.map((item) => (
                   <Pressable
                     key={item.id}

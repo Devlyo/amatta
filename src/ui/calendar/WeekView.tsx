@@ -18,7 +18,7 @@ import { TYPE } from '../typography';
 import { fmtRange, weekdayKo } from '../utils/date';
 import { AllDayRow, type AllDayItem } from './AllDayRow';
 import { TimeBlock } from './TimeBlock';
-import { liveWidth, TimeGrid, type LiveColumns, type TimeGridStrip } from './TimeGrid';
+import { TimeGrid, type LiveColumns, type TimeGridStrip } from './TimeGrid';
 import { initialScrollY, TIME_GUTTER } from './time-axis';
 
 const HOUR_HEIGHT = 44;
@@ -77,14 +77,24 @@ function WeekViewImpl({
   useEffect(() => {
     ownSpan.value = span;
   }, [span, ownSpan]);
-  const live: LiveColumns = { span: strip?.span ?? ownSpan, viewportW };
+  const ownSizing = useSharedValue(false);
+  const columnWidth = width > 0 ? viewportW / span : 0;
+  const spanSV = strip?.span ?? ownSpan;
+  const sizingSV = strip?.sizing ?? ownSizing;
+  const live: LiveColumns = { span: spanSV, sizing: sizingSV, viewportW, columnWidth };
 
   // Header + all-day row follow the strip's sideways scroll.
   const followStyle = useAnimatedStyle(() =>
     strip === undefined ? {} : { transform: [{ translateX: -strip.scrollX.value }] },
   );
-  const headerStripStyle = useAnimatedStyle(() => ({ width: liveWidth(live) * totalColumns }));
-  const headerSpacerStyle = useAnimatedStyle(() => ({ width: liveWidth(live) * firstColumn }));
+  const headerStripStyle = useAnimatedStyle(() => {
+    const w = sizingSV.value && spanSV.value > 0 ? viewportW / spanSV.value : columnWidth;
+    return { width: w * totalColumns };
+  });
+  const headerSpacerStyle = useAnimatedStyle(() => {
+    const w = sizingSV.value && spanSV.value > 0 ? viewportW / spanSV.value : columnWidth;
+    return { width: w * firstColumn };
+  });
   const columnOfDate = useMemo(
     () => new Map(days.map((d, i) => [d as unknown as string, firstColumn + i])),
     [days, firstColumn],
@@ -148,9 +158,9 @@ function WeekViewImpl({
       <View style={styles.header}>
         <View style={styles.headerViewport}>
           <Reanimated.View
-            style={[styles.headerStrip, headerStripStyle, followStyle]}
+            style={[styles.headerStrip, { width: columnWidth * totalColumns }, headerStripStyle, followStyle]}
           >
-            <Reanimated.View style={headerSpacerStyle} />
+            <Reanimated.View style={[{ width: columnWidth * firstColumn }, headerSpacerStyle]} />
             {days.map((date) => {
               const key = date as unknown as string;
               const wd = weekdayKo(date);
@@ -264,8 +274,11 @@ export const WeekView = memo(WeekViewImpl);
 
 /** Header cell whose width follows the live column width. */
 function LiveCell({ live, children }: { live: LiveColumns; children: React.ReactNode }): React.ReactElement {
-  const sized = useAnimatedStyle(() => ({ width: liveWidth(live) }));
-  return <Reanimated.View style={sized}>{children}</Reanimated.View>;
+  const { span, sizing, viewportW, columnWidth } = live;
+  const sized = useAnimatedStyle(() => ({
+    width: sizing.value && span.value > 0 ? viewportW / span.value : columnWidth,
+  }));
+  return <Reanimated.View style={[{ width: columnWidth }, sized]}>{children}</Reanimated.View>;
 }
 
 /**
@@ -294,15 +307,29 @@ function LiveBlockBox({
   testID?: string;
   children: React.ReactNode;
 }): React.ReactElement {
+  const { span, sizing, viewportW, columnWidth } = live;
+  const staticIndent = level * cascadeStep(columnWidth, depth, indentStep);
   const sized = useAnimatedStyle(() => {
-    const w = liveWidth(live);
-    const indent = level * cascadeStep(w, depth, indentStep);
+    const w = sizing.value && span.value > 0 ? viewportW / span.value : columnWidth;
+    // cascadeStep, inlined for the UI thread.
+    const step = depth <= 1 ? 0 : Math.min(indentStep, (w * (1 - 0.45)) / (depth - 1));
+    const indent = level * step;
     return { left: column * w + 1 + indent, width: w - 2 - indent };
   });
   return (
     <Reanimated.View
       testID={testID}
-      style={[{ position: 'absolute', top, height, zIndex: level + 1 }, sized]}
+      style={[
+        {
+          position: 'absolute',
+          top,
+          height,
+          zIndex: level + 1,
+          left: column * columnWidth + 1 + staticIndent,
+          width: columnWidth - 2 - staticIndent,
+        },
+        sized,
+      ]}
     >
       {children}
     </Reanimated.View>
