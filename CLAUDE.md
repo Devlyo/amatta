@@ -4,7 +4,7 @@
 > 디테일은 아래 *Authoritative Documents* 의 링크를 따라가세요.
 
 ## 한 줄 요약
-학부모가 자녀 6명까지의 학원·학교 일정을 등록하고, **일간 자녀×시간 그리드**(타임 스프레드)로 동시 비교하는 모바일 앱. 로컬 SQLite 단독, 서버/계정 없음, 로컬 푸시 알림 필수.
+학부모가 자녀 4명까지의 학원·학교 일정을 등록하고, **일간 자녀×시간 그리드**(타임 스프레드)로 동시 비교하는 모바일 앱. 로컬 SQLite 단독, 서버/계정 없음, 로컬 푸시 알림 필수.
 
 ## Locked Decisions (변경하려면 새 ADR 필요)
 - **Stack**: Expo SDK ~54 + React Native 0.81 (new arch) + TypeScript + expo-sqlite + expo-notifications + expo-router (+ `expo-calendar` 읽기 전용, ADR-007 Phase 5)
@@ -13,7 +13,7 @@
 - **DB 접근**: raw SQL + 손수 마이그레이션 (PRAGMA user_version 트랜잭션 안쪽)
 - **Recurrence**: daysOfWeek 비트마스크 + ScheduleException 단일 예외 only (NO RRULE)
 - **캘린더 개편 (ADR-007, 2026-11 Accepted)**: 독 = **홈 · 캘린더 · 설정**(아이콘만) + 오른쪽 둥근 `+`, 앱 첫 화면 = **홈(오늘 요약: 다음 픽업·지금/다음·오늘 챙길 것·오늘 할 일)**. 캘린더 = **일·주·월** 한 화면(기본 일간, 아이콘 세그먼트, 오늘 버튼 없음). 사람 필터 = 기본 모두 활성, 탭 = 켜기/끄기, 길게 = 그 사람만(꺼짐 20%, 혼자 켜짐 80%). 타임 블록 = 자녀 색 60% + 1.5px 진한 막대, `3–4PM` 표기(AM/PM), 겹침 = 계단식 포개기. 월간 `+N`, 핀치 확대(월간 2줄 / 주간 4일). 시스템 화면 바탕 `#F2F1EF` + 흰 박스 radius 14. 보호자 일정 = 아이폰 캘린더 읽기 전용(저장 안 함). 하루 종일·종료 전 알림 = 마이그레이션 v8. 계획: `.omc/plans/ralplan-calendar-redesign.md`.
-- **그리드**: **0–24시 축(ADR-007)** / 자녀 최대 **6명**(ADR-007, 팔레트·아바타 1:1) + 보호자 열 / 주간 핀치 7→4→3→2일 / 6색 팔레트(+deep 톤) / 일정 타입 4종 (school|academy|activity|other)
+- **그리드**: **0–24시 축(ADR-007)** / 자녀 최대 4명 + 보호자 열(보호자 2 후속 — 사람 6명까지 레이아웃 보장) / 주간 핀치 7→4→3→2일 / 6색 팔레트(+deep 톤) / 일정 타입 4종 (school|academy|activity|other)
 - **TS**: strict + noUncheckedIndexedAccess (NO exactOptionalPropertyTypes)
 - **온라인 기능 일체 없음**: 회원가입·로그인·가족공유·클라우드동기화 모두 비목표
 - **Entities (ADR-002, ADR-006)**: Child / Schedule / ScheduleException / NotificationSetting + **ChecklistItem · Todo · SchedulePickupLog · ChecklistCompletion** (총 8 tables)

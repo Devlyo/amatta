@@ -5,8 +5,9 @@
 // are blocks; overlaps within a day stack via layoutCascade. Pinch-zoomed it
 // shows 4 days and each block gains its time range.
 
-import { memo, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { memo, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
 import { cascadeStep, clipToDay, layoutCascade } from '../../domain/layout';
@@ -17,7 +18,7 @@ import { TYPE } from '../typography';
 import { fmtRange, weekdayKo } from '../utils/date';
 import { AllDayRow, type AllDayItem } from './AllDayRow';
 import { TimeBlock } from './TimeBlock';
-import { TimeGrid } from './TimeGrid';
+import { TimeGrid, type TimeGridStrip } from './TimeGrid';
 import { initialScrollY, TIME_GUTTER } from './time-axis';
 
 const HOUR_HEIGHT = 44;
@@ -39,6 +40,10 @@ interface Props {
   onPressOccurrence: (occ: Occurrence) => void;
   onPressDay: (date: ISODate) => void;
   onLongPressSlot?: (date: ISODate, minutes: number) => void;
+  /** Days that fit the screen (7 = whole week; 4/3/2 = scroll sideways). */
+  span?: number;
+  /** Sideways scroll + pinch state shared with the screen (see TimeGridStrip). */
+  strip?: TimeGridStrip;
 }
 
 function WeekViewImpl({
@@ -53,7 +58,21 @@ function WeekViewImpl({
   onPressOccurrence,
   onPressDay,
   onLongPressSlot,
+  span = days.length,
+  strip,
 }: Props): React.ReactElement {
+  const [width, setWidth] = useState(0);
+  const onLayout = (e: LayoutChangeEvent): void => setWidth(e.nativeEvent.layout.width);
+  const columnWidth = width > 0 ? (width - TIME_GUTTER) / span : 0;
+
+  // Header + all-day row follow the strip's sideways scroll and pinch stretch.
+  const followStyle = useAnimatedStyle(() => {
+    if (strip === undefined) return {};
+    const s = strip.stretch.value;
+    const x = strip.scrollX.value;
+    const fc = strip.focalX.value - TIME_GUTTER + x;
+    return { transform: [{ translateX: -x + fc * (1 - s) }, { scaleX: s }] };
+  });
   const columnOfDate = useMemo(
     () => new Map(days.map((d, i) => [d as unknown as string, i])),
     [days],
@@ -112,38 +131,57 @@ function WeekViewImpl({
   const indentStep = zoomed ? INDENT_ZOOMED : INDENT;
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} onLayout={onLayout}>
       <View style={styles.header}>
-        {days.map((date) => {
-          const key = date as unknown as string;
-          const wd = weekdayKo(date);
-          const isToday = key === (today as unknown as string);
-          const nameColor = wd === '일' ? TOKENS.sunday : wd === '토' ? TOKENS.saturday : TOKENS.inkSub;
-          return (
-            <Pressable
-              key={key}
-              onPress={() => onPressDay(date)}
-              accessibilityRole="button"
-              accessibilityLabel={`${Number(key.slice(5, 7))}월 ${Number(key.slice(8, 10))}일 ${wd}요일${isToday ? ', 오늘' : ''} — 일간 보기`}
-              testID={`week-day-${key}`}
-              style={styles.headerCell}
-            >
-              <Text style={[styles.headerName, { color: nameColor }]}>{wd}</Text>
-              <View style={[styles.headerCircle, isToday ? styles.headerCircleToday : null]}>
-                <Text style={[styles.headerNumber, { color: isToday ? TOKENS.surface : TOKENS.ink }]}>
-                  {Number(key.slice(8, 10))}
-                </Text>
-              </View>
-            </Pressable>
-          );
-        })}
+        <View style={styles.headerViewport}>
+          <Reanimated.View
+            style={[styles.headerStrip, { width: columnWidth * days.length }, followStyle]}
+          >
+            {days.map((date) => {
+              const key = date as unknown as string;
+              const wd = weekdayKo(date);
+              const isToday = key === (today as unknown as string);
+              const nameColor =
+                wd === '일' ? TOKENS.sunday : wd === '토' ? TOKENS.saturday : TOKENS.inkSub;
+              return (
+                <Pressable
+                  key={key}
+                  onPress={() => onPressDay(date)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${Number(key.slice(5, 7))}월 ${Number(key.slice(8, 10))}일 ${wd}요일${isToday ? ', 오늘' : ''} — 일간 보기`}
+                  testID={`week-day-${key}`}
+                  style={[styles.headerCell, { width: columnWidth }]}
+                >
+                  <Text style={[styles.headerName, { color: nameColor }]}>{wd}</Text>
+                  <View style={[styles.headerCircle, isToday ? styles.headerCircleToday : null]}>
+                    <Text
+                      style={[
+                        styles.headerNumber,
+                        { color: isToday ? TOKENS.surface : TOKENS.ink },
+                      ]}
+                    >
+                      {Number(key.slice(8, 10))}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </Reanimated.View>
+        </View>
       </View>
 
-      <AllDayRow columns={days.length} items={allDayItems} />
+      <AllDayRow
+        columns={days.length}
+        items={allDayItems}
+        columnWidth={columnWidth}
+        followStyle={followStyle}
+      />
 
       <TimeGrid
         testID="week-view"
         columns={days.length}
+        visibleColumns={span}
+        strip={strip}
         hourHeight={HOUR_HEIGHT}
         nowMinutes={todayColumn !== null ? nowMinutes : null}
         todayColumn={todayColumn}
@@ -205,7 +243,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: TOKENS.hair,
   },
-  headerCell: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  headerViewport: { flex: 1, overflow: 'hidden' },
+  headerStrip: { flexDirection: 'row', height: '100%', transformOrigin: 'left top' },
+  headerCell: { alignItems: 'center', justifyContent: 'center', gap: 3 },
   headerName: { ...TYPE.caption },
   headerCircle: {
     width: 28,

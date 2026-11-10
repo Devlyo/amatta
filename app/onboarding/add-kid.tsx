@@ -47,7 +47,7 @@ import { RADIUS } from '../../src/ui/radius';
 import { SPACING } from '../../src/ui/spacing';
 
 const NAME_MAX = 10; // spec: maxLength 10
-const STEP_LABELS = ['첫째', '둘째', '셋째', '넷째', '다섯째', '여섯째'] as const;
+const STEP_LABELS = ['첫째', '둘째', '셋째', '넷째'] as const;
 
 interface DraftKid {
   name: string;

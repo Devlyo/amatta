@@ -9,6 +9,12 @@
 
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Reanimated, {
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { Animated, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
 import { ELEVATION } from '../elevation';
@@ -32,8 +38,30 @@ export interface TimeGridColumnsLayout {
   y: (minutes: number) => number;
 }
 
+/**
+ * Horizontal day strip (week view, ADR-007 §4): more columns than fit, scrolled
+ * sideways under a fixed hour gutter, plus a live pinch stretch around the
+ * fingers. All values are shared so the header row above can follow them.
+ */
+export interface TimeGridStrip {
+  /** Written by the strip's scroll (px). */
+  scrollX: SharedValue<number>;
+  /** Live pinch scale (1 = none) and the pinch focal x in viewport coords. */
+  stretch: SharedValue<number>;
+  focalX: SharedValue<number>;
+  /** Column (may be fractional) to show at the left edge after `key` changes. */
+  initialColumn: number;
+  key: string;
+  /** Dragged past either end → previous / next page. */
+  onEdge?: (dir: -1 | 1) => void;
+}
+
 export interface TimeGridProps {
+  /** Total columns in the grid. */
   columns: number;
+  /** Columns that fit the viewport (default = columns, i.e. no sideways scroll). */
+  visibleColumns?: number;
+  strip?: TimeGridStrip;
   hourHeight: number;
   /** Minutes-from-midnight for the NOW indicator, or null when not showing today. */
   nowMinutes: number | null;
@@ -66,9 +94,13 @@ const DRAFT_CLEAR_MS = 900;
 const DRAFT_LENGTH_MIN = 60;
 
 const HOURS = Array.from({ length: 25 }, (_, h) => h);
+/** Overscroll past either end of the strip that pages to the previous / next week. */
+const EDGE_PAGE_PX = 50;
 
 function TimeGridImpl({
   columns,
+  visibleColumns = columns,
+  strip,
   hourHeight,
   nowMinutes,
   todayColumn = null,
@@ -82,7 +114,38 @@ function TimeGridImpl({
 }: TimeGridProps): React.ReactElement {
   const scrollRef = useRef<ScrollView>(null);
   const [width, setWidth] = useState(0);
-  const columnWidth = width > 0 ? (width - TIME_GUTTER) / columns : 0;
+  const viewportW = Math.max(0, width - TIME_GUTTER);
+  const columnWidth = width > 0 ? viewportW / visibleColumns : 0;
+  const contentW = columnWidth * columns;
+  const scrollable = columns > visibleColumns;
+
+  // ── horizontal strip ──
+  const hRef = useRef<Reanimated.ScrollView>(null);
+  const ownScrollX = useSharedValue(0);
+  const ownStretch = useSharedValue(1);
+  const ownFocal = useSharedValue(0);
+  const scrollX = strip?.scrollX ?? ownScrollX;
+  const stretch = strip?.stretch ?? ownStretch;
+  const focalX = strip?.focalX ?? ownFocal;
+  const onHScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollX.value = e.contentOffset.x;
+    },
+  });
+  const initialX = Math.min(Math.max((strip?.initialColumn ?? 0) * columnWidth, 0), Math.max(contentW - viewportW, 0));
+  useEffect(() => {
+    if (columnWidth <= 0) return;
+    hRef.current?.scrollTo({ x: initialX, animated: false });
+    scrollX.value = initialX;
+    // Re-position only when the caller's key or the column size changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strip?.key, columnWidth]);
+  // Pinch preview: stretch the columns around the fingers (gutter stays put).
+  const stretchStyle = useAnimatedStyle(() => {
+    const s = stretch.value;
+    const fc = focalX.value - TIME_GUTTER + scrollX.value; // focal in content coords
+    return { transform: [{ translateX: fc * (1 - s) }, { scaleX: s }] };
+  });
   const height = axisHeight(hourHeight);
   const y = useMemo(() => (m: number) => minutesToY(m, hourHeight), [hourHeight]);
 
@@ -145,72 +208,92 @@ function TimeGridImpl({
       })}
 
       {columnWidth > 0 ? (
-        <>
-          {Array.from({ length: columns }, (_, c) => (
-            <View
-              key={`rule-${c}`}
-              pointerEvents="none"
-              style={[styles.columnRule, { left: TIME_GUTTER + c * columnWidth, height }]}
-            />
-          ))}
-
-          {todayColumn !== null ? (
-            <View
-              pointerEvents="none"
-              testID="time-grid-today-column"
-              style={[
-                styles.todayColumn,
-                { left: TIME_GUTTER + todayColumn * columnWidth + 1, width: columnWidth - 1, height },
-              ]}
-            />
-          ) : null}
-
-          <View style={[styles.columns, { width: width - TIME_GUTTER, height }]}>
-            {onLongPressSlot !== undefined ? (
-              <GestureDetector gesture={slotPress}>
+        <View style={[styles.columns, { width: viewportW, height }]}>
+          <Reanimated.ScrollView
+            ref={hRef}
+            horizontal
+            scrollEnabled={scrollable}
+            bounces={scrollable}
+            showsHorizontalScrollIndicator={false}
+            onScroll={onHScroll}
+            scrollEventThrottle={16}
+            snapToInterval={scrollable ? columnWidth : undefined}
+            decelerationRate="fast"
+            contentOffset={{ x: initialX, y: 0 }}
+            testID={testID !== undefined ? `${testID}-strip` : undefined}
+            onScrollEndDrag={(e) => {
+              if (strip?.onEdge === undefined || !scrollable) return;
+              const x = e.nativeEvent.contentOffset.x;
+              if (x < -EDGE_PAGE_PX) strip.onEdge(-1);
+              else if (x > contentW - viewportW + EDGE_PAGE_PX) strip.onEdge(1);
+            }}
+          >
+            <Reanimated.View style={[{ width: contentW, height }, styles.stage, stretchStyle]}>
+              {Array.from({ length: columns }, (_, c) => (
                 <View
-                  collapsable={false}
-                  accessibilityLabel="빈 시간을 길게 눌러 일정 추가"
-                  style={StyleSheet.absoluteFill}
+                  key={`rule-${c}`}
+                  pointerEvents="none"
+                  style={[styles.columnRule, { left: c * columnWidth, height }]}
                 />
-              </GestureDetector>
-            ) : null}
-            {renderColumns({ columnWidth, y })}
-            {draft !== null ? (
-              <Animated.View
-                pointerEvents="none"
-                testID="time-grid-draft"
-                style={[
-                  styles.draft,
-                  {
-                    left: draft.column * columnWidth + 2,
-                    top: y(draft.start) + 1,
-                    width: columnWidth - 4,
-                    height: y(draft.start + DRAFT_LENGTH_MIN) - y(draft.start) - 2,
-                    opacity: draftAnim,
-                    transform: [
-                      { scale: draftAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) },
-                    ],
-                  },
-                ]}
-              >
-                <TimeBlock
-                  top={0}
-                  left={0}
-                  width={columnWidth - 4}
-                  height={y(draft.start + DRAFT_LENGTH_MIN) - y(draft.start) - 2}
-                  level={0}
-                  title="새 일정"
-                  startMinutes={draft.start}
-                  endMinutes={draft.start + DRAFT_LENGTH_MIN}
-                  focused
-                  {...(draftColorOf?.(draft.column) ?? { color: TOKENS.primary, deep: TOKENS.primaryDeep })}
-                  accessibilityLabel="새 일정"
+              ))}
+
+              {todayColumn !== null ? (
+                <View
+                  pointerEvents="none"
+                  testID="time-grid-today-column"
+                  style={[
+                    styles.todayColumn,
+                    { left: todayColumn * columnWidth + 1, width: columnWidth - 1, height },
+                  ]}
                 />
-              </Animated.View>
-            ) : null}
-          </View>
-        </>
+              ) : null}
+
+              {onLongPressSlot !== undefined ? (
+                <GestureDetector gesture={slotPress}>
+                  <View
+                    collapsable={false}
+                    accessibilityLabel="빈 시간을 길게 눌러 일정 추가"
+                    style={StyleSheet.absoluteFill}
+                  />
+                </GestureDetector>
+              ) : null}
+              {renderColumns({ columnWidth, y })}
+              {draft !== null ? (
+                <Animated.View
+                  pointerEvents="none"
+                  testID="time-grid-draft"
+                  style={[
+                    styles.draft,
+                    {
+                      left: draft.column * columnWidth + 2,
+                      top: y(draft.start) + 1,
+                      width: columnWidth - 4,
+                      height: y(draft.start + DRAFT_LENGTH_MIN) - y(draft.start) - 2,
+                      opacity: draftAnim,
+                      transform: [
+                        { scale: draftAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) },
+                      ],
+                    },
+                  ]}
+                >
+                  <TimeBlock
+                    top={0}
+                    left={0}
+                    width={columnWidth - 4}
+                    height={y(draft.start + DRAFT_LENGTH_MIN) - y(draft.start) - 2}
+                    level={0}
+                    title="새 일정"
+                    startMinutes={draft.start}
+                    endMinutes={draft.start + DRAFT_LENGTH_MIN}
+                    focused
+                    {...(draftColorOf?.(draft.column) ?? { color: TOKENS.primary, deep: TOKENS.primaryDeep })}
+                    accessibilityLabel="새 일정"
+                  />
+                </Animated.View>
+              ) : null}
+            </Reanimated.View>
+          </Reanimated.ScrollView>
+        </View>
       ) : null}
 
       {nowMinutes !== null ? (
@@ -279,6 +362,8 @@ const styles = StyleSheet.create({
     zIndex: 40,
     ...ELEVATION.dock,
   },
+  // Left origin so the pinch stretch pivots via translateX (see stretchStyle).
+  stage: { transformOrigin: 'left top' },
   columns: {
     position: 'absolute',
     top: 0,

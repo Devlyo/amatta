@@ -98,8 +98,8 @@ describe('Settings — children cap (kids screen)', () => {
     expect(accState.disabled).toBe(false);
   });
 
-  test('add button is disabled when at cap (6 children)', () => {
-    setChildren(seedChildren(6));
+  test('add button is disabled when at cap (4 children)', () => {
+    setChildren(seedChildren(4));
     const { getByTestId } = render(<KidsScreen />);
     const btn = getByTestId('add-child-button');
     const accState = btn.props.accessibilityState as { disabled?: boolean };
@@ -107,7 +107,7 @@ describe('Settings — children cap (kids screen)', () => {
   });
 
   test('cap message appears only after tapping the disabled add button', () => {
-    setChildren(seedChildren(6));
+    setChildren(seedChildren(4));
     const { getByTestId, queryByTestId } = render(<KidsScreen />);
     expect(queryByTestId('cap-message')).toBeNull();
     fireEvent.press(getByTestId('add-child-button'));
@@ -115,9 +115,9 @@ describe('Settings — children cap (kids screen)', () => {
   });
 
   test('cap message text matches spec', () => {
-    setChildren(seedChildren(6));
+    setChildren(seedChildren(4));
     const { getByTestId, queryByText } = render(<KidsScreen />);
     fireEvent.press(getByTestId('add-child-button'));
-    expect(queryByText('최대 6명까지 등록할 수 있습니다.')).not.toBeNull();
+    expect(queryByText('최대 4명까지 등록할 수 있습니다.')).not.toBeNull();
   });
 });

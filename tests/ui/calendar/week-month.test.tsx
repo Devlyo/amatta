@@ -209,3 +209,47 @@ describe('WeekView — many people (6) in a narrow day column', () => {
     }
   });
 });
+
+describe('WeekView — zoomed strip scrolls sideways through the whole week', () => {
+  function renderStrip(onEdge = jest.fn()) {
+    // Shared values are plain objects in tests.
+    const sv = (v: number) => ({ value: v }) as never;
+    render(
+      <WeekView
+        days={visibleWeekDays(ISO('2026-11-10'), 7)}
+        today={ISO('2026-11-10')}
+        kids={kids}
+        occurrences={[occ(3, 2, '2026-11-12', 15 * 60, 16 * 60, '피아노')]}
+        nowMinutes={13 * 60}
+        inactive={[]}
+        zoomed
+        span={2}
+        strip={{ scrollX: sv(0), stretch: sv(1), focalX: sv(0), initialColumn: 2, key: 'k', onEdge }}
+        scrollKey="w"
+        onPressOccurrence={() => {}}
+        onPressDay={() => {}}
+      />,
+    );
+    fireEvent(screen.getByTestId('week-view'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: TIME_GUTTER + 300, height: 600 } },
+    });
+    return onEdge;
+  }
+
+  test('all 7 days are laid out at half the viewport each (2-day zoom)', () => {
+    renderStrip();
+    expect(screen.getByTestId('week-day-2026-11-08')).toBeTruthy(); // Sun, off-screen left
+    expect(screen.getByTestId('week-day-2026-11-14')).toBeTruthy(); // Sat, off-screen right
+    expect(style('week-block-3|2026-11-12').width).toBeGreaterThan(140); // ≈ 150px column
+    expect(screen.getByTestId('week-view-strip').props.scrollEnabled).toBe(true);
+  });
+
+  test('dragging past either end pages the week', () => {
+    const onEdge = renderStrip();
+    const strip = screen.getByTestId('week-view-strip');
+    fireEvent(strip, 'scrollEndDrag', { nativeEvent: { contentOffset: { x: -80, y: 0 } } });
+    fireEvent(strip, 'scrollEndDrag', { nativeEvent: { contentOffset: { x: 7 * 150 - 300 + 80, y: 0 } } });
+    fireEvent(strip, 'scrollEndDrag', { nativeEvent: { contentOffset: { x: 300, y: 0 } } }); // mid-strip: no page
+    expect(onEdge.mock.calls).toEqual([[-1], [1]]);
+  });
+});
