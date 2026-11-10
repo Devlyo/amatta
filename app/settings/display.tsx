@@ -10,7 +10,7 @@ import { getDb } from '../../src/db/client';
 import { useDisplayStore, type AddButtonSide } from '../../src/state/display-store';
 import { HomeSection } from '../../src/ui/home/HomeSection';
 import { FormOptionList, FormToggleRow } from '../../src/ui/sheets/form-rows';
-import { SettingsDetailScreen, settingsStyles } from '../../src/ui/settings/SettingsChrome';
+import { SettingsDetailScreen, useSettingsStyles } from '../../src/ui/settings/SettingsChrome';
 
 const SIDES: readonly { key: AddButtonSide; label: string }[] = [
   { key: 'right', label: '오른쪽' },
@@ -18,6 +18,7 @@ const SIDES: readonly { key: AddButtonSide; label: string }[] = [
 ];
 
 export default function DisplaySettingsScreen(): React.ReactElement {
+  const ss = useSettingsStyles();
   const router = useRouter();
   const side = useDisplayStore((s) => s.addButtonSide);
   const scheme = useColorScheme();
@@ -27,7 +28,7 @@ export default function DisplaySettingsScreen(): React.ReactElement {
 
   return (
     <SettingsDetailScreen title="화면" onBack={() => router.back()}>
-      <View style={settingsStyles.block}>
+      <View style={ss.block}>
         <HomeSection title="새 일정 + 버튼 위치">
           <View style={{ paddingLeft: 16 }}>
             <FormOptionList<AddButtonSide>
@@ -38,13 +39,13 @@ export default function DisplaySettingsScreen(): React.ReactElement {
             />
           </View>
         </HomeSection>
-        <Text style={settingsStyles.footnote}>왼손으로 쓰신다면 왼쪽을 고르면 엄지로 누르기 편해요.</Text>
+        <Text style={ss.footnote}>왼손으로 쓰신다면 왼쪽을 고르면 엄지로 누르기 편해요.</Text>
       </View>
 
       {/* ADR-009 steps 1–4: developers preview converted screens in dark.
           Development builds only — users stay on light until step 5. */}
       {__DEV__ ? (
-        <View style={settingsStyles.block}>
+        <View style={ss.block}>
           <HomeSection title="개발용">
             <FormToggleRow
               label="다크 미리보기"
@@ -53,7 +54,7 @@ export default function DisplaySettingsScreen(): React.ReactElement {
               last
             />
           </HomeSection>
-          <Text style={settingsStyles.footnote}>다크로 바꾼 화면만 다크로 보여요(ADR-009 전환 중).</Text>
+          <Text style={ss.footnote}>다크로 바꾼 화면만 다크로 보여요(ADR-009 전환 중).</Text>
         </View>
       ) : null}
     </SettingsDetailScreen>

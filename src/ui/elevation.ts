@@ -1,5 +1,5 @@
 import type { ViewStyle } from 'react-native';
-import { TOKENS } from './palette';
+import { LIGHT_TOKENS } from './palette';
 
 // Elevation / shadow tokens.
 // Policy: cards use a `hair` border for containment, NOT a drop shadow
@@ -23,7 +23,7 @@ export const ELEVATION = {
 
   // Floating pill bar (FloatingDock — the tab bar): 0 10px 26px rgba(0,0,0,0.10).
   dock: {
-    shadowColor: TOKENS.shadow,
+    shadowColor: LIGHT_TOKENS.shadow, // black in both schemes
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 26,

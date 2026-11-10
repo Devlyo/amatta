@@ -1,9 +1,9 @@
 import { Pressable, View, type ViewStyle } from 'react-native';
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { IconPlus } from '../icons';
 import { Text } from './Text';
+import { useTheme } from '../appearance';
 
 // Dashed circular "add" affordance. Source of truth: TodoSection addCheckbox
 // (22) + settings/kids addAvatar (36) — a dashed ink30 ring with a + inside.
@@ -28,6 +28,7 @@ export function DashedAddButton({
   disabled = false,
   style,
 }: DashedAddButtonProps): React.ReactElement {
+  const theme = useTheme();
   const d = DIAMETER[size];
   const ring: ViewStyle = {
     width: d,
@@ -35,7 +36,7 @@ export function DashedAddButton({
     borderRadius: RADIUS.full,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: disabled ? TOKENS.ink12 : TOKENS.ink30,
+    borderColor: disabled ? theme.t.ink12 : theme.t.ink30,
     alignItems: 'center',
     justifyContent: 'center',
   };
@@ -54,10 +55,10 @@ export function DashedAddButton({
       style={({ pressed }) => [wrap, pressed && !disabled ? { opacity: 0.7 } : null, style ?? null]}
     >
       <View style={ring}>
-        <IconPlus size={ICON[size]} color={TOKENS.inkSub} />
+        <IconPlus size={ICON[size]} color={theme.t.inkSub} />
       </View>
       {label !== undefined ? (
-        <Text variant="caption" color={TOKENS.inkSub}>
+        <Text variant="caption" color={theme.t.inkSub}>
           {label}
         </Text>
       ) : null}

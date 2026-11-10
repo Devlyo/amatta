@@ -14,7 +14,6 @@ import { getDb } from '../../src/db/client';
 import { IconCheck } from '../../src/ui/icons';
 import { useGuardianStore, visibleCalendarIds } from '../../src/state/guardian-store';
 import { RADIUS } from '../../src/ui/radius';
-import { TOKENS } from '../../src/ui/palette';
 import { SPACING } from '../../src/ui/spacing';
 import { TYPE } from '../../src/ui/typography';
 import {
@@ -26,9 +25,13 @@ import {
 } from '../../src/ui/sheets/form-rows';
 
 import { HomeSection } from '../../src/ui/home/HomeSection';
-import { DetailTopBar, settingsStyles } from '../../src/ui/settings/SettingsChrome';
+import { DetailTopBar, useSettingsStyles } from '../../src/ui/settings/SettingsChrome';
+import { makeStyles, useTheme } from '../../src/ui/appearance';
 
 export default function CalendarSettingsScreen(): React.ReactElement {
+  const ss = useSettingsStyles();
+  const theme = useTheme();
+  const styles = useStyles();
   const router = useRouter();
   const enabled = useGuardianStore((s) => s.enabled);
   const permission = useGuardianStore((s) => s.permission);
@@ -53,8 +56,8 @@ export default function CalendarSettingsScreen(): React.ReactElement {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <DetailTopBar title="캘린더 연동" onBack={() => router.back()} />
-      <ScrollView contentContainerStyle={settingsStyles.content}>
-        <View style={settingsStyles.block}>
+      <ScrollView contentContainerStyle={ss.content}>
+        <View style={ss.block}>
         <FormGroup>
           <FormToggleRow label="보호자 일정 보기" value={enabled} onChange={(v) => void onToggle(v)} last />
         </FormGroup>
@@ -117,7 +120,7 @@ export default function CalendarSettingsScreen(): React.ReactElement {
                               </Text>
                             ) : null}
                           </View>
-                          {on ? <IconCheck size={18} color={TOKENS.danger} /> : null}
+                          {on ? <IconCheck size={18} color={theme.t.danger} /> : null}
                         </Pressable>
                         {i < calendars.length - 1 ? <View style={styles.separator} /> : null}
                       </View>
@@ -162,12 +165,12 @@ export default function CalendarSettingsScreen(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: TOKENS.groupedBg },
+const useStyles = makeStyles((th) => ({
+  safe: { flex: 1, backgroundColor: th.t.groupedBg },
   block: {},
-  footnote: { ...TYPE.footnote, color: TOKENS.inkSub, paddingHorizontal: SPACING.xs },
+  footnote: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.xs },
   notice: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md },
-  noticeText: { ...TYPE.subhead, color: TOKENS.inkSub },
+  noticeText: { ...TYPE.subhead, color: th.t.inkSub },
   calRow: {
     minHeight: 50,
     flexDirection: 'row',
@@ -178,7 +181,7 @@ const styles = StyleSheet.create({
   },
   calDot: { width: 12, height: 12, borderRadius: RADIUS.full },
   calText: { flex: 1, minWidth: 0 },
-  calTitle: { ...TYPE.row, color: TOKENS.ink },
-  calSource: { ...TYPE.footnote, color: TOKENS.inkSub },
-  separator: { height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.separator, marginLeft: SPACING.lg },
-});
+  calTitle: { ...TYPE.row, color: th.t.ink },
+  calSource: { ...TYPE.footnote, color: th.t.inkSub },
+  separator: { height: StyleSheet.hairlineWidth, backgroundColor: th.t.separator, marginLeft: SPACING.lg },
+}));

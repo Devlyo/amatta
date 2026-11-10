@@ -10,7 +10,7 @@
 //   5. 오늘 할 일 — todos due today
 
 import { useCallback, useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, useRouter } from 'expo-router';
 
@@ -29,15 +29,16 @@ import { PickupCarousel } from '../../src/ui/daily/PickupCarousel';
 import { TodoSection } from '../../src/ui/daily/TodoSection';
 import { HomeSection } from '../../src/ui/home/HomeSection';
 import { NowNextList } from '../../src/ui/home/NowNextList';
-import { TOKENS } from '../../src/ui/palette';
 import { SPACING } from '../../src/ui/spacing';
 import { TYPE } from '../../src/ui/typography';
 import { todayIso, weekdayKo } from '../../src/ui/utils/date';
+import { makeStyles } from '../../src/ui/appearance';
 
 /** Space under the content so the floating dock never covers the last row. */
 const DOCK_CLEARANCE = 110;
 
 export default function HomeScreen(): React.ReactElement {
+  const styles = useStyles();
   const router = useRouter();
   const children = useChildrenStore((s) => s.children);
   const schedules = useSchedulesStore((s) => s.schedules);
@@ -129,8 +130,8 @@ export default function HomeScreen(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: TOKENS.groupedBg },
+const useStyles = makeStyles((th) => ({
+  safe: { flex: 1, backgroundColor: th.t.groupedBg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -140,12 +141,12 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xs,
   },
   headerText: { flex: 1, gap: 1 },
-  caption: { ...TYPE.footnote, color: TOKENS.inkSub },
-  title: { ...TYPE.largeTitle, color: TOKENS.ink },
+  caption: { ...TYPE.footnote, color: th.t.inkSub },
+  title: { ...TYPE.largeTitle, color: th.t.ink },
   content: {
     paddingTop: SPACING.sm,
     paddingHorizontal: SPACING.lg,
     paddingBottom: DOCK_CLEARANCE,
     gap: 18,
   },
-});
+}));

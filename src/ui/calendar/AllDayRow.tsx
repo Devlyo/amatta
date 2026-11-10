@@ -14,8 +14,7 @@ import { TYPE } from '../typography';
 import { monthCellChips } from './calendar-layout';
 import type { LiveColumns } from './TimeGrid';
 import { TIME_GUTTER } from './time-axis';
-import { makeStyles } from '../appearance';
-import { useTheme } from '../appearance';
+import { makeStyles , useTheme } from '../appearance';
 
 const MAX_PER_COLUMN = 2;
 const CHIP_H = 20;

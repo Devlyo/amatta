@@ -18,7 +18,6 @@ import { isChecklistItemVisibleOn } from '../../domain/checklist-membership';
 import type { ChecklistItem, Child, Schedule, ScheduleException } from '../../domain/types';
 import { TypeIcon } from '../common/TypeIcon';
 import { IconCheck } from '../icons';
-import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
@@ -37,6 +36,7 @@ import {
   FormTextRow,
   FormValueRow,
 } from '../sheets/form-rows';
+import { makeStyles, useTheme } from '../appearance';
 
 export interface EventDetailContentProps {
   onClose: () => void;
@@ -45,6 +45,7 @@ export interface EventDetailContentProps {
 export function EventDetailContent({
   onClose,
 }: EventDetailContentProps): React.ReactElement {
+  const styles = useStyles();
   const router = useRouter();
   const detail = useUiStore((s) => s.eventDetailState);
 
@@ -266,7 +267,9 @@ export function DetailBody({
   onDeleteOccurrence,
   onDeleteAll,
 }: DetailBodyProps): React.ReactElement {
-  const palette = getKidPalette(child.colorIndex);
+  const theme = useTheme();
+  const styles = useStyles();
+  const palette = theme.kid(child.colorIndex);
   const date =
     occurrenceDate !== undefined && occurrenceDate.length > 0
       ? occurrenceDate
@@ -294,7 +297,7 @@ export function DetailBody({
         <FormValueRow
           label="종류"
           value={TYPE_LABELS_KO[schedule.type]}
-          leading={<TypeIcon type={schedule.type} size={16} color={TOKENS.inkSub} />}
+          leading={<TypeIcon type={schedule.type} size={16} color={theme.t.inkSub} />}
           last
         />
       </FormGroup>
@@ -334,7 +337,7 @@ export function DetailBody({
               <View key={item.id}>
                 <View style={styles.checkRow}>
                   <View style={[styles.checkBox, item.isDone ? styles.checkBoxDone : null]}>
-                    {item.isDone ? <IconCheck size={10} color={TOKENS.surface} /> : null}
+                    {item.isDone ? <IconCheck size={10} color={theme.t.surface} /> : null}
                   </View>
                   <Text style={[styles.checkLabel, item.isDone ? styles.checkLabelDone : null]}>{item.label}</Text>
                 </View>
@@ -364,9 +367,9 @@ export function DetailBody({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   // Same chrome as ScheduleEditSheet (grouped background, nav bar, gaps).
-  contentRoot: { flex: 1, backgroundColor: TOKENS.groupedBg },
+  contentRoot: { flex: 1, backgroundColor: th.t.groupedBg },
   headerBar: {
     height: 52,
     flexDirection: 'row',
@@ -375,29 +378,29 @@ const styles = StyleSheet.create({
   },
   headerSlotStart: { minWidth: 64, paddingVertical: SPACING.sm },
   headerSlotEnd: { minWidth: 64, paddingVertical: SPACING.sm, alignItems: 'flex-end' },
-  headerTitle: { ...TYPE.headline, flex: 1, textAlign: 'center', color: TOKENS.ink },
-  cancelLabel: { ...TYPE.row, color: TOKENS.danger },
-  editLabel: { ...TYPE.headline, color: TOKENS.danger },
-  editLabelDisabled: { color: TOKENS.ink30 },
+  headerTitle: { ...TYPE.headline, flex: 1, textAlign: 'center', color: th.t.ink },
+  cancelLabel: { ...TYPE.row, color: th.t.danger },
+  editLabel: { ...TYPE.headline, color: th.t.danger },
+  editLabelDisabled: { color: th.t.ink30 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, gap: 22 },
   block: { gap: 6 },
   kidDot: { width: 12, height: 12, borderRadius: RADIUS.full, borderWidth: 1.5 },
-  pickupDot: { width: 7, height: 7, borderRadius: RADIUS.full, backgroundColor: TOKENS.primary },
+  pickupDot: { width: 7, height: 7, borderRadius: RADIUS.full, backgroundColor: th.t.primary },
   checkRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 },
   checkBox: {
     width: 18,
     height: 18,
     borderRadius: RADIUS.full,
     borderWidth: 1.5,
-    borderColor: TOKENS.ink30,
+    borderColor: th.t.ink30,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
   },
-  checkBoxDone: { backgroundColor: TOKENS.controlActive, borderColor: TOKENS.controlActive },
-  checkLabel: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
-  checkLabelDone: { color: TOKENS.inkSub, textDecorationLine: 'line-through' },
-  separator: { marginLeft: 16, height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.separator },
+  checkBoxDone: { backgroundColor: th.t.controlActive, borderColor: th.t.controlActive },
+  checkLabel: { ...TYPE.row, color: th.t.ink, flex: 1 },
+  checkLabelDone: { color: th.t.inkSub, textDecorationLine: 'line-through' },
+  separator: { marginLeft: 16, height: StyleSheet.hairlineWidth, backgroundColor: th.t.separator },
   tail: { height: SPACING.xxxl },
-});
+}));

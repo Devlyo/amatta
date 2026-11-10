@@ -9,7 +9,7 @@
 //   정보     앱 버전 · 약관 및 개인정보 →
 
 import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -23,7 +23,6 @@ import { useDisplayStore } from '../../src/state/display-store';
 import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
 import { KidAvatar } from '../../src/ui/common/KidAvatar';
 import { HomeSection } from '../../src/ui/home/HomeSection';
-import { TOKENS } from '../../src/ui/palette';
 import { RADIUS } from '../../src/ui/radius';
 import { SPACING } from '../../src/ui/spacing';
 import { TYPE } from '../../src/ui/typography';
@@ -34,6 +33,7 @@ import {
   FormToggleRow,
   FormValueRow,
 } from '../../src/ui/sheets/form-rows';
+import { makeStyles, useTheme } from '../../src/ui/appearance';
 
 const APP_VERSION = '1.0.0';
 /** Space under the content so the floating dock never covers the last row. */
@@ -46,6 +46,8 @@ const LEAD_OPTIONS: readonly { key: number | null; label: string }[] = [
 ];
 
 export default function SettingsScreen(): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   const router = useRouter();
   const children = useChildrenStore((s) => s.children);
   const sortedChildren = useMemo(() => [...children].sort((a, b) => a.id - b.id), [children]);
@@ -114,7 +116,7 @@ export default function SettingsScreen(): React.ReactElement {
               label="시스템 알림"
               value={systemNotif}
               onChange={handleSystemNotifChange}
-              onColor={TOKENS.primary}
+              onColor={theme.t.primary}
               last={!systemNotif}
             />
             {/* 기본 알림 시점 only matters while 시스템 알림 is on. */}
@@ -200,6 +202,7 @@ export default function SettingsScreen(): React.ReactElement {
 
 /** Overlapping kid avatars before the count on the 자녀 관리 row. */
 function KidStack({ shown }: { shown: readonly Child[] }): React.ReactElement {
+  const styles = useStyles();
   return (
     <View style={styles.kidStack}>
       {shown.map((k, i) => (
@@ -211,9 +214,9 @@ function KidStack({ shown }: { shown: readonly Child[] }): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   // Same chrome as the home screen.
-  safe: { flex: 1, backgroundColor: TOKENS.groupedBg },
+  safe: { flex: 1, backgroundColor: th.t.groupedBg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -222,7 +225,7 @@ const styles = StyleSheet.create({
     paddingRight: SPACING.lg,
     paddingBottom: SPACING.xs,
   },
-  title: { ...TYPE.largeTitle, color: TOKENS.ink },
+  title: { ...TYPE.largeTitle, color: th.t.ink },
   content: {
     paddingTop: SPACING.sm,
     paddingHorizontal: SPACING.lg,
@@ -230,8 +233,8 @@ const styles = StyleSheet.create({
     gap: 18,
   },
   block: { gap: 6 },
-  footnote: { ...TYPE.footnote, color: TOKENS.inkSub, paddingHorizontal: SPACING.xs },
+  footnote: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.xs },
   kidStack: { flexDirection: 'row', alignItems: 'center' },
-  kidStackDot: { borderRadius: RADIUS.full, borderWidth: 1.5, borderColor: TOKENS.surface },
+  kidStackDot: { borderRadius: RADIUS.full, borderWidth: 1.5, borderColor: th.t.surface },
   kidStackOverlap: { marginLeft: -6 },
-});
+}));

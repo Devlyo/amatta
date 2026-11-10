@@ -5,11 +5,10 @@
 // title, optional red right action.
 
 import { type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { IconChevronLeft } from '../icons';
-import { TOKENS } from '../palette';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
 import { makeStyles, useTheme } from '../appearance';
@@ -90,6 +89,7 @@ export function SettingsDetailScreen({
   keyboardShouldPersistTaps?: 'handled';
 }): React.ReactElement {
   const styles = useStyles();
+  const ss = useSettingsStyles();
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <DetailTopBar
@@ -100,7 +100,7 @@ export function SettingsDetailScreen({
         onRight={onRight}
       />
       <ScrollView
-        contentContainerStyle={settingsStyles.content}
+        contentContainerStyle={ss.content}
         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
         automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}
@@ -111,8 +111,8 @@ export function SettingsDetailScreen({
   );
 }
 
-/** Shared bits for the screens' own content. */
-export const settingsStyles = StyleSheet.create({
+/** Shared bits for the screens' own content (theme-aware). */
+export const useSettingsStyles = makeStyles((th) => ({
   content: {
     paddingTop: SPACING.sm,
     paddingHorizontal: SPACING.lg,
@@ -121,8 +121,8 @@ export const settingsStyles = StyleSheet.create({
   },
   /** A section plus the footnote under it. */
   block: { gap: 6 },
-  footnote: { ...TYPE.footnote, color: TOKENS.inkSub, paddingHorizontal: SPACING.xs },
-});
+  footnote: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.xs },
+}));
 
 const useStyles = makeStyles((th) => ({
   safe: { flex: 1, backgroundColor: th.t.groupedBg },

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Appearance, AppState, Platform, Text, StyleSheet, View, Image } from 'react-native';
+import { Appearance, AppState, Platform, Text, View, Image } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -23,9 +23,14 @@ import { usePickupLogStore } from '../src/state/pickup-log-store';
 import { useChecklistCompletionStore } from '../src/state/checklist-completion-store';
 import { useNotifSettingsStore } from '../src/state/notif-settings-store';
 import { useGuardianStore } from '../src/state/guardian-store';
-import { AppThemeProvider } from '../src/ui/appearance';
 import { useDisplayStore } from '../src/state/display-store';
-import { TOKENS } from '../src/ui/palette';
+import { AppThemeProvider, makeStyles, useTheme } from '../src/ui/appearance';
+import { LIGHT_TOKENS } from '../src/ui/palette';
+import {
+  DarkTheme as NavDarkTheme,
+  DefaultTheme as NavDefaultTheme,
+  ThemeProvider as NavThemeProvider,
+} from '@react-navigation/native';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -60,6 +65,7 @@ Notifications.setNotificationHandler({
 type BootState = 'booting' | 'ready' | 'error';
 
 export default function RootLayout() {
+  const styles = useStyles();
   // Hooks must be declared at the top — above any conditional return — so
   // the call order is stable across renders. expo-font's `useFonts` returns
   // [loaded, error]; we block boot until `fontsLoaded` is true.
@@ -137,7 +143,7 @@ export default function RootLayout() {
               importance: Notifications.AndroidImportance.DEFAULT,
               sound: 'default',
               vibrationPattern: [0, 250, 250, 250],
-              lightColor: TOKENS.primary,
+              lightColor: LIGHT_TOKENS.primary, // brand orange LED, same in both schemes
             });
           }
           await ensurePermission();
@@ -225,102 +231,17 @@ export default function RootLayout() {
      <AppThemeProvider>
       {/* Status-bar glyphs follow the scheme (dark glyphs on light, light on dark). */}
       <StatusBar style="auto" />
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        {/* New/Edit schedule — FULL modal (dev-gallery style), per user. */}
-        <Stack.Screen
-          name="schedule/edit"
-          options={{
-            headerShown: false,
-            presentation: 'modal',
-            contentStyle: { backgroundColor: TOKENS.groupedBg },
-          }}
-        />
-        <Stack.Screen
-          name="onboarding/welcome"
-          options={{ headerShown: false, animation: 'none' }}
-        />
-        <Stack.Screen
-          name="onboarding/add-kid"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen name="settings/kids" options={{ headerShown: false }} />
-        <Stack.Screen name="settings/kid-edit" options={{ headerShown: false }} />
-        <Stack.Screen name="settings/data" options={{ headerShown: false }} />
-        <Stack.Screen name="settings/calendars" options={{ headerShown: false }} />
-        <Stack.Screen name="settings/display" options={{ headerShown: false }} />
-        <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
-        {/* Reset-all-data confirm — native formSheet route (app/settings/reset-confirm.tsx). */}
-        <Stack.Screen
-          name="settings/reset-confirm"
-          options={{
-            headerShown: false,
-            presentation: 'formSheet',
-            sheetAllowedDetents: 'fitToContents',
-            sheetGrabberVisible: true,
-            sheetCornerRadius: 22,
-            contentStyle: { backgroundColor: TOKENS.surface },
-          }}
-        />
-        {/* Dev-only design-system gallery. Entry point in Settings is __DEV__-gated. */}
-        <Stack.Screen name="dev-gallery" options={{ title: 'DS Gallery', presentation: 'modal' }} />
-        {/* Calendar — native SHORT sheet (formSheet + detents). NO gorhom
-            (gorhom's backdrop/gesture ate the first tap after dismiss; native
-            react-native-screens sheets — like dev-gallery's modal — don't).
-            The earlier formSheet "dark margins / white-on-touch" were dark-mode
-            artifacts, now fixed by the runtime Appearance.setColorScheme('light')
-            + contentStyle white. */}
-        <Stack.Screen
-          name="date-picker"
-          options={{
-            headerShown: false,
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.5],
-            sheetGrabberVisible: true,
-            sheetCornerRadius: 20,
-            contentStyle: { backgroundColor: TOKENS.surface },
-          }}
-        />
-        {/* Event detail — FULL modal (dev-gallery style). */}
-        <Stack.Screen
-          name="event/detail"
-          options={{
-            headerShown: false,
-            presentation: 'modal',
-            contentStyle: { backgroundColor: TOKENS.groupedBg },
-          }}
-        />
-        <Stack.Screen
-          name="event/guardian"
-          options={{
-            headerShown: false,
-            presentation: 'modal',
-            contentStyle: { backgroundColor: TOKENS.groupedBg },
-          }}
-        />
-        {/* Search — native formSheet route (see app/search/index.tsx). */}
-        <Stack.Screen
-          name="search/index"
-          options={{
-            headerShown: false,
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.5, 0.92],
-            sheetGrabberVisible: true,
-            sheetCornerRadius: 20,
-            contentStyle: { backgroundColor: TOKENS.surface },
-          }}
-        />
-      </Stack>
+      <AppStack />
      </AppThemeProvider>
     </GestureHandlerRootView>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   flex: { flex: 1 },
   splashFill: {
     flex: 1,
-    backgroundColor: TOKENS.primary,
+    backgroundColor: th.t.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -330,4 +251,116 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 16, color: '#c00', marginBottom: 8 },
   // eslint-disable-next-line no-restricted-syntax
   errorDetail: { fontSize: 12, color: '#666', textAlign: 'center', paddingHorizontal: 24 },
-});
+}));
+
+/**
+ * The route stack, rendered INSIDE AppThemeProvider so the screens' native
+ * backgrounds (contentStyle) and React Navigation's own chrome follow the
+ * theme (ADR-009).
+ */
+function AppStack(): React.ReactElement {
+  const theme = useTheme();
+  const base = theme.scheme === 'dark' ? NavDarkTheme : NavDefaultTheme;
+  const navTheme = {
+    ...base,
+    colors: {
+      ...base.colors,
+      primary: theme.t.primary,
+      background: theme.t.groupedBg,
+      card: theme.t.surface,
+      text: theme.t.ink,
+      border: theme.t.separator,
+      notification: theme.t.danger,
+    },
+  };
+  return (
+    <NavThemeProvider value={navTheme}>
+  <Stack>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      {/* New/Edit schedule — FULL modal (dev-gallery style), per user. */}
+      <Stack.Screen
+        name="schedule/edit"
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          contentStyle: { backgroundColor: theme.t.groupedBg },
+        }}
+      />
+      <Stack.Screen
+        name="onboarding/welcome"
+        options={{ headerShown: false, animation: 'none' }}
+      />
+      <Stack.Screen
+        name="onboarding/add-kid"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen name="settings/kids" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/kid-edit" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/data" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/calendars" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/display" options={{ headerShown: false }} />
+      <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
+      {/* Reset-all-data confirm — native formSheet route (app/settings/reset-confirm.tsx). */}
+      <Stack.Screen
+        name="settings/reset-confirm"
+        options={{
+          headerShown: false,
+          presentation: 'formSheet',
+          sheetAllowedDetents: 'fitToContents',
+          sheetGrabberVisible: true,
+          sheetCornerRadius: 22,
+          contentStyle: { backgroundColor: theme.t.surface },
+        }}
+      />
+      {/* Dev-only design-system gallery. Entry point in Settings is __DEV__-gated. */}
+      <Stack.Screen name="dev-gallery" options={{ title: 'DS Gallery', presentation: 'modal' }} />
+      {/* Calendar — native SHORT sheet (formSheet + detents). NO gorhom
+          (gorhom's backdrop/gesture ate the first tap after dismiss; native
+          react-native-screens sheets — like dev-gallery's modal — don't).
+          The earlier formSheet "dark margins / white-on-touch" were dark-mode
+          artifacts, now fixed by the runtime Appearance.setColorScheme('light')
+          + contentStyle white. */}
+      <Stack.Screen
+        name="date-picker"
+        options={{
+          headerShown: false,
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.5],
+          sheetGrabberVisible: true,
+          sheetCornerRadius: 20,
+          contentStyle: { backgroundColor: theme.t.surface },
+        }}
+      />
+      {/* Event detail — FULL modal (dev-gallery style). */}
+      <Stack.Screen
+        name="event/detail"
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          contentStyle: { backgroundColor: theme.t.groupedBg },
+        }}
+      />
+      <Stack.Screen
+        name="event/guardian"
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          contentStyle: { backgroundColor: theme.t.groupedBg },
+        }}
+      />
+      {/* Search — native formSheet route (see app/search/index.tsx). */}
+      <Stack.Screen
+        name="search/index"
+        options={{
+          headerShown: false,
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.5, 0.92],
+          sheetGrabberVisible: true,
+          sheetCornerRadius: 20,
+          contentStyle: { backgroundColor: theme.t.surface },
+        }}
+      />
+    </Stack>
+    </NavThemeProvider>
+  );
+}

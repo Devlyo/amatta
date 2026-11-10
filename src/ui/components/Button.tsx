@@ -5,7 +5,7 @@ import {
   type PressableProps,
   type ViewStyle,
 } from 'react-native';
-import { TOKENS } from '../palette';
+import { DARK_THEME, LIGHT_THEME, useTheme, type Theme } from '../appearance';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { Text } from './Text';
@@ -44,16 +44,18 @@ interface VariantSpec {
   border?: string;
 }
 
-const VARIANTS: Record<ButtonVariant, VariantSpec> = {
+// ADR-009: variant colours per theme (text on strong fills = onDark, both schemes).
+const variantsFor = (t: Theme['t']): Record<ButtonVariant, VariantSpec> => ({
   // Filled Sunset Orange CTA → pressed deep. No shadow (app buttons are flat).
-  primary: { bg: TOKENS.primary, bgPressed: TOKENS.primaryDeep, fg: TOKENS.surface },
+  primary: { bg: t.primary, bgPressed: t.primaryDeep, fg: t.onDark },
   // Transparent + ink-30 border.
-  ghost: { bg: 'transparent', bgPressed: TOKENS.ink06, fg: TOKENS.ink, border: TOKENS.ink30 },
+  ghost: { bg: 'transparent', bgPressed: t.ink06, fg: t.ink, border: t.ink30 },
   // Warm surface, no border.
-  tertiary: { bg: TOKENS.surfaceWarm, bgPressed: TOKENS.ink06, fg: TOKENS.ink },
+  tertiary: { bg: t.surfaceWarm, bgPressed: t.ink06, fg: t.ink },
   // Destructive — no deep token, darken via press overlay handled by opacity.
-  danger: { bg: TOKENS.danger, bgPressed: TOKENS.danger, fg: TOKENS.surface },
-};
+  danger: { bg: t.danger, bgPressed: t.danger, fg: t.onDark },
+});
+const VARIANTS_BY_SCHEME = { light: variantsFor(LIGHT_THEME.t), dark: variantsFor(DARK_THEME.t) };
 
 export interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> {
   label?: string;
@@ -83,7 +85,7 @@ export function Button({
   ...rest
 }: ButtonProps): React.ReactElement {
   const s = SIZES[size];
-  const v = VARIANTS[variant];
+  const v = VARIANTS_BY_SCHEME[useTheme().scheme][variant];
   const isDisabled = disabled === true || loading;
 
   const base: ViewStyle = {

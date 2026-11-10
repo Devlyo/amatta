@@ -1,7 +1,7 @@
 import { View, type ViewProps, type ViewStyle } from 'react-native';
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING, type SpacingKey } from '../spacing';
+import { useTheme } from '../appearance';
 
 // Design-system Card. Source of truth: README §7 (Cards).
 // Containment is a `hair` border + radius lg — NO drop shadow ("Drop shadow
@@ -20,10 +20,11 @@ export function Card({
   style,
   ...rest
 }: CardProps): React.ReactElement {
+  const theme = useTheme();
   const base: ViewStyle = {
-    backgroundColor: variant === 'warm' ? TOKENS.surfaceWarm : TOKENS.surface,
+    backgroundColor: variant === 'warm' ? theme.t.surfaceWarm : theme.t.surface,
     borderWidth: 1,
-    borderColor: TOKENS.hair,
+    borderColor: theme.t.hair,
     borderRadius: RADIUS.lg,
     padding: SPACING[padding],
   };

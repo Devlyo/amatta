@@ -1,9 +1,9 @@
 import { Pressable, type ViewStyle } from 'react-native';
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { IconChevronDown } from '../icons';
 import { Text } from './Text';
 import type { TypeKey } from '../typography';
+import { useTheme } from '../appearance';
 
 // Tappable date/time field. Source of truth: ScheduleEditSheet `NativeField`
 // (bg ink04, radius 8, chevron-down). Opens the OS picker via onPress. Display
@@ -30,6 +30,7 @@ export function DateField({
   ariaLabel,
   style,
 }: DateFieldProps): React.ReactElement {
+  const theme = useTheme();
   const s = SIZE[size];
   const base: ViewStyle = {
     flexDirection: 'row',
@@ -38,7 +39,7 @@ export function DateField({
     paddingVertical: s.padV,
     paddingHorizontal: s.padH,
     borderRadius: RADIUS.sm,
-    backgroundColor: TOKENS.ink04,
+    backgroundColor: theme.t.ink04,
   };
   return (
     <Pressable
@@ -48,10 +49,10 @@ export function DateField({
       hitSlop={12}
       style={({ pressed }) => [base, pressed ? { opacity: 0.6 } : null, style ?? null]}
     >
-      <Text variant={s.label} color={TOKENS.ink}>
+      <Text variant={s.label} color={theme.t.ink}>
         {displayText}
       </Text>
-      <IconChevronDown size={14} color={TOKENS.inkSub} />
+      <IconChevronDown size={14} color={theme.t.inkSub} />
     </Pressable>
   );
 }

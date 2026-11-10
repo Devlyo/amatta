@@ -1,8 +1,8 @@
-import { StyleSheet, View, type ViewStyle } from 'react-native';
-import { TOKENS } from '../palette';
+import { View, type ViewStyle } from 'react-native';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { Text } from './Text';
+import { makeStyles, useTheme } from '../appearance';
 
 // Design-system Badge — count bubble or status dot.
 // NOTE: not tabled in README §7; derived from tokens. `dot` renders the 6px
@@ -18,10 +18,13 @@ export interface BadgeProps {
 export function Badge({
   count,
   dot = false,
-  tone = TOKENS.danger,
+  tone: toneProp,
   max = 99,
   style,
 }: BadgeProps): React.ReactElement {
+  const theme = useTheme();
+  const tone = toneProp ?? theme.t.danger;
+  const styles = useStyles();
   if (dot) {
     const d: ViewStyle = {
       width: SPACING.sm,
@@ -48,7 +51,7 @@ export function Badge({
           sit dead-center (caption's 17px line-height otherwise floats high). */}
       <Text
         variant="caption"
-        color={TOKENS.surface}
+        color={theme.t.surface}
         style={styles.count}
       >
         {text}
@@ -57,6 +60,6 @@ export function Badge({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   count: { lineHeight: 14, textAlign: 'center', includeFontPadding: false },
-});
+}));

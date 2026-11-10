@@ -4,7 +4,7 @@
 // Notes:
 //   - Spec defines ONB_BG '#FEF4F2' but app-onboarding.jsx line 26 overrides
 //     it with 'rgb(255,255,255)'. The final intended background is white,
-//     so we ship with TOKENS.surface.
+//     so we ship with the surface token.
 //   - The lime "blob" tray behind the mascots is an organic SVG path in the
 //     prototype. react-native-svg's Fabric components are not registered in
 //     Expo Go SDK 54 (see src/ui/icons.tsx header) — until the EAS build
@@ -14,17 +14,18 @@
 //     used by the time grids.
 
 import { memo } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { MASCOTS } from '../../src/ui/assets';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
-import { TOKENS } from '../../src/ui/palette';
 import { RADIUS } from '../../src/ui/radius';
 import { SPACING } from '../../src/ui/spacing';
+import { makeStyles } from '../../src/ui/appearance';
 
 function OnbWelcomeImpl(): React.ReactElement {
+  const styles = useStyles();
   const router = useRouter();
 
   return (
@@ -87,13 +88,13 @@ const MASCOT_ORANGE_SIZE = 130;
 // The organic lime "tray" is an SVG path in the prototype, but react-native-svg
 // can't load in Expo Go (Fabric components unregistered) — approximated as a
 // plain 2px line for now. TODO(A-ICONS, EAS build): restore the organic blob.
-// eslint-disable-next-line no-restricted-syntax -- kid-palette Citrus Green, no TOKENS mapping
+// eslint-disable-next-line no-restricted-syntax -- kid-palette Citrus Green, no token mapping
 const BLOB_CITRUS = '#E0E446';
 const BLOB_W = 230;
 const BLOB_H = 2;
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: TOKENS.surface },
+const useStyles = makeStyles((th) => ({
+  safe: { flex: 1, backgroundColor: th.t.surface },
 
   // Group sits ~30px below screen vertical centre per user direction.
   // paddingBottom shrinks from 40 → 10 to nudge it down another 30px.
@@ -147,7 +148,7 @@ const styles = StyleSheet.create({
   welcomeTitle: {
     fontSize: 24,
     fontFamily: FONT_FAMILIES.pretendardBold,
-    color: TOKENS.ink,
+    color: th.t.ink,
     letterSpacing: -1,
     lineHeight: 26, // 1.1 of 24
     textAlign: 'center',
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
     letterSpacing: -0.3,
     lineHeight: 22, // ≈ 1.55 of 14
     textAlign: 'center',
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: SPACING.lg,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.ink,
+    backgroundColor: th.t.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -180,7 +181,7 @@ const styles = StyleSheet.create({
   primaryCtaLabel: {
     fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.surface,
+    color: th.t.surface,
     letterSpacing: -0.3,
   },
-});
+}));

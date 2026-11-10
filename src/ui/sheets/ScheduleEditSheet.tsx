@@ -53,7 +53,6 @@ import { KidAvatar } from '../common/KidAvatar';
 import { TypeIcon } from '../common/TypeIcon';
 import { DayCircle } from '../components/DayCircle';
 import { IconXMark } from '../icons';
-import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
@@ -87,6 +86,7 @@ import {
   FormValueRow,
   TimeChip,
 } from './form-rows';
+import { makeStyles, useTheme } from '../appearance';
 
 // Sunday-first labels ('일 월 화 수 목 금 토'); VISUAL_TO_MASK_BIT maps a visual
 // index to the DaysOfWeekMask bit (Monday = bit 0).
@@ -163,6 +163,8 @@ export interface ScheduleEditContentProps {
 export function ScheduleEditContent({
   onClose,
 }: ScheduleEditContentProps): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   const editSheetState = useUiStore((s) => s.editSheetState);
   const children = useChildrenStore((s) => s.children);
   const schedules = useSchedulesStore((s) => s.schedules);
@@ -685,7 +687,7 @@ export function ScheduleEditContent({
     setExpanded((cur) => (cur === key ? null : key));
   };
   const selectedKid = children.find((k) => k.id === form.childId);
-  const kidPalette = selectedKid !== undefined ? getKidPalette(selectedKid.colorIndex) : null;
+  const kidPalette = selectedKid !== undefined ? theme.kid(selectedKid.colorIndex) : null;
 
   return (
     <View style={styles.contentRoot}>
@@ -762,7 +764,7 @@ export function ScheduleEditContent({
               value={forGuardian ? '보호자' : (selectedKid?.name ?? '선택')}
               leading={
                 forGuardian ? (
-                  <View style={[styles.kidDot, { backgroundColor: TOKENS.guardian, borderColor: TOKENS.guardianDeep }]} />
+                  <View style={[styles.kidDot, { backgroundColor: theme.t.guardian, borderColor: theme.t.guardianDeep }]} />
                 ) : kidPalette !== null ? (
                   <View style={[styles.kidDot, { backgroundColor: kidPalette.source, borderColor: kidPalette.deep }]} />
                 ) : null
@@ -812,7 +814,7 @@ export function ScheduleEditContent({
                   setForm({ ...form, type: t });
                   setExpanded(null);
                 }}
-                render={(t) => (t !== null ? <TypeIcon type={t} size={16} color={TOKENS.inkSub} /> : null)}
+                render={(t) => (t !== null ? <TypeIcon type={t} size={16} color={theme.t.inkSub} /> : null)}
               />
             </FormValueRow>
             )}
@@ -836,7 +838,7 @@ export function ScheduleEditContent({
                   setExpanded(null);
                   setForm({ ...form, allDay: v, needsPickup: v ? false : form.needsPickup });
                 }}
-                onColor={TOKENS.primary}
+                onColor={theme.t.primary}
               />
             ) : null}
             <FormChipsRow label="시작" last={form.allDay && forGuardian}>
@@ -977,7 +979,7 @@ export function ScheduleEditContent({
               label="픽업 필요"
               value={form.needsPickup}
               onChange={(v) => setForm({ ...form, needsPickup: v })}
-              onColor={TOKENS.primary}
+              onColor={theme.t.primary}
               last
             />
           )}
@@ -1011,7 +1013,7 @@ export function ScheduleEditContent({
                         setChecklist((cs) => cs.map((c, i) => (i === idx ? { ...c, label: v } : c)))
                       }
                       placeholder="준비물 이름"
-                      placeholderTextColor={TOKENS.ink30}
+                      placeholderTextColor={theme.t.ink30}
                       style={styles.checklistInput}
                       maxLength={60}
                       accessibilityLabel={`준비물 ${idx + 1}`}
@@ -1057,7 +1059,7 @@ export function ScheduleEditContent({
                       accessibilityRole="button"
                       accessibilityLabel="준비물 삭제"
                     >
-                      <IconXMark size={16} color={TOKENS.inkSub} />
+                      <IconXMark size={16} color={theme.t.inkSub} />
                     </Pressable>
                   </View>
                   <View style={styles.separator} />
@@ -1066,7 +1068,7 @@ export function ScheduleEditContent({
               <FormActionRow
                 label="준비물 추가"
                 last
-                leading={<Ionicons name="add-circle" size={22} color={TOKENS.danger} />}
+                leading={<Ionicons name="add-circle" size={22} color={theme.t.danger} />}
                 onPress={() =>
                   setChecklist((cs) => [
                     ...cs,
@@ -1093,7 +1095,7 @@ export function ScheduleEditContent({
             value={form.notes}
             onChangeText={(v: string) => setForm({ ...form, notes: v })}
             placeholder="메모"
-            placeholderTextColor={TOKENS.ink30}
+            placeholderTextColor={theme.t.ink30}
             style={styles.notesInput}
             multiline
             maxLength={500}
@@ -1147,6 +1149,8 @@ function InlinePicker({
   onChange: (d: Date) => void;
   onDone: () => void;
 }): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   if (Platform.OS === 'android') {
     return (
       <DateTimePicker
@@ -1167,9 +1171,9 @@ function InlinePicker({
         mode={mode}
         display={mode === 'date' ? 'inline' : 'spinner'}
         minuteInterval={5}
-        accentColor={TOKENS.danger}
-        textColor={TOKENS.ink}
-        themeVariant="light"
+        accentColor={theme.t.danger}
+        textColor={theme.t.ink}
+        themeVariant={theme.scheme}
         locale="ko-KR"
         onChange={(_e: DateTimePickerEvent, selected?: Date) => {
           if (selected !== undefined) onChange(selected);
@@ -1253,17 +1257,17 @@ async function persistChecklistDiff(
 }
 
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   guardianAvatar: {
     width: 26,
     height: 26,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.guardian,
+    backgroundColor: th.t.guardian,
     borderWidth: 1.5,
-    borderColor: TOKENS.guardianDeep,
+    borderColor: th.t.guardianDeep,
   },
-  guardianNote: { ...TYPE.footnote, color: TOKENS.inkSub, paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs },
-  contentRoot: { flex: 1, backgroundColor: TOKENS.groupedBg },
+  guardianNote: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs },
+  contentRoot: { flex: 1, backgroundColor: th.t.groupedBg },
   headerBar: {
     height: 52,
     flexDirection: 'row',
@@ -1272,10 +1276,10 @@ const styles = StyleSheet.create({
   },
   headerSlotStart: { minWidth: 64, paddingVertical: SPACING.sm },
   headerSlotEnd: { minWidth: 64, paddingVertical: SPACING.sm, alignItems: 'flex-end' },
-  headerTitle: { ...TYPE.headline, flex: 1, textAlign: 'center', color: TOKENS.ink },
-  cancelLabel: { ...TYPE.row, color: TOKENS.danger },
-  saveLabel: { ...TYPE.headline, color: TOKENS.danger },
-  saveLabelDisabled: { color: TOKENS.ink30 },
+  headerTitle: { ...TYPE.headline, flex: 1, textAlign: 'center', color: th.t.ink },
+  cancelLabel: { ...TYPE.row, color: th.t.danger },
+  saveLabel: { ...TYPE.headline, color: th.t.danger },
+  saveLabelDisabled: { color: th.t.ink30 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, gap: 22 },
   block: { gap: 6 },
@@ -1295,27 +1299,27 @@ const styles = StyleSheet.create({
     paddingLeft: SPACING.lg,
     paddingRight: SPACING.md,
   },
-  checklistInput: { ...TYPE.row, flex: 1, color: TOKENS.ink, paddingVertical: 11 },
-  separator: { marginLeft: SPACING.lg, height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.separator },
+  checklistInput: { ...TYPE.row, flex: 1, color: th.t.ink, paddingVertical: 11 },
+  separator: { marginLeft: SPACING.lg, height: StyleSheet.hairlineWidth, backgroundColor: th.t.separator },
   repeatTag: {
     height: 24,
     paddingHorizontal: SPACING.sm,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.primaryTint,
+    backgroundColor: th.t.primaryTint,
     justifyContent: 'center',
   },
-  repeatTagOnce: { backgroundColor: TOKENS.ink06 },
-  repeatTagLabel: { ...TYPE.footnote, color: TOKENS.primaryDeep },
-  checklistFixed: { color: TOKENS.inkSub },
-  repeatTagLabelOnce: { color: TOKENS.inkSub },
+  repeatTagOnce: { backgroundColor: th.t.ink06 },
+  repeatTagLabel: { ...TYPE.footnote, color: th.t.primaryDeep },
+  checklistFixed: { color: th.t.inkSub },
+  repeatTagLabelOnce: { color: th.t.inkSub },
   notesInput: {
     ...TYPE.row,
     minHeight: 88,
-    color: TOKENS.ink,
+    color: th.t.ink,
     paddingHorizontal: SPACING.lg,
     paddingTop: 11,
     paddingBottom: 11,
     textAlignVertical: 'top',
   },
   tail: { height: SPACING.xxxl },
-});
+}));

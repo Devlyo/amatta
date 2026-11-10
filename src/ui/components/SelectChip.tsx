@@ -1,8 +1,8 @@
 import { Pressable, type ViewStyle } from 'react-native';
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { Text } from './Text';
 import type { TypeKey } from '../typography';
+import { useTheme } from '../appearance';
 
 // Selectable chip / segmented option. Source of truth: ScheduleEditSheet `Pill`
 // (종류 / 알림 options). Idle = controlIdle gray, active = controlActive
@@ -35,6 +35,7 @@ export function SelectChip({
   onPress,
   style,
 }: SelectChipProps): React.ReactElement {
+  const theme = useTheme();
   const s = SIZE[size];
   const base: ViewStyle = {
     flexDirection: 'row',
@@ -43,7 +44,7 @@ export function SelectChip({
     paddingVertical: s.padV,
     paddingHorizontal: s.padH,
     borderRadius: RADIUS.full,
-    backgroundColor: active ? TOKENS.controlActive : TOKENS.controlIdle,
+    backgroundColor: active ? theme.t.controlActive : theme.t.controlIdle,
   };
   return (
     <Pressable
@@ -54,7 +55,7 @@ export function SelectChip({
       style={({ pressed }) => [base, pressed ? { opacity: 0.7 } : null, style ?? null]}
     >
       {leading}
-      <Text variant={s.label} color={active ? TOKENS.surface : TOKENS.inkSub}>
+      <Text variant={s.label} color={active ? theme.t.surface : theme.t.inkSub}>
         {label}
       </Text>
     </Pressable>

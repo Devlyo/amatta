@@ -1,9 +1,9 @@
 import { memo } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, View } from 'react-native';
 
 import type { Child } from '../../domain/types';
 import { AVATAR_IMAGE_BY_KEY } from '../assets';
-import { getKidPalette, TOKENS } from '../palette';
+import { makeStyles, useTheme } from '../appearance';
 
 interface Props {
   child: Child;
@@ -16,7 +16,9 @@ interface Props {
 }
 
 function KidAvatarImpl({ child, size = 32, ring = false }: Props): React.ReactElement {
-  const palette = getKidPalette(child.colorIndex);
+  const theme = useTheme();
+  const styles = useStyles();
+  const palette = theme.kid(child.colorIndex);
   const source = AVATAR_IMAGE_BY_KEY[child.avatar];
 
   if (!ring) {
@@ -52,7 +54,7 @@ function KidAvatarImpl({ child, size = 32, ring = false }: Props): React.ReactEl
             width: inner + 2,
             height: inner + 2,
             borderRadius: (inner + 2) / 2,
-            backgroundColor: TOKENS.surface,
+            backgroundColor: theme.t.surface,
           },
         ]}
       >
@@ -69,7 +71,7 @@ function KidAvatarImpl({ child, size = 32, ring = false }: Props): React.ReactEl
 
 export const KidAvatar = memo(KidAvatarImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   outer: { alignItems: 'center', justifyContent: 'center' },
   gap: { alignItems: 'center', justifyContent: 'center' },
-});
+}));
