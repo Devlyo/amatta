@@ -2,6 +2,13 @@
 
 형식: `## YYYY-MM-DD — 한 줄 요약`. 위가 최신.
 
+## 2026-11-10 — ADR-007 캘린더 개편 착수 · Phase 0 (토큰 기반)
+
+- ADR-007 Accepted + ralplan v2(`.omc/plans/ralplan-calendar-redesign.md`). 현 디자인 보존 태그 `ui-v1`.
+- 토큰: 자녀 팔레트 `deep` 톤(민트·스카이·피치는 잠정값), `withAlpha`/`kidFill`(source 기준 알파), `TOKENS.groupedBg`·`sunday`·`guardian`·`guardianDeep`, `RADIUS.box`(14), iOS 스케일 타이포 프리셋(largeTitle·headline·row·subhead·footnote·blockTitle).
+- `fmtRange`(`3–4PM` 표기) 추가, `fmt12hrShort(1440)`가 `12PM`으로 나오던 버그 수정.
+- 이름이 색과 어긋난 `KidPaletteKey` 별칭(peach=핑크 등) 삭제.
+
 ## 2026-11-10 — Chore: 미사용 코드·의존성 정리
 
 - 삭제: `src/ui/grid/`(DailyGrid·SlotCell·ScheduleBlock) + `layoutDay`/`BlockLayout`, `sheet-container.tsx`, `constants/Colors.ts`, 미사용 아이콘 8종(Car·Grid·Bell·Sparkle·Brain·Game·Pencil·Emoji), `AVATAR_ANIMALS`·`LOGOS` 및 PNG 6개(원본은 `docs/design/amatta-v1/assets/`에 유지).

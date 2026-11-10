@@ -119,11 +119,29 @@ export function formatKoreanWeekRange(weekStart: ISODate): string {
  * strings) and omits ":00" — the prototype always printed it.
  */
 export function fmt12hrShort(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  const ap = h < 12 ? 'AM' : 'PM';
+  const { h12, m, ap } = split12(minutes);
   return m === 0 ? `${h12}${ap}` : `${h12}:${String(m).padStart(2, '0')}${ap}`;
+}
+
+// Hours wrap at 24 so an end of 1440 (midnight, next day) reads "12AM", not
+// "12PM" — the grid / all-day events end at 24:00.
+function split12(minutes: number): { h12: number; m: number; ap: 'AM' | 'PM' } {
+  const h = Math.floor(minutes / 60) % 24;
+  const m = minutes % 60;
+  return { h12: h % 12 === 0 ? 12 : h % 12, m, ap: h < 12 ? 'AM' : 'PM' };
+}
+
+/**
+ * ADR-007 time-block range: `3–4PM`, `4–5:30PM`, `9AM–2:30PM`, `11AM–12PM`.
+ * Minutes are dropped on the hour; the AM/PM suffix appears once at the end
+ * when both ends share it, otherwise on both ends.
+ */
+export function fmtRange(start: number, end: number): string {
+  const a = split12(start);
+  const b = split12(end);
+  const part = (p: { h12: number; m: number }): string =>
+    p.m === 0 ? String(p.h12) : `${p.h12}:${String(p.m).padStart(2, '0')}`;
+  return a.ap === b.ap ? `${part(a)}–${part(b)}${b.ap}` : `${part(a)}${a.ap}–${part(b)}${b.ap}`;
 }
 
 /**

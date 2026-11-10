@@ -1,4 +1,4 @@
-import { getKidPalette, PICKUP_CARD_PALETTE, TOKENS } from '../../src/ui/palette';
+import { getKidPalette, kidFill, PICKUP_CARD_PALETTE, TOKENS, withAlpha } from '../../src/ui/palette';
 import type { ColorIndex } from '../../src/domain/types';
 
 describe('getKidPalette', () => {
@@ -18,6 +18,16 @@ describe('getKidPalette', () => {
       expect(got.bg).toBe(e.bg);
     });
   }
+
+  test('every slot has a deep tone (ADR-007) distinct from its source', () => {
+    for (const e of expected) {
+      const p = getKidPalette(e.idx);
+      expect(p.deep).toMatch(/^#[0-9A-F]{6}$/);
+      expect(p.deep).not.toBe(p.source);
+    }
+    // eslint-disable-next-line no-restricted-syntax -- asserting the signed-off token value
+    expect(getKidPalette(5).deep).toBe('#8E6BE8'); // lavender
+  });
 
   test('throws on out-of-range index (runtime drift defense)', () => {
     // Cast: TypeScript would reject `9 as ColorIndex` without a cast — this
@@ -85,3 +95,20 @@ describe('PICKUP_CARD_PALETTE (handoff #4)', () => {
     }
   });
 });
+
+/* eslint-disable no-restricted-syntax -- these tests pin literal token values */
+describe('alpha fills (ADR-007)', () => {
+  test('withAlpha converts #RRGGBB to rgba with the given alpha', () => {
+    expect(withAlpha('#C7B0FF', 0.6)).toBe('rgba(199,176,255,0.6)');
+  });
+  test('kidFill applies alpha to the kid source colour', () => {
+    expect(kidFill(0, 0.8)).toBe('rgba(255,169,255,0.8)');
+  });
+  test('guardian + system tokens exist', () => {
+    expect(TOKENS.groupedBg).toBe('#F2F1EF');
+    expect(TOKENS.sunday).toBe('#D93636');
+    expect(TOKENS.guardian).toBe('#E4E2DD');
+    expect(TOKENS.guardianDeep).toBe('#8E8A83');
+  });
+});
+/* eslint-enable no-restricted-syntax */
