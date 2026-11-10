@@ -131,6 +131,7 @@ const DRAFT_LENGTH_MIN = 60;
 
 const HOURS = Array.from({ length: 25 }, (_, h) => h);
 
+
 function TimeGridImpl({
   columns,
   visibleColumns = columns,
@@ -222,9 +223,20 @@ function TimeGridImpl({
   // A whole week on screen pages week by week; a zoomed week glides and
   // settles on a day boundary.
   const pageByViewport = scrollable && visibleColumns === 7;
+  const pendingX = useRef<number | null>(null);
+  const onStripContentSize = (w: number): void => {
+    const x = pendingX.current;
+    if (x === null || w < x + viewportW) return;
+    pendingX.current = null;
+    hRef.current?.scrollTo({ x, animated: false });
+    scrollX.value = x;
+  };
   const initialX = Math.min(Math.max((strip?.initialColumn ?? 0) * columnWidth, 0), Math.max(contentW - viewportW, 0));
   useEffect(() => {
     if (columnWidth <= 0) return;
+    // A freshly mounted strip has no content size yet and would clamp this to
+    // 0 — keep it pending and re-apply once the content is wide enough.
+    pendingX.current = initialX;
     hRef.current?.scrollTo({ x: initialX, animated: false });
     scrollX.value = initialX;
     // Re-position only when the caller's key or the column size changes.
@@ -312,6 +324,7 @@ function TimeGridImpl({
             decelerationRate={pageByViewport ? 'fast' : 'normal'}
             directionalLockEnabled
             contentOffset={{ x: initialX, y: 0 }}
+            onContentSizeChange={onStripContentSize}
             testID={testID !== undefined ? `${testID}-strip` : undefined}
           >
             <Reanimated.View style={[{ width: contentW, height }, stageStyle]}>
