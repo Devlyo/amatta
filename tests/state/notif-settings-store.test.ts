@@ -73,10 +73,18 @@ describe('notif-settings-store persistence', () => {
     if (existsSync(dbPath)) rmSync(dbPath, { force: true });
   });
 
-  test('load() applies defaults when app_settings is empty', async () => {
+  test('load() applies defaults when app_settings is empty (기본 알림 시점 = 없음)', async () => {
     await useNotifSettingsStore.getState().load(db as never);
     expect(useNotifSettingsStore.getState().systemEnabled).toBe(true);
-    expect(useNotifSettingsStore.getState().defaultMinutesBefore).toBe(30);
+    expect(useNotifSettingsStore.getState().defaultMinutesBefore).toBeNull();
+  });
+
+  test('없음 persists and survives a reload', async () => {
+    await useNotifSettingsStore.getState().setDefaultMinutesBefore(db as never, 30);
+    await useNotifSettingsStore.getState().setDefaultMinutesBefore(db as never, null);
+    useNotifSettingsStore.setState({ defaultMinutesBefore: 60 });
+    await useNotifSettingsStore.getState().load(db as never);
+    expect(useNotifSettingsStore.getState().defaultMinutesBefore).toBeNull();
   });
 
   test('setSystemEnabled write-through persists to app_settings', async () => {
@@ -106,7 +114,7 @@ describe('notif-settings-store persistence', () => {
     // Simulate a relaunch: in-memory state is wiped to defaults...
     useNotifSettingsStore.getState().resetToDefaults();
     expect(useNotifSettingsStore.getState().systemEnabled).toBe(true);
-    expect(useNotifSettingsStore.getState().defaultMinutesBefore).toBe(30);
+    expect(useNotifSettingsStore.getState().defaultMinutesBefore).toBeNull();
 
     // ...then hydrated from the persisted app_settings.
     await useNotifSettingsStore.getState().load(db as never);

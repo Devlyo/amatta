@@ -494,7 +494,8 @@ describe('EditSheet — 보호자 (device calendar, ADR-008)', () => {
     await waitFor(() => expect(Calendar.createEventAsync).toHaveBeenCalled());
     const [calendarId, event] = Calendar.createEventAsync.mock.calls[0] ?? [];
     expect(calendarId).toBe('default'); // nothing chosen → the device default calendar
-    expect(event).toMatchObject({ title: '회의', allDay: false, alarms: [{ relativeOffset: -30 }] });
+    // 기본 알림 시점 defaults to 없음 → no calendar alarm.
+    expect(event).toMatchObject({ title: '회의', allDay: false, alarms: [] });
     expect((event?.startDate as Date).getHours()).toBe(15);
     expect(mocks.addSchedule).not.toHaveBeenCalled();
     await waitFor(() => expect(onClose).toHaveBeenCalled());

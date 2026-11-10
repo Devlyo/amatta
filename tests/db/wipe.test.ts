@@ -98,7 +98,7 @@ describe('wipeAllData', () => {
     await useNotifSettingsStore.getState().load(db as never);
 
     expect(useNotifSettingsStore.getState().systemEnabled).toBe(true);
-    expect(useNotifSettingsStore.getState().defaultMinutesBefore).toBe(30);
+    expect(useNotifSettingsStore.getState().defaultMinutesBefore).toBeNull(); // default 없음
   });
 
   test('clears user-data tables too', async () => {
