@@ -334,6 +334,7 @@ function TimeGridImpl({
                   column={c}
                   live={live}
                   inset={0}
+                  fixedWidth={StyleSheet.hairlineWidth}
                   style={[styles.columnRule, { height }]}
                 />
               ))}
@@ -417,32 +418,34 @@ export const TimeGrid = memo(TimeGridImpl);
 
 /**
  * A column-anchored box that follows the live column width: `left` = column
- * edge + inset, `width` = column − inset (rules pass a fixed hairline width
- * in `style`, which wins).
+ * edge + inset, `width` = column − inset, or `fixedWidth` (rules). Animated
+ * values override any static style, so a fixed width must be passed here.
  */
 function LiveColumn({
   column,
   live,
   inset,
+  fixedWidth,
   style,
   testID,
 }: {
   column: number;
   live: LiveColumns;
   inset: number;
+  fixedWidth?: number;
   style: React.ComponentProps<typeof View>['style'];
   testID?: string;
 }): React.ReactElement {
   const { span, sizing, viewportW, columnWidth } = live;
   const sized = useAnimatedStyle(() => {
     const w = sizing.value && span.value > 0 ? viewportW / span.value : columnWidth;
-    return { left: column * w + inset, width: w - inset };
+    return { left: column * w + inset, width: fixedWidth ?? w - inset };
   });
   return (
     <Reanimated.View
       pointerEvents="none"
       testID={testID}
-      style={[{ left: column * columnWidth + inset, width: columnWidth - inset }, sized, style]}
+      style={[style, { left: column * columnWidth + inset, width: fixedWidth ?? columnWidth - inset }, sized]}
     />
   );
 }
@@ -481,7 +484,7 @@ const styles = StyleSheet.create({
   columnRule: {
     position: 'absolute',
     top: 0,
-    width: StyleSheet.hairlineWidth, // overrides LiveColumn's width
+    width: StyleSheet.hairlineWidth,
     backgroundColor: TOKENS.hair,
   },
   todayColumn: {
