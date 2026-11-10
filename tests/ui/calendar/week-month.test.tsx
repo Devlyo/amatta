@@ -94,6 +94,16 @@ describe('WeekView', () => {
     expect(style('week-block-3|2026-11-12').opacity).toBe(1);
   });
 
+  test('one person picked alone → only their blocks, back to full width', () => {
+    renderWeek(false);
+    const narrowed = style('week-slot-2|2026-11-10').width; // overlaps 민준's 학교
+    screen.unmount();
+    renderWeek(false, { inactive: [1, 'guardian'] }); // 서연 alone
+    expect(screen.queryByTestId('week-block-1|2026-11-10')).toBeNull();
+    expect(style('week-slot-2|2026-11-10').width).toBeGreaterThan(narrowed);
+    expect(style('week-slot-2|2026-11-10').width).toBe(50 - 2);
+  });
+
   test('tap a day header → that day; long press a slot → that date + hour', () => {
     jest.useFakeTimers();
     const onPressDay = jest.fn();

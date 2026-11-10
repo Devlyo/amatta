@@ -127,8 +127,7 @@ function ViewGlyph({ size, color, children }: IconProps & { children: React.Reac
 export const IconViewDay = memo(function IconViewDay({ size = 20, color = TOKENS.ink }: IconProps) {
   return (
     <ViewGlyph size={size} color={color}>
-      <Path d="M4 4h16M4 20h16" />
-      <Rect x={4} y={8} width={16} height={8} rx={2} />
+      <Rect x={3} y={5} width={18} height={14} rx={2} />
     </ViewGlyph>
   );
 });

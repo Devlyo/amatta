@@ -103,10 +103,21 @@ function WeekViewImpl({
   const everyone = useMemo<PersonKey[]>(() => [...kids.map((k) => k.id), 'guardian'], [kids]);
   const todayColumn = columnOfDate.get(today as unknown as string) ?? null;
 
+  // One person picked alone (long press) → show only theirs, laid out on
+  // their own so blocks narrowed by others' overlaps get their full width.
+  const soloKey = useMemo(() => {
+    const active = everyone.filter((k) => !inactive.includes(k));
+    return active.length === 1 ? active[0] : undefined;
+  }, [everyone, inactive]);
+  const visible = useMemo(
+    () => (soloKey === undefined ? occurrences : occurrences.filter((o) => o.childId === soloKey)),
+    [occurrences, soloKey],
+  );
+
   const placed = useMemo(() => {
     const byId = new Map<string, Occurrence>();
     const inputs = [];
-    for (const occ of occurrences) {
+    for (const occ of visible) {
       if (occ.allDay) continue; // drawn in the all-day row
       const column = columnOfDate.get(occ.date as unknown as string);
       if (column === undefined || !kidById.has(occ.childId)) continue;
@@ -117,11 +128,11 @@ function WeekViewImpl({
       inputs.push({ id, column, start: range.start, end: range.end });
     }
     return layoutCascade(inputs).map((p) => ({ ...p, occ: byId.get(p.id) as Occurrence }));
-  }, [occurrences, columnOfDate, kidById]);
+  }, [visible, columnOfDate, kidById]);
 
   const allDayItems = useMemo<AllDayItem[]>(() => {
     const out: AllDayItem[] = [];
-    for (const occ of occurrences) {
+    for (const occ of visible) {
       if (!occ.allDay) continue;
       const abs = columnOfDate.get(occ.date as unknown as string);
       const kid = kidById.get(occ.childId);
@@ -142,7 +153,7 @@ function WeekViewImpl({
       });
     }
     return out;
-  }, [occurrences, columnOfDate, kidById, inactive, everyone, onPressOccurrence, firstColumn]);
+  }, [visible, columnOfDate, kidById, inactive, everyone, onPressOccurrence, firstColumn]);
 
   const timed = occurrences.filter((o) => !o.allDay);
   const firstStart = timed.length > 0 ? Math.min(...timed.map((o) => o.startMinutes)) : null;

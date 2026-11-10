@@ -400,12 +400,6 @@ export default function CalendarScreen(): React.ReactElement {
         onPressTitle={() => router.push('/date-picker')}
         onPressSearch={() => router.push('/search')}
       />
-      <KidFilterBar
-        kids={kids}
-        inactive={inactivePeople}
-        onToggle={togglePerson}
-        onSolo={(key) => soloPerson(key, everyone)}
-      />
       {view === 'day' ? (
         <DateStrip
           selected={currentDate}
@@ -413,6 +407,13 @@ export default function CalendarScreen(): React.ReactElement {
           onSelect={(d: ISODate) => setCurrentDate(d)}
         />
       ) : null}
+      {/* Day view: names sit under the dates, right above their columns. */}
+      <KidFilterBar
+        kids={kids}
+        inactive={inactivePeople}
+        onToggle={togglePerson}
+        onSolo={(key) => soloPerson(key, everyone)}
+      />
       <GestureDetector gesture={pinch}>
         <View style={styles.body} onLayout={onBodyLayout}>
           <View style={styles.stage}>
