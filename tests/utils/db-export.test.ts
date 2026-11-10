@@ -90,7 +90,7 @@ describe('exportDb', () => {
   test('empty DB → envelope has all eight arrays empty + schemaVersion bump', async () => {
     const result = await exportDb(db as never);
     expect(result.envelope.schemaVersion).toBe(EXPORT_SCHEMA_VERSION);
-    expect(EXPORT_SCHEMA_VERSION).toBeGreaterThanOrEqual(4);
+    expect(EXPORT_SCHEMA_VERSION).toBeGreaterThanOrEqual(5);
     expect(result.envelope.children).toEqual([]);
     expect(result.envelope.schedules).toEqual([]);
     expect(result.envelope.exceptions).toEqual([]);
@@ -257,6 +257,8 @@ describe('exportDb', () => {
       type: 'academy',
       notifyMinutesBefore: 30,
       needsPickup: true,
+      allDay: false,
+      notifyEndMinutesBefore: null,
     });
     expect(result.envelope.exceptions[0]).toMatchObject({
       scheduleId: 2,

@@ -3,14 +3,21 @@ import type { SQLiteDatabase, SQLiteBindValue } from 'expo-sqlite';
 import type { ISODate, Schedule } from '../../domain/types';
 import { rowToSchedule, type ScheduleRow } from '../row-mappers';
 
-export type NewSchedule = Omit<Schedule, 'id' | 'needsPickup'> & {
+export type NewSchedule = Omit<Schedule, 'id' | 'needsPickup' | 'allDay' | 'notifyEndMinutesBefore'> & {
   needsPickup?: boolean;
+  allDay?: boolean;
+  notifyEndMinutesBefore?: number | null;
 };
+
+/** ADR-007 §8: an all-day row always stores the whole day as its range. */
+function normalizeRange(allDay: boolean, start: number, end: number): [number, number] {
+  return allDay ? [0, 24 * 60] : [start, end];
+}
 
 const SELECT_COLUMNS = `id, child_id, title, type, location, notes,
                         days_of_week, start_minutes, end_minutes,
                         valid_from, valid_until, notify_minutes_before,
-                        needs_pickup`;
+                        needs_pickup, all_day, notify_end_minutes_before`;
 
 export async function getById(db: SQLiteDatabase, id: number): Promise<Schedule | null> {
   const row = await db.getFirstAsync<ScheduleRow>(
@@ -36,12 +43,15 @@ export async function listByChild(db: SQLiteDatabase, childId: number): Promise<
 }
 
 export async function create(db: SQLiteDatabase, input: NewSchedule): Promise<Schedule> {
+  const allDay = input.allDay ?? false;
+  const [start, end] = normalizeRange(allDay, input.startMinutes, input.endMinutes);
   const result = await db.runAsync(
     `INSERT INTO schedules
        (child_id, title, type, location, notes,
         days_of_week, start_minutes, end_minutes,
-        valid_from, valid_until, notify_minutes_before, needs_pickup)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        valid_from, valid_until, notify_minutes_before, needs_pickup,
+        all_day, notify_end_minutes_before)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.childId,
       input.title,
@@ -49,12 +59,15 @@ export async function create(db: SQLiteDatabase, input: NewSchedule): Promise<Sc
       input.location ?? null,
       input.notes ?? null,
       input.daysOfWeek,
-      input.startMinutes,
-      input.endMinutes,
+      start,
+      end,
       input.validFrom as string,
       input.validUntil ? (input.validUntil as string) : null,
       input.notifyMinutesBefore ?? null,
-      input.needsPickup ? 1 : 0,
+      // An all-day event has no pickup time (ADR-007 §8).
+      input.needsPickup && !allDay ? 1 : 0,
+      allDay ? 1 : 0,
+      input.notifyEndMinutesBefore ?? null,
     ],
   );
   const schedule = await getById(db, result.lastInsertRowId);
@@ -116,7 +129,27 @@ export async function update(
   }
   if (patch.needsPickup !== undefined) {
     fields.push('needs_pickup = ?');
-    values.push(patch.needsPickup ? 1 : 0);
+    values.push(patch.needsPickup && patch.allDay !== true ? 1 : 0);
+  }
+  if (patch.allDay !== undefined) {
+    fields.push('all_day = ?');
+    values.push(patch.allDay ? 1 : 0);
+    if (patch.allDay) {
+      // Canonical all-day range overrides any start/end in the same patch.
+      for (const col of ['start_minutes = ?', 'end_minutes = ?', 'needs_pickup = ?']) {
+        const i = fields.indexOf(col);
+        if (i >= 0) {
+          fields.splice(i, 1);
+          values.splice(i, 1);
+        }
+      }
+      fields.push('start_minutes = ?', 'end_minutes = ?', 'needs_pickup = ?');
+      values.push(0, 24 * 60, 0);
+    }
+  }
+  if (patch.notifyEndMinutesBefore !== undefined) {
+    fields.push('notify_end_minutes_before = ?');
+    values.push(patch.notifyEndMinutesBefore);
   }
 
   if (fields.length > 0) {

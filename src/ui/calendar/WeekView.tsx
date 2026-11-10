@@ -15,6 +15,7 @@ import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
 import { fmtRange, weekdayKo } from '../utils/date';
+import { AllDayRow, type AllDayItem } from './AllDayRow';
 import { TimeBlock } from './TimeBlock';
 import { TimeGrid } from './TimeGrid';
 import { initialScrollY, TIME_GUTTER } from './time-axis';
@@ -65,6 +66,7 @@ function WeekViewImpl({
     const byId = new Map<string, Occurrence>();
     const inputs = [];
     for (const occ of occurrences) {
+      if (occ.allDay) continue; // drawn in the all-day row
       const column = columnOfDate.get(occ.date as unknown as string);
       if (column === undefined || !kidById.has(occ.childId)) continue;
       const range = clipToDay(occ.startMinutes, occ.endMinutes);
@@ -76,7 +78,32 @@ function WeekViewImpl({
     return layoutCascade(inputs).map((p) => ({ ...p, occ: byId.get(p.id) as Occurrence }));
   }, [occurrences, columnOfDate, kidById]);
 
-  const firstStart = occurrences.length > 0 ? Math.min(...occurrences.map((o) => o.startMinutes)) : null;
+  const allDayItems = useMemo<AllDayItem[]>(() => {
+    const out: AllDayItem[] = [];
+    for (const occ of occurrences) {
+      if (!occ.allDay) continue;
+      const column = columnOfDate.get(occ.date as unknown as string);
+      const kid = kidById.get(occ.childId);
+      if (column === undefined || kid === undefined) continue;
+      const p = getKidPalette(occ.colorIndex);
+      const emphasis = emphasisOf(inactive, everyone, kid.id);
+      out.push({
+        id: `${occ.scheduleId}|${occ.date as unknown as string}`,
+        column,
+        title: occ.title,
+        color: p.source,
+        deep: p.deep,
+        focused: emphasis === 'solo',
+        dimmed: emphasis === 'inactive',
+        accessibilityLabel: `${kid.name} ${occ.title}, ${weekdayKo(occ.date)}요일 하루 종일`,
+        onPress: () => onPressOccurrence(occ),
+      });
+    }
+    return out;
+  }, [occurrences, columnOfDate, kidById, inactive, everyone, onPressOccurrence]);
+
+  const timed = occurrences.filter((o) => !o.allDay);
+  const firstStart = timed.length > 0 ? Math.min(...timed.map((o) => o.startMinutes)) : null;
   const openAt = initialScrollY({
     hourHeight: HOUR_HEIGHT,
     nowMinutes: todayColumn !== null ? nowMinutes : null,
@@ -111,6 +138,8 @@ function WeekViewImpl({
           );
         })}
       </View>
+
+      <AllDayRow columns={days.length} items={allDayItems} />
 
       <TimeGrid
         testID="week-view"

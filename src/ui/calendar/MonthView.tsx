@@ -140,7 +140,7 @@ function MonthViewImpl({
                         </Text>
                         {zoomed ? (
                           <Text style={styles.chipTime} numberOfLines={1}>
-                            {fmt12hrShort(occ.startMinutes)}
+                            {occ.allDay ? '하루 종일' : fmt12hrShort(occ.startMinutes)}
                           </Text>
                         ) : null}
                       </View>

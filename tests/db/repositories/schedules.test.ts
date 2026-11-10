@@ -293,6 +293,51 @@ describe('schedulesRepo', () => {
     expect(toFalse.needsPickup).toBe(false);
   });
 
+  test('v8 fields default: allDay false, notifyEndMinutesBefore null', async () => {
+    const created = await schedulesRepo.create(db as never, {
+      childId, title: '학교', type: 'school', location: null, notes: null,
+      daysOfWeek: 0b11111, startMinutes: 540, endMinutes: 870, validFrom: VALID_FROM,
+      validUntil: null, notifyMinutesBefore: null,
+    });
+    expect(created.allDay).toBe(false);
+    expect(created.notifyEndMinutesBefore).toBeNull();
+  });
+
+  test('allDay create stores the canonical 0–1440 range and drops pickup', async () => {
+    const created = await schedulesRepo.create(db as never, {
+      childId, title: '현장학습', type: 'other', location: null, notes: null,
+      daysOfWeek: 0b100, startMinutes: 600, endMinutes: 660, validFrom: VALID_FROM,
+      validUntil: VALID_FROM, notifyMinutesBefore: 30, needsPickup: true, allDay: true,
+    });
+    expect(created.allDay).toBe(true);
+    expect(created.startMinutes).toBe(0);
+    expect(created.endMinutes).toBe(1440);
+    expect(created.needsPickup).toBe(false);
+  });
+
+  test('update to allDay normalises the range; end alert round-trips', async () => {
+    const created = await schedulesRepo.create(db as never, {
+      childId, title: '수영', type: 'activity', location: null, notes: null,
+      daysOfWeek: 0b1000000, startMinutes: 900, endMinutes: 960, validFrom: VALID_FROM,
+      validUntil: null, notifyMinutesBefore: null, needsPickup: true,
+    });
+    const allDay = await schedulesRepo.update(db as never, created.id, {
+      allDay: true, startMinutes: 900, endMinutes: 960, notifyEndMinutesBefore: 10,
+    });
+    expect(allDay.allDay).toBe(true);
+    expect(allDay.startMinutes).toBe(0);
+    expect(allDay.endMinutes).toBe(1440);
+    expect(allDay.needsPickup).toBe(false);
+    expect(allDay.notifyEndMinutesBefore).toBe(10);
+
+    const back = await schedulesRepo.update(db as never, created.id, {
+      allDay: false, startMinutes: 900, endMinutes: 960, notifyEndMinutesBefore: null,
+    });
+    expect(back.allDay).toBe(false);
+    expect(back.startMinutes).toBe(900);
+    expect(back.notifyEndMinutesBefore).toBeNull();
+  });
+
   test('listByChild() returns only schedules for given child', async () => {
     const child2 = await childrenRepo.create(db as never, { name: '두번째', colorIndex: 1 });
 

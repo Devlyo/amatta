@@ -44,7 +44,8 @@ import {
 // `occurrenceDate` is absent — an importer must treat v3 membership as unknown
 // (i.e. NULL anchor / recurring) rather than trusting those fields.
 // A future importer keys off this to detect the format.
-export const EXPORT_SCHEMA_VERSION = 4 as const;
+// Bumped 4 → 5 when schedules gained `allDay` + `notifyEndMinutesBefore` (v8).
+export const EXPORT_SCHEMA_VERSION = 5 as const;
 
 /** Raw `app_settings` row (key/value TEXT) — e.g. persisted notif settings. */
 export interface ExportedAppSetting {
@@ -88,7 +89,8 @@ export async function exportDb(
   const schedulesRows = await db.getAllAsync<ScheduleRow>(
     `SELECT id, child_id, title, type, location, notes,
             days_of_week, start_minutes, end_minutes,
-            valid_from, valid_until, notify_minutes_before, needs_pickup
+            valid_from, valid_until, notify_minutes_before, needs_pickup,
+            all_day, notify_end_minutes_before
      FROM schedules ORDER BY id ASC`,
   );
   const exceptionsRows = await db.getAllAsync<ScheduleExceptionRow>(

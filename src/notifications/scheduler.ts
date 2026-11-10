@@ -55,9 +55,17 @@ import {
 import { isoToYyyymmdd, shiftIsoDate, todayIso } from '../ui/utils/date';
 import { useNotifSettingsStore } from '../state/notif-settings-store';
 import {
+  formatScheduleEndNotification,
   formatScheduleNotification,
   formatTodoNotification,
 } from './body';
+
+/**
+ * ADR-007 §8: an all-day event has no start time, so its "before start" alert
+ * counts back from 08:00 on the day (e.g. 30 → 07:30). "Before end" alerts do
+ * not apply to all-day events.
+ */
+export const ALL_DAY_ALERT_BASE_MINUTES = 8 * 60;
 
 /** Default rolling horizon in days. */
 export const DEFAULT_HORIZON_DAYS = 14;
@@ -133,7 +141,11 @@ function candidatesForSchedule(input: {
     now,
   } = input;
 
-  if (schedule.notifyMinutesBefore === null) return [];
+  const startLead = schedule.notifyMinutesBefore;
+  const allDay = schedule.allDay === true;
+  // ADR-007 §8: end alerts exist only for timed events.
+  const endLead = allDay ? null : (schedule.notifyEndMinutesBefore ?? null);
+  if (startLead === null && endLead === null) return [];
 
   const child = childrenById.get(schedule.childId);
   if (child === undefined) return []; // orphan row — defer to cleanup.
@@ -153,9 +165,30 @@ function candidatesForSchedule(input: {
   const candidates: Candidate[] = [];
 
   for (const occ of occurrences) {
+    // ── "before end" alert (timed events only) — no prep list in the body.
+    if (endLead !== null) {
+      const endAt = subtractMinutes(localDateTime(occ.date, occ.endMinutes), endLead);
+      if (endAt.getTime() > now.getTime()) {
+        const { title, body } = formatScheduleEndNotification({
+          schedule,
+          endMinutes: occ.endMinutes,
+          kidName: child.name,
+        });
+        candidates.push({
+          ownerKey,
+          fireAtMs: endAt.getTime(),
+          request: {
+            content: { title, body, sound: 'default' },
+            trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: endAt },
+          },
+        });
+      }
+    }
+
+    if (startLead === null) continue;
     const fireAt = subtractMinutes(
-      localDateTime(occ.date, occ.startMinutes),
-      schedule.notifyMinutesBefore,
+      localDateTime(occ.date, allDay ? ALL_DAY_ALERT_BASE_MINUTES : occ.startMinutes),
+      startLead,
     );
     if (fireAt.getTime() <= now.getTime()) continue;
 

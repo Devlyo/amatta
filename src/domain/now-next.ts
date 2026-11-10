@@ -25,7 +25,8 @@ export function nowAndNextByKid(
   nowMinutes: number,
 ): KidNowNext[] {
   return childIds.map((childId) => {
-    const mine = occurrences.filter((o) => o.childId === childId);
+    // All-day events are not "now" or "next" — they span the whole day.
+    const mine = occurrences.filter((o) => o.childId === childId && o.allDay !== true);
 
     let current: Occurrence | null = null;
     for (const o of mine) {
