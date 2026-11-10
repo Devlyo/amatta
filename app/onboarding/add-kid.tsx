@@ -42,7 +42,7 @@ import { useChildrenStore } from '../../src/state/children-store';
 import { AVATAR_IMAGE_BY_KEY } from '../../src/ui/assets';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { IconCheck, IconChevronLeft } from '../../src/ui/icons';
-import { TOKENS } from '../../src/ui/palette';
+import { TOKENS, withAlpha } from '../../src/ui/palette';
 import { RADIUS } from '../../src/ui/radius';
 import { SPACING } from '../../src/ui/spacing';
 
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryCtaPressed: { opacity: 0.85 },
-  primaryCtaDisabled: { backgroundColor: 'rgba(29,29,27,0.18)' },
+  primaryCtaDisabled: { backgroundColor: withAlpha(TOKENS.ink, 0.18) },
   primaryCtaLabel: {
     fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,

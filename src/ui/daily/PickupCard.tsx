@@ -14,7 +14,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
 import { FONT_FAMILIES } from '../fonts';
-import { PICKUP_CARD_PALETTE, TOKENS, type PickupCardPalette } from '../palette';
+import { PICKUP_CARD_PALETTE, TOKENS, withAlpha, type PickupCardPalette } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { CartoonCar } from './CartoonCar';
@@ -34,11 +34,13 @@ export function PickupCard({ data, index }: Props): React.ReactElement {
     index % PICKUP_CARD_PALETTE.length
   ] as PickupCardPalette;
   const bg = slot.bg;
+  // ADR-009: text on the card uses the scheme-independent onLight / onDark,
+  // so comparing against them stays right in dark (was TOKENS.surface/ink,
+  // which flip with the theme).
   const onBg = pickOnBg(bg);
-  const onBgSub =
-    onBg === TOKENS.surface ? 'rgba(255,255,255,0.85)' : 'rgba(29,29,27,0.6)';
-  const roadLineColor =
-    onBg === TOKENS.surface ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.10)';
+  const lightText = onBg === TOKENS.onDark;
+  const onBgSub = withAlpha(onBg, lightText ? 0.85 : 0.6);
+  const roadLineColor = lightText ? withAlpha(TOKENS.onDark, 0.18) : withAlpha(TOKENS.shadow, 0.1);
 
   const pulseScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(1)).current;
@@ -140,7 +142,7 @@ function pickOnBg(hex: string): string {
   const g = parseInt(h.slice(2, 4), 16);
   const b = parseInt(h.slice(4, 6), 16);
   const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return lum > 0.65 ? TOKENS.ink : TOKENS.surface;
+  return lum > 0.65 ? TOKENS.onLight : TOKENS.onDark;
 }
 
 const styles = StyleSheet.create({

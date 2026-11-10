@@ -36,6 +36,26 @@ module.exports = defineConfig([
           selector: 'Literal[value=/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/]',
           message: 'Raw hex color — use a TOKENS.<name> from src/ui/palette.ts',
         },
+        {
+          // ADR-009: rgba() literals slipped past the hex ban.
+          selector: 'Literal[value=/^rgba?\\(/]',
+          message: 'Raw rgba() color — use a token (or withAlpha(token, a)) from src/ui/palette.ts',
+        },
+      ],
+      // ADR-009 dark mode: read colours from the theme (useTheme / makeStyles
+      // in src/ui/appearance.tsx), not the static light TOKENS. Warning while
+      // screens are converted (steps 1–3); an error from step 4.
+      'no-restricted-imports': [
+        'warn',
+        {
+          patterns: [
+            {
+              group: ['**/palette', '**/ui/palette'],
+              importNames: ['TOKENS'],
+              message: 'ADR-009: use useTheme() / makeStyles() from src/ui/appearance — TOKENS is light-only.',
+            },
+          ],
+        },
       ],
     },
   },
@@ -44,6 +64,13 @@ module.exports = defineConfig([
     files: ['src/ui/palette.ts', 'app/dev-gallery.tsx'],
     rules: {
       'no-restricted-syntax': 'off',
+    },
+  },
+  // The theme module itself builds on the light / dark token tables.
+  {
+    files: ['src/ui/appearance.tsx', 'src/ui/theme.ts', 'tests/**'],
+    rules: {
+      'no-restricted-imports': 'off',
     },
   },
 ]);

@@ -29,7 +29,7 @@
 - 블록 채움 알파: `TimeBlock`/`AllDayRow`/`MonthView` 칩의 0.6/0.8 → `t.blockFill`/`t.blockFillFocused`(라이트 0.6/0.8, 다크 0.85/0.95). 블록 글씨는 양쪽 `#1D1D1B`(새 토큰 `onKidFill`).
 
 ## 4. 단계 (v2 — 각 단계 = 커밋, 단계 끝마다 tsc·jest·라이트 화면 무변화 확인)
-0. **기반 + 다크로 볼 수 있게**
+0. **기반 + 다크로 볼 수 있게** — ✅ 2026-11-10 (dev 미리보기 = 설정 > 화면 > 개발용, dev-gallery는 앱에서 링크가 없어 대신)
    - 전체 팔레트 확정(§3-1: 45개 토큰 전부 라이트/다크 쌍) + 테마 고정 토큰(`onLight #1D1D1B`, `onDark #FFFFFF`).
    - `LIGHT_THEME`/`DARK_THEME` 두 고정 객체, context 기본값 = 라이트(기존 테스트 그대로 통과).
    - `makeStyles(fn)`: 파일 로드 때 라이트·다크 StyleSheet를 **둘 다 한 번** 만들고 훅은 고르기만(컴포넌트별 useMemo 금지 — TimeBlock 수백 개).

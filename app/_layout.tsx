@@ -23,6 +23,7 @@ import { usePickupLogStore } from '../src/state/pickup-log-store';
 import { useChecklistCompletionStore } from '../src/state/checklist-completion-store';
 import { useNotifSettingsStore } from '../src/state/notif-settings-store';
 import { useGuardianStore } from '../src/state/guardian-store';
+import { AppThemeProvider } from '../src/ui/appearance';
 import { useDisplayStore } from '../src/state/display-store';
 import { TOKENS } from '../src/ui/palette';
 
@@ -35,10 +36,10 @@ export const unstable_settings = {
 // Module-scope so it runs once on app load (before any boot effect).
 // Without this, expo-notifications silently suppresses notifications
 // while the app is in the foreground.
-// Lock the app to light appearance at RUNTIME. app.json's
-// userInterfaceStyle:'light' only applies in a native build (not Expo Go), so
-// this forces light there too — otherwise native chrome (the formSheet sheet
-// container, date picker) renders with the device's dark-mode system colors.
+// Lock the app to light appearance at RUNTIME (ADR-004). ADR-009: app.json
+// now says userInterfaceStyle:'automatic' so dark can be turned on, but until
+// every screen reads the theme (ADR-009 steps 1–4) users stay on light here.
+// In __DEV__ the dev gallery can switch schemes to check converted screens.
 Appearance.setColorScheme('light');
 
 // Keep the native splash visible until boot is READY (migrations + stores +
@@ -221,10 +222,9 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.flex}>
-      {/* Force dark status-bar glyphs (battery, clock, etc.) — every screen
-          in the app uses a light surface so the default white glyphs would
-          be invisible. style='dark' makes the icons render in #000-ish. */}
-      <StatusBar style="dark" />
+     <AppThemeProvider>
+      {/* Status-bar glyphs follow the scheme (dark glyphs on light, light on dark). */}
+      <StatusBar style="auto" />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         {/* New/Edit schedule — FULL modal (dev-gallery style), per user. */}
@@ -311,6 +311,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
+     </AppThemeProvider>
     </GestureHandlerRootView>
   );
 }

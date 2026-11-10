@@ -25,6 +25,27 @@ const KID_PALETTE: readonly KidPalette[] = [
   { source: '#C7B0FF', bg: '#F7F3FF', deep: '#8E6BE8' }, // 5 French Lavender
 ] as const;
 
+// ADR-009 dark: same `source` (blocks stay vivid), `bg` = source 15% over
+// the dark surface, `deep` one step lighter so bars / borders read on dark.
+// Values from the design canvas board "D 다크 모드 색 목록".
+const KID_PALETTE_DARK: readonly KidPalette[] = [
+  { source: '#FFA9FF', bg: '#473944', deep: '#F08BF0' },
+  { source: '#C0F0AA', bg: '#3E4337', deep: '#8FD46F' },
+  { source: '#D8E6FF', bg: '#424244', deep: '#9DB8F2' },
+  { source: '#FFE8D2', bg: '#47423D', deep: '#E0A86E' },
+  { source: '#E0E446', bg: '#434228', deep: '#D3D84A' },
+  { source: '#C7B0FF', bg: '#3F3A44', deep: '#B39CFF' },
+] as const;
+
+/** Kid palette for a colour scheme (ADR-009). */
+export function getKidPaletteFor(colorIndex: ColorIndex, scheme: 'light' | 'dark'): KidPalette {
+  const entry = (scheme === 'dark' ? KID_PALETTE_DARK : KID_PALETTE)[colorIndex];
+  if (entry === undefined) {
+    throw new Error(`getKidPalette: invalid colorIndex ${String(colorIndex)}`);
+  }
+  return entry;
+}
+
 export function getKidPalette(colorIndex: ColorIndex): KidPalette {
   const entry = KID_PALETTE[colorIndex];
   if (entry === undefined) {
@@ -123,7 +144,76 @@ export const TOKENS = {
 
   // Pure black — drop-shadow color ONLY (never a UI surface/text color).
   shadow: '#000000',
+
+  // ADR-009: text on a coloured fill — the SAME in both schemes (never flip
+  // with the theme): dark text on light fills (kid blocks, light pickup
+  // cards), white on strong fills (orange pills, guardian blocks in dark).
+  onLight: '#1D1D1B',
+  onDark: '#FFFFFF',
 } as const;
+
+export type TokenName = keyof typeof TOKENS;
+/** The light values (TOKENS is the light theme, kept as an alias until ADR-009 step 4). */
+export const LIGHT_TOKENS: Readonly<Record<TokenName, string>> = TOKENS;
+
+/**
+ * ADR-009 dark values — every light token has one (the Record type makes a
+ * missing key a compile error). From the design canvas "D 다크 모드 색 목록".
+ */
+export const DARK_TOKENS: Readonly<Record<TokenName, string>> = {
+  primary: '#FF7144',
+  primaryDeep: '#FF9566',
+  primaryTint: '#4A2C20',
+  pickupWarn: '#FF9A70',
+
+  ink: '#F2F1EF',
+  inkSub: '#A39D94',
+  ink70: 'rgba(242,241,239,0.70)',
+  ink50: 'rgba(242,241,239,0.50)',
+  ink30: 'rgba(242,241,239,0.30)',
+  ink12: 'rgba(242,241,239,0.12)',
+  separator: 'rgba(242,241,239,0.14)',
+  ink06: 'rgba(242,241,239,0.08)',
+  ink04: 'rgba(242,241,239,0.06)',
+  hair: '#34322F',
+
+  surface: '#272523',
+  surfaceWarm: '#2B2926',
+  surfaceSoft: '#1A1917',
+  groupedBg: '#1A1917',
+  sunday: '#FF6B5E',
+  guardian: '#5A5751',
+  guardianDeep: '#A8A49D',
+
+  success: '#34D46C',
+  danger: '#FF6B5E',
+  warningDot: '#FFC233',
+
+  controlIdle: '#34322F',
+  controlActive: '#F2F1EF', // selected chip flips light (its text = surface → dark)
+  switchOff: '#4A4743',
+
+  nowLine: '#E0E345',
+  saturday: '#7C9BFF',
+  // Pickup cards and the car illustration keep their colours in dark.
+  pickupLavender: '#D4B4FA',
+  pickupMint: '#A5DC85',
+  pickupSky: '#A9C8F5',
+  carBody1: '#FFF4E5',
+  carWindow1: '#FFD8C2',
+  carBody2: '#FFFFFF',
+  carWindow2: '#E8F2C9',
+  carBody3: '#FFFFFF',
+  carWindow3: '#FFE2D0',
+  carBody4: '#FFFFFF',
+  carWindow4: '#FFF0C2',
+  carWheel: '#1D1D1B',
+  carShine: 'rgba(255,255,255,0.92)',
+
+  shadow: '#000000',
+  onLight: '#1D1D1B',
+  onDark: '#FFFFFF',
+};
 
 // Pickup carousel card spec (handoff #4). Index → palette[index % 4]; shape
 // alternates sedan/round. Card 1 follows the live app theme `primary` at the
