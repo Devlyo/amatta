@@ -1,5 +1,5 @@
-// 데이터 — JSON export, in the shared settings style (ADR-007 §10). JSON
-// import is a disabled "v1.1 출시 예정" row.
+// 데이터 — JSON export, in the shared settings style (ADR-007 §10), and
+// "파일에서 가져오기" — restore a backup, replacing everything (ADR-012).
 
 import { useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
@@ -17,6 +17,7 @@ import { TYPE } from '../../src/ui/typography';
 import { FormGroup, FormValueRow } from '../../src/ui/sheets/form-rows';
 import { SettingsDetailScreen, useSettingsStyles } from '../../src/ui/settings/SettingsChrome';
 import { exportDb } from '../../src/utils/db-export';
+import { defaultRestoreSteps, restoreFromBackup } from '../../src/state/restore';
 import { makeStyles } from '../../src/ui/appearance';
 
 export default function DataScreen(): React.ReactElement {
@@ -24,6 +25,7 @@ export default function DataScreen(): React.ReactElement {
   const styles = useStyles();
   const router = useRouter();
   const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const kidCount = useChildrenStore((s) => s.children.length);
   const scheduleCount = useSchedulesStore((s) => s.schedules.length);
@@ -33,6 +35,21 @@ export default function DataScreen(): React.ReactElement {
     for (const items of s.itemsByScheduleId.values()) n += items.length;
     return n;
   });
+
+  const handleImport = async (): Promise<void> => {
+    if (importing || exporting) return;
+    setImporting(true);
+    try {
+      const outcome = await restoreFromBackup('settings', defaultRestoreSteps());
+      if (outcome === 'restored') {
+        // Leave the settings stack — the app now holds the backup's data.
+        if (router.canDismiss()) router.dismissAll();
+        router.replace('/');
+      }
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const handleExport = async (): Promise<void> => {
     if (exporting) return;
@@ -99,9 +116,23 @@ export default function DataScreen(): React.ReactElement {
 
       <View style={ss.block}>
         <HomeSection title="가져오기">
-          <FormValueRow label="데이터 가져오기 (JSON)" value="v1.1 출시 예정" last />
+          <Pressable
+            onPress={() => void handleImport()}
+            accessibilityRole="button"
+            accessibilityLabel="파일에서 가져오기"
+            accessibilityState={{ disabled: importing, busy: importing }}
+            disabled={importing}
+            testID="import-button"
+            style={styles.exportRow}
+          >
+            <Text style={[styles.exportLabel, importing ? styles.exportLabelBusy : null]}>
+              {importing ? '가져오는 중...' : '파일에서 가져오기'}
+            </Text>
+          </Pressable>
         </HomeSection>
-        <Text style={ss.footnote}>백업한 파일에서 복원하는 기능은 v1.1에서 지원돼요.</Text>
+        <Text style={ss.footnote}>
+          WeMoa에서 내보낸 파일을 고르면, 지금 데이터가 모두 그 파일 내용으로 바뀌어요.
+        </Text>
       </View>
     </SettingsDetailScreen>
   );

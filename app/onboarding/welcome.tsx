@@ -3,7 +3,7 @@
 // The six 3D kid faces float in a loose cluster above the copy; each one
 // bobs a few points on its own rhythm. Orange CTA, offline reassurance line.
 
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
@@ -19,6 +19,7 @@ import { useRouter } from 'expo-router';
 
 import type { AvatarKey } from '../../src/domain/avatar';
 import { APP_NAME } from '../../src/domain/constants';
+import { defaultRestoreSteps, restoreFromBackup } from '../../src/state/restore';
 import { AVATAR_IMAGE_BY_KEY, WORDMARK, WORDMARK_ASPECT } from '../../src/ui/assets';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { RADIUS } from '../../src/ui/radius';
@@ -84,6 +85,20 @@ function FloatingFace({
 function OnbWelcomeImpl(): React.ReactElement {
   const styles = useStyles();
   const router = useRouter();
+  const [restoring, setRestoring] = useState(false);
+
+  // ADR-012: start from a backup instead of adding kids — the backup always
+  // has ≥ 1 kid (parseBackup rejects empty ones), so go on to the finish step.
+  const startFromBackup = async (): Promise<void> => {
+    if (restoring) return;
+    setRestoring(true);
+    try {
+      const outcome = await restoreFromBackup('welcome', defaultRestoreSteps());
+      if (outcome === 'restored') router.replace('/onboarding/finish');
+    } finally {
+      setRestoring(false);
+    }
+  };
   const { width } = useWindowDimensions();
   const scale = Math.min(1, width / STAGE_W);
 
@@ -130,6 +145,18 @@ function OnbWelcomeImpl(): React.ReactElement {
         >
           <Text style={styles.ctaLabel}>게스트로 시작하기</Text>
         </Pressable>
+        <Pressable
+          onPress={() => void startFromBackup()}
+          disabled={restoring}
+          accessibilityRole="button"
+          accessibilityLabel="백업 파일로 시작하기"
+          accessibilityState={{ disabled: restoring, busy: restoring }}
+          hitSlop={6}
+          testID="welcome-restore"
+          style={({ pressed }) => [styles.restore, pressed ? styles.restorePressed : null]}
+        >
+          <Text style={styles.restoreLabel}>{restoring ? '가져오는 중...' : '백업 파일로 시작하기'}</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -167,6 +194,14 @@ const useStyles = makeStyles((th) => ({
     justifyContent: 'center',
   },
   ctaPressed: { backgroundColor: th.t.primaryDeep },
+  restore: { height: 36, paddingHorizontal: SPACING.lg, justifyContent: 'center' },
+  restorePressed: { opacity: 0.6 },
+  restoreLabel: {
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+    fontSize: 15,
+    letterSpacing: -0.3,
+    color: th.t.inkSub,
+  },
   ctaLabel: {
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     fontSize: 17,
