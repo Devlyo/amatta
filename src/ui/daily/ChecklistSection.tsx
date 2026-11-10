@@ -161,11 +161,13 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
                       {remaining}/{items.length}
                     </Text>
                   </View>
-                  {items.map((item) => {
+                  {items.map((item, i) => {
                     const isDone = isComplete(item.id);
                     return (
+                      <Fragment key={item.id}>
+                      {/* Line between supplies, inset to the labels (iOS list). */}
+                      {i > 0 ? <View style={styles.itemSeparator} /> : null}
                       <Pressable
-                        key={item.id}
                         onPress={() => {
                           void onToggle(item.id);
                         }}
@@ -189,6 +191,7 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
                           {item.label}
                         </Text>
                       </Pressable>
+                      </Fragment>
                     );
                   })}
                 </View>
@@ -256,6 +259,13 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 10,
     borderRadius: RADIUS.md,
+  },
+  // Inset to the label: card padding 6 + row padding 10 + checkbox 22 + gap 10.
+  itemSeparator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: TOKENS.separator,
+    marginLeft: 42,
+    marginRight: 10,
   },
   itemRowDone: {
     opacity: 0.5,
