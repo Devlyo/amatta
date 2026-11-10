@@ -10,6 +10,7 @@
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Reanimated, {
+  runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
@@ -49,11 +50,21 @@ export interface TimeGridStrip {
   /** Live pinch scale (1 = none) and the pinch focal x in viewport coords. */
   stretch: SharedValue<number>;
   focalX: SharedValue<number>;
-  /** Column (may be fractional) to show at the left edge after `key` changes. */
+  /** Column to show at the left edge after `key` changes. */
   initialColumn: number;
   key: string;
-  /** Dragged past either end → previous / next page. */
-  onEdge?: (dir: -1 | 1) => void;
+  /**
+   * The user scrolled to a new left-edge column: called live when a drag /
+   * fling crosses into another week, and once more when the scroll settles.
+   * Programmatic re-positioning (key change) never reports.
+   */
+  onVisibleColumn?: (column: number) => void;
+}
+
+/** Columns the caller actually renders (rules, today tint) — the rest is empty strip. */
+export interface TimeGridRenderRange {
+  from: number;
+  count: number;
 }
 
 export interface TimeGridProps {
@@ -62,6 +73,8 @@ export interface TimeGridProps {
   /** Columns that fit the viewport (default = columns, i.e. no sideways scroll). */
   visibleColumns?: number;
   strip?: TimeGridStrip;
+  /** Limit column rules to this window (a long strip renders only near the viewport). */
+  renderRange?: TimeGridRenderRange;
   hourHeight: number;
   /** Minutes-from-midnight for the NOW indicator, or null when not showing today. */
   nowMinutes: number | null;
@@ -94,13 +107,12 @@ const DRAFT_CLEAR_MS = 900;
 const DRAFT_LENGTH_MIN = 60;
 
 const HOURS = Array.from({ length: 25 }, (_, h) => h);
-/** Overscroll past either end of the strip that pages to the previous / next week. */
-const EDGE_PAGE_PX = 50;
 
 function TimeGridImpl({
   columns,
   visibleColumns = columns,
   strip,
+  renderRange,
   hourHeight,
   nowMinutes,
   todayColumn = null,
@@ -127,11 +139,45 @@ function TimeGridImpl({
   const scrollX = strip?.scrollX ?? ownScrollX;
   const stretch = strip?.stretch ?? ownStretch;
   const focalX = strip?.focalX ?? ownFocal;
-  const onHScroll = useAnimatedScrollHandler({
-    onScroll: (e) => {
-      scrollX.value = e.contentOffset.x;
+  // Native scrolling does the motion (iOS physics); the worklet only mirrors
+  // the offset for the header and tells the screen which days are in view.
+  const report = strip?.onVisibleColumn;
+  const userScrolling = useSharedValue(false);
+  const lastWeek = useSharedValue(-1);
+  const onHScroll = useAnimatedScrollHandler(
+    {
+      onScroll: (e) => {
+        scrollX.value = e.contentOffset.x;
+        if (!userScrolling.value || report === undefined || columnWidth <= 0) return;
+        const col = Math.round(e.contentOffset.x / columnWidth);
+        const week = Math.floor(col / 7);
+        if (week !== lastWeek.value) {
+          lastWeek.value = week;
+          runOnJS(report)(col);
+        }
+      },
+      onBeginDrag: (e) => {
+        userScrolling.value = true;
+        lastWeek.value = columnWidth > 0 ? Math.floor(Math.round(e.contentOffset.x / columnWidth) / 7) : -1;
+      },
+      onEndDrag: (e) => {
+        // No fling → this is where it settles (a fling re-arms in onMomentumBegin).
+        userScrolling.value = false;
+        if (report !== undefined && columnWidth > 0) runOnJS(report)(Math.round(e.contentOffset.x / columnWidth));
+      },
+      onMomentumBegin: () => {
+        userScrolling.value = true;
+      },
+      onMomentumEnd: (e) => {
+        userScrolling.value = false;
+        if (report !== undefined && columnWidth > 0) runOnJS(report)(Math.round(e.contentOffset.x / columnWidth));
+      },
     },
-  });
+    [columnWidth, report],
+  );
+  // A whole week on screen pages week by week; a zoomed week glides and
+  // settles on a day boundary.
+  const pageByViewport = scrollable && visibleColumns === 7;
   const initialX = Math.min(Math.max((strip?.initialColumn ?? 0) * columnWidth, 0), Math.max(contentW - viewportW, 0));
   useEffect(() => {
     if (columnWidth <= 0) return;
@@ -191,6 +237,7 @@ function TimeGridImpl({
       testID={testID}
       onLayout={onLayout}
       contentOffset={{ x: 0, y: initialScrollY }}
+      directionalLockEnabled
       contentContainerStyle={{ height: height + bottomInset }}
       showsVerticalScrollIndicator={false}
     >
@@ -217,19 +264,15 @@ function TimeGridImpl({
             showsHorizontalScrollIndicator={false}
             onScroll={onHScroll}
             scrollEventThrottle={16}
-            snapToInterval={scrollable ? columnWidth : undefined}
-            decelerationRate="fast"
+            pagingEnabled={pageByViewport}
+            snapToInterval={scrollable && !pageByViewport ? columnWidth : undefined}
+            decelerationRate={pageByViewport ? 'fast' : 'normal'}
+            directionalLockEnabled
             contentOffset={{ x: initialX, y: 0 }}
             testID={testID !== undefined ? `${testID}-strip` : undefined}
-            onScrollEndDrag={(e) => {
-              if (strip?.onEdge === undefined || !scrollable) return;
-              const x = e.nativeEvent.contentOffset.x;
-              if (x < -EDGE_PAGE_PX) strip.onEdge(-1);
-              else if (x > contentW - viewportW + EDGE_PAGE_PX) strip.onEdge(1);
-            }}
           >
             <Reanimated.View style={[{ width: contentW, height }, styles.stage, stretchStyle]}>
-              {Array.from({ length: columns }, (_, c) => (
+              {Array.from({ length: renderRange?.count ?? columns }, (_, i) => (renderRange?.from ?? 0) + i).map((c) => (
                 <View
                   key={`rule-${c}`}
                   pointerEvents="none"

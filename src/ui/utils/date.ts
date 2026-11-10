@@ -34,6 +34,15 @@ export function shiftIsoDate(iso: ISODate, deltaDays: number): ISODate {
   return `${yy}-${mm}-${dd}` as unknown as ISODate;
 }
 
+/** Whole days from `a` to `b` (b − a); calendar days, DST-immune. */
+export function daysBetweenIso(a: ISODate, b: ISODate): number {
+  const utc = (iso: ISODate): number => {
+    const s = iso as unknown as string;
+    return Date.UTC(Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8, 10)));
+  };
+  return Math.round((utc(b) - utc(a)) / 86_400_000);
+}
+
 /**
  * Shifts an ISO date by whole months, clamping the day to the target month's
  * length (Jan 31 + 1 month → Feb 28/29). Used by the month view's swipe.

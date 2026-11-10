@@ -44,6 +44,12 @@ interface Props {
   span?: number;
   /** Sideways scroll + pinch state shared with the screen (see TimeGridStrip). */
   strip?: TimeGridStrip;
+  /**
+   * Long strip: `days` is the rendered window, sitting at column `firstColumn`
+   * of a `totalColumns`-wide strip (the rest scrolls in as the window moves).
+   */
+  firstColumn?: number;
+  totalColumns?: number;
 }
 
 function WeekViewImpl({
@@ -60,6 +66,8 @@ function WeekViewImpl({
   onLongPressSlot,
   span = days.length,
   strip,
+  firstColumn = 0,
+  totalColumns = firstColumn + days.length,
 }: Props): React.ReactElement {
   const [width, setWidth] = useState(0);
   const onLayout = (e: LayoutChangeEvent): void => setWidth(e.nativeEvent.layout.width);
@@ -74,8 +82,8 @@ function WeekViewImpl({
     return { transform: [{ translateX: -x + fc * (1 - s) }, { scaleX: s }] };
   });
   const columnOfDate = useMemo(
-    () => new Map(days.map((d, i) => [d as unknown as string, i])),
-    [days],
+    () => new Map(days.map((d, i) => [d as unknown as string, firstColumn + i])),
+    [days, firstColumn],
   );
   const kidById = useMemo(() => new Map(kids.map((k) => [k.id, k])), [kids]);
   const everyone = useMemo<PersonKey[]>(() => [...kids.map((k) => k.id), 'guardian'], [kids]);
@@ -101,9 +109,10 @@ function WeekViewImpl({
     const out: AllDayItem[] = [];
     for (const occ of occurrences) {
       if (!occ.allDay) continue;
-      const column = columnOfDate.get(occ.date as unknown as string);
+      const abs = columnOfDate.get(occ.date as unknown as string);
       const kid = kidById.get(occ.childId);
-      if (column === undefined || kid === undefined) continue;
+      if (abs === undefined || kid === undefined) continue;
+      const column = abs - firstColumn; // AllDayRow indexes the window
       const p = getKidPalette(occ.colorIndex);
       const emphasis = emphasisOf(inactive, everyone, kid.id);
       out.push({
@@ -119,7 +128,7 @@ function WeekViewImpl({
       });
     }
     return out;
-  }, [occurrences, columnOfDate, kidById, inactive, everyone, onPressOccurrence]);
+  }, [occurrences, columnOfDate, kidById, inactive, everyone, onPressOccurrence, firstColumn]);
 
   const timed = occurrences.filter((o) => !o.allDay);
   const firstStart = timed.length > 0 ? Math.min(...timed.map((o) => o.startMinutes)) : null;
@@ -135,8 +144,9 @@ function WeekViewImpl({
       <View style={styles.header}>
         <View style={styles.headerViewport}>
           <Reanimated.View
-            style={[styles.headerStrip, { width: columnWidth * days.length }, followStyle]}
+            style={[styles.headerStrip, { width: columnWidth * totalColumns }, followStyle]}
           >
+            <View style={{ width: columnWidth * firstColumn }} />
             {days.map((date) => {
               const key = date as unknown as string;
               const wd = weekdayKo(date);
@@ -174,14 +184,16 @@ function WeekViewImpl({
         columns={days.length}
         items={allDayItems}
         columnWidth={columnWidth}
+        firstColumn={firstColumn}
         followStyle={followStyle}
       />
 
       <TimeGrid
         testID="week-view"
-        columns={days.length}
+        columns={totalColumns}
         visibleColumns={span}
         strip={strip}
+        renderRange={{ from: firstColumn, count: days.length }}
         hourHeight={HOUR_HEIGHT}
         nowMinutes={todayColumn !== null ? nowMinutes : null}
         todayColumn={todayColumn}
@@ -192,7 +204,7 @@ function WeekViewImpl({
           onLongPressSlot === undefined
             ? undefined
             : (column, minutes) => {
-                const date = days[column];
+                const date = days[column - firstColumn];
                 if (date !== undefined) onLongPressSlot(date, minutes);
               }
         }

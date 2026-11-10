@@ -7,7 +7,7 @@ import {
   visibleWeekDays,
   weekSwipeDays,
 } from '../../../src/ui/calendar/calendar-layout';
-import { shiftIsoMonth } from '../../../src/ui/utils/date';
+import { daysBetweenIso, shiftIsoMonth } from '../../../src/ui/utils/date';
 
 const ISO = (s: string) => s as unknown as ISODate;
 const str = (d: ISODate) => d as unknown as string;
@@ -94,5 +94,13 @@ describe('showsInMonth', () => {
     expect(showsInMonth(occ('school'))).toBe(false);
     expect(showsInMonth(occ('academy'))).toBe(true);
     expect(showsInMonth(occ('other'))).toBe(true);
+  });
+});
+
+describe('daysBetweenIso', () => {
+  test('signed whole days, across months / DST-free', () => {
+    expect(daysBetweenIso(ISO('2026-11-08'), ISO('2026-11-10'))).toBe(2);
+    expect(daysBetweenIso(ISO('2026-11-10'), ISO('2026-10-31'))).toBe(-10);
+    expect(daysBetweenIso(ISO('2026-03-01'), ISO('2026-03-31'))).toBe(30);
   });
 });

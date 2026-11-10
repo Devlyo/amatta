@@ -7,12 +7,13 @@
 //   month → MonthView (chips, "+N"; pinch → 2-line chips with start time)
 //
 // One-finger horizontal swipe drags the page with the finger and pages by a
-// day / the visible days / a month. Pinching stretches the content live, then
+// day / a month; the week view is a native sideways-scrolling day strip
+// (pages by week at 7 days, glides day by day when zoomed). Pinching stretches the content live, then
 // snaps: week 7 → 4 → 3 → 2 days, month normal ↔ 2-line chips. Long press on an empty
 // slot (day/week) creates an event there. New events from anywhere else use
 // the dock's "+".
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -46,7 +47,14 @@ import { MonthView } from '../../src/ui/calendar/MonthView';
 import { useNowMinutes } from '../../src/ui/calendar/useNowMinutes';
 import { WeekView } from '../../src/ui/calendar/WeekView';
 import { TOKENS } from '../../src/ui/palette';
-import { shiftIsoDate, shiftIsoMonth, todayIso, weekdayKo } from '../../src/ui/utils/date';
+import {
+  daysBetweenIso,
+  shiftIsoDate,
+  shiftIsoMonth,
+  todayIso,
+  weekdayKo,
+  weekStartIso,
+} from '../../src/ui/utils/date';
 
 const ENABLED_VIEWS: readonly CalendarView[] = ['day', 'week', 'month'];
 const SWIPE_THRESHOLD = 60;
@@ -55,6 +63,16 @@ const PINCH_OUT = 0.87;
 const PAGE_MS = 160;
 /** Month cells: zoomed / normal height (MonthView) — the live stretch snaps to this. */
 const MONTH_ZOOM_RATIO = 136 / 104;
+/**
+ * The week view is one long native-scrolling day strip (weeks either side of
+ * the start), so dragging is plain iOS scrolling — no page swaps. Only a
+ * 3-week window around the visible week is rendered.
+ */
+const STRIP_HALF_WEEKS = 26;
+const STRIP_COLUMNS = (STRIP_HALF_WEEKS * 2 + 1) * 7;
+/** Re-centre the strip when the view gets this close (days) to either end. */
+const STRIP_MARGIN = 28;
+const stripOriginFor = (d: ISODate): ISODate => shiftIsoDate(weekStartIso(d), -STRIP_HALF_WEEKS * 7);
 
 function md(date: ISODate): { m: number; d: number } {
   const s = date as unknown as string;
@@ -90,24 +108,65 @@ export default function CalendarScreen(): React.ReactElement {
   const childrenById = useMemo(() => new Map(kids.map((k) => [k.id, k])), [kids]);
   const everyone = useMemo<PersonKey[]>(() => [...kids.map((k) => k.id), 'guardian'], [kids]);
 
-  // The week view always lays out the whole week (Sun..Sat); when zoomed to
-  // 4/3/2 days it scrolls sideways through it (ADR-007 §4).
+  // Title week (Sun..Sat of the current date).
   const weekDays = useMemo(() => visibleWeekDays(currentDate, 7), [currentDate]);
-  // Left edge of the sideways strip, as a (fractional) column, + a nonce so a
-  // repeat of the same value still re-positions the strip.
-  const [stripPos, setStripPos] = useState<{ col: number; n: number }>({ col: 0, n: 0 });
-  const anchorCol = Math.max(
-    0,
-    Math.min(
-      weekDays.findIndex((d) => (d as unknown as string) === dateKey),
-      7 - weekSpan,
-    ),
+  const weekStart = weekStartIso(currentDate);
+  // Long week strip: column 0 = stripOrigin (a Sunday). Rendered window = the
+  // current week ±1 week.
+  const [stripOrigin, setStripOrigin] = useState<ISODate>(() => stripOriginFor(currentDate));
+  const windowDays = useMemo(
+    () => Array.from({ length: 21 }, (_, i) => shiftIsoDate(weekStart, i - 7)),
+    [weekStart],
   );
+  const windowFirstColumn = daysBetweenIso(stripOrigin, windowDays[0] ?? weekStart);
+  // Left edge column of the strip + a nonce so the same value re-positions.
+  const leftColumnFor = (col: number, span: WeekSpan): number => (span === 7 ? col - (col % 7) : col);
+  const [stripPos, setStripPos] = useState<{ col: number; n: number }>(() => ({
+    col: leftColumnFor(daysBetweenIso(stripOrigin, currentDate), weekSpan),
+    n: 0,
+  }));
+  // Date the strip itself last scrolled to — such changes must not re-position it.
+  const scrolledDate = useRef<string | null>(null);
+  // Bumped on jumps only (not zoom / scroll), so the hours re-scroll to "now" then.
+  const [weekJump, setWeekJump] = useState(0);
+  const jumpStripTo = (date: ISODate, span: WeekSpan): void => {
+    let origin = stripOrigin;
+    let col = daysBetweenIso(origin, date);
+    if (col < STRIP_MARGIN || col > STRIP_COLUMNS - STRIP_MARGIN) {
+      origin = stripOriginFor(date);
+      setStripOrigin(origin);
+      col = daysBetweenIso(origin, date);
+    }
+    setStripPos((p) => ({ col: leftColumnFor(col, span), n: p.n + 1 }));
+    setWeekJump((n) => n + 1);
+  };
   useEffect(() => {
-    // Entering the week view / changing the week → start at the selected day.
-    setStripPos((p) => ({ col: anchorCol, n: p.n + 1 }));
+    // Entering the week view, or the date changed elsewhere (picker, day view)
+    // → show that day.
+    if (view !== 'week' || scrolledDate.current === dateKey) return;
+    jumpStripTo(currentDate, weekSpan);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, weekDays[0]]);
+  }, [view, dateKey]);
+  // Date for a strip column: whole week on screen → same weekday in that week;
+  // zoomed → the left-most visible day.
+  const dateAtColumn = (col: number, span: WeekSpan): ISODate =>
+    span === 7
+      ? shiftIsoDate(stripOrigin, col - (col % 7) + daysBetweenIso(weekStart, currentDate))
+      : shiftIsoDate(stripOrigin, col);
+  const onStripColumn = (col: number): void => {
+    const date = dateAtColumn(col, weekSpan);
+    scrolledDate.current = date as unknown as string;
+    if ((date as unknown as string) !== dateKey) setCurrentDate(date);
+    // Far from the start → re-centre (rare; months of scrolling).
+    if (col < STRIP_MARGIN || col > STRIP_COLUMNS - STRIP_MARGIN) {
+      const origin = stripOriginFor(date);
+      setStripOrigin(origin);
+      setStripPos((p) => ({ col: col - daysBetweenIso(stripOrigin, origin), n: p.n + 1 }));
+    }
+  };
+  const stripReport = useRef(onStripColumn);
+  stripReport.current = onStripColumn;
+  const reportStripColumn = useCallback((col: number) => stripReport.current(col), []);
   const monthDates = useMemo(() => monthGridDates(currentDate), [currentDate]);
 
   // Occurrences for exactly what the active view shows.
@@ -116,10 +175,10 @@ export default function CalendarScreen(): React.ReactElement {
       from: list[0] ?? currentDate,
       to: list[list.length - 1] ?? currentDate,
     });
-    if (view === 'week') return span(weekDays);
+    if (view === 'week') return span(windowDays);
     if (view === 'month') return span(monthDates);
     return { from: currentDate, to: currentDate };
-  }, [view, weekDays, monthDates, currentDate]);
+  }, [view, windowDays, monthDates, currentDate]);
   const occurrences = useMemo<Occurrence[]>(
     () => expandOccurrences(schedules, exceptions, range, childrenById),
     [schedules, exceptions, range, childrenById],
@@ -168,13 +227,10 @@ export default function CalendarScreen(): React.ReactElement {
   const commitWeekSpan = (span: WeekSpan, col: number): void => {
     setWeekSpan(span);
     setStripPos((p) => ({ col, n: p.n + 1 }));
+    const date = dateAtColumn(col, span);
+    scrolledDate.current = date as unknown as string;
+    if ((date as unknown as string) !== dateKey) setCurrentDate(date);
     stretch.value = 1;
-  };
-  // Dragged past either end of a zoomed week → previous / next week, landing
-  // on the matching edge so the scroll reads as continuous.
-  const pageWeek = (dir: -1 | 1): void => {
-    setCurrentDate(shiftIsoDate(currentDate, dir * 7));
-    setStripPos((p) => ({ col: dir > 0 ? 0 : 7 - weekSpan, n: p.n + 1 }));
   };
   const commitMonthZoom = (zoomed: boolean): void => {
     setMonthZoomed(zoomed);
@@ -191,7 +247,10 @@ export default function CalendarScreen(): React.ReactElement {
       const w = bodyW.value - TIME_GUTTER;
       const fScreen = focal.value - TIME_GUTTER;
       const fContent = fScreen + scrollX.value;
-      const col = fContent / (w / weekSpan) - fScreen / (w / next);
+      const focalCol = fContent / (w / weekSpan);
+      // Whole week → the week under the fingers; zoomed → nearest day edge.
+      const col =
+        next === 7 ? Math.floor(focalCol / 7) * 7 : Math.max(0, Math.round(focalCol - fScreen / (w / next)));
       stretch.value = withTiming(weekSpan / next, { duration: PAGE_MS }, (done) => {
         if (done) runOnJS(commitWeekSpan)(next, col);
       });
@@ -212,8 +271,8 @@ export default function CalendarScreen(): React.ReactElement {
   };
 
   const swipe = Gesture.Pan()
-    // A zoomed week scrolls sideways itself (paging happens at its ends).
-    .enabled(!(view === 'week' && weekSpan < 7))
+    // The week view scrolls sideways natively (see the strip).
+    .enabled(view !== 'week')
     .maxPointers(1)
     .activeOffsetX([-20, 20])
     .failOffsetY([-12, 12])
@@ -347,7 +406,9 @@ export default function CalendarScreen(): React.ReactElement {
               />
             ) : view === 'week' ? (
               <WeekView
-                days={weekDays}
+                days={windowDays}
+                firstColumn={windowFirstColumn}
+                totalColumns={STRIP_COLUMNS}
                 today={today}
                 kids={kids}
                 occurrences={occurrences}
@@ -360,10 +421,10 @@ export default function CalendarScreen(): React.ReactElement {
                   stretch,
                   focalX: focal,
                   initialColumn: stripPos.col,
-                  key: `${weekDays[0] as unknown as string}-${weekSpan}-${stripPos.n}`,
-                  onEdge: pageWeek,
+                  key: `${stripOrigin as unknown as string}-${weekSpan}-${stripPos.n}`,
+                  onVisibleColumn: reportStripColumn,
                 }}
-                scrollKey={`week-${weekDays[0] as unknown as string}`}
+                scrollKey={`week-${weekJump}`}
                 onPressOccurrence={openDetail}
                 onPressDay={openDay}
                 onLongPressSlot={(date, minutes) => createAt(date, minutes)}

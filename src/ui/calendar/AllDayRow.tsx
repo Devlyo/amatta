@@ -34,6 +34,8 @@ interface Props {
   items: readonly AllDayItem[];
   /** Fixed column width when the grid scrolls sideways (week view strip). */
   columnWidth?: number;
+  /** Strip column of the first rendered column (long strip window). */
+  firstColumn?: number;
   /** Animated style that keeps the row aligned with the scrolling strip. */
   followStyle?: StyleProp<AnimatedStyle<StyleProp<ViewStyle>>>;
 }
@@ -42,6 +44,7 @@ function AllDayRowImpl({
   columns,
   items,
   columnWidth,
+  firstColumn = 0,
   followStyle,
 }: Props): React.ReactElement | null {
   if (items.length === 0) return null;
@@ -56,10 +59,15 @@ function AllDayRowImpl({
         <Reanimated.View
           style={[
             styles.strip,
-            columnWidth !== undefined ? { width: columnWidth * columns } : styles.stripFill,
+            columnWidth !== undefined
+              ? { width: columnWidth * (firstColumn + columns) }
+              : styles.stripFill,
             followStyle,
           ]}
         >
+          {columnWidth !== undefined && firstColumn > 0 ? (
+            <View style={{ width: columnWidth * firstColumn }} />
+          ) : null}
           {byColumn.map((list, c) => {
             const { shown, more } = monthCellChips(list, MAX_PER_COLUMN);
             return (
