@@ -22,7 +22,7 @@
 // references are checked here before writing, deletes are explicit (no
 // CASCADE needed) and PRAGMA foreign_key_check runs before COMMIT.
 
-import { AVATAR_KEYS, colorIndexForAvatarKey, isAvatarKey } from '../domain/avatar';
+import { avatarKeyForColorIndex, colorIndexForAvatarKey, isAvatarKey, type AvatarKey } from '../domain/avatar';
 import { MAX_CHILDREN } from '../domain/constants';
 import type {
   ChecklistCompletion,
@@ -190,24 +190,30 @@ export function parseBackup(text: string): ParseResult {
 }
 
 function normalise(env: Obj, version: number): BackupData {
-  // ── children: ≤ 4, known + unique avatars; colour follows the avatar ──
+  // ── children: ≤ 4; colour follows the avatar (migration 004 rule) ──
+  // Avatars may repeat: migration 003 gave every existing kid 'face-wink', and
+  // the app runs fine with that — only the pickers avoid new duplicates.
+  // An unknown avatar falls back to the one paired with the stored colour.
   const children: Child[] = rows(env, 'children', true).map((r, i) => {
     const w = `children[${i}]`;
-    const avatar = str(r, 'avatar', w);
-    if (!isAvatarKey(avatar)) fail(`${w}.avatar: unknown`);
+    const rawAvatar = str(r, 'avatar', w);
+    const ci = int(r, 'colorIndex', w);
+    if (ci < 0 || ci > 5) fail(`${w}.colorIndex: out of range`);
+    const avatar: AvatarKey = isAvatarKey(rawAvatar)
+      ? rawAvatar
+      : avatarKeyForColorIndex(ci as Child['colorIndex']);
     const name = str(r, 'name', w).trim();
     if (name.length === 0) fail(`${w}.name: empty`);
     return {
       id: int(r, 'id', w),
       name,
-      avatar: avatar as (typeof AVATAR_KEYS)[number],
-      colorIndex: colorIndexForAvatarKey(avatar as (typeof AVATAR_KEYS)[number]),
+      avatar,
+      colorIndex: colorIndexForAvatarKey(avatar),
       createdAt: str(r, 'createdAt', w) as ISODate,
     };
   });
   if (children.length > MAX_CHILDREN) fail(`children: more than ${MAX_CHILDREN}`);
   const kidIds = uniqueIds(children, 'children');
-  if (new Set(children.map((c) => c.avatar)).size !== children.length) fail('children: duplicate avatar');
 
   // ── schedules ──
   const schedules: Schedule[] = rows(env, 'schedules', true).map((r, i) => {

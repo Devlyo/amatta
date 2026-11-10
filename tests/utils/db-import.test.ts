@@ -9,6 +9,7 @@ import { resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 import { runMigrations } from '../../src/db/migrations';
+import { seedDevData } from '../../src/db/seed-dev';
 import { exportDb, type ExportEnvelope } from '../../src/utils/db-export';
 import { importDb, parseBackup, type BackupData } from '../../src/utils/db-import';
 
@@ -265,15 +266,27 @@ describe('parseBackup — rules', () => {
     ).toBe('empty');
   });
 
-  test('more than 4 kids, duplicate or unknown avatar → invalid', async () => {
+  test('more than 4 kids → invalid; a repeated avatar is fine (pre-v3 kids all got face-wink)', async () => {
     const extra = (id: number, avatar: string) => ({ id, name: `k${id}`, colorIndex: 0, avatar, createdAt: '2026-01-01' });
     expect(
       await mutate((e) => {
         e.children.push(extra(8, 'face-cool'), extra(9, 'face-sleep'), extra(10, 'face-dizzy'));
       }),
     ).toBe('invalid');
-    expect(await mutate((e) => e.children.push(extra(8, 'face-wink')))).toBe('invalid');
-    expect(await mutate((e) => e.children.push(extra(8, 'face-happy')))).toBe('invalid');
+    expect(await mutate((e) => e.children.push(extra(8, 'face-wink')))).toBe('ok');
+  });
+
+  test('an unknown avatar falls back to the one paired with its colour', async () => {
+    const env = (await exportedFromSeed()) as unknown as Record<string, any>;
+    env.children[1].avatar = 'face-happy';
+    env.children[1].colorIndex = 2;
+    expect(ok(JSON.stringify(env)).children[1]).toMatchObject({ avatar: 'face-cool', colorIndex: 2 });
+  });
+
+  test('the dev seed (repeated avatars) exports and parses', async () => {
+    await seedDevData(db as never);
+    const r = parseBackup((await exportDb(db as never)).json);
+    expect(r.kind).toBe('ok');
   });
 
   test('colour is rewritten from the avatar', async () => {
