@@ -13,7 +13,6 @@
 
 import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
-import * as SystemUI from 'expo-system-ui';
 
 import type { ColorIndex } from '../domain/types';
 import { DARK_TOKENS, getKidPaletteFor, LIGHT_TOKENS, type KidPalette, type TokenName } from './palette';
@@ -60,6 +59,25 @@ export function themeFor(scheme: Scheme): Theme {
 
 const ThemeContext = createContext<Theme>(LIGHT_THEME);
 
+type SystemUIModule = typeof import('expo-system-ui');
+let systemUI: SystemUIModule | null | undefined;
+/**
+ * expo-system-ui, loaded on first use — a build without the native module
+ * (an older dev client) must still run; the root-window colour is then
+ * simply not set.
+ */
+function setRootBackground(color: string): void {
+  if (systemUI === undefined) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      systemUI = require('expo-system-ui') as SystemUIModule;
+    } catch {
+      systemUI = null;
+    }
+  }
+  void systemUI?.setBackgroundColorAsync(color).catch(() => undefined);
+}
+
 /** Follows the colour scheme the app runs in (OS setting, or the app's Appearance override). */
 export function AppThemeProvider({ children }: { children: ReactNode }): React.ReactElement {
   const scheme: Scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
@@ -67,7 +85,7 @@ export function AppThemeProvider({ children }: { children: ReactNode }): React.R
   useEffect(() => {
     // Root window behind sheets / keyboard transitions (and Android needs it
     // for userInterfaceStyle to apply at all).
-    void SystemUI.setBackgroundColorAsync(theme.t.groupedBg).catch(() => undefined);
+    setRootBackground(theme.t.groupedBg);
   }, [theme]);
   return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
 }
