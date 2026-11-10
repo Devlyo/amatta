@@ -10,19 +10,7 @@
 // slot too. The picker dispatches both fields together.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { getDb } from '../../src/db/client';
@@ -35,12 +23,10 @@ import {
 } from '../../src/domain/avatar';
 import type { Child } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
-import { FONT_FAMILIES } from '../../src/ui/fonts';
-import {
-  IconCheck,
-  IconChevronLeft,
-  IconChevronRight,
-} from '../../src/ui/icons';
+import { HomeSection } from '../../src/ui/home/HomeSection';
+import { IconCheck } from '../../src/ui/icons';
+import { FormActionRow, FormGroup, FormInputRow } from '../../src/ui/sheets/form-rows';
+import { SettingsDetailScreen, settingsStyles } from '../../src/ui/settings/SettingsChrome';
 import { AVATAR_IMAGE_BY_KEY } from '../../src/ui/assets';
 import { TOKENS } from '../../src/ui/palette';
 import { RADIUS } from '../../src/ui/radius';
@@ -136,374 +122,128 @@ export default function KidEditScreen(): React.ReactElement {
   }, [existing, removeChild, router]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <DetailTopBar
-        title={isNew ? '자녀 추가' : '자녀 편집'}
-        onBack={() => router.back()}
-        rightLabel="저장"
-        rightDisabled={!canSave}
-        onRight={() => void handleSave()}
-      />
-
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* ── Hero — large avatar preview.
-              Spec line 209-213: 140 white ring + AvatarPH size 108. */}
-          <View style={styles.heroWrap}>
-            <View style={styles.heroRing}>
-              <Image
-                source={AVATAR_IMAGE_BY_KEY[avatar]}
-                style={styles.heroImage}
-                resizeMode="contain"
-                accessibilityLabel={trimmedName.length > 0 ? trimmedName : '미리보기'}
-              />
-            </View>
-            <Text style={styles.heroEyebrow}>PREVIEW</Text>
-          </View>
-
-          {/* ── 이름 ────────────────────────────────────────────── */}
-          <SectionHeader label="이름" />
-          <View style={styles.card}>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="자녀 이름"
-              placeholderTextColor={TOKENS.inkSub}
-              maxLength={NAME_MAX}
-              style={styles.nameInput}
-              testID="kid-edit-name-input"
-              accessibilityLabel="자녀 이름 입력"
-            />
-          </View>
-
-          {/* ── 아바타 — 6 face-icon swatches (AVATAR_KEYS order).
-              Each tap dispatches setAvatar(); colorIndex is derived
-              from the AvatarKey at save-time so the 1:1 palette
-              mapping stays consistent.
-              Sibling-used avatars are disabled (palette is unique
-              per kid by extension). */}
-          <SectionHeader label="아바타" />
-          <View style={styles.cardTight}>
-            <View style={styles.colorGrid}>
-              {AVATAR_KEYS.map((k) => {
-                const active = k === avatar;
-                const takenByOther = children.some(
-                  (c) =>
-                    c.avatar === k &&
-                    (existing === undefined || c.id !== existing.id),
-                );
-                const disabled = takenByOther && !active;
-                return (
-                  <Pressable
-                    key={k}
-                    onPress={() => {
-                      if (disabled) return;
-                      setAvatar(k);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={k}
-                    accessibilityState={{ selected: active, disabled }}
-                    style={[
-                      styles.colorSwatch,
-                      active
-                        ? styles.colorSwatchActive
-                        : styles.colorSwatchIdle,
-                      disabled ? styles.colorSwatchDisabled : null,
-                    ]}
-                  >
-                    <Image
-                      source={AVATAR_IMAGE_BY_KEY[k]}
-                      style={styles.swatchImage}
-                      resizeMode="contain"
-                    />
-                    {active ? (
-                      <View style={styles.colorCheckChip}>
-                        <IconCheck size={11} color={TOKENS.surface} />
-                      </View>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* ── 삭제 (편집 모드일 때만).
-              Spec: DestructiveRow uses RowFrame padding 7/10 + RowText
-              (label + sub) + ChevR colored to A.danger. */}
-          {!isNew && existing !== undefined ? (
-            <>
-              <View style={styles.spacer16} />
-              <View style={styles.card}>
-                <Pressable
-                  onPress={handleDelete}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${existing.name} 삭제`}
-                  style={styles.destructiveRow}
-                >
-                  <View style={styles.destructiveText}>
-                    <Text style={styles.destructiveTitle}>
-                      {existing.name} 삭제
-                    </Text>
-                    <Text style={styles.destructiveSub}>
-                      이 자녀의 일정과 준비물도 모두 삭제돼요
-                    </Text>
-                  </View>
-                  <IconChevronRight size={16} color={TOKENS.danger} />
-                </Pressable>
-              </View>
-            </>
-          ) : null}
-
-          <View style={styles.bottomSpacer} />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-}
-
-// ───────────────────────────────────────────────────────────────────
-// Detail top bar — mirrors the one in /settings/kids. Kept local to
-// the route file until a shared variant is needed by a third screen.
-// ───────────────────────────────────────────────────────────────────
-function DetailTopBar({
-  title,
-  onBack,
-  rightLabel,
-  rightDisabled,
-  onRight,
-}: {
-  title: string;
-  onBack: () => void;
-  rightLabel?: string;
-  rightDisabled?: boolean;
-  onRight?: () => void;
-}): React.ReactElement {
-  return (
-    <View style={styles.topBar}>
-      <Pressable
-        onPress={onBack}
-        accessibilityRole="button"
-        accessibilityLabel="뒤로"
-        hitSlop={8}
-        style={styles.topBarBack}
-      >
-        <IconChevronLeft size={22} color={TOKENS.ink} />
-      </Pressable>
-      <Text style={styles.topBarTitle}>{title}</Text>
-      <View style={styles.topBarRight}>
-        {rightLabel !== undefined ? (
-          <Pressable
-            onPress={rightDisabled ? undefined : onRight}
-            disabled={rightDisabled}
-            accessibilityRole="button"
-            accessibilityLabel={rightLabel}
-            hitSlop={8}
-          >
-            <Text
-              style={[
-                styles.topBarRightLabel,
-                rightDisabled ? styles.topBarRightLabelDisabled : null,
-              ]}
-            >
-              {rightLabel}
-            </Text>
-          </Pressable>
-        ) : null}
+    <SettingsDetailScreen
+      title={isNew ? '자녀 추가' : '자녀 편집'}
+      onBack={() => router.back()}
+      rightLabel="저장"
+      rightDisabled={!canSave}
+      onRight={() => void handleSave()}
+      keyboardShouldPersistTaps="handled"
+    >
+      {/* Hero — large avatar preview. */}
+      <View style={styles.heroWrap}>
+        <View style={styles.heroRing}>
+          <Image
+            source={AVATAR_IMAGE_BY_KEY[avatar]}
+            style={styles.heroImage}
+            resizeMode="contain"
+            accessibilityLabel={trimmedName.length > 0 ? trimmedName : '미리보기'}
+          />
+        </View>
       </View>
-    </View>
-  );
-}
 
-function SectionHeader({ label }: { label: string }): React.ReactElement {
-  return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionHeaderText}>{label}</Text>
-    </View>
+      <HomeSection title="이름">
+        <FormInputRow
+          value={name}
+          onChangeText={setName}
+          placeholder="자녀 이름"
+          maxLength={NAME_MAX}
+          testID="kid-edit-name-input"
+          accessibilityLabel="자녀 이름 입력"
+          last
+        />
+      </HomeSection>
+
+      {/* 아바타 — 6 face swatches (AVATAR_KEYS order). The avatar picks the
+          palette too (1:1); avatars used by a sibling are disabled. */}
+      <HomeSection title="아바타">
+        <View style={styles.colorGrid}>
+          {AVATAR_KEYS.map((k) => {
+            const active = k === avatar;
+            const takenByOther = children.some(
+              (c) => c.avatar === k && (existing === undefined || c.id !== existing.id),
+            );
+            const disabled = takenByOther && !active;
+            return (
+              <Pressable
+                key={k}
+                onPress={() => {
+                  if (disabled) return;
+                  setAvatar(k);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={k}
+                accessibilityState={{ selected: active, disabled }}
+                style={[
+                  styles.colorSwatch,
+                  active ? styles.colorSwatchActive : styles.colorSwatchIdle,
+                  disabled ? styles.colorSwatchDisabled : null,
+                ]}
+              >
+                <Image source={AVATAR_IMAGE_BY_KEY[k]} style={styles.swatchImage} resizeMode="contain" />
+                {active ? (
+                  <View style={styles.colorCheckChip}>
+                    <IconCheck size={11} color={TOKENS.surface} />
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </HomeSection>
+
+      {/* 삭제 — edit mode only. */}
+      {!isNew && existing !== undefined ? (
+        <View style={settingsStyles.block}>
+          <FormGroup>
+            <FormActionRow label={`${existing.name} 삭제`} tone="danger" onPress={handleDelete} last />
+          </FormGroup>
+          <Text style={settingsStyles.footnote}>이 자녀의 일정과 준비물도 모두 삭제돼요.</Text>
+        </View>
+      ) : null}
+    </SettingsDetailScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: TOKENS.surfaceSoft },
-  flex: { flex: 1 },
-
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingTop: SPACING.xs,
-    paddingBottom: SPACING.sm,
-    backgroundColor: TOKENS.surfaceSoft,
-  },
-  topBarBack: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  topBarTitle: {
-    fontSize: 20,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.ink,
-    letterSpacing: -0.4,
-  },
-  topBarRight: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  topBarRightLabel: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.primary,
-    letterSpacing: -0.3,
-  },
-  topBarRightLabelDisabled: { color: TOKENS.ink30 },
-
-  scroll: { paddingHorizontal: 14, paddingBottom: SPACING.xxxl },
-
-  // --- Hero -----------------------------------------------------------
-  heroWrap: {
-    alignItems: 'center',
-    paddingTop: SPACING.xs,
-    paddingBottom: 10,
-  },
+  heroWrap: { alignItems: 'center', paddingTop: SPACING.sm },
   heroRing: {
-    width: 140,
-    height: 140,
+    width: 128,
+    height: 128,
     borderRadius: RADIUS.full,
     backgroundColor: TOKENS.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Spec: AvatarPH size=108 inside 140 ring.
-  heroImage: {
-    width: 108,
-    height: 108,
-  },
-  heroEyebrow: {
-    marginTop: SPACING.sm,
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.mono,
-    color: TOKENS.inkSub,
-    letterSpacing: 0.4,
-  },
-
-  // --- Section / Card -------------------------------------------------
-  // Spec: '14px 14px 6px'.
-  sectionHeader: {
-    paddingHorizontal: 14,
-    paddingTop: 14,
-    paddingBottom: 6,
-  },
-  sectionHeaderText: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.2,
-  },
-  card: {
-    backgroundColor: TOKENS.surface,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.xs,
-    marginBottom: SPACING.sm,
-    overflow: 'hidden',
-  },
-  // Tight variant — no bottom margin. Used by the 아바타 section so the
-  // grid stops flush with the trailing 삭제 card spacer above.
-  cardTight: {
-    backgroundColor: TOKENS.surface,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.xs,
-    marginBottom: 0,
-    overflow: 'hidden',
-  },
-
-  // --- Name input -----------------------------------------------------
-  nameInput: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
-    letterSpacing: -0.3,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-  },
-
-  // --- Avatar grid (spec: 4-col, gap 6, padding 4) ------------------
+  heroImage: { width: 100, height: 100 },
   colorGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    padding: SPACING.xs,
+    justifyContent: 'space-between',
+    rowGap: SPACING.md,
+    padding: SPACING.lg,
   },
-  // 3-per-row (user override of the spec's 4-col grid — fits the 6
-  // palette slots exactly in 2 rows of 3 without trailing empty cells).
-  // Cell padding '14px 0', borderRadius 14 retained from spec.
   colorSwatch: {
-    flexBasis: '31%',
-    flexGrow: 1,
-    borderRadius: 14,
+    width: 88,
+    height: 88,
+    borderRadius: RADIUS.box,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-  },
-  colorSwatchIdle: {
-    backgroundColor: TOKENS.ink04,
-  },
-  colorSwatchActive: {
-    backgroundColor: TOKENS.surface,
     borderWidth: 2,
-    borderColor: TOKENS.ink,
   },
-  colorSwatchDisabled: {
-    opacity: 0.35,
-  },
-  // Spec line 266: AvatarPH size=56.
+  colorSwatchIdle: { borderColor: 'transparent', backgroundColor: TOKENS.groupedBg },
+  colorSwatchActive: { borderColor: TOKENS.ink, backgroundColor: TOKENS.groupedBg },
+  colorSwatchDisabled: { opacity: 0.3 },
   swatchImage: { width: 56, height: 56 },
   colorCheckChip: {
     position: 'absolute',
     top: 6,
     right: 6,
-    width: 18,
-    height: 18,
+    width: 20,
+    height: 20,
     borderRadius: RADIUS.full,
     backgroundColor: TOKENS.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // --- Destructive row ------------------------------------------------
-  // Spec: RowFrame padding '7px 10px' borderRadius 12 + ChevR colored danger.
-  spacer16: { height: 16 },
-  destructiveRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: RADIUS.md,
-  },
-  destructiveText: { flex: 1, minWidth: 0 },
-  destructiveTitle: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.danger,
-    letterSpacing: -0.3,
-    lineHeight: 18,
-  },
-  destructiveSub: {
-    marginTop: SPACING.xxs,
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.1,
-    lineHeight: 16,
-  },
-
-  bottomSpacer: { height: 32 },
 });

@@ -1,44 +1,34 @@
-// Children CRUD — 1:1 port of docs/design/amatta-v1/app-settings-kids.jsx
-// KidsList screen.
+// 자녀 관리 — settings sub-screen in the shared settings style (ADR-007 §10).
 //
-// - List rows: palette-tinted avatar + name → tap routes to /settings/kid-edit
-//   (full-screen). Destruction lives inside the edit screen per spec; the
-//   inline 삭제 button is gone.
-// - "자녀 추가" card pinned beneath the list, hidden at the 4-kid cap.
-// - Cap belt: tapping the disabled add area reveals a "최대 N명까지" message.
-//   The hard cap also lives in src/db/repositories/children.ts (ChildCapError).
+// - One row per kid (avatar + name ›) → /settings/kid-edit; deleting lives
+//   inside the edit screen.
+// - "자녀 추가" row like the form's 준비물 추가 (red add-circle); at the cap it
+//   turns grey and tapping it explains the limit. The hard cap also lives in
+//   src/db/repositories/children.ts (ChildCapError).
 
 import { useCallback, useEffect, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 
 import { MAX_CHILDREN } from '../../src/domain/constants';
 import type { Child } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
 import { KidAvatar } from '../../src/ui/common/KidAvatar';
-import { FONT_FAMILIES } from '../../src/ui/fonts';
-import {
-  IconChevronLeft,
-  IconChevronRight,
-  IconPlus,
-} from '../../src/ui/icons';
-import { getKidPalette, TOKENS } from '../../src/ui/palette';
-import { RADIUS } from '../../src/ui/radius';
+import { HomeSection } from '../../src/ui/home/HomeSection';
+import { IconChevronRight } from '../../src/ui/icons';
+import { TOKENS } from '../../src/ui/palette';
 import { SPACING } from '../../src/ui/spacing';
+import { TYPE } from '../../src/ui/typography';
+import { SettingsDetailScreen, settingsStyles } from '../../src/ui/settings/SettingsChrome';
+
+// Kept for older imports; the shared bar lives in src/ui/settings.
+export { DetailTopBar } from '../../src/ui/settings/SettingsChrome';
 
 export default function KidsScreen(): React.ReactElement {
   const router = useRouter();
   const children = useChildrenStore((s) => s.children);
-
   const [capMessageVisible, setCapMessageVisible] = useState(false);
-
   const atCap = children.length >= MAX_CHILDREN;
 
   // The message auto-dismisses once a child is removed and we drop below cap.
@@ -54,346 +44,88 @@ export default function KidsScreen(): React.ReactElement {
     router.push('/settings/kid-edit');
   }, [atCap, router]);
 
-  const handleEditPress = useCallback((c: Child): void => {
-    router.push({
-      pathname: '/settings/kid-edit',
-      params: { id: String(c.id) },
-    });
-  }, [router]);
-
   const sortedChildren = [...children].sort((a, b) => a.id - b.id);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <DetailTopBar
-        title="자녀 관리"
-        onBack={() => router.back()}
-        rightLabel={atCap ? undefined : '추가'}
-        rightDisabled={atCap}
-        onRight={handleAddPress}
-      />
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <SectionHeader label={`총 ${sortedChildren.length}명 / ${MAX_CHILDREN}명`} />
-
-        <View style={styles.card}>
+    <SettingsDetailScreen
+      title="자녀 관리"
+      onBack={() => router.back()}
+      rightLabel={atCap ? undefined : '추가'}
+      onRight={handleAddPress}
+    >
+      <View style={settingsStyles.block}>
+        <HomeSection title="자녀" count={`${sortedChildren.length}/${MAX_CHILDREN}`}>
           {sortedChildren.length === 0 ? (
             <View style={styles.row}>
-              <Text style={styles.empty}>등록된 자녀가 없습니다.</Text>
+              <Text style={styles.empty}>등록된 자녀가 없어요</Text>
             </View>
           ) : (
-            sortedChildren.map((c, i) => (
+            sortedChildren.map((c) => (
               <View key={c.id}>
-                {i > 0 ? <View style={styles.divider} /> : null}
                 <KidRow
                   child={c}
-                  onEdit={() => handleEditPress(c)}
+                  onEdit={() => router.push({ pathname: '/settings/kid-edit', params: { id: String(c.id) } })}
                 />
+                <View style={styles.separator} />
               </View>
             ))
           )}
-        </View>
-
-        {!atCap ? (
           <Pressable
             onPress={handleAddPress}
             accessibilityRole="button"
             accessibilityLabel="자녀 추가하기"
-            accessibilityState={{ disabled: false }}
+            accessibilityState={{ disabled: atCap }}
             testID="add-child-button"
-            style={({ pressed }) => [
-              styles.addCard,
-              pressed ? styles.addCardPressed : null,
-            ]}
+            style={styles.row}
           >
-            <View style={styles.addAvatar}>
-              <IconPlus size={18} color={TOKENS.ink50} />
-            </View>
-            <View style={styles.rowText}>
-              <Text style={styles.rowLabel}>자녀 추가</Text>
-              <Text style={styles.rowSub}>새 자녀를 등록하고 색상을 지정하세요</Text>
-            </View>
-            <IconChevronRight size={16} color={TOKENS.ink30} />
+            <Ionicons name="add-circle" size={22} color={atCap ? TOKENS.ink30 : TOKENS.danger} />
+            <Text style={[styles.addLabel, atCap ? styles.addLabelDisabled : null]}>자녀 추가</Text>
           </Pressable>
-        ) : (
-          <Pressable
-            onPress={handleAddPress}
-            accessibilityRole="button"
-            accessibilityLabel="자녀 추가하기"
-            accessibilityState={{ disabled: true }}
-            testID="add-child-button"
-            style={styles.addCardDisabled}
-          >
-            <View style={styles.addAvatarDisabled}>
-              <IconPlus size={18} color={TOKENS.ink30} />
-            </View>
-            <View style={styles.rowText}>
-              <Text style={[styles.rowLabel, styles.rowLabelDisabled]}>자녀 추가</Text>
-              <Text style={styles.rowSub}>최대 {MAX_CHILDREN}명까지 등록할 수 있어요</Text>
-            </View>
-          </Pressable>
-        )}
-
+        </HomeSection>
         {atCap && capMessageVisible ? (
-          <Text style={styles.capMessage} testID="cap-message">
+          <Text style={[settingsStyles.footnote, styles.capMessage]} testID="cap-message">
             최대 {MAX_CHILDREN}명까지 등록할 수 있습니다.
           </Text>
-        ) : null}
-
-        <View style={styles.bottomSpacer} />
-      </ScrollView>
-    </SafeAreaView>
+        ) : (
+          <Text style={settingsStyles.footnote}>
+            {atCap ? `최대 ${MAX_CHILDREN}명까지 등록할 수 있어요.` : '아이를 눌러 이름과 아바타를 바꿀 수 있어요.'}
+          </Text>
+        )}
+      </View>
+    </SettingsDetailScreen>
   );
 }
 
-// ── Building blocks ───────────────────────────────────────────────────────
-
-function KidRow({
-  child,
-  onEdit,
-}: {
-  child: Child;
-  onEdit: () => void;
-}): React.ReactElement {
-  // Inline 삭제 button removed — destruction lives inside the edit screen
-  // per docs/design/amatta-v1/app-settings-kids.jsx KidEdit's bottom
-  // destructive section. Tap the row → edit screen.
-  const palette = getKidPalette(child.colorIndex);
+function KidRow({ child, onEdit }: { child: Child; onEdit: () => void }): React.ReactElement {
   return (
     <Pressable
       onPress={onEdit}
       accessibilityRole="button"
       accessibilityLabel={`${child.name} 편집`}
-      style={({ pressed }) => [
-        styles.row,
-        pressed ? styles.rowPressed : null,
-      ]}
+      style={({ pressed }) => [styles.row, pressed ? styles.rowPressed : null]}
     >
-      <View
-        style={[styles.kidAvatar, { backgroundColor: palette.bg }]}
-      >
-        {/* Spec line 88: AvatarPH size=26 inside the 36 ring. */}
-        <KidAvatar child={child} size={26} />
-      </View>
-      <View style={styles.rowText}>
-        <Text style={styles.rowLabel}>{child.name}</Text>
-      </View>
-      <IconChevronRight size={16} color={TOKENS.ink30} />
+      <KidAvatar child={child} size={30} />
+      <Text style={styles.name}>{child.name}</Text>
+      <IconChevronRight size={14} color={TOKENS.ink30} />
     </Pressable>
   );
 }
 
-function SectionHeader({ label }: { label: string }): React.ReactElement {
-  return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionHeaderText}>{label}</Text>
-    </View>
-  );
-}
-
-export function DetailTopBar({
-  title,
-  onBack,
-  rightLabel,
-  rightDisabled,
-  onRight,
-}: {
-  title: string;
-  onBack: () => void;
-  rightLabel?: string;
-  rightDisabled?: boolean;
-  onRight?: () => void;
-}): React.ReactElement {
-  return (
-    <View style={styles.topBar}>
-      <Pressable
-        onPress={onBack}
-        accessibilityRole="button"
-        accessibilityLabel="뒤로"
-        hitSlop={8}
-        style={styles.topBarBack}
-      >
-        <IconChevronLeft size={22} color={TOKENS.ink} />
-      </Pressable>
-      <Text style={styles.topBarTitle}>{title}</Text>
-      <View style={styles.topBarRight}>
-        {rightLabel !== undefined ? (
-          <Pressable
-            onPress={rightDisabled ? undefined : onRight}
-            disabled={rightDisabled}
-            accessibilityRole="button"
-            accessibilityLabel={rightLabel}
-            hitSlop={8}
-          >
-            <Text
-              style={[
-                styles.topBarRightLabel,
-                rightDisabled ? styles.topBarRightLabelDisabled : null,
-              ]}
-            >
-              {rightLabel}
-            </Text>
-          </Pressable>
-        ) : null}
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: TOKENS.surfaceSoft },
-
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingTop: SPACING.xs,
-    paddingBottom: SPACING.sm,
-    backgroundColor: TOKENS.surfaceSoft,
-  },
-  topBarBack: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  topBarTitle: {
-    fontSize: 20,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.ink,
-    letterSpacing: -0.4,
-  },
-  topBarRight: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  topBarRightLabel: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.primary,
-    letterSpacing: -0.3,
-  },
-  topBarRightLabelDisabled: { color: TOKENS.ink30 },
-
-  scrollContent: { paddingHorizontal: 14, paddingBottom: SPACING.xxxl },
-
-  sectionHeader: {
-    paddingHorizontal: 14,
-    paddingTop: 14,
-    paddingBottom: 6,
-  },
-  sectionHeaderText: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.2,
-  },
-
-  card: {
-    backgroundColor: TOKENS.surface,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.xs,
-    marginBottom: SPACING.sm,
-    overflow: 'hidden',
-  },
-
-  divider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TOKENS.ink04,
-    marginHorizontal: 10,
-  },
-
+  // Form-row metrics (44pt+, 16 inset) so it reads like the other lists.
   row: {
+    minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderRadius: RADIUS.md,
+    paddingLeft: 16,
+    paddingRight: SPACING.md,
   },
   rowPressed: { backgroundColor: TOKENS.ink04 },
-
-  empty: { fontSize: 14, color: TOKENS.inkSub, paddingVertical: SPACING.md },
-
-  rowText: { flex: 1, minWidth: 0 },
-  rowLabel: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
-    letterSpacing: -0.3,
-    lineHeight: 18,
-  },
-  rowLabelDisabled: { color: TOKENS.ink50 },
-  rowSub: {
-    marginTop: SPACING.xxs,
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.1,
-    lineHeight: 16,
-  },
-
-  kidAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // backgroundColor overridden per-row to palette.bg.
-    backgroundColor: TOKENS.surfaceWarm,
-  },
-
-  addCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    marginTop: SPACING.sm,
-    backgroundColor: TOKENS.surface,
-    borderRadius: 18,
-  },
-  addCardPressed: { backgroundColor: TOKENS.surfaceWarm },
-  addCardDisabled: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    marginTop: SPACING.sm,
-    backgroundColor: TOKENS.surface,
-    borderRadius: 18,
-    opacity: 0.6,
-  },
-  addAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: TOKENS.ink30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addAvatarDisabled: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: TOKENS.ink12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  capMessage: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.danger,
-    textAlign: 'left',
-    marginTop: SPACING.sm,
-    letterSpacing: -0.2,
-  },
-
-  bottomSpacer: { height: 32 },
+  separator: { marginLeft: 16, height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.ink12 },
+  name: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
+  empty: { ...TYPE.row, color: TOKENS.inkSub, flex: 1 },
+  addLabel: { ...TYPE.row, color: TOKENS.danger, flex: 1 },
+  addLabelDisabled: { color: TOKENS.ink30 },
+  capMessage: { color: TOKENS.danger },
 });

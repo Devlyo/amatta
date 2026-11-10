@@ -140,12 +140,12 @@ export function FormValueRow({
   );
 }
 
-/** Label + native switch (iOS UISwitch). `onColor` = track colour when on. */
+/** Label + native switch (iOS UISwitch). On = the app's orange everywhere (owner, 2026-11-10). */
 export function FormToggleRow({
   label,
   value,
   onChange,
-  onColor = TOKENS.success,
+  onColor = TOKENS.primary,
   last = false,
 }: {
   label: string;

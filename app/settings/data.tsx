@@ -1,16 +1,8 @@
-// Data management screen — 1:1 port of docs/design/amatta-v1/app-settings-data.jsx
-// JsonExport. JSON import is disabled with a "v1.1 출시 예정" label.
+// 데이터 — JSON export, in the shared settings style (ADR-007 §10). JSON
+// import is a disabled "v1.1 출시 예정" row.
 
 import { useMemo, useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -20,13 +12,12 @@ import { useChildrenStore } from '../../src/state/children-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useTodosStore } from '../../src/state/todos-store';
 import { useChecklistStore } from '../../src/state/checklist-store';
-import { FONT_FAMILIES } from '../../src/ui/fonts';
+import { HomeSection } from '../../src/ui/home/HomeSection';
 import { TOKENS } from '../../src/ui/palette';
-import { RADIUS } from '../../src/ui/radius';
-import { SPACING } from '../../src/ui/spacing';
+import { TYPE } from '../../src/ui/typography';
+import { FormGroup, FormValueRow } from '../../src/ui/sheets/form-rows';
+import { SettingsDetailScreen, settingsStyles } from '../../src/ui/settings/SettingsChrome';
 import { exportDb } from '../../src/utils/db-export';
-
-import { DetailTopBar } from './kids';
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
@@ -89,39 +80,18 @@ export default function DataScreen(): React.ReactElement {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <DetailTopBar
-        title="데이터"
-        onBack={() => router.back()}
-      />
+    <SettingsDetailScreen title="데이터" onBack={() => router.back()}>
+      <View style={settingsStyles.block}>
+        <HomeSection title="내보낼 데이터">
+          <FormValueRow label="자녀" value={`${kidCount}명`} />
+          <FormValueRow label="일정" value={`${scheduleCount}건`} />
+          <FormValueRow label="준비물" value={`${checklistCount}건`} />
+          <FormValueRow label="할일" value={`${todoCount}건`} last />
+        </HomeSection>
+        <Text style={settingsStyles.footnote}>{filename} 파일로 저장돼요. 백업용으로 보관할 수 있어요.</Text>
+      </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Hero — file card */}
-        <View style={styles.hero}>
-          <FileIcon />
-          <View style={styles.heroText}>
-            <Text style={styles.heroFilename}>{filename}</Text>
-            <Text style={styles.heroMeta}>JSON · 백업</Text>
-          </View>
-        </View>
-
-        {/* 내보낼 정보 */}
-        <SectionHeader label="내보낼 정보" />
-        <View style={styles.card}>
-          <CountRow label="자녀" count={kidCount} unit="명" />
-          <Divider />
-          <CountRow label="일정" count={scheduleCount} unit="건" />
-          <Divider />
-          <CountRow label="준비물" count={checklistCount} unit="건" />
-          <Divider />
-          <CountRow label="할일" count={todoCount} unit="건" />
-        </View>
-
-        <Text style={styles.note}>
-          내보낸 JSON 파일은 백업용으로 보관할 수 있어요. 가져오기(복원)는 v1.1에서 지원돼요.
-        </Text>
-
-        {/* CTA — 내보내기 */}
+      <FormGroup>
         <Pressable
           onPress={() => void handleExport()}
           accessibilityRole="button"
@@ -129,258 +99,26 @@ export default function DataScreen(): React.ReactElement {
           accessibilityState={{ disabled: exporting }}
           disabled={exporting}
           testID="export-button"
-          style={({ pressed }) => [
-            styles.primaryCta,
-            pressed ? styles.primaryCtaPressed : null,
-            exporting ? styles.primaryCtaDisabled : null,
-          ]}
+          style={styles.exportRow}
         >
-          <Text style={styles.primaryCtaLabel}>
+          <Text style={[styles.exportLabel, exporting ? styles.exportLabelBusy : null]}>
             {exporting ? '내보내는 중...' : '내보내기'}
           </Text>
         </Pressable>
+      </FormGroup>
 
-        {/* Import — disabled placeholder */}
-        <SectionHeader label="가져오기" />
-        <View style={styles.card}>
-          <View style={[styles.row, styles.rowDisabled]}>
-            <View style={styles.rowText}>
-              <Text style={[styles.rowLabel, styles.rowLabelDisabled]}>
-                데이터 가져오기 (JSON)
-              </Text>
-              <Text style={styles.rowSub}>백업한 파일에서 복원</Text>
-            </View>
-            <View style={styles.badge}>
-              <Text style={styles.badgeLabel}>v1.1 출시 예정</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.bottomSpacer} />
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-function CountRow({
-  label,
-  count,
-  unit,
-}: {
-  label: string;
-  count: number;
-  unit: string;
-}): React.ReactElement {
-  return (
-    <View style={styles.row}>
-      <View style={styles.rowText}>
-        <Text style={styles.rowLabel}>{label}</Text>
+      <View style={settingsStyles.block}>
+        <HomeSection title="가져오기">
+          <FormValueRow label="데이터 가져오기 (JSON)" value="v1.1 출시 예정" last />
+        </HomeSection>
+        <Text style={settingsStyles.footnote}>백업한 파일에서 복원하는 기능은 v1.1에서 지원돼요.</Text>
       </View>
-      <View style={styles.countWrap}>
-        <Text style={styles.countValue}>{count}</Text>
-        <Text style={styles.countUnit}>{unit}</Text>
-      </View>
-    </View>
+    </SettingsDetailScreen>
   );
-}
-
-function FileIcon(): React.ReactElement {
-  return (
-    <View style={styles.fileIcon}>
-      <View style={styles.fileIconCorner} />
-      <View style={styles.fileIconLabel}>
-        <Text style={styles.fileIconLabelText}>JSON</Text>
-      </View>
-    </View>
-  );
-}
-
-function SectionHeader({ label }: { label: string }): React.ReactElement {
-  return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionHeaderText}>{label}</Text>
-    </View>
-  );
-}
-
-function Divider(): React.ReactElement {
-  return <View style={styles.divider} />;
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: TOKENS.surfaceSoft },
-
-  scrollContent: { paddingHorizontal: 14, paddingBottom: SPACING.xxxl },
-
-  hero: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: TOKENS.surface,
-    borderRadius: 18,
-    paddingHorizontal: 18,
-    paddingVertical: SPACING.xl,
-    marginTop: SPACING.xs,
-    marginBottom: SPACING.sm,
-  },
-  heroText: { flex: 1, minWidth: 0 },
-  heroFilename: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.mono,
-    color: TOKENS.ink,
-    letterSpacing: -0.2,
-  },
-  heroMeta: {
-    marginTop: SPACING.xs,
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.1,
-  },
-
-  fileIcon: {
-    width: 48,
-    height: 56,
-    borderRadius: RADIUS.xs,
-    borderWidth: 1.5,
-    borderColor: TOKENS.primary,
-    backgroundColor: TOKENS.surface,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-  },
-  fileIconCorner: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 14,
-    height: 14,
-    backgroundColor: TOKENS.primary,
-    borderBottomLeftRadius: 4,
-  },
-  fileIconLabel: {
-    backgroundColor: TOKENS.primary,
-    paddingVertical: 3,
-    alignItems: 'center',
-  },
-  fileIconLabelText: {
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.mono,
-    color: TOKENS.surface,
-    letterSpacing: 0.6,
-  },
-
-  sectionHeader: {
-    paddingHorizontal: 14,
-    paddingTop: 14,
-    paddingBottom: 6,
-  },
-  sectionHeaderText: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.2,
-  },
-
-  card: {
-    backgroundColor: TOKENS.surface,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.xs,
-    marginBottom: SPACING.sm,
-    overflow: 'hidden',
-  },
-
-  divider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TOKENS.ink04,
-    marginHorizontal: 10,
-  },
-
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderRadius: RADIUS.md,
-  },
-  rowDisabled: { opacity: 0.55 },
-
-  rowText: { flex: 1, minWidth: 0 },
-  rowLabel: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
-    letterSpacing: -0.3,
-    lineHeight: 18,
-  },
-  rowLabelDisabled: { color: TOKENS.ink50 },
-  rowSub: {
-    marginTop: SPACING.xxs,
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.1,
-    lineHeight: 16,
-  },
-
-  countWrap: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 3,
-  },
-  countValue: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.mono,
-    color: TOKENS.ink,
-    letterSpacing: -0.2,
-  },
-  countUnit: {
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-  },
-
-  note: {
-    paddingHorizontal: 6,
-    paddingVertical: 14,
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    lineHeight: 18,
-    letterSpacing: -0.2,
-  },
-
-  primaryCta: {
-    marginTop: SPACING.xs,
-    marginBottom: SPACING.lg,
-    paddingVertical: 14,
-    paddingHorizontal: SPACING.lg,
-    backgroundColor: TOKENS.primary,
-    borderRadius: RADIUS.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryCtaPressed: { backgroundColor: TOKENS.primaryDeep },
-  primaryCtaDisabled: { backgroundColor: TOKENS.ink12 },
-  primaryCtaLabel: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.surface,
-    letterSpacing: -0.3,
-  },
-
-  badge: {
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.sm,
-    backgroundColor: TOKENS.ink04,
-  },
-  badgeLabel: {
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.1,
-  },
-
-  bottomSpacer: { height: 32 },
+  exportRow: { minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  exportLabel: { ...TYPE.headline, color: TOKENS.danger },
+  exportLabelBusy: { color: TOKENS.ink30 },
 });

@@ -21,12 +21,12 @@ import {
   FormActionRow,
   FormGroup,
   FormOptionList,
-  FormSectionHeader,
   FormToggleRow,
   FormValueRow,
 } from '../../src/ui/sheets/form-rows';
 
-import { DetailTopBar } from './kids';
+import { HomeSection } from '../../src/ui/home/HomeSection';
+import { DetailTopBar, settingsStyles } from '../../src/ui/settings/SettingsChrome';
 
 export default function CalendarSettingsScreen(): React.ReactElement {
   const router = useRouter();
@@ -53,7 +53,8 @@ export default function CalendarSettingsScreen(): React.ReactElement {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <DetailTopBar title="캘린더 연동" onBack={() => router.back()} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={settingsStyles.content}>
+        <View style={settingsStyles.block}>
         <FormGroup>
           <FormToggleRow label="보호자 일정 보기" value={enabled} onChange={(v) => void onToggle(v)} last />
         </FormGroup>
@@ -61,6 +62,7 @@ export default function CalendarSettingsScreen(): React.ReactElement {
           아이폰 캘린더의 일정을 보호자 일정으로 함께 보여 줘요. 새 일정 화면에서 보호자를 고르면 아이폰
           캘린더에 저장돼요. 일정은 이 기기 밖으로 나가지 않아요.
         </Text>
+        </View>
 
         {permission === 'unavailable' ? (
           <View style={styles.block}>
@@ -86,8 +88,7 @@ export default function CalendarSettingsScreen(): React.ReactElement {
         {enabled && permission === 'granted' ? (
           <>
             <View style={styles.block}>
-              <FormSectionHeader label="표시할 캘린더" />
-              <FormGroup>
+              <HomeSection title="표시할 캘린더">
                 {calendars.length === 0 ? (
                   <View style={styles.notice}>
                     <Text style={styles.noticeText}>이 기기에 캘린더가 없어요.</Text>
@@ -123,13 +124,12 @@ export default function CalendarSettingsScreen(): React.ReactElement {
                     );
                   })
                 )}
-              </FormGroup>
+              </HomeSection>
             </View>
 
             {writable.length > 0 ? (
               <View style={styles.block}>
-                <FormSectionHeader label="보호자 일정 저장" />
-                <FormGroup>
+                <HomeSection title="보호자 일정 저장">
                   <FormValueRow
                     label="저장할 캘린더"
                     value={writeTarget?.title ?? '기본 캘린더'}
@@ -152,7 +152,7 @@ export default function CalendarSettingsScreen(): React.ReactElement {
                       }}
                     />
                   </FormValueRow>
-                </FormGroup>
+                </HomeSection>
               </View>
             ) : null}
           </>
@@ -164,8 +164,7 @@ export default function CalendarSettingsScreen(): React.ReactElement {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKENS.groupedBg },
-  content: { padding: SPACING.lg, gap: SPACING.sm, paddingBottom: SPACING.xxl },
-  block: { marginTop: SPACING.md },
+  block: {},
   footnote: { ...TYPE.footnote, color: TOKENS.inkSub, paddingHorizontal: SPACING.xs },
   notice: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md },
   noticeText: { ...TYPE.subhead, color: TOKENS.inkSub },
