@@ -35,6 +35,24 @@ export function shiftIsoDate(iso: ISODate, deltaDays: number): ISODate {
 }
 
 /**
+ * Shifts an ISO date by whole months, clamping the day to the target month's
+ * length (Jan 31 + 1 month → Feb 28/29). Used by the month view's swipe.
+ */
+export function shiftIsoMonth(iso: ISODate, deltaMonths: number): ISODate {
+  const s = iso as unknown as string;
+  const y = Number(s.slice(0, 4));
+  const m = Number(s.slice(5, 7)) - 1 + deltaMonths;
+  const d = Number(s.slice(8, 10));
+  const first = new Date(y, m, 1);
+  const lastDay = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  const date = new Date(first.getFullYear(), first.getMonth(), Math.min(d, lastDay));
+  const yy = String(date.getFullYear()).padStart(4, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}` as unknown as ISODate;
+}
+
+/**
  * Parses an `YYYY-MM-DD` ISO date into a `YYYYMMDD` integer — the shape used by
  * the `occurrence_date` columns on `schedule_pickup_log` and
  * `checklist_completion`, and by `checklist_items.occurrence_date`. Computed by

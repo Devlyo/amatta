@@ -43,6 +43,10 @@ interface UiState {
 
   calendarView: CalendarView;
   setCalendarView: (view: CalendarView) => void;
+  /** Pinch zoom per view (session only): week = 4 days, month = 2-line chips. */
+  weekZoomed: boolean;
+  monthZoomed: boolean;
+  setZoomed: (view: 'week' | 'month', zoomed: boolean) => void;
   /** People switched off in the filter (faded). Empty = everyone active. */
   inactivePeople: PersonKey[];
   /** Short tap on a filter pill. */
@@ -70,6 +74,9 @@ export const useUiStore = create<UiState>()((set) => ({
 
   calendarView: 'day',
   setCalendarView: (view) => set({ calendarView: view }),
+  weekZoomed: false,
+  monthZoomed: false,
+  setZoomed: (view, zoomed) => set(view === 'week' ? { weekZoomed: zoomed } : { monthZoomed: zoomed }),
   inactivePeople: [],
   togglePerson: (key) => set((s) => ({ inactivePeople: toggleActive(s.inactivePeople, key) })),
   soloPerson: (key, everyone) =>

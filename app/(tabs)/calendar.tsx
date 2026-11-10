@@ -2,11 +2,14 @@
 //
 //   CalendarTopBar   title + date picker · day/week/month · search
 //   KidFilterBar     kid + guardian pills (tap = on/off, long press = only)
-//   DateStrip        (day view) Sun..Sat of the selected week
-//   DayView          kid columns + guardian column on the shared TimeGrid
+//   day   → DateStrip + DayView (kid columns + guardian column)
+//   week  → WeekView (7 days; pinch → 4 days with times)
+//   month → MonthView (chips, "+N"; pinch → 2-line chips with start time)
 //
-// Phase 2: the day view only — week/month render disabled in the segment
-// until Phase 3. Swiping the grid left/right moves one day.
+// One-finger horizontal swipe moves by a day / a week (4 days zoomed) / a
+// month. Pinch out/in toggles the week/month zoom. Long press on an empty
+// slot (day/week) creates an event there. New events from anywhere else use
+// the dock's "+".
 
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -22,16 +25,29 @@ import { useChildrenStore } from '../../src/state/children-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useUiStore, type CalendarView, type PersonKey } from '../../src/state/ui-store';
 import { CalendarTopBar } from '../../src/ui/calendar/CalendarTopBar';
+import {
+  monthGridDates,
+  visibleWeekDays,
+  weekSwipeDays,
+} from '../../src/ui/calendar/calendar-layout';
 import { DateStrip } from '../../src/ui/calendar/DateStrip';
 import { DayView } from '../../src/ui/calendar/DayView';
 import { KidFilterBar } from '../../src/ui/calendar/KidFilterBar';
+import { MonthView } from '../../src/ui/calendar/MonthView';
 import { useNowMinutes } from '../../src/ui/calendar/useNowMinutes';
+import { WeekView } from '../../src/ui/calendar/WeekView';
 import { TOKENS } from '../../src/ui/palette';
-import { shiftIsoDate, todayIso, weekdayKo } from '../../src/ui/utils/date';
+import { shiftIsoDate, shiftIsoMonth, todayIso, weekdayKo } from '../../src/ui/utils/date';
 
-/** Views available in this phase; week/month land in Phase 3. */
-const ENABLED_VIEWS: readonly CalendarView[] = ['day'];
+const ENABLED_VIEWS: readonly CalendarView[] = ['day', 'week', 'month'];
 const SWIPE_THRESHOLD = 60;
+const PINCH_IN = 1.15;
+const PINCH_OUT = 0.87;
+
+function md(date: ISODate): { m: number; d: number } {
+  const s = date as unknown as string;
+  return { m: Number(s.slice(5, 7)), d: Number(s.slice(8, 10)) };
+}
 
 export default function CalendarScreen(): React.ReactElement {
   const router = useRouter();
@@ -40,8 +56,11 @@ export default function CalendarScreen(): React.ReactElement {
   const exceptions = useSchedulesStore((s) => s.exceptions);
   const currentDate = useUiStore((s) => s.currentDate);
   const setCurrentDate = useUiStore((s) => s.setCurrentDate);
-  const calendarView = useUiStore((s) => s.calendarView);
+  const view = useUiStore((s) => s.calendarView);
   const setCalendarView = useUiStore((s) => s.setCalendarView);
+  const weekZoomed = useUiStore((s) => s.weekZoomed);
+  const monthZoomed = useUiStore((s) => s.monthZoomed);
+  const setZoomed = useUiStore((s) => s.setZoomed);
   const inactivePeople = useUiStore((s) => s.inactivePeople);
   const togglePerson = useUiStore((s) => s.togglePerson);
   const soloPerson = useUiStore((s) => s.soloPerson);
@@ -56,45 +75,89 @@ export default function CalendarScreen(): React.ReactElement {
     [children],
   );
   const childrenById = useMemo(() => new Map(kids.map((k) => [k.id, k])), [kids]);
+  const everyone = useMemo<PersonKey[]>(() => [...kids.map((k) => k.id), 'guardian'], [kids]);
 
+  const weekDays = useMemo(() => visibleWeekDays(currentDate, weekZoomed), [currentDate, weekZoomed]);
+  const monthDates = useMemo(() => monthGridDates(currentDate), [currentDate]);
+
+  // Occurrences for exactly what the active view shows.
+  const range = useMemo(() => {
+    const span = (list: readonly ISODate[]) => ({
+      from: list[0] ?? currentDate,
+      to: list[list.length - 1] ?? currentDate,
+    });
+    if (view === 'week') return span(weekDays);
+    if (view === 'month') return span(monthDates);
+    return { from: currentDate, to: currentDate };
+  }, [view, weekDays, monthDates, currentDate]);
   const occurrences = useMemo<Occurrence[]>(
-    () => expandOccurrences(schedules, exceptions, { from: currentDate, to: currentDate }, childrenById),
-    [schedules, exceptions, currentDate, childrenById],
+    () => expandOccurrences(schedules, exceptions, range, childrenById),
+    [schedules, exceptions, range, childrenById],
   );
 
-  const shiftDay = (dir: -1 | 1): void => setCurrentDate(shiftIsoDate(currentDate, dir));
+  const move = (dir: -1 | 1): void => {
+    if (view === 'day') setCurrentDate(shiftIsoDate(currentDate, dir));
+    else if (view === 'week') setCurrentDate(shiftIsoDate(currentDate, dir * weekSwipeDays(weekZoomed)));
+    else setCurrentDate(shiftIsoMonth(currentDate, dir));
+  };
   const swipe = Gesture.Pan()
     .runOnJS(true)
+    .maxPointers(1)
     .activeOffsetX([-20, 20])
     .failOffsetY([-12, 12])
     .onEnd((e) => {
-      if (e.translationX <= -SWIPE_THRESHOLD) shiftDay(1);
-      else if (e.translationX >= SWIPE_THRESHOLD) shiftDay(-1);
+      if (e.translationX <= -SWIPE_THRESHOLD) move(1);
+      else if (e.translationX >= SWIPE_THRESHOLD) move(-1);
     });
+  const pinch = Gesture.Pinch()
+    .runOnJS(true)
+    .enabled(view !== 'day')
+    .onEnd((e) => {
+      if (view === 'day') return;
+      if (e.scale >= PINCH_IN) setZoomed(view, true);
+      else if (e.scale <= PINCH_OUT) setZoomed(view, false);
+    });
+  const gestures = Gesture.Simultaneous(swipe, pinch);
 
-  const month = Number(dateKey.slice(5, 7));
-  const day = Number(dateKey.slice(8, 10));
-  const weekday = weekdayKo(currentDate);
-  const title = isToday ? '오늘' : `${month}월 ${day}일`;
-  const caption = isToday ? `${month}월 ${day}일 · ${weekday}` : weekday;
-  const holiday = weekday === '일' || isKoreanHoliday(currentDate);
+  // Title + caption per view.
+  let title: string;
+  let caption: string;
+  let holiday = false;
+  if (view === 'day') {
+    const { m, d } = md(currentDate);
+    const weekday = weekdayKo(currentDate);
+    title = isToday ? '오늘' : `${m}월 ${d}일`;
+    caption = isToday ? `${m}월 ${d}일 · ${weekday}` : weekday;
+    holiday = weekday === '일' || isKoreanHoliday(currentDate);
+  } else if (view === 'week') {
+    const first = md(weekDays[0] ?? currentDate);
+    const last = md(weekDays[weekDays.length - 1] ?? currentDate);
+    title = `${first.m}월`;
+    caption = first.m === last.m ? `${first.d}–${last.d}일` : `${first.d}일 – ${last.m}월 ${last.d}일`;
+  } else {
+    title = `${md(currentDate).m}월`;
+    caption = dateKey.slice(0, 4);
+  }
 
   const openDetail = (occ: Occurrence): void => {
     router.push({
       pathname: '/event/detail',
-      params: { scheduleId: String(occ.scheduleId), occurrenceDate: currentDate },
+      params: { scheduleId: String(occ.scheduleId), occurrenceDate: occ.date },
     });
   };
-
+  const openDay = (date: ISODate): void => {
+    setCurrentDate(date);
+    setCalendarView('day');
+  };
   // Long press on an empty slot → new event there (kid column → that kid
-  // pre-selected; the guardian column has no kid, so the form asks).
-  const createAt = (person: PersonKey, minutes: number): void => {
+  // pre-selected; guardian column / week view → the form asks for the kid).
+  const createAt = (date: ISODate, minutes: number, person?: PersonKey): void => {
     const params: Record<string, string> = {
       mode: 'create',
-      date: dateKey,
+      date: date as unknown as string,
       start: String(minutes),
     };
-    if (person !== 'guardian') params.childId = String(person);
+    if (person !== undefined && person !== 'guardian') params.childId = String(person);
     router.push({ pathname: '/schedule/edit', params });
   };
 
@@ -104,7 +167,7 @@ export default function CalendarScreen(): React.ReactElement {
         title={title}
         caption={caption}
         holiday={holiday}
-        view={calendarView}
+        view={view}
         enabledViews={ENABLED_VIEWS}
         onChangeView={setCalendarView}
         onPressTitle={() => router.push('/date-picker')}
@@ -114,20 +177,48 @@ export default function CalendarScreen(): React.ReactElement {
         kids={kids}
         inactive={inactivePeople}
         onToggle={togglePerson}
-        onSolo={(key) => soloPerson(key, [...kids.map((k) => k.id), 'guardian'])}
+        onSolo={(key) => soloPerson(key, everyone)}
       />
-      <DateStrip selected={currentDate} today={today} onSelect={(d: ISODate) => setCurrentDate(d)} />
-      <GestureDetector gesture={swipe}>
+      {view === 'day' ? (
+        <DateStrip selected={currentDate} today={today} onSelect={(d: ISODate) => setCurrentDate(d)} />
+      ) : null}
+      <GestureDetector gesture={gestures}>
         <View style={styles.body}>
-          <DayView
-            kids={kids}
-            occurrences={occurrences}
-            nowMinutes={isToday ? nowMinutes : null}
-            inactive={inactivePeople}
-            scrollKey={dateKey}
-            onPressOccurrence={openDetail}
-            onLongPressSlot={createAt}
-          />
+          {view === 'day' ? (
+            <DayView
+              kids={kids}
+              occurrences={occurrences}
+              nowMinutes={isToday ? nowMinutes : null}
+              inactive={inactivePeople}
+              scrollKey={`day-${dateKey}`}
+              onPressOccurrence={openDetail}
+              onLongPressSlot={(person, minutes) => createAt(currentDate, minutes, person)}
+            />
+          ) : view === 'week' ? (
+            <WeekView
+              days={weekDays}
+              today={today}
+              kids={kids}
+              occurrences={occurrences}
+              nowMinutes={nowMinutes}
+              inactive={inactivePeople}
+              zoomed={weekZoomed}
+              scrollKey={`week-${weekDays[0] as unknown as string}-${String(weekZoomed)}`}
+              onPressOccurrence={openDetail}
+              onPressDay={openDay}
+              onLongPressSlot={(date, minutes) => createAt(date, minutes)}
+            />
+          ) : (
+            <MonthView
+              anchor={currentDate}
+              today={today}
+              kids={kids}
+              occurrences={occurrences}
+              inactive={inactivePeople}
+              zoomed={monthZoomed}
+              onPressDay={openDay}
+            />
+          )}
         </View>
       </GestureDetector>
     </SafeAreaView>
