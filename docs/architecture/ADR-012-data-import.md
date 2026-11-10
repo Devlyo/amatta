@@ -1,6 +1,6 @@
 # ADR-012 — 데이터 가져오기 (v1.1): 백업 파일로 전부 바꾸기
 
-- **Status**: **Proposed** (2026-11-10) — 오너 "이제 데이터 가져오기 기능 v1.1 기능 넣자" → 방식 "전부 바꾸기", 입구 "설정 + 온보딩"
+- **Status**: **Accepted / 0–2단계 구현** (2026-11-10, 기기 확인 대기) — Architect·Critic 리뷰 반영(아래 *Review*). — 오너 "이제 데이터 가져오기 기능 v1.1 기능 넣자" → 방식 "전부 바꾸기", 입구 "설정 + 온보딩"
 - **Source**: 디자인 캔버스(비공개) https://claude.ai/artifact/7378YLCUUr4pMf7SgDfybx — 보드 `I1`–`I4`. 계획: `.omc/plans/ralplan-data-import.md`
 
 ## Context
@@ -22,3 +22,14 @@
 ## Consequences
 - 새 빌드가 있어야 가져오기를 쓸 수 있다.
 - 내보내기 쪽 `EXPORT_SCHEMA_VERSION`을 올릴 때는 가져오기 쪽 변환표도 같이 고쳐야 한다(테스트로 묶는다: 내보낸 파일을 다시 가져오면 똑같아야 한다).
+
+## Review (ralplan, 2026-11-10) — 반영 사항
+- **v3가 실제 주 입력**(v1.0.0이 schemaVersion 3을 냈음): v3에는 `appSettings`가 없고(→ `[]`), 준비물 소속 정보가 없고(→ NULL 앵커 + 매번, 파일의 `recurring:false`는 mapper 기본값이라 무시), 일정 v8 필드가 없다(→ allDay false, 종료 전 알림 NULL). v1–2는 `tooOld`, 아이 0명은 `empty`로 거절.
+- **배타 트랜잭션은 별도 연결** → `foreign_keys`가 꺼져 있고 BEGIN 안에서 켤 수 없다. 그래서 파일 안의 참조를 미리 검증하고, 지우기는 명시적으로 자식부터, COMMIT 전에 `PRAGMA foreign_key_check`.
+- `is_done/done_at`: **todos는 실제 데이터라 복원**. checklist_items의 FROZEN 값도 그대로 되써서 왕복이 정확히 같다(완료 기준은 여전히 `checklist_completion`).
+- 아이 규칙: 모르는 아바타·중복 아바타·5명 이상은 거절, 색은 아바타에서 다시 계산.
+- `app_settings`: 이 기기의 `guardian_*`만 남기고 지운 뒤 파일 값을 넣는다(파일 안의 `guardian_*`는 무시).
+- **안전 사본**: 설정에서 가져올 때는 바꾸기 전 데이터를 `wemoa-before-restore.json`(앱 문서 폴더, 최신 1개)로 먼저 저장한다. 이 저장이 실패하면 가져오지 않는다.
+- 다시 읽기 순서: 알림 설정 → 화면 설정 → 데이터 6개 → 보호자 invalidate → UI(필터·시트) 초기화 → `rescheduleAll`.
+- 화면: 설정에서 성공하면 설정 스택을 닫고 홈으로, 환영 화면에서 성공하면 마무리 단계로 간다. 마무리의 알림·보호자 스위치는 저장된 값에서 시작한다(복원한 설정을 덮지 않게). 두 번 누르기 방지.
+- 파일: 문서 선택기 캐시 사본은 읽은 뒤 지운다. 5MB 넘으면 `unreadable`, 파일 이름이나 종류는 믿지 않고 내용만 검증한다.

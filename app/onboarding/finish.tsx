@@ -68,8 +68,9 @@ export default function OnbFinishScreen(): React.ReactElement {
   const styles = useStyles();
   const router = useRouter();
   const kids = useChildrenStore((s) => s.children);
-  const [notify, setNotify] = useState(true);
-  const [guardian, setGuardian] = useState(false);
+  // Start from what is stored — a restored backup brings its own 알림 choice.
+  const [notify, setNotify] = useState(() => useNotifSettingsStore.getState().systemEnabled);
+  const [guardian, setGuardian] = useState(() => useGuardianStore.getState().enabled);
   const [busy, setBusy] = useState(false);
 
   const start = async (): Promise<void> => {

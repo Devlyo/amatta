@@ -179,25 +179,18 @@ describe('data.tsx backup-promise consistency', () => {
     expect(result.envelope.todos).toHaveLength(dbTodoCount);
   });
 
-  test('export copy is export-only (restore placeholder must say v1.1)', () => {
-    // Guard the UX promise in data.tsx:
-    //   "백업한 파일에서 복원하는 기능은 v1.1에서 지원돼요."
-    // and the import badge:
-    //   "v1.1 출시 예정"
-    //
-    // This is a documentation/source test: we read the screen source and assert
-    // the key phrases are present so someone cannot silently change the copy to
-    // claim restore works now without updating this test.
-    const src = readFileSync(
-      resolve(__dirname, '../../app/settings/data.tsx'),
-      'utf8',
-    );
-    // The note below the export button must say restore comes in v1.1.
-    expect(src).toContain('v1.1에서 지원돼요');
-    // The import row must carry the "coming in v1.1" badge.
-    expect(src).toContain('v1.1 출시 예정');
-    // There must NOT be an active import handler wired up — the import section
-    // should be disabled/placeholder only.
-    expect(src).not.toContain('handleImport');
+  test('import is live: button + replace-everything warning, no v1.1 placeholder (ADR-012)', () => {
+    const src = readFileSync(resolve(__dirname, '../../app/settings/data.tsx'), 'utf8');
+    expect(src).toContain('파일에서 가져오기');
+    expect(src).toContain("restoreFromBackup('settings'");
+    expect(src).toContain('지금 데이터가 모두 그 파일 내용으로 바뀌어요');
+    expect(src).not.toContain('v1.1 출시 예정');
+    expect(src).not.toContain('v1.1에서 지원돼요');
+  });
+
+  test('welcome offers 백업 파일로 시작하기 (ADR-012)', () => {
+    const src = readFileSync(resolve(__dirname, '../../app/onboarding/welcome.tsx'), 'utf8');
+    expect(src).toContain('백업 파일로 시작하기');
+    expect(src).toContain("restoreFromBackup('welcome'");
   });
 });
