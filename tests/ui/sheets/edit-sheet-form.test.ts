@@ -8,6 +8,8 @@ import {
   formFromOccurrence,
   formFromSchedule,
   stepMinutes,
+  repeatSummary,
+  alertSummary,
   toggleDayMask,
   validate,
   type EditFormState,
@@ -101,12 +103,29 @@ describe('validate', () => {
     expect(r.errors.endMinutes).toBeDefined();
   });
 
-  test('fails when start is outside 06:00–23:30 range', () => {
+  test('accepts early-morning times on the 0–24 axis (ADR-007)', () => {
     const r = validate(
-      makeForm({ startMinutes: 5 * 60 }),
+      makeForm({ startMinutes: 5 * 60, endMinutes: 6 * 60 }),
       { requireChildId: true, requireDaysOfWeek: true },
     );
-    expect(r.errors.startMinutes).toBeDefined();
+    expect(r.errors.startMinutes).toBeUndefined();
+  });
+
+  test('fails when the end runs past midnight', () => {
+    const r = validate(
+      makeForm({ startMinutes: 23 * 60, endMinutes: 24 * 60 + 30 }),
+      { requireChildId: true, requireDaysOfWeek: true },
+    );
+    expect(r.errors.endMinutes).toBeDefined();
+  });
+
+  test('all-day skips the time checks', () => {
+    const r = validate(
+      makeForm({ allDay: true, startMinutes: 0, endMinutes: 0 }),
+      { requireChildId: true, requireDaysOfWeek: true },
+    );
+    expect(r.errors.startMinutes).toBeUndefined();
+    expect(r.errors.endMinutes).toBeUndefined();
   });
 
   test('fails when validFrom is empty', () => {
@@ -149,8 +168,8 @@ describe('stepMinutes', () => {
   test('-1 retreats by 30 min', () => {
     expect(stepMinutes(540, -1)).toBe(510);
   });
-  test('clamps below 06:00', () => {
-    expect(stepMinutes(6 * 60, -1)).toBe(6 * 60);
+  test('clamps below 00:00', () => {
+    expect(stepMinutes(0, -1)).toBe(0);
   });
   test('clamps above 24:00 (final allowed step is 23:30 → 24:00)', () => {
     expect(stepMinutes(24 * 60, 1)).toBe(24 * 60);
@@ -201,6 +220,9 @@ describe('formFromSchedule', () => {
       location: '학원 1관',
       notes: '책 가져갈 것',
       notifyMinutesBefore: 30,
+      needsPickup: undefined,
+      allDay: false,
+      notifyEndMinutesBefore: null,
     });
   });
 
@@ -235,5 +257,21 @@ describe('formFromSchedule', () => {
     expect(formFromOccurrence(sample, undefined)).toEqual(
       formFromSchedule(sample),
     );
+  });
+});
+
+describe('row summaries (ADR-007 §7)', () => {
+  test('repeatSummary', () => {
+    expect(repeatSummary(0)).toBe('안 함');
+    expect(repeatSummary(0b1111111)).toBe('매일');
+    expect(repeatSummary(0b0011111)).toBe('평일');
+    expect(repeatSummary(0b1100000)).toBe('주말');
+    expect(repeatSummary(0b0001010)).toBe('매주 화, 목');
+    expect(repeatSummary(0b1000001)).toBe('매주 일, 월');
+  });
+  test('alertSummary', () => {
+    expect(alertSummary(null)).toBe('없음');
+    expect(alertSummary(10)).toBe('10분 전');
+    expect(alertSummary(60)).toBe('1시간 전');
   });
 });

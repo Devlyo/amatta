@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { soloActive, toggleActive, type PersonKey } from '../domain/people-filter';
+import type { WeekSpan } from '../ui/calendar/calendar-layout';
 import type { ISODate } from '../domain/types';
 import { todayIso } from '../ui/utils/date';
 
@@ -8,6 +10,8 @@ export type EditSheetMode = 'closed' | 'create' | 'editAll' | 'editOccurrence';
 export interface EditSheetPreFill {
   childId?: number;
   date?: ISODate;
+  /** Start time (minutes from midnight) — set when created from a grid long press. */
+  startMinutes?: number;
 }
 
 export interface EditSheetState {
@@ -30,16 +34,29 @@ export interface EventDetailState {
 // local day and breaks isToday() comparisons. The canonical helper in
 // src/ui/utils/date.ts uses local-time getters and is the only source of
 // truth for "today" across the app.
+// ADR-007 §1–2: calendar view and the people filter.
+export type CalendarView = 'day' | 'week' | 'month';
+export type { PersonKey };
+
 interface UiState {
   currentDate: ISODate;
   setCurrentDate: (date: ISODate) => void;
-  selectedChildId: number | null;
-  setSelectedChildId: (id: number | null) => void;
 
-  // Return channel for the kid-switch route: the route writes the picked kid
-  // here, the host /child/[id] screen consumes it (router.setParams) + clears.
-  pendingKidId: number | null;
-  setPendingKidId: (id: number | null) => void;
+  calendarView: CalendarView;
+  setCalendarView: (view: CalendarView) => void;
+  /** Week view days on screen (pinch): 7 / 4 / 3 / 2. Session only. */
+  weekSpan: WeekSpan;
+  setWeekSpan: (span: WeekSpan) => void;
+  /** Month view pinch zoom (2-line chips). Session only. */
+  /** Month view week-row height (pinch zoom, MONTH_ROW_MIN…MAX). */
+  monthRowH: number;
+  setMonthRowH: (h: number) => void;
+  /** People switched off in the filter (faded). Empty = everyone active. */
+  inactivePeople: PersonKey[];
+  /** Short tap on a filter pill. */
+  togglePerson: (key: PersonKey) => void;
+  /** Long press on a filter pill: only that person (again → everyone). */
+  soloPerson: (key: PersonKey, everyone: readonly PersonKey[]) => void;
 
   editSheetState: EditSheetState;
   openEditSheet: (
@@ -53,30 +70,22 @@ interface UiState {
   openEventDetail: (input: { scheduleId: number; occurrenceDate: ISODate }) => void;
   closeEventDetail: () => void;
 
-  // Batch D — calendar + search drawers (worker-drawers)
-  calendarDrawerOpen: boolean;
-  openCalendar: () => void;
-  closeCalendar: () => void;
-  searchDrawerOpen: boolean;
-  openSearch: () => void;
-  closeSearch: () => void;
-
-  // 자녀 주간 화면의 kid-switch drawer
-  // (docs/design/amatta-v1/app-weekly-drawers.jsx KidDrawer).
-  kidSwitchDrawerOpen: boolean;
-  openKidSwitch: () => void;
-  closeKidSwitch: () => void;
 }
 
 export const useUiStore = create<UiState>()((set) => ({
   currentDate: todayIso(),
   setCurrentDate: (date) => set({ currentDate: date }),
 
-  selectedChildId: null,
-  setSelectedChildId: (id) => set({ selectedChildId: id }),
-
-  pendingKidId: null,
-  setPendingKidId: (id) => set({ pendingKidId: id }),
+  calendarView: 'day',
+  setCalendarView: (view) => set({ calendarView: view }),
+  weekSpan: 7,
+  setWeekSpan: (span) => set({ weekSpan: span }),
+  monthRowH: 104,
+  setMonthRowH: (h) => set({ monthRowH: h }),
+  inactivePeople: [],
+  togglePerson: (key) => set((s) => ({ inactivePeople: toggleActive(s.inactivePeople, key) })),
+  soloPerson: (key, everyone) =>
+    set((s) => ({ inactivePeople: soloActive(s.inactivePeople, key, everyone) })),
 
   editSheetState: { mode: 'closed' },
 
@@ -97,14 +106,4 @@ export const useUiStore = create<UiState>()((set) => ({
     set({ eventDetailState: { mode: 'open', scheduleId, occurrenceDate } }),
   closeEventDetail: () => set({ eventDetailState: { mode: 'closed' } }),
 
-  calendarDrawerOpen: false,
-  openCalendar: () => set({ calendarDrawerOpen: true }),
-  closeCalendar: () => set({ calendarDrawerOpen: false }),
-  searchDrawerOpen: false,
-  openSearch: () => set({ searchDrawerOpen: true }),
-  closeSearch: () => set({ searchDrawerOpen: false }),
-
-  kidSwitchDrawerOpen: false,
-  openKidSwitch: () => set({ kidSwitchDrawerOpen: true }),
-  closeKidSwitch: () => set({ kidSwitchDrawerOpen: false }),
 }));

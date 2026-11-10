@@ -22,7 +22,6 @@ import {
 import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
-import { SPACING } from '../spacing';
 import { PickupCard } from './PickupCard';
 import { computePickupCards } from './pickup-data';
 
@@ -104,14 +103,12 @@ export function PickupCarousel({
 }
 
 const styles = StyleSheet.create({
-  outer: {
-    paddingHorizontal: 14,
-    paddingTop: 6,
-    paddingBottom: SPACING.sm,
-  },
+  // Full width of the home content column (the screen supplies the side
+  // padding), same as the grouped boxes below it.
+  outer: {},
   viewport: {
     overflow: 'hidden',
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.box,
     position: 'relative',
   },
   slide: {

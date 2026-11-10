@@ -1,5 +1,5 @@
 // Design-system primitives barrel.
-//   import { Text, Button, Card, Input, Fab, Pill, Badge } from '../components';
+//   import { Text, Button, Card, Input, Pill, Badge } from '../components';
 export { Text } from './Text';
 export type { TextProps } from './Text';
 export { Button } from './Button';
@@ -8,8 +8,6 @@ export { Card } from './Card';
 export type { CardProps, CardVariant } from './Card';
 export { Input } from './Input';
 export type { InputProps, InputSize } from './Input';
-export { Fab } from './Fab';
-export type { FabProps } from './Fab';
 export { Pill } from './Pill';
 export type { PillProps, PillVariant, PillSize } from './Pill';
 export { Badge } from './Badge';

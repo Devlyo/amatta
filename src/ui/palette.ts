@@ -3,20 +3,26 @@
 import type { ColorIndex } from '../domain/types';
 
 export interface KidPalette {
-  source: string; // saturated hex — dot, border, ring
+  source: string; // saturated hex — dot, border, ring; ADR-007 block fill (with alpha)
   bg: string;     // block background — color-mix(in srgb, source 15%, #FFFFFF)
+  // ADR-007: darker tone of the same hue — time-block side bar (1.5px), kid
+  // filter pill border, color dots. Must stay readable on white and on the
+  // 60% source fill.
+  deep: string;
 }
 
 // Pre-computed 6×2 table from docs/design/README.md §3.
 // Out-of-range indices throw — `colorIndex` is constrained to `ColorIndex`
 // (0..5) at the type system level, so this only fires on cast/runtime drift.
+// `deep` for 0/4/5 is the value signed off on the ADR-007 design canvas; 1/2/3
+// are provisional (ADR-007 OQ4) — same rule, confirm on device.
 const KID_PALETTE: readonly KidPalette[] = [
-  { source: '#FFA9FF', bg: '#FFF2FF' }, // 0 Petunia Pink
-  { source: '#C0F0AA', bg: '#F6FDF2' }, // 1 Vibrant Mint
-  { source: '#D8E6FF', bg: '#F9FBFF' }, // 2 Glacier Blue
-  { source: '#FFE8D2', bg: '#FFFCF8' }, // 3 Soft Peach
-  { source: '#E0E446', bg: '#FAFBE3' }, // 4 Citrus Green
-  { source: '#C7B0FF', bg: '#F7F3FF' }, // 5 French Lavender
+  { source: '#FFA9FF', bg: '#FFF2FF', deep: '#D957D9' }, // 0 Petunia Pink
+  { source: '#C0F0AA', bg: '#F6FDF2', deep: '#5E9E40' }, // 1 Vibrant Mint (provisional deep)
+  { source: '#D8E6FF', bg: '#F9FBFF', deep: '#6C8FD9' }, // 2 Glacier Blue (provisional deep)
+  { source: '#FFE8D2', bg: '#FFFCF8', deep: '#B87A40' }, // 3 Soft Peach (provisional deep)
+  { source: '#E0E446', bg: '#FAFBE3', deep: '#A8AD12' }, // 4 Citrus Green
+  { source: '#C7B0FF', bg: '#F7F3FF', deep: '#8E6BE8' }, // 5 French Lavender
 ] as const;
 
 export function getKidPalette(colorIndex: ColorIndex): KidPalette {
@@ -27,34 +33,18 @@ export function getKidPalette(colorIndex: ColorIndex): KidPalette {
   return entry;
 }
 
-// amatta-v1 (docs/design/amatta-v1/app-tokens.jsx) refers to palette slots by
-// named keys (peach/mint/sky/butter/citrus/lavender). Our domain uses the
-// numeric ColorIndex. These helpers bridge the two without breaking the
-// existing index-based API used by Phase 3/4 consumers.
-
-export type KidPaletteKey = 'peach' | 'mint' | 'sky' | 'butter' | 'citrus' | 'lavender';
-
-// Order matches the spec table (Petunia Pink = 0, Vibrant Mint = 1, …).
-const INDEX_TO_KEY: readonly KidPaletteKey[] = [
-  'peach',    // 0 Petunia Pink    #FFA9FF
-  'mint',     // 1 Vibrant Mint    #C0F0AA
-  'sky',      // 2 Glacier Blue    #D8E6FF
-  'butter',   // 3 Soft Peach      #FFE8D2
-  'citrus',   // 4 Citrus Green    #E0E446
-  'lavender', // 5 French Lavender #C7B0FF
-] as const;
-
-export function paletteKeyForIndex(i: ColorIndex): KidPaletteKey {
-  return INDEX_TO_KEY[i] ?? 'peach';
+/**
+ * ADR-007 alpha fill: a kid's (or the guardian's) `source` colour at `alpha`
+ * opacity, for time blocks (0.6), focused-kid blocks (0.8) and filter pills
+ * (0.25). Alpha is always applied to `source`, never composited onto `bg`.
+ */
+export function withAlpha(hex: string, alpha: number): string {
+  const n = Number.parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
 }
 
-export function indexForPaletteKey(k: KidPaletteKey): ColorIndex {
-  const idx = INDEX_TO_KEY.indexOf(k);
-  return (idx >= 0 ? idx : 0) as ColorIndex;
-}
-
-export function getKidPaletteByKey(k: KidPaletteKey): KidPalette {
-  return getKidPalette(indexForPaletteKey(k));
+export function kidFill(colorIndex: ColorIndex, alpha: number): string {
+  return withAlpha(getKidPalette(colorIndex).source, alpha);
 }
 
 // Brand + neutral tokens. Source of truth: docs/design/README.md §2.
@@ -75,14 +65,24 @@ export const TOKENS = {
 
   surface: '#FFFFFF',
   surfaceWarm: '#FAF8F2',
-  surfaceSoft: '#F7F6F5',
+  surfaceSoft: '#F7F6F5', // legacy settings background — folds into groupedBg (ADR-007 Phase 7)
+  // ADR-007 §7-1: shared background for system screens (settings, detail,
+  // pickers, new-event form) under white grouped boxes (RADIUS.box).
+  groupedBg: '#F2F1EF',
+  // ADR-007: Sunday text + the red "+" (new event) and form actions. Distinct
+  // from `danger` (#FF4444), which stays for destructive actions.
+  sunday: '#D93636',
+  // ADR-007 §9: guardian (iPhone Calendar) events — neutral grey pair, used
+  // like a kid palette entry (fill with alpha, deep for bars/borders).
+  guardian: '#E4E2DD',
+  guardianDeep: '#8E8A83',
 
   success: '#00C951',
   danger: '#FF4444',
   warningDot: '#FFB000',
 
   // Control surfaces — from the shipping new-schedule form (ScheduleEditSheet)
-  // + BottomDock. These near-neutral grays were inline literals; promoted to
+  // + the old BottomDock. These near-neutral grays were inline literals; promoted to
   // tokens so selectable chips / toggles / day-circles share one source.
   // NOTE: `controlActive` (#2A2A29) is a hair lighter than `ink` (#1D1D1B) —
   // the app uses BOTH as "near-black". Flagged for possible unification.

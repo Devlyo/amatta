@@ -1,5 +1,6 @@
 import {
   fmt12hrShort,
+  fmtRange,
   fmtKoTime,
   formatKoreanDateLabel,
   formatKoreanShortDate,
@@ -111,6 +112,24 @@ describe('fmt12hrShort', () => {
   });
   test('zero-pads single-digit minutes', () => {
     expect(fmt12hrShort(17 * 60 + 5)).toBe('5:05PM');
+  });
+  test('24:00 (end of day) → 12AM, not 12PM', () => {
+    expect(fmt12hrShort(24 * 60)).toBe('12AM');
+  });
+});
+
+describe('fmtRange (ADR-007 block label)', () => {
+  test('same meridiem → suffix once', () => {
+    expect(fmtRange(15 * 60, 16 * 60)).toBe('3–4PM');
+    expect(fmtRange(16 * 60, 17 * 60 + 30)).toBe('4–5:30PM');
+    expect(fmtRange(9 * 60, 10 * 60)).toBe('9–10AM');
+  });
+  test('crossing noon → suffix on both ends', () => {
+    expect(fmtRange(9 * 60, 14 * 60 + 30)).toBe('9AM–2:30PM');
+    expect(fmtRange(11 * 60, 12 * 60)).toBe('11AM–12PM');
+  });
+  test('all-day bounds 0–1440 → 12AM–12AM', () => {
+    expect(fmtRange(0, 24 * 60)).toBe('12–12AM');
   });
 });
 

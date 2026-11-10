@@ -22,6 +22,7 @@ export default function ScheduleEditRoute(): React.ReactElement {
     occurrenceDate?: string;
     childId?: string;
     date?: string;
+    start?: string;
   }>();
   const openEditSheet = useUiStore((s) => s.openEditSheet);
   const closeEditSheet = useUiStore((s) => s.closeEditSheet);
@@ -36,11 +37,12 @@ export default function ScheduleEditRoute(): React.ReactElement {
         preFill: {
           childId: params.childId !== undefined ? Number(params.childId) : undefined,
           date: params.date as ISODate | undefined,
+          startMinutes: params.start !== undefined ? Number(params.start) : undefined,
         },
       });
     },
     closeEditSheet,
-    [params.mode, params.scheduleId, params.occurrenceDate, params.childId, params.date],
+    [params.mode, params.scheduleId, params.occurrenceDate, params.childId, params.date, params.start],
   );
 
   const handleClose = useCallback(() => router.back(), [router]);
@@ -54,5 +56,5 @@ export default function ScheduleEditRoute(): React.ReactElement {
 
 const styles = StyleSheet.create({
   // Top padding so the header isn't flush against the modal's top edge.
-  root: { flex: 1, paddingTop: SPACING.xl, backgroundColor: TOKENS.surfaceWarm },
+  root: { flex: 1, paddingTop: SPACING.sm, backgroundColor: TOKENS.groupedBg },
 });

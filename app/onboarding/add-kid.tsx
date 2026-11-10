@@ -19,6 +19,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import {
+  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -104,8 +105,13 @@ export default function OnbAddKidScreen(): React.ReactElement {
       ...registered,
       { name: name.trim(), avatar },
     ];
-    await commitAll(drafts);
-    // Daily view is the home screen post-onboarding.
+    try {
+      await commitAll(drafts);
+    } catch (e) {
+      Alert.alert('자녀를 추가하지 못했어요', e instanceof Error ? e.message : String(e));
+      return;
+    }
+    // Home is the first screen post-onboarding.
     router.replace('/');
   }, [canSubmit, registered, name, avatar, commitAll, router]);
 
@@ -168,7 +174,7 @@ export default function OnbAddKidScreen(): React.ReactElement {
           </Text>
           <Text style={styles.sub}>
             {isFirst
-              ? '언제든 설정에서 추가할 수 있어요 (최대 4명).'
+              ? `언제든 설정에서 추가할 수 있어요 (최대 ${MAX_CHILDREN}명).`
               : '건너뛰고 나중에 추가할 수 있어요.'}
           </Text>
 

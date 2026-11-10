@@ -43,8 +43,10 @@ export function formatScheduleNotification(input: {
 }): { title: string; body: string } {
   const { schedule, startMinutes, endMinutes, kidName, pendingLabels } = input;
   const title = `${kidName} · ${schedule.title}`;
-  const timeRange = `${fmtKoTime(startMinutes)}–${fmtKoTime(endMinutes)}`;
-  const lead = `${timeRange} 일정이에요.`;
+  const lead =
+    schedule.allDay === true
+      ? '오늘 하루 종일 일정이에요.'
+      : `${fmtKoTime(startMinutes)}–${fmtKoTime(endMinutes)} 일정이에요.`;
 
   if (pendingLabels.length === 0) return { title, body: lead };
 
@@ -57,6 +59,20 @@ export function formatScheduleNotification(input: {
     prep = `${PREP_PREFIX}${items.slice(0, itemsRoom)}${ELLIPSIS}`;
   }
   return { title, body: `${lead} ${prep}` };
+}
+
+/**
+ * "Before end" push (ADR-007 §8) — same title as the start push, a one-line
+ * body with the end time. No prep list: by the end of an event the items are
+ * already packed or not.
+ */
+export function formatScheduleEndNotification(input: {
+  schedule: Schedule;
+  endMinutes: Minutes;
+  kidName: string;
+}): { title: string; body: string } {
+  const { schedule, endMinutes, kidName } = input;
+  return { title: `${kidName} · ${schedule.title}`, body: `${fmtKoTime(endMinutes)}에 끝나요.` };
 }
 
 /**

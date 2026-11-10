@@ -314,9 +314,15 @@ export function DetailBody({
           <Text style={styles.valueText}>{dateLabel}</Text>
         </DRow>
         <DRow label="시간">
-          <Text style={styles.valueText}>{fmtKoTime(display.startMinutes)}</Text>
-          <Text style={styles.valueDash}>–</Text>
-          <Text style={styles.valueText}>{fmtKoTime(display.endMinutes)}</Text>
+          {schedule.allDay === true ? (
+            <Text style={styles.valueText}>하루 종일</Text>
+          ) : (
+            <>
+              <Text style={styles.valueText}>{fmtKoTime(display.startMinutes)}</Text>
+              <Text style={styles.valueDash}>–</Text>
+              <Text style={styles.valueText}>{fmtKoTime(display.endMinutes)}</Text>
+            </>
+          )}
         </DRow>
         {hasRepeat ? (
           <DRow label="반복" align="top" hairline={false}>

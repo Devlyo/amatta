@@ -103,8 +103,10 @@ export function expandOccurrences(
 
       if (ex !== undefined) {
         if (ex.kind === 'cancel') continue;
-        if (ex.overrideStartMinutes !== null) startMinutes = ex.overrideStartMinutes;
-        if (ex.overrideEndMinutes !== null) endMinutes = ex.overrideEndMinutes;
+        // All-day events have no times to override (ADR-007 §8) — only the title.
+        const allDay = sch.allDay === true;
+        if (!allDay && ex.overrideStartMinutes !== null) startMinutes = ex.overrideStartMinutes;
+        if (!allDay && ex.overrideEndMinutes !== null) endMinutes = ex.overrideEndMinutes;
         if (ex.overrideTitle !== null) title = ex.overrideTitle;
       }
 
@@ -118,6 +120,7 @@ export function expandOccurrences(
         type: sch.type,
         colorIndex: child.colorIndex,
         needsPickup: sch.needsPickup,
+        allDay: sch.allDay === true,
       });
     }
   }

@@ -1,5 +1,6 @@
 import type { SQLiteDatabase, SQLiteBindValue } from 'expo-sqlite';
 
+import { MAX_CHILDREN } from '../../domain/constants';
 import type { Child, ColorIndex, ISODate } from '../../domain/types';
 import { avatarKeyForColorIndex } from '../../domain/avatar';
 import { rowToChild, type ChildRow } from '../row-mappers';
@@ -15,12 +16,10 @@ export type NewChild = Omit<Child, 'id' | 'createdAt' | 'avatar'> & {
 export class ChildCapError extends Error {
   readonly code = 'CHILD_CAP_EXCEEDED';
   constructor() {
-    super('최대 4명의 자녀만 등록할 수 있습니다.');
+    super(`최대 ${MAX_CHILDREN}명의 자녀만 등록할 수 있습니다.`);
     this.name = 'ChildCapError';
   }
 }
-
-const MAX_CHILDREN = 4;
 
 export async function getById(db: SQLiteDatabase, id: number): Promise<Child | null> {
   const row = await db.getFirstAsync<ChildRow>(

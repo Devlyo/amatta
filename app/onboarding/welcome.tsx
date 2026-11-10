@@ -11,7 +11,7 @@
 //     ships we approximate the blob with a View-shaped oval at #E0E446.
 //     The 'lime tray under the mascots' visual stays; the exact bezier
 //     dimples are deferred. Color literal #E0E446 matches NOW_YELLOW
-//     already used in src/ui/daily/ScheduleGrid.tsx.
+//     used by the time grids.
 
 import { memo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';

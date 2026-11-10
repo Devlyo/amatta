@@ -30,8 +30,13 @@ export interface Schedule {
   endMinutes: Minutes;
   validFrom: ISODate;
   validUntil: ISODate | null;
+  /** Alert N minutes before the START (null = none). */
   notifyMinutesBefore: number | null;
   needsPickup: boolean;
+  /** ADR-007 §8: all-day event — stored as start 0 / end 1440, shown off the time axis. */
+  allDay: boolean;
+  /** ADR-007 §8: alert N minutes before the END (null = none). */
+  notifyEndMinutesBefore: number | null;
 }
 
 export interface ScheduleException {
@@ -61,6 +66,8 @@ export interface Occurrence {
   type: ScheduleType;
   colorIndex: ColorIndex;
   needsPickup: boolean;
+  /** Copied from the schedule — all-day occurrences are drawn in the all-day row. */
+  allDay: boolean;
 }
 
 export interface ChecklistItem {

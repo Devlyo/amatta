@@ -14,11 +14,10 @@
 export {
   TOKENS,
   getKidPalette,
-  getKidPaletteByKey,
-  paletteKeyForIndex,
-  indexForPaletteKey,
+  kidFill,
+  withAlpha,
 } from './palette';
-export type { KidPalette, KidPaletteKey } from './palette';
+export type { KidPalette } from './palette';
 
 // Font families (src/ui/fonts.ts)
 export { FONT_FAMILIES } from './fonts';

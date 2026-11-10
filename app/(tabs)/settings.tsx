@@ -21,7 +21,7 @@ import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
 import { KidAvatar } from '../../src/ui/common/KidAvatar';
 import type { Child } from '../../src/domain/types';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
-import { IconChevronLeft, IconChevronRight } from '../../src/ui/icons';
+import { IconChevronRight } from '../../src/ui/icons';
 import { TOKENS } from '../../src/ui/palette';
 import { RADIUS } from '../../src/ui/radius';
 import { SPACING } from '../../src/ui/spacing';
@@ -78,15 +78,8 @@ export default function SettingsScreen(): React.ReactElement {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.topBar}>
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="뒤로"
-          hitSlop={8}
-          style={styles.topBarBack}
-        >
-          <IconChevronLeft size={22} color={TOKENS.ink} />
-        </Pressable>
+        {/* Settings is a tab now (ADR-007 dock) — no back button. */}
+        <View style={styles.topBarBack} />
         <Text style={styles.topBarTitle}>설정</Text>
         <View style={styles.topBarSide} />
       </View>
@@ -475,7 +468,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
 
-  scrollContent: { paddingHorizontal: 14, paddingBottom: SPACING.xxxl },
+  // Bottom clearance for the floating dock (tab bar).
+  scrollContent: { paddingHorizontal: 14, paddingBottom: 110 },
 
   sectionHeader: {
     paddingHorizontal: 14,

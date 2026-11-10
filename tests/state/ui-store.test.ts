@@ -9,7 +9,8 @@ describe('useUiStore', () => {
     // Reset store to defaults before each test
     useUiStore.setState({
       currentDate: new Date().toISOString().slice(0, 10) as ISODate,
-      selectedChildId: null,
+      calendarView: 'day',
+      inactivePeople: [],
       editSheetState: { mode: 'closed' },
     });
   });
@@ -21,8 +22,9 @@ describe('useUiStore', () => {
     expect(state.currentDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  test('selectedChildId defaults to null', () => {
-    expect(useUiStore.getState().selectedChildId).toBeNull();
+  test('calendar opens on the day view with everyone active', () => {
+    expect(useUiStore.getState().calendarView).toBe('day');
+    expect(useUiStore.getState().inactivePeople).toEqual([]);
   });
 
   test('editSheetState defaults to { mode: "closed" }', () => {
@@ -34,15 +36,21 @@ describe('useUiStore', () => {
     expect(useUiStore.getState().currentDate).toBe('2026-07-04');
   });
 
-  test('setSelectedChildId() updates selectedChildId', () => {
-    useUiStore.getState().setSelectedChildId(42);
-    expect(useUiStore.getState().selectedChildId).toBe(42);
+  test('togglePerson switches one person off and on; soloPerson keeps one', () => {
+    const { togglePerson, soloPerson } = useUiStore.getState();
+    togglePerson(42);
+    expect(useUiStore.getState().inactivePeople).toEqual([42]);
+    togglePerson(42);
+    expect(useUiStore.getState().inactivePeople).toEqual([]);
+    soloPerson('guardian', [42, 43, 'guardian']);
+    expect(useUiStore.getState().inactivePeople).toEqual([42, 43]);
+    soloPerson('guardian', [42, 43, 'guardian']);
+    expect(useUiStore.getState().inactivePeople).toEqual([]);
   });
 
-  test('setSelectedChildId(null) clears selectedChildId', () => {
-    useUiStore.getState().setSelectedChildId(42);
-    useUiStore.getState().setSelectedChildId(null);
-    expect(useUiStore.getState().selectedChildId).toBeNull();
+  test('setCalendarView switches the view', () => {
+    useUiStore.getState().setCalendarView('month');
+    expect(useUiStore.getState().calendarView).toBe('month');
   });
 
   test('openEditSheet("create") transitions to create mode', () => {

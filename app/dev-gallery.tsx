@@ -5,13 +5,13 @@ import { Stack } from 'expo-router';
 
 import { IconPlus } from '../src/ui/icons';
 
-import { TOKENS, SPACING, RADIUS, type TypeKey } from '../src/ui/theme';
+import type { ColorIndex } from '../src/domain/types';
+import { TOKENS, SPACING, RADIUS, getKidPalette, type TypeKey } from '../src/ui/theme';
 import {
   Text,
   Button,
   Card,
   Input,
-  Fab,
   Pill,
   Badge,
   SelectChip,
@@ -66,14 +66,11 @@ const KIND_OPTIONS: { id: 'school' | 'academy' | 'activity' | 'etc'; label: stri
 ];
 const DAYS_KR = ['일', '월', '화', '수', '목', '금', '토'];
 
-const KID_SWATCHES: { name: string; hex: string }[] = [
-  { name: 'Petunia', hex: '#FFA9FF' },
-  { name: 'Mint', hex: '#C0F0AA' },
-  { name: 'Glacier', hex: '#D8E6FF' },
-  { name: 'Peach', hex: '#FFE8D2' },
-  { name: 'Citrus', hex: '#E0E446' },
-  { name: 'Lavender', hex: '#C7B0FF' },
-];
+const KID_NAMES = ['Petunia', 'Mint', 'Glacier', 'Peach', 'Citrus', 'Lavender'] as const;
+const KID_SWATCHES: { name: string; hex: string; deep: string }[] = KID_NAMES.map((name, i) => {
+  const p = getKidPalette(i as ColorIndex);
+  return { name, hex: p.source, deep: p.deep };
+});
 
 const BRAND_SWATCHES: { name: string; hex: string }[] = [
   { name: 'primary', hex: TOKENS.primary },
@@ -83,6 +80,10 @@ const BRAND_SWATCHES: { name: string; hex: string }[] = [
   { name: 'inkSub', hex: TOKENS.inkSub },
   { name: 'hair', hex: TOKENS.hair },
   { name: 'surfaceWarm', hex: TOKENS.surfaceWarm },
+  { name: 'groupedBg', hex: TOKENS.groupedBg },
+  { name: 'sunday', hex: TOKENS.sunday },
+  { name: 'guardian', hex: TOKENS.guardian },
+  { name: 'guardianDeep', hex: TOKENS.guardianDeep },
   { name: 'success', hex: TOKENS.success },
   { name: 'danger', hex: TOKENS.danger },
   { name: 'warningDot', hex: TOKENS.warningDot },
@@ -136,7 +137,7 @@ export default function DevGallery(): React.ReactElement {
           <Row>
             {KID_SWATCHES.map((s) => (
               <View key={s.name} style={styles.swatchCell}>
-                <View style={[styles.swatch, { backgroundColor: s.hex }]} />
+                <View style={[styles.swatch, { backgroundColor: s.hex, borderLeftWidth: 4, borderLeftColor: s.deep }]} />
                 <Text variant="caption" color={TOKENS.inkSub}>
                   {s.name}
                 </Text>
@@ -246,13 +247,6 @@ export default function DevGallery(): React.ReactElement {
             <Badge dot tone={TOKENS.warningDot} />
             <Badge dot tone={TOKENS.success} />
           </Row>
-        </Section>
-
-        {/* ---- FAB ---- */}
-        <Section title="FAB (ink, not orange)">
-          <Fab onPress={() => {}}>
-            <IconPlus size={24} color={TOKENS.surface} />
-          </Fab>
         </Section>
 
         {/* ════ 새 일정 폼 컴포넌트 ════ */}

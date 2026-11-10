@@ -34,6 +34,33 @@ export function shiftIsoDate(iso: ISODate, deltaDays: number): ISODate {
   return `${yy}-${mm}-${dd}` as unknown as ISODate;
 }
 
+/** Whole days from `a` to `b` (b − a); calendar days, DST-immune. */
+export function daysBetweenIso(a: ISODate, b: ISODate): number {
+  const utc = (iso: ISODate): number => {
+    const s = iso as unknown as string;
+    return Date.UTC(Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8, 10)));
+  };
+  return Math.round((utc(b) - utc(a)) / 86_400_000);
+}
+
+/**
+ * Shifts an ISO date by whole months, clamping the day to the target month's
+ * length (Jan 31 + 1 month → Feb 28/29). Used by the month view's swipe.
+ */
+export function shiftIsoMonth(iso: ISODate, deltaMonths: number): ISODate {
+  const s = iso as unknown as string;
+  const y = Number(s.slice(0, 4));
+  const m = Number(s.slice(5, 7)) - 1 + deltaMonths;
+  const d = Number(s.slice(8, 10));
+  const first = new Date(y, m, 1);
+  const lastDay = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  const date = new Date(first.getFullYear(), first.getMonth(), Math.min(d, lastDay));
+  const yy = String(date.getFullYear()).padStart(4, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}` as unknown as ISODate;
+}
+
 /**
  * Parses an `YYYY-MM-DD` ISO date into a `YYYYMMDD` integer — the shape used by
  * the `occurrence_date` columns on `schedule_pickup_log` and
@@ -119,11 +146,29 @@ export function formatKoreanWeekRange(weekStart: ISODate): string {
  * strings) and omits ":00" — the prototype always printed it.
  */
 export function fmt12hrShort(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  const ap = h < 12 ? 'AM' : 'PM';
+  const { h12, m, ap } = split12(minutes);
   return m === 0 ? `${h12}${ap}` : `${h12}:${String(m).padStart(2, '0')}${ap}`;
+}
+
+// Hours wrap at 24 so an end of 1440 (midnight, next day) reads "12AM", not
+// "12PM" — the grid / all-day events end at 24:00.
+function split12(minutes: number): { h12: number; m: number; ap: 'AM' | 'PM' } {
+  const h = Math.floor(minutes / 60) % 24;
+  const m = minutes % 60;
+  return { h12: h % 12 === 0 ? 12 : h % 12, m, ap: h < 12 ? 'AM' : 'PM' };
+}
+
+/**
+ * ADR-007 time-block range: `3–4PM`, `4–5:30PM`, `9AM–2:30PM`, `11AM–12PM`.
+ * Minutes are dropped on the hour; the AM/PM suffix appears once at the end
+ * when both ends share it, otherwise on both ends.
+ */
+export function fmtRange(start: number, end: number): string {
+  const a = split12(start);
+  const b = split12(end);
+  const part = (p: { h12: number; m: number }): string =>
+    p.m === 0 ? String(p.h12) : `${p.h12}:${String(p.m).padStart(2, '0')}`;
+  return a.ap === b.ap ? `${part(a)}–${part(b)}${b.ap}` : `${part(a)}${a.ap}–${part(b)}${b.ap}`;
 }
 
 /**

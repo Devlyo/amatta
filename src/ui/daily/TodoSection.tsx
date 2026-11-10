@@ -10,6 +10,7 @@ import { IconCheck, IconPlus, IconTrash } from '../icons';
 import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
+import { TYPE } from '../typography';
 import { isDueOnDate } from '../utils/date';
 
 // Build a local-time epoch-ms anchor for the given calendar date at 12:00,
@@ -34,9 +35,15 @@ function SectionHeader({ label, done, total }: { label: string; done: number; to
   );
 }
 
-function TodoSectionImpl(): React.ReactElement {
+interface TodoSectionProps {
+  /** Date to show. Defaults to the calendar's `currentDate`; home passes today. */
+  date?: ISODate;
+}
+
+function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
   const todos = useTodosStore((s) => s.todos);
-  const currentDate = useUiStore((s) => s.currentDate);
+  const storeDate = useUiStore((s) => s.currentDate);
+  const currentDate = date ?? storeDate;
 
   // Todos are date-bound — only show the ones due on the day the daily view
   // is anchored to. A todo added on June 5 must not appear on June 6.
@@ -199,32 +206,21 @@ function TodoSectionImpl(): React.ReactElement {
 export const TodoSection = memo(TodoSectionImpl);
 
 const styles = StyleSheet.create({
+  // Matches HomeSection (home screen headings): headline + muted count,
+  // 6px above the box. These sections now live only on the home screen.
   header: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: SPACING.sm,
-    paddingTop: 14,
+    gap: 6,
     paddingHorizontal: SPACING.xs,
-    paddingBottom: SPACING.sm,
+    paddingBottom: 6,
   },
-  headerLabel: {
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: -0.4,
-    color: TOKENS.ink,
-  },
-  headerCount: {
-    fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 12,
-    fontWeight: '400',
-    color: TOKENS.inkSub,
-  },
+  headerLabel: { ...TYPE.headline, color: TOKENS.ink },
+  headerCount: { ...TYPE.subhead, color: TOKENS.inkSub },
   card: {
     backgroundColor: TOKENS.surface,
-    borderRadius: RADIUS.xl,
+    borderRadius: RADIUS.box,
     padding: 6,
-    marginBottom: SPACING.lg,
   },
   itemRow: {
     flexDirection: 'row',

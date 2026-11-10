@@ -100,10 +100,16 @@ export default function KidEditScreen(): React.ReactElement {
     if (!canSave) return;
     const db = await getDb();
     const colorIndex = colorIndexForAvatarKey(avatar);
-    if (existing === undefined) {
-      await addChild(db, { name: trimmedName, colorIndex, avatar });
-    } else {
-      await updateChild(db, existing.id, { name: trimmedName, colorIndex, avatar });
+    try {
+      if (existing === undefined) {
+        await addChild(db, { name: trimmedName, colorIndex, avatar });
+      } else {
+        await updateChild(db, existing.id, { name: trimmedName, colorIndex, avatar });
+      }
+    } catch (e) {
+      // e.g. ChildCapError — show it instead of an unhandled promise rejection.
+      Alert.alert('저장하지 못했어요', e instanceof Error ? e.message : String(e));
+      return;
     }
     router.back();
   }, [canSave, existing, addChild, updateChild, trimmedName, avatar, router]);

@@ -5,7 +5,7 @@
 //   (full-screen). Destruction lives inside the edit screen per spec; the
 //   inline 삭제 button is gone.
 // - "자녀 추가" card pinned beneath the list, hidden at the 4-kid cap.
-// - Cap belt: tapping the disabled add area reveals a "최대 4명까지" message.
+// - Cap belt: tapping the disabled add area reveals a "최대 N명까지" message.
 //   The hard cap also lives in src/db/repositories/children.ts (ChildCapError).
 
 import { useCallback, useEffect, useState } from 'react';
@@ -136,7 +136,7 @@ export default function KidsScreen(): React.ReactElement {
 
         {atCap && capMessageVisible ? (
           <Text style={styles.capMessage} testID="cap-message">
-            최대 4명까지 등록할 수 있습니다.
+            최대 {MAX_CHILDREN}명까지 등록할 수 있습니다.
           </Text>
         ) : null}
 

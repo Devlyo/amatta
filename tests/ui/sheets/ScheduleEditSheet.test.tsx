@@ -170,11 +170,12 @@ describe('EditSheet 준비물 ↻ pill — conditional render', () => {
       items: [mkItem({ recurring: true, occurrenceDate: null })],
       mode: 'editAll',
     });
-    const { queryByLabelText, getByLabelText } = render(
+    const { queryByLabelText, getByLabelText, getByTestId } = render(
       <ScheduleEditContent onClose={() => {}} />,
     );
     expect(queryByLabelText('매번 챙김 (탭하면 이번만)')).toBeTruthy();
-    // Toggle the one selected weekday (화/Tue) OFF → daysOfWeek === 0.
+    // Open the 반복 row, toggle the one selected weekday (화/Tue) OFF → daysOfWeek === 0.
+    fireEvent.press(getByTestId('row-repeat'));
     fireEvent.press(getByLabelText('요일 화'));
     expect(queryByLabelText('매번 챙김 (탭하면 이번만)')).toBeNull();
     expect(queryByLabelText('이번만 (탭하면 매번)')).toBeNull();
@@ -310,8 +311,9 @@ describe('EditSheet 준비물 — Decision C save normalization', () => {
       items: [mkItem({ id: 100, occurrenceDate: 20260602, recurring: false })],
       mode: 'editAll',
     });
-    const { getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
+    const { getByLabelText, getByTestId } = render(<ScheduleEditContent onClose={() => {}} />);
     // All weekdays off → one-time schedule → Decision C normalizes every row.
+    fireEvent.press(getByTestId('row-repeat'));
     fireEvent.press(getByLabelText('요일 화'));
     fireEvent.press(getByLabelText('저장'));
     await waitFor(() => expect(mocks.update).toHaveBeenCalled());
@@ -351,7 +353,9 @@ describe('EditSheet 준비물 — Decision C save normalization', () => {
       <ScheduleEditContent onClose={() => {}} />,
     );
     // Create requires childId + type + title; date comes from preFill.
+    fireEvent.press(getByTestId('row-kid'));
     fireEvent.press(getByLabelText('자녀: 민준'));
+    fireEvent.press(getByTestId('row-type'));
     fireEvent.press(getByLabelText('학원'));
     fireEvent.changeText(getByTestId('sheet-title-input'), '체험학습');
     // Add a 준비물 row (anchors to boundDateInt; pill hidden while one-time).
@@ -386,5 +390,59 @@ describe('EditSheet 준비물 — Decision C save normalization', () => {
       (c) => c[2]?.occurrenceDate === null,
     );
     expect(normalizedCall).toBeUndefined();
+  });
+});
+
+describe('EditSheet — iPhone-style form (ADR-007 §7–8)', () => {
+  test('rows summarise their values; time chips use "3:00 PM"', () => {
+    seedStores({ schedule: mkSchedule({ startMinutes: 15 * 60, endMinutes: 16 * 60 }), mode: 'editAll' });
+    const { getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
+    expect(getByLabelText('반복: 매주 화')).toBeTruthy();
+    expect(getByLabelText('시작 전 알림: 30분 전')).toBeTruthy();
+    expect(getByLabelText('종료 전 알림: 없음')).toBeTruthy();
+    expect(getByLabelText('시작 시간')).toBeTruthy();
+    expect(getByLabelText('끝 시간')).toBeTruthy();
+  });
+
+  test('하루 종일 hides times, end alert and pickup; saves allDay without pickup', async () => {
+    const mocks = seedStores({ schedule: mkSchedule({ needsPickup: true }), mode: 'editAll' });
+    const { getByLabelText, queryByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
+    fireEvent(getByLabelText('하루 종일'), 'valueChange', true);
+    expect(queryByLabelText('시작 시간')).toBeNull();
+    expect(queryByLabelText('끝 시간')).toBeNull();
+    expect(queryByLabelText(/종료 전 알림/)).toBeNull();
+    expect(queryByLabelText('픽업 필요')).toBeNull();
+    fireEvent.press(getByLabelText('저장'));
+    await waitFor(() => expect(mocks.updateSchedule).toHaveBeenCalled());
+    expect(mocks.updateSchedule).toHaveBeenCalledWith(
+      expect.anything(),
+      7,
+      expect.objectContaining({ allDay: true, needsPickup: false, notifyEndMinutesBefore: null }),
+    );
+  });
+
+  test('종료 전 알림 choice is saved', async () => {
+    const mocks = seedStores({ schedule: mkSchedule(), mode: 'editAll' });
+    const { getByLabelText, getByTestId } = render(<ScheduleEditContent onClose={() => {}} />);
+    fireEvent.press(getByTestId('row-alert-end'));
+    fireEvent.press(getByLabelText('10분 전'));
+    expect(getByLabelText('종료 전 알림: 10분 전')).toBeTruthy();
+    fireEvent.press(getByLabelText('저장'));
+    await waitFor(() => expect(mocks.updateSchedule).toHaveBeenCalled());
+    expect(mocks.updateSchedule).toHaveBeenCalledWith(
+      expect.anything(),
+      7,
+      expect.objectContaining({ allDay: false, notifyEndMinutesBefore: 10 }),
+    );
+  });
+
+  test('only one inline panel is open at a time', () => {
+    seedStores({ schedule: mkSchedule(), mode: 'editAll' });
+    const { getByTestId, queryByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
+    fireEvent.press(getByTestId('row-repeat'));
+    expect(queryByLabelText('요일 화')).toBeTruthy();
+    fireEvent.press(getByTestId('row-type'));
+    expect(queryByLabelText('요일 화')).toBeNull();
+    expect(queryByLabelText('학원')).toBeTruthy();
   });
 });

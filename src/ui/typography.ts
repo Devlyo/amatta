@@ -72,6 +72,57 @@ export const TYPE = {
     lineHeight: 15,
     letterSpacing: 0,
   },
+  // ── ADR-007 iOS-scale presets (system screens, grouped lists, event form).
+  // Older presets above stay until the Phase 7 sweep maps their call sites.
+  // Large title 30 / 700 — home "오늘"
+  largeTitle: {
+    fontFamily: FONT_FAMILIES.pretendardBold,
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -0.6,
+  },
+  // Headline 17 / 600 — nav bar title, section heading
+  headline: {
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: -0.3,
+  },
+  // Row 17 / 400 — grouped list row label / input
+  row: {
+    fontFamily: FONT_FAMILIES.pretendard,
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: -0.3,
+  },
+  // Subhead 15 / 400 — secondary row text, inline links
+  subhead: {
+    fontFamily: FONT_FAMILIES.pretendard,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: -0.2,
+  },
+  // Footnote 13 / 400 — section header, helper text
+  footnote: {
+    fontFamily: FONT_FAMILIES.pretendard,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: -0.2,
+  },
+  // Block title 13 / 600 — time block title (day view)
+  blockTitle: {
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    fontSize: 13,
+    lineHeight: 15,
+    letterSpacing: -0.3,
+  },
+  // Axis meridiem 9 / 500 — the small "AM"/"PM" after a time-axis hour label
+  axisMeridiem: {
+    fontFamily: FONT_FAMILIES.pretendardMedium,
+    fontSize: 9,
+    lineHeight: 12,
+    letterSpacing: 0,
+  },
   // Mono 12 / 400 / 1.00 / normal — grid time column
   mono: {
     fontFamily: FONT_FAMILIES.mono,

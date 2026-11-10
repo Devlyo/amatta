@@ -21,16 +21,7 @@ export const ELEVATION = {
     elevation: 0,
   },
 
-  // FAB (BottomDock center button): 0 4px 10px rgba(29,29,27,0.25), ink-tinted.
-  fab: {
-    shadowColor: TOKENS.ink,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-
-  // Floating pill bar (BottomDock wrapper): 0 10px 26px rgba(0,0,0,0.10).
+  // Floating pill bar (FloatingDock — the tab bar): 0 10px 26px rgba(0,0,0,0.10).
   dock: {
     shadowColor: TOKENS.shadow,
     shadowOffset: { width: 0, height: 10 },

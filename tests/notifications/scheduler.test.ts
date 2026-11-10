@@ -503,6 +503,81 @@ describe('PREP-RECUR 3.2f — per-occurrence checklist suppression (Option A)', 
 // overlap bug: stores fire rescheduleAll() un-awaited after every mutation, so
 // saving one schedule with N checklist rows launched N+1 concurrent runs whose
 // cancelAll/schedule calls interleaved → duplicate triggers in the OS queue.
+// ADR-007 §8 — "before end" alerts + all-day events.
+describe('end alerts + all-day (v8)', () => {
+  // Today 00:01 local → every occurrence of today is still in the future.
+  const base = new Date();
+  const now = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 0, 1, 0, 0);
+  const todayAt = (h: number, m = 0) =>
+    new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, m, 0, 0).getTime();
+  const firesToday = () =>
+    mockState.scheduled
+      .map((n) => ({
+        at: (n.trigger as { date: Date }).date.getTime(),
+        body: (n.content as { body: string }).body,
+      }))
+      .filter((n) => n.at < todayAt(24))
+      .sort((a, b) => a.at - b.at);
+
+  test('start + end alerts both fire, end body has no prep list', async () => {
+    mockState.fakeSchedules = [
+      makeSchedule({ id: 1, startMinutes: 15 * 60, endMinutes: 16 * 60, notifyMinutesBefore: 30, notifyEndMinutesBefore: 10 }),
+    ];
+    mockState.fakeChecklistBySchedule.set(1, [makeChecklistItem({ id: 9, label: '악보' })]);
+    await rescheduleAll(fakeDb, { now });
+    const today = firesToday();
+    expect(today.map((n) => n.at)).toEqual([todayAt(14, 30), todayAt(15, 50)]);
+    expect(today[0]?.body).toContain('악보');
+    expect(today[1]?.body).toContain('끝나요');
+    expect(today[1]?.body).not.toContain('악보');
+  });
+
+  test('end alert alone (no start alert) still schedules', async () => {
+    mockState.fakeSchedules = [
+      makeSchedule({ id: 1, notifyMinutesBefore: null, notifyEndMinutesBefore: 5 }),
+    ];
+    await rescheduleAll(fakeDb, { now });
+    expect(firesToday().map((n) => n.at)).toEqual([todayAt(15, 55)]);
+  });
+
+  test('both alerts null → nothing scheduled', async () => {
+    mockState.fakeSchedules = [makeSchedule({ notifyMinutesBefore: null, notifyEndMinutesBefore: null })];
+    await rescheduleAll(fakeDb, { now });
+    expect(mockState.scheduled).toHaveLength(0);
+  });
+
+  test('all-day: start alert counts back from 08:00, end alert ignored', async () => {
+    mockState.fakeSchedules = [
+      makeSchedule({ id: 1, allDay: true, startMinutes: 0, endMinutes: 1440, notifyMinutesBefore: 30, notifyEndMinutesBefore: 10 }),
+    ];
+    await rescheduleAll(fakeDb, { now });
+    const today = firesToday();
+    expect(today.map((n) => n.at)).toEqual([todayAt(7, 30)]);
+    expect(today[0]?.body).toContain('하루 종일');
+  });
+
+  test('end alerts count toward the 60 cap (soonest first)', async () => {
+    // 1 schedule every day for 14 days, start + end alert → ~28 candidates each;
+    // three such schedules → well over 60.
+    mockState.fakeSchedules = [1, 2, 3].map((id) =>
+      makeSchedule({ id, notifyMinutesBefore: 15, notifyEndMinutesBefore: 5 }),
+    );
+    await rescheduleAll(fakeDb, { now });
+    expect(mockState.scheduled).toHaveLength(MAX_SCHEDULED);
+    expect(useNotifSettingsStore.getState().lastScheduleTruncated).toBe(true);
+    const times = mockState.scheduled.map((n) => (n.trigger as { date: Date }).date.getTime());
+    expect([...times].sort((a, b) => a - b)).toEqual(times);
+  });
+
+  test('a burst of reschedules with end alerts leaves no duplicates (invariant 5)', async () => {
+    mockState.fakeSchedules = [makeSchedule({ notifyMinutesBefore: 30, notifyEndMinutesBefore: 10 })];
+    await rescheduleAll(fakeDb, { now });
+    const single = mockState.scheduled.length;
+    await Promise.all(Array.from({ length: 5 }, () => rescheduleAll(fakeDb, { now })));
+    expect(mockState.scheduled).toHaveLength(single);
+  });
+});
+
 describe('rescheduleAll — serialized + coalesced (invariant 5)', () => {
   const now = new Date('2026-06-01T08:00:00');
 

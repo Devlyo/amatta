@@ -13,7 +13,7 @@
 
 import { memo, type ComponentType } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 
 import type { ScheduleType } from '../domain/types';
 import { TOKENS } from './palette';
@@ -91,8 +91,63 @@ export const IconTrash = memo(function IconTrash({ size = 18, color = TOKENS.ink
   return <Ionicons name="trash-outline" size={size} color={color} />;
 });
 
+export const IconClock = memo(function IconClock({ size = 12, color = TOKENS.ink }: IconProps) {
+  return <Ionicons name="time-outline" size={size} color={color} />;
+});
+
 export const IconRepeat = memo(function IconRepeat({ size = 13, color = TOKENS.ink }: IconProps) {
   return <Ionicons name="repeat" size={size} color={color} />;
+});
+
+export const IconPerson = memo(function IconPerson({ size = 16, color = TOKENS.ink }: IconProps) {
+  return <Ionicons name="person" size={size} color={color} />;
+});
+
+// ── Calendar view switch (ADR-007 §1) — Google-Calendar-style glyphs ─────────
+// Stroke icons on a 24×24 canvas: day = one block between two rules, week =
+// columns, month = a grid.
+
+function ViewGlyph({ size, color, children }: IconProps & { children: React.ReactNode }) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {children}
+    </Svg>
+  );
+}
+
+export const IconViewDay = memo(function IconViewDay({ size = 20, color = TOKENS.ink }: IconProps) {
+  return (
+    <ViewGlyph size={size} color={color}>
+      <Rect x={3} y={5} width={18} height={14} rx={2} />
+    </ViewGlyph>
+  );
+});
+
+export const IconViewWeek = memo(function IconViewWeek({ size = 20, color = TOKENS.ink }: IconProps) {
+  return (
+    <ViewGlyph size={size} color={color}>
+      <Rect x={3} y={5} width={18} height={14} rx={2} />
+      <Path d="M7.5 5v14M12 5v14M16.5 5v14" />
+    </ViewGlyph>
+  );
+});
+
+export const IconViewMonth = memo(function IconViewMonth({ size = 20, color = TOKENS.ink }: IconProps) {
+  return (
+    <ViewGlyph size={size} color={color}>
+      <Rect x={3} y={5} width={18} height={14} rx={2} />
+      <Path d="M9 5v14M15 5v14M3 12h18" />
+    </ViewGlyph>
+  );
 });
 
 // ── amatta brand / nav icons ─────────────────────────────────────────────────

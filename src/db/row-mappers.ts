@@ -39,6 +39,8 @@ export interface ScheduleRow {
   valid_until: string | null;
   notify_minutes_before: number | null;
   needs_pickup: number;
+  all_day: number;
+  notify_end_minutes_before: number | null;
 }
 
 export interface ScheduleExceptionRow {
@@ -89,6 +91,8 @@ export function rowToSchedule(r: ScheduleRow): Schedule {
     validUntil: r.valid_until === null ? null : (r.valid_until as ISODate),
     notifyMinutesBefore: r.notify_minutes_before,
     needsPickup: r.needs_pickup === 1,
+    allDay: r.all_day === 1,
+    notifyEndMinutesBefore: r.notify_end_minutes_before ?? null,
   };
 }
 

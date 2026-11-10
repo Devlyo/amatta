@@ -95,6 +95,19 @@ function userVersion(db: DatabaseSync): number {
   return row?.user_version ?? -1;
 }
 
+/** Latest schema version (bump when a migration is added). */
+const LATEST = 8;
+
+/**
+ * Undo v8 (schedules.all_day + notify_end_minutes_before). Tests that peel a
+ * fully-migrated DB back to an older version must remove v8 first, because the
+ * forward run re-applies it and SQLite `ADD COLUMN` is not idempotent.
+ */
+function peelV8(db: DatabaseSync): void {
+  db.exec('ALTER TABLE schedules DROP COLUMN all_day');
+  db.exec('ALTER TABLE schedules DROP COLUMN notify_end_minutes_before');
+}
+
 describe('runMigrations', () => {
   const created: string[] = [];
 
@@ -123,7 +136,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
     const tables = tableNames(real);
     expect(tables).toEqual(
       expect.arrayContaining([
@@ -158,7 +171,7 @@ describe('runMigrations', () => {
       runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]),
     ).resolves.toBeUndefined();
 
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
     real.close();
   });
 
@@ -203,8 +216,9 @@ describe('runMigrations', () => {
       { logTxModeTo: (m) => modes.push(m) },
     );
 
-    // Happy path now applies v1..v7 — one log per migration.
+    // Happy path now applies v1..v8 — one log per migration.
     expect(modes).toEqual([
+      'explicit-begin',
       'explicit-begin',
       'explicit-begin',
       'explicit-begin',
@@ -247,8 +261,9 @@ describe('runMigrations', () => {
       'explicit-begin',
       'explicit-begin',
       'explicit-begin',
+      'explicit-begin',
     ]);
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
     real.close();
   });
 
@@ -257,7 +272,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
 
     const tables = tableNames(real);
     expect(tables).toEqual(
@@ -298,7 +313,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
     const tables = tableNames(real);
     expect(tables).toEqual(
       expect.arrayContaining([
@@ -333,7 +348,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
     expect(columnNames(real, 'schedules')).toEqual(
       expect.arrayContaining(['needs_pickup']),
     );
@@ -406,7 +421,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
     expect(columnNames(real, 'children')).toEqual(
       expect.arrayContaining(['avatar']),
     );
@@ -423,7 +438,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
     expect(tableNames(real)).toEqual(expect.arrayContaining(['app_settings']));
 
     // Schema shape: exactly key + value columns, key is the PK, both NOT NULL.
@@ -463,7 +478,7 @@ describe('runMigrations', () => {
     // user-data table so we can prove v5 is purely additive.
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
 
     // Simulate a pre-v5 install by rolling user_version back to 4 and undoing
     // every post-v4 artifact, then re-seeding data as it would exist on a v4
@@ -472,6 +487,7 @@ describe('runMigrations', () => {
     // artifacts so the forward run re-applies them cleanly — the bare ADD COLUMN
     // statements would fail if the columns already existed (statement-idempotency
     // is NOT guaranteed; only the version gate is).
+    peelV8(real);
     real.exec('DROP TABLE app_settings');
     real.exec('DROP TABLE checklist_completion');
     real.exec('ALTER TABLE checklist_items DROP COLUMN recurring');
@@ -514,7 +530,7 @@ describe('runMigrations', () => {
     const wrapped2 = wrap(real);
     await runMigrations(wrapped2 as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
     expect(tableNames(real)).toEqual(
       expect.arrayContaining(['app_settings', 'checklist_completion']),
     );
@@ -595,10 +611,11 @@ describe('runMigrations', () => {
   async function bringToV5(real: DatabaseSync): Promise<void> {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
     // Undo v7 (recurring) AND v6 (checklist_completion + occurrence_date)
     // artifacts and drop the version back to 5 so the next forward run re-applies
     // v6 (and v7) against a clean pre-v6 schema.
+    peelV8(real);
     real.exec('ALTER TABLE checklist_items DROP COLUMN recurring');
     real.exec('DROP TABLE checklist_completion');
     real.exec('ALTER TABLE checklist_items DROP COLUMN occurrence_date');
@@ -626,7 +643,7 @@ describe('runMigrations', () => {
 
     // Gate held: v6/v7 were skipped, so checklist_completion was NOT created and
     // the recurring column was NOT added.
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
     expect(tableNames(real)).not.toContain('checklist_completion');
     expect(columnNames(real, 'checklist_items')).not.toEqual(
       expect.arrayContaining(['recurring']),
@@ -782,7 +799,8 @@ describe('runMigrations', () => {
   async function bringToV6(real: DatabaseSync): Promise<void> {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
+    peelV8(real);
     real.exec('ALTER TABLE checklist_items DROP COLUMN recurring');
     real.exec('PRAGMA user_version = 6');
     expect(userVersion(real)).toBe(6);
@@ -800,7 +818,7 @@ describe('runMigrations', () => {
     const wrapped = wrap(real);
     await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
 
-    expect(userVersion(real)).toBe(7);
+    expect(userVersion(real)).toBe(LATEST);
     const info = real.prepare('PRAGMA table_info(checklist_items)').all() as {
       name: string;
       notnull: number;
@@ -995,6 +1013,65 @@ describe('runMigrations', () => {
     const second = new DatabaseSync(path);
     expect(userVersion(second)).toBe(6);
     second.close();
+  });
+
+  // -------------------------------------------------------------------------
+  // v8 — ADR-007 §8 (schedules.all_day + notify_end_minutes_before)
+  // -------------------------------------------------------------------------
+
+  async function bringToV7(real: DatabaseSync): Promise<void> {
+    const wrapped = wrap(real);
+    await runMigrations(wrapped as unknown as Parameters<typeof runMigrations>[0]);
+    expect(userVersion(real)).toBe(LATEST);
+    peelV8(real);
+    real.exec('PRAGMA user_version = 7');
+  }
+
+  test('Test U: v8 fresh DB → schedules has all_day (NOT NULL DEFAULT 0) and notify_end_minutes_before', async () => {
+    const { real } = makeDb();
+    await runMigrations(wrap(real) as unknown as Parameters<typeof runMigrations>[0]);
+    expect(userVersion(real)).toBe(8);
+    expect(columnNames(real, 'schedules')).toEqual(
+      expect.arrayContaining(['all_day', 'notify_end_minutes_before']),
+    );
+    real.close();
+  });
+
+  test('Test V: v7 DB with rows → v8 keeps every row, all_day = 0, end alert NULL', async () => {
+    const { real } = makeDb();
+    await bringToV7(real);
+    real.exec(`INSERT INTO children (name, color_index, created_at) VALUES ('민준', 0, '2026-05-01')`);
+    real.exec(`INSERT INTO schedules
+      (child_id, title, type, days_of_week, start_minutes, end_minutes, valid_from, notify_minutes_before, needs_pickup)
+      VALUES (1, '학교', 'school', 31, 540, 870, '2026-05-01', 30, 1),
+             (1, '영어', 'academy', 21, 960, 1050, '2026-05-01', NULL, 0)`);
+
+    await runMigrations(wrap(real) as unknown as Parameters<typeof runMigrations>[0]);
+    expect(userVersion(real)).toBe(8);
+    const rows = real
+      .prepare('SELECT title, all_day, notify_end_minutes_before, notify_minutes_before, needs_pickup FROM schedules ORDER BY id')
+      .all() as { title: string; all_day: number; notify_end_minutes_before: number | null; notify_minutes_before: number | null; needs_pickup: number }[];
+    expect(rows).toEqual([
+      { title: '학교', all_day: 0, notify_end_minutes_before: null, notify_minutes_before: 30, needs_pickup: 1 },
+      { title: '영어', all_day: 0, notify_end_minutes_before: null, notify_minutes_before: null, needs_pickup: 0 },
+    ]);
+    real.close();
+  });
+
+  test('Test W: atomicity — v8 2nd-statement failure leaves user_version=7 and all_day absent', async () => {
+    const { real } = makeDb();
+    await bringToV7(real);
+    // Pre-create the column v8's 2nd ALTER adds, so that statement fails for real
+    // inside the same transaction as the 1st ALTER.
+    real.exec('ALTER TABLE schedules ADD COLUMN notify_end_minutes_before INTEGER');
+
+    await expect(
+      runMigrations(wrap(real) as unknown as Parameters<typeof runMigrations>[0]),
+    ).rejects.toThrow();
+
+    expect(userVersion(real)).toBe(7);
+    expect(columnNames(real, 'schedules')).not.toContain('all_day');
+    real.close();
   });
 });
 

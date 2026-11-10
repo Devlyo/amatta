@@ -1,11 +1,13 @@
 // Border-radius scale. Source of truth: docs/design/README.md §8.
 // `full` (9999) is the single canonical pill value — do not use 99 / 99999.
-// Existing 14/18 literals fold into md(12)/lg(16) during Step 2 migration.
+// ADR-007: `box` (14) is the app-wide default for cards / grouped boxes.
+// Existing 14 literals fold into `box`, 18 into `lg` (Phase 7 sweep).
 export const RADIUS = {
   xs: 6, // tag, micro pill
   sm: 8, // schedule block
   md: 12, // button, input
-  lg: 16, // card, sheet handle
+  box: 14, // ADR-007 default card / grouped list box
+  lg: 16, // sheet top corners
   xl: 24, // bottom sheet top
   full: 9999, // FAB, avatar ring, status pill
 } as const;
