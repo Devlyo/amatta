@@ -20,7 +20,7 @@ import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
-import { fmtRange } from '../utils/date';
+import { fmt12hrShort } from '../utils/date';
 import { isoToYyyymmdd } from './pickup-data';
 
 /** One class (today's occurrence) and its supplies. */
@@ -153,7 +153,8 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
                         name={kid.name}
                         title={occ.title}
                         type={occ.type}
-                        detail={occ.allDay === true ? '하루 종일' : fmtRange(occ.startMinutes, occ.endMinutes)}
+                        // Start time only — supplies are needed by then.
+                        detail={occ.allDay === true ? '하루 종일' : fmt12hrShort(occ.startMinutes)}
                       />
                     </View>
                     <Text style={styles.kidRemaining}>

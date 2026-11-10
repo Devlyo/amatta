@@ -153,9 +153,9 @@ describe('ChecklistSection', () => {
     });
     const { getByText, getByTestId, getByLabelText } = render(<ChecklistSection />);
     expect(getByText('영어학원')).toBeTruthy();
-    expect(getByText('2–3:30PM')).toBeTruthy();
+    expect(getByText('2PM')).toBeTruthy();
     expect(getByText('수영')).toBeTruthy();
-    expect(getByText('4–5PM')).toBeTruthy();
+    expect(getByText('4PM')).toBeTruthy();
     expect(getByLabelText('수영 준비물 수영가방')).toBeTruthy();
     // 영어학원 (2PM) comes before 수영 (4PM).
     const order = [getByTestId('checklist-class-12'), getByTestId('checklist-class-10')];
