@@ -6,7 +6,9 @@ import { useTodosStore, useUiStore } from '../../state';
 import { getDb } from '../../db/client';
 import type { ISODate, Todo } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
-import { IconCheck, IconPlus, IconTrash } from '../icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+
+import { IconCheck, IconTrash } from '../icons';
 import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
@@ -164,12 +166,13 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
 
         <Pressable
           onPress={beginAdd}
+          accessibilityRole="button"
+          accessibilityLabel="할일 추가"
           style={[styles.addRow, sorted.length > 0 ? styles.addRowDivider : null]}
           testID="todo-add-row"
         >
-          <View style={styles.addCheckbox}>
-            <IconPlus size={14} color={TOKENS.ink50} />
-          </View>
+          {/* Same as the form's 준비물 추가: red add-circle + red label. */}
+          <Ionicons name="add-circle" size={22} color={TOKENS.danger} />
           {adding ? (
             <TextInput
               ref={inputRef}
@@ -265,38 +268,20 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     marginLeft: SPACING.xs,
   },
+  // The form's FormActionRow look (준비물 추가): 44pt row, hairline above.
   addRow: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 7,
     paddingHorizontal: 10,
-    borderRadius: RADIUS.md,
-    marginTop: SPACING.xxs,
   },
   addRowDivider: {
-    borderTopWidth: 1,
-    borderTopColor: TOKENS.hair,
-    borderStyle: 'dashed',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: TOKENS.ink12,
+    marginTop: SPACING.xxs,
   },
-  addCheckbox: {
-    width: 22,
-    height: 22,
-    borderRadius: RADIUS.full,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: TOKENS.ink30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addLabel: {
-    flex: 1,
-    fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 16,
-    fontWeight: '400',
-    color: TOKENS.inkSub,
-    letterSpacing: -0.2,
-  },
+  addLabel: { ...TYPE.row, flex: 1, color: TOKENS.danger },
   addInput: {
     flex: 1,
     fontFamily: FONT_FAMILIES.pretendard,

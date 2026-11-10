@@ -13,22 +13,26 @@ import { expandOccurrences } from '../../domain/occurrences';
 import { isChecklistItemVisibleOn } from '../../domain/checklist-membership';
 import type { Child, ChecklistItem, ISODate, Occurrence } from '../../domain/types';
 import { KidAvatar } from '../common/KidAvatar';
+import { TypeIcon } from '../common/TypeIcon';
 import { FONT_FAMILIES } from '../fonts';
 import { IconCheck } from '../icons';
 import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
+import { fmtRange } from '../utils/date';
 import { isoToYyyymmdd } from './pickup-data';
 
-interface KidGroupItem {
-  item: ChecklistItem;
-  dueLabel: string | null;
+/** One class (today's occurrence) and its supplies. */
+interface ClassGroup {
+  occ: Occurrence;
+  items: ChecklistItem[];
 }
 
 interface KidGroup {
   kid: Child;
-  items: KidGroupItem[];
+  classes: ClassGroup[];
+  items: ChecklistItem[];
 }
 
 function buildGroups(
@@ -37,39 +41,25 @@ function buildGroups(
   itemsByScheduleId: Map<number, ChecklistItem[]>,
   dateInt: number,
 ): KidGroup[] {
-  const childIdToItems = new Map<number, KidGroupItem[]>();
+  const classesByKid = new Map<number, ClassGroup[]>();
   for (const [scheduleId, occ] of scheduleOccurrencesToday) {
-    const items = itemsByScheduleId.get(scheduleId);
-    if (!items || items.length === 0) continue;
-    // Show the schedule's START time — that's when the parent needs the
-    // checklist items in hand. (End-time was the previous default; users
-    // read it as "how long until pickup" which doesn't match the eyebrow.)
-    const dueLabel = formatHhmm(occ.startMinutes);
-    const bucket = childIdToItems.get(occ.childId) ?? [];
-    for (const item of items) {
-      // v6/v7 membership (ADR-006b): NULL = always; recurring = anchor-forward;
-      // 이번만 = that date only. Single source: isChecklistItemVisibleOn.
-      if (!isChecklistItemVisibleOn(item, dateInt)) continue;
-      bucket.push({ item, dueLabel });
-    }
-    childIdToItems.set(occ.childId, bucket);
-  }
-  // Sort each bucket by sortOrder then id (stable within schedule's items list).
-  for (const bucket of childIdToItems.values()) {
-    bucket.sort((a, b) => {
-      if (a.item.sortOrder !== b.item.sortOrder) return a.item.sortOrder - b.item.sortOrder;
-      return a.item.id - b.item.id;
-    });
+    // v6/v7 membership (ADR-006b): NULL = always; recurring = anchor-forward;
+    // 이번만 = that date only. Single source: isChecklistItemVisibleOn.
+    const items = (itemsByScheduleId.get(scheduleId) ?? [])
+      .filter((item) => isChecklistItemVisibleOn(item, dateInt))
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+    if (items.length === 0) continue;
+    const list = classesByKid.get(occ.childId) ?? [];
+    list.push({ occ, items });
+    classesByKid.set(occ.childId, list);
   }
   return children
-    .map((kid) => ({ kid, items: childIdToItems.get(kid.id) ?? [] }))
+    .map((kid) => {
+      // Classes in the order they happen — supplies are needed by the start.
+      const classes = (classesByKid.get(kid.id) ?? []).sort((a, b) => a.occ.startMinutes - b.occ.startMinutes);
+      return { kid, classes, items: classes.flatMap((c) => c.items) };
+    })
     .filter((g) => g.items.length > 0);
-}
-
-function formatHhmm(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 function SectionHeader({ label, done, total }: { label: string; done: number; total: number }) {
@@ -130,7 +120,7 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
     [children, occurrencesToday, itemsByScheduleId, dateInt],
   );
 
-  const flatItems = useMemo(() => groups.flatMap((g) => g.items.map((i) => i.item)), [groups]);
+  const flatItems = useMemo(() => groups.flatMap((g) => g.items), [groups]);
   const total = flatItems.length;
   // Completion is per-occurrence (v6): "done" iff a checklist_completion row
   // exists for (itemId, viewed date). is_done is FROZEN and never read here.
@@ -150,7 +140,7 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
         ) : (
           groups.map((group, idx) => {
           const palette = getKidPalette(group.kid.colorIndex);
-          const remaining = group.items.filter((i) => !isComplete(i.item.id)).length;
+          const remaining = group.items.filter((i) => !isComplete(i.id)).length;
           return (
             <Fragment key={group.kid.id}>
               {idx > 0 ? <View style={styles.divider} /> : null}
@@ -161,38 +151,50 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
                   {remaining}/{group.items.length} 남음
                 </Text>
               </View>
-              {group.items.map(({ item, dueLabel }) => {
-                const isDone = isComplete(item.id);
-                return (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => {
-                      void onToggle(item.id);
-                    }}
-                    style={[styles.itemRow, isDone ? styles.itemRowDone : null]}
-                    testID={`checklist-item-${item.id}`}
-                  >
-                    <View
-                      style={[
-                        styles.checkbox,
-                        isDone
-                          ? { backgroundColor: palette.source, borderColor: palette.source }
-                          : styles.checkboxIdle,
-                      ]}
-                    >
-                      {isDone ? <IconCheck size={12} color={TOKENS.surface} /> : null}
-                    </View>
-                    <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null]}>
-                      {item.label}
+              {group.classes.map(({ occ, items }) => (
+                <View key={occ.scheduleId} testID={`checklist-class-${occ.scheduleId}`}>
+                  {/* Which class these are for: type icon, title, time. */}
+                  <View style={styles.classRow}>
+                    <TypeIcon type={occ.type} size={13} color={TOKENS.inkSub} />
+                    <Text style={styles.classTitle} numberOfLines={1}>
+                      {occ.title}
                     </Text>
-                    {dueLabel !== null ? (
-                      <View style={styles.duePill}>
-                        <Text style={styles.duePillText}>{dueLabel}</Text>
-                      </View>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
+                    <Text style={styles.classTime}>
+                      {occ.allDay === true ? '하루 종일' : fmtRange(occ.startMinutes, occ.endMinutes)}
+                    </Text>
+                  </View>
+                  {items.map((item) => {
+                    const isDone = isComplete(item.id);
+                    return (
+                      <Pressable
+                        key={item.id}
+                        onPress={() => {
+                          void onToggle(item.id);
+                        }}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: isDone }}
+                        accessibilityLabel={`${occ.title} 준비물 ${item.label}`}
+                        style={[styles.itemRow, isDone ? styles.itemRowDone : null]}
+                        testID={`checklist-item-${item.id}`}
+                      >
+                        <View
+                          style={[
+                            styles.checkbox,
+                            isDone
+                              ? { backgroundColor: palette.source, borderColor: palette.source }
+                              : styles.checkboxIdle,
+                          ]}
+                        >
+                          {isDone ? <IconCheck size={12} color={TOKENS.surface} /> : null}
+                        </View>
+                        <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null]}>
+                          {item.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ))}
             </Fragment>
           );
           })
@@ -291,16 +293,14 @@ const styles = StyleSheet.create({
   itemLabelDone: {
     textDecorationLine: 'line-through',
   },
-  duePill: {
-    backgroundColor: TOKENS.ink04,
-    paddingVertical: SPACING.xxs,
-    paddingHorizontal: 7,
-    borderRadius: RADIUS.full,
+  classRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: 6,
+    paddingBottom: 2,
+    paddingHorizontal: 12,
   },
-  duePillText: {
-    fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 12,
-    fontWeight: '400',
-    color: TOKENS.inkSub,
-  },
+  classTitle: { ...TYPE.footnote, color: TOKENS.inkSub, flexShrink: 1 },
+  classTime: { ...TYPE.footnote, color: TOKENS.inkSub, marginLeft: 'auto' },
 });
