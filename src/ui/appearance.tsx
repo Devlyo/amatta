@@ -13,6 +13,7 @@
 
 import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
+import { requireOptionalNativeModule } from 'expo';
 
 import type { ColorIndex } from '../domain/types';
 import { DARK_TOKENS, getKidPaletteFor, LIGHT_TOKENS, type KidPalette, type TokenName } from './palette';
@@ -68,12 +69,13 @@ let systemUI: SystemUIModule | null | undefined;
  */
 function setRootBackground(color: string): void {
   if (systemUI === undefined) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      systemUI = require('expo-system-ui') as SystemUIModule;
-    } catch {
-      systemUI = null;
-    }
+    // Check for the native side first: requiring expo-system-ui without it
+    // logs a red "Cannot find native module" even when the throw is caught.
+    systemUI =
+      requireOptionalNativeModule('ExpoSystemUI') === null
+        ? null
+        : // eslint-disable-next-line @typescript-eslint/no-require-imports
+          (require('expo-system-ui') as SystemUIModule);
   }
   void systemUI?.setBackgroundColorAsync(color).catch(() => undefined);
 }
