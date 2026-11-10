@@ -58,7 +58,7 @@
         "expo-calendar",
         {
           "calendarPermission": "보호자 일정을 아이들 일정과 함께 보여 주고, 앱에서 추가한 보호자 일정을 캘린더에 저장하기 위해 캘린더에 접근합니다. 일정은 기기 밖으로 전송되지 않습니다.",
-          "remindersPermission": false
+          "remindersPermission": "아마따는 미리 알림을 읽거나 쓰지 않아요. 캘린더 모듈이 이 설명을 필요로 해서 넣어 둔 문구예요."
         }
       ],
       [
