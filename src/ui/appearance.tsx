@@ -40,9 +40,10 @@ export const LIGHT_THEME: Theme = {
   scheme: 'light',
   t: LIGHT_TOKENS,
   kid: (ci) => getKidPaletteFor(ci, 'light'),
-  blockFill: 0.6,
-  blockFillFocused: 0.8,
-  cardFill: 0.45,
+  // 2026-11-11: blocks as light as the home 지금 cards (40%).
+  blockFill: 0.4,
+  blockFillFocused: 0.6,
+  cardFill: 0.4,
   onGuardianBlock: LIGHT_TOKENS.onLight,
   shadowOpacity: 1,
 };
@@ -51,9 +52,9 @@ export const DARK_THEME: Theme = {
   scheme: 'dark',
   t: DARK_TOKENS,
   kid: (ci) => getKidPaletteFor(ci, 'dark'),
-  blockFill: 0.85,
-  blockFillFocused: 0.95,
-  cardFill: 0.7,
+  blockFill: 0.65,
+  blockFillFocused: 0.8,
+  cardFill: 0.65,
   onGuardianBlock: DARK_TOKENS.onDark,
   shadowOpacity: 3,
 };
