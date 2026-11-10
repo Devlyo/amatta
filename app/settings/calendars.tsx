@@ -116,7 +116,7 @@ export default function CalendarSettingsScreen(): React.ReactElement {
                               </Text>
                             ) : null}
                           </View>
-                          {on ? <IconCheck size={18} color={TOKENS.sunday} /> : null}
+                          {on ? <IconCheck size={18} color={TOKENS.danger} /> : null}
                         </Pressable>
                         {i < calendars.length - 1 ? <View style={styles.separator} /> : null}
                       </View>

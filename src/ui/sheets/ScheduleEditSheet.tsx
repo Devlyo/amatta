@@ -901,7 +901,7 @@ export function ScheduleEditContent({
               <FormActionRow
                 label="준비물 추가"
                 last
-                leading={<Ionicons name="add-circle" size={22} color={TOKENS.sunday} />}
+                leading={<Ionicons name="add-circle" size={22} color={TOKENS.danger} />}
                 onPress={() =>
                   setChecklist((cs) => [
                     ...cs,
@@ -987,7 +987,7 @@ function InlinePicker({
         mode={mode}
         display={mode === 'date' ? 'inline' : 'spinner'}
         minuteInterval={5}
-        accentColor={TOKENS.sunday}
+        accentColor={TOKENS.danger}
         textColor={TOKENS.ink}
         themeVariant="light"
         locale="ko-KR"
@@ -1093,8 +1093,8 @@ const styles = StyleSheet.create({
   headerSlotStart: { minWidth: 64, paddingVertical: SPACING.sm },
   headerSlotEnd: { minWidth: 64, paddingVertical: SPACING.sm, alignItems: 'flex-end' },
   headerTitle: { ...TYPE.headline, flex: 1, textAlign: 'center', color: TOKENS.ink },
-  cancelLabel: { ...TYPE.row, color: TOKENS.sunday },
-  saveLabel: { ...TYPE.headline, color: TOKENS.sunday },
+  cancelLabel: { ...TYPE.row, color: TOKENS.danger },
+  saveLabel: { ...TYPE.headline, color: TOKENS.danger },
   saveLabelDisabled: { color: TOKENS.ink30 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, gap: 22 },

@@ -3,7 +3,8 @@
 // White groups (RADIUS.box) on the grouped background, 44pt rows with hairline
 // separators inset from the left, value rows with a chevron that expand an
 // inline panel below them, native switches, grey time/date chips (red while
-// being edited), red text actions.
+// being edited), red text actions. One red everywhere: TOKENS.danger (the
+// 이 회차만 삭제 red) — accents, active values, checks, actions.
 
 import { memo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View, type TextInputProps } from 'react-native';
@@ -244,7 +245,7 @@ export function FormOptionList<T extends string | number | null>({
           >
             {render?.(o.key)}
             <Text style={styles.optionLabel}>{o.label}</Text>
-            {on ? <IconCheck size={18} color={TOKENS.sunday} /> : null}
+            {on ? <IconCheck size={18} color={TOKENS.danger} /> : null}
           </Pressable>
         );
       })}
@@ -305,7 +306,7 @@ const styles = StyleSheet.create({
   inputPlaceholder: { color: TOKENS.ink30 },
   valueWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
   value: { ...TYPE.row, color: TOKENS.inkSub, flexShrink: 1 },
-  valueActive: { color: TOKENS.sunday },
+  valueActive: { color: TOKENS.danger },
   chevronOpen: { transform: [{ rotate: '90deg' }] },
   panel: {
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -321,7 +322,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chipText: { ...TYPE.row, color: TOKENS.ink },
-  chipTextActive: { color: TOKENS.sunday },
+  chipTextActive: { color: TOKENS.danger },
   chipTextDisabled: { color: TOKENS.inkSub },
   option: {
     minHeight: ROW_H,
@@ -332,6 +333,6 @@ const styles = StyleSheet.create({
   },
   optionDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: TOKENS.ink12 },
   optionLabel: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
-  action: { ...TYPE.row, color: TOKENS.sunday },
+  action: { ...TYPE.row, color: TOKENS.danger },
   actionDanger: { color: TOKENS.danger },
 });
