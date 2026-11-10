@@ -101,7 +101,10 @@ function TimeBlockImpl({
         >
           {title}
         </Text>
-        {needsPickup && !compact ? <View testID="time-block-pickup" style={styles.pickupDot} /> : null}
+        {/* Pickup dot — also on compact blocks (a 5-column day view: 4 kids + 보호자). */}
+        {needsPickup ? (
+          <View testID="time-block-pickup" style={[styles.pickupDot, compact ? styles.pickupDotCompact : null]} />
+        ) : null}
       </View>
       {showTime ? (
         <View style={styles.timeRow}>
@@ -170,6 +173,7 @@ const styles = StyleSheet.create({
     borderWidth: RING_W,
     borderColor: TOKENS.surface,
   },
+  pickupDotCompact: { width: 7, height: 7, borderWidth: 1 },
   timeRow: {
     flexDirection: 'row',
     alignItems: 'center',

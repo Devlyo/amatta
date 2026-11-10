@@ -66,11 +66,14 @@ describe('TimeBlock', () => {
     expect(screen.getByText('3–4PM')).toBeTruthy();
   });
 
-  test('pickup dot only in the day view', () => {
+  test('pickup dot on wide and compact blocks (5-column day view: 4 kids + 보호자)', () => {
     renderBlock({ needsPickup: true });
     expect(screen.getByTestId('time-block-pickup')).toBeTruthy();
     screen.unmount();
     renderBlock({ needsPickup: true, compact: true });
+    expect(screen.getByTestId('time-block-pickup')).toBeTruthy();
+    screen.unmount();
+    renderBlock({ needsPickup: false });
     expect(screen.queryByTestId('time-block-pickup')).toBeNull();
   });
 

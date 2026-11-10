@@ -125,12 +125,10 @@ function WeekViewImpl({
   const everyone = useMemo<PersonKey[]>(() => [...kids.map((k) => k.id), 'guardian'], [kids]);
   const todayColumn = columnOfDate.get(today as unknown as string) ?? null;
 
-  // One person picked alone (long press) → show only theirs, laid out on
-  // their own so blocks narrowed by others' overlaps get their full width.
-  const soloKey = useMemo(() => {
-    const active = everyone.filter((k) => !inactive.includes(k));
-    return active.length === 1 ? active[0] : undefined;
-  }, [everyone, inactive]);
+  // People switched off in the filter are hidden — only the ones that are on
+  // are laid out (so blocks narrowed by a hidden person's overlap get their
+  // width back). Everyone off → nothing is filtered.
+  const noneOn = everyone.every((k) => inactive.includes(k));
   const items = useMemo<WeekItem[]>(() => {
     const out: WeekItem[] = [];
     for (const occ of occurrences) {
@@ -169,8 +167,8 @@ function WeekViewImpl({
     return out;
   }, [occurrences, guardianEvents, kidById, onPressOccurrence, onPressGuardian]);
   const visible = useMemo(
-    () => (soloKey === undefined ? items : items.filter((i) => i.person === soloKey)),
-    [items, soloKey],
+    () => (noneOn ? items : items.filter((i) => !inactive.includes(i.person))),
+    [items, inactive, noneOn],
   );
 
   const placed = useMemo(() => {

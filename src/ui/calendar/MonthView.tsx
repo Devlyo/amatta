@@ -96,8 +96,11 @@ function MonthViewImpl({
       if (list === undefined) m.set(key, [chip]);
       else list.push(chip);
     };
+    // Switched-off people are hidden (everyone off → nothing is filtered).
+    const noneOn = everyone.every((k) => inactive.includes(k));
+    const shown = (p: PersonKey): boolean => noneOn || !inactive.includes(p);
     for (const occ of occurrences) {
-      if (!showsInMonth(occ) || !kidById.has(occ.childId)) continue;
+      if (!showsInMonth(occ) || !kidById.has(occ.childId) || !shown(occ.childId)) continue;
       add(occ.date, {
         id: String(occ.scheduleId),
         person: occ.childId,
@@ -107,13 +110,13 @@ function MonthViewImpl({
         allDay: occ.allDay === true,
       });
     }
-    for (const g of guardianEvents) {
+    for (const g of shown('guardian') ? guardianEvents : []) {
       add(g.date, { id: `g:${g.eventId}`, person: 'guardian', title: g.title, color: TOKENS.guardian, start: g.startMinutes, allDay: g.allDay });
     }
     // All-day first, then by start time.
     for (const list of m.values()) list.sort((a, b) => (a.allDay === b.allDay ? a.start - b.start : a.allDay ? -1 : 1));
     return m;
-  }, [occurrences, guardianEvents, kidById]);
+  }, [occurrences, guardianEvents, kidById, everyone, inactive]);
 
   const rowH = rowHeight ?? (zoomed ? ROW_H_ZOOMED : MONTH_ROW_MIN);
   const twoLine = rowH >= MONTH_ROW_TWO_LINE;

@@ -50,7 +50,7 @@ type Placed =
   | { kind: 'guardian'; g: GuardianOccurrence };
 
 function DayViewImpl({
-  kids,
+  kids: allKids,
   occurrences,
   nowMinutes,
   inactive,
@@ -63,9 +63,25 @@ function DayViewImpl({
   guardianEvents = [],
   onPressGuardian,
 }: Props): React.ReactElement {
-  const columnOfKid = useMemo(() => new Map(kids.map((k, i) => [k.id, i])), [kids]);
-  const columns = kids.length + 1; // + guardian
-  const everyone = useMemo<PersonKey[]>(() => [...kids.map((k) => k.id), 'guardian'], [kids]);
+  // People switched off in the filter are hidden (no column, no blocks) —
+  // only the people that are on share the width. Everyone off → every
+  // column stays, empty.
+  const everyone = useMemo<PersonKey[]>(() => [...allKids.map((k) => k.id), 'guardian'], [allKids]);
+  const noneOn = everyone.every((k) => inactive.includes(k));
+  const kids = useMemo(
+    () => (noneOn ? allKids : allKids.filter((k) => !inactive.includes(k.id))),
+    [allKids, inactive, noneOn],
+  );
+  const showGuardian = noneOn || !inactive.includes('guardian');
+  const columnOfKid = useMemo(
+    () => new Map(noneOn ? [] : kids.map((k, i) => [k.id, i])),
+    [kids, noneOn],
+  );
+  const columns = Math.max(1, kids.length + (showGuardian ? 1 : 0));
+  const guardianEventsShown = useMemo(
+    () => (showGuardian && !noneOn ? guardianEvents : []),
+    [guardianEvents, showGuardian, noneOn],
+  );
 
   const guardianColumn = kids.length;
   const placed = useMemo(() => {
@@ -81,7 +97,7 @@ function DayViewImpl({
       byId.set(id, { kind: 'kid', occ });
       inputs.push({ id, column, start: range.start, end: range.end });
     }
-    for (const g of guardianEvents) {
+    for (const g of guardianEventsShown) {
       if (g.allDay) continue;
       const range = clipToDay(g.startMinutes, g.endMinutes);
       if (range === null) continue;
@@ -90,7 +106,7 @@ function DayViewImpl({
       inputs.push({ id, column: guardianColumn, start: range.start, end: range.end });
     }
     return layoutCascade(inputs).map((p) => ({ ...p, item: byId.get(p.id) as Placed }));
-  }, [occurrences, columnOfKid, guardianEvents, guardianColumn]);
+  }, [occurrences, columnOfKid, guardianEventsShown, guardianColumn]);
 
   const allDayItems = useMemo<AllDayItem[]>(() => {
     const out: AllDayItem[] = [];
@@ -114,7 +130,7 @@ function DayViewImpl({
       });
     }
     const gEmphasis = emphasisOf(inactive, everyone, 'guardian');
-    for (const g of guardianEvents) {
+    for (const g of guardianEventsShown) {
       if (!g.allDay) continue;
       out.push({
         id: `g:${g.key}`,
@@ -129,9 +145,9 @@ function DayViewImpl({
       });
     }
     return out;
-  }, [occurrences, columnOfKid, kids, inactive, everyone, onPressOccurrence, guardianEvents, guardianColumn, onPressGuardian]);
+  }, [occurrences, columnOfKid, kids, inactive, everyone, onPressOccurrence, guardianEventsShown, guardianColumn, onPressGuardian]);
 
-  const timed = [...occurrences.filter((o) => !o.allDay), ...guardianEvents.filter((g) => !g.allDay)];
+  const timed = [...occurrences.filter((o) => !o.allDay), ...guardianEventsShown.filter((g) => !g.allDay)];
   const firstStart = timed.length > 0 ? Math.min(...timed.map((o) => o.startMinutes)) : null;
   const openAt = openAtProp ?? initialScrollY({
       hourHeight: DEFAULT_HOUR_HEIGHT,

@@ -6,7 +6,6 @@ import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-han
 import type { Child, ColorIndex, ISODate, Occurrence, ScheduleType } from '../../../src/domain/types';
 import { MonthStrip } from '../../../src/ui/calendar/MonthStrip';
 import { MonthView } from '../../../src/ui/calendar/MonthView';
-import { BLOCK_DIMMED_OPACITY } from '../../../src/ui/calendar/TimeBlock';
 import { WeekView } from '../../../src/ui/calendar/WeekView';
 import { TIME_GUTTER } from '../../../src/ui/calendar/time-axis';
 import { visibleWeekDays } from '../../../src/ui/calendar/calendar-layout';
@@ -88,9 +87,9 @@ describe('WeekView', () => {
     expect(screen.getByText('3–4PM')).toBeTruthy();
   });
 
-  test('switched-off kids fade', () => {
+  test('switched-off kids are hidden', () => {
     renderWeek(false, { inactive: [1] });
-    expect(style('week-block-1|2026-11-10').opacity).toBe(BLOCK_DIMMED_OPACITY);
+    expect(screen.queryByTestId('week-block-1|2026-11-10')).toBeNull();
     expect(style('week-block-3|2026-11-12').opacity).toBe(1);
   });
 
@@ -173,9 +172,9 @@ describe('MonthView', () => {
     expect(screen.getByText('3PM')).toBeTruthy();
   });
 
-  test('switched-off kids fade', () => {
+  test('switched-off kids are hidden', () => {
     renderMonth(false, [2]);
-    expect(style('month-chip-2026-11-10-3').opacity).toBe(0.2);
+    expect(screen.queryByTestId('month-chip-2026-11-10-3')).toBeNull();
     expect(style('month-chip-2026-11-10-2').opacity).toBe(1);
   });
 });
