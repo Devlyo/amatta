@@ -4,7 +4,7 @@ import { Text } from 'react-native';
 
 import type { ColorIndex } from '../../src/domain/types';
 import { AppThemeProvider, DARK_THEME, LIGHT_THEME, makeStyles, useTheme } from '../../src/ui/appearance';
-import { DARK_TOKENS, LIGHT_TOKENS } from '../../src/ui/palette';
+import { DARK_TOKENS, LIGHT_TOKENS, withAlpha } from '../../src/ui/palette';
 
 // WCAG relative luminance / contrast for #RRGGBB and rgba(r,g,b,a) over a backdrop.
 type RGB = [number, number, number];
@@ -83,5 +83,44 @@ describe('theme provider + makeStyles', () => {
     );
     expect(screen.getByText('dark')).toBeTruthy();
     expect(bgOf()).toBe(DARK_THEME.t.surface);
+  });
+});
+
+describe('converted primitives in dark (ADR-009 step 1)', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  test('TimeBlock: stronger fill, dark text on kid colours, light text on guardian', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { TimeBlock } = require('../../src/ui/calendar/TimeBlock') as typeof import('../../src/ui/calendar/TimeBlock');
+    jest.spyOn(RN, 'useColorScheme').mockReturnValue('dark');
+    const base = { top: 0, left: 0, width: 100, height: 40, level: 0, startMinutes: 900, endMinutes: 960, deep: DARK_TOKENS.shadow };
+    render(
+      <AppThemeProvider>
+        <TimeBlock {...base} title="피아노" color={DARK_THEME.kid(0).source} accessibilityLabel="kid" testID="kid" />
+        <TimeBlock {...base} title="회의" color={DARK_TOKENS.guardian} guardian accessibilityLabel="g" testID="g" />
+      </AppThemeProvider>,
+    );
+    const flat = (id: string) => RN.StyleSheet.flatten(screen.getByTestId(id).props.style) as { backgroundColor: string };
+    expect(flat('kid').backgroundColor).toBe(withAlpha(DARK_THEME.kid(0).source, DARK_THEME.blockFill));
+    const colorOf = (text: string) => (RN.StyleSheet.flatten(screen.getByText(text).props.style) as { color: string }).color;
+    expect(colorOf('피아노')).toBe(DARK_TOKENS.onLight);
+    expect(colorOf('회의')).toBe(DARK_TOKENS.onDark);
+  });
+
+  test('a form row group turns dark', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { FormGroup } = require('../../src/ui/sheets/form-rows') as typeof import('../../src/ui/sheets/form-rows');
+    jest.spyOn(RN, 'useColorScheme').mockReturnValue('dark');
+    render(
+      <AppThemeProvider>
+        <FormGroup>
+          <Text testID="inside">x</Text>
+        </FormGroup>
+      </AppThemeProvider>,
+    );
+    const root = screen.toJSON() as { props: { style: unknown } };
+    expect((RN.StyleSheet.flatten(root.props.style as never) as { backgroundColor: string }).backgroundColor).toBe(
+      DARK_TOKENS.surface,
+    );
   });
 });

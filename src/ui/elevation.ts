@@ -32,3 +32,14 @@ export const ELEVATION = {
 } as const satisfies Record<string, ViewStyle>;
 
 export type ElevationKey = keyof typeof ELEVATION;
+
+/**
+ * ADR-009: elevation for a theme — dark needs heavier shadows to read at all.
+ * Use inside makeStyles: `...elevationFor(th).dock`.
+ */
+export function elevationFor(th: { shadowOpacity: number }): typeof ELEVATION {
+  return {
+    ...ELEVATION,
+    dock: { ...ELEVATION.dock, shadowOpacity: Math.min(1, ELEVATION.dock.shadowOpacity * th.shadowOpacity) },
+  } as typeof ELEVATION;
+}

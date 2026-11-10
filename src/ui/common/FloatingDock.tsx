@@ -19,11 +19,11 @@ import { useRouter } from 'expo-router';
 import { nextHourStart } from '../calendar/time-axis';
 import { useUiStore } from '../../state/ui-store';
 import { useDisplayStore } from '../../state/display-store';
-import { ELEVATION } from '../elevation';
+import { elevationFor } from '../elevation';
 import { IconGear, IconHome, IconPlus } from '../icons';
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { todayIso } from '../utils/date';
+import { makeStyles, useTheme } from '../appearance';
 
 const ICON = 26;
 
@@ -34,6 +34,8 @@ const TABS: Record<string, { label: string; render: (color: string) => React.Rea
 };
 
 function FloatingDockImpl({ state, navigation }: BottomTabBarProps): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   const router = useRouter();
   // 설정 > 화면: "+" on the left for left-handed use (ADR-009).
   const addLeft = useDisplayStore((s) => s.addButtonSide) === 'left';
@@ -66,7 +68,7 @@ function FloatingDockImpl({ state, navigation }: BottomTabBarProps): React.React
               testID={`dock-${route.name}`}
               style={styles.tab}
             >
-              {tab.render(focused ? TOKENS.primary : TOKENS.inkSub)}
+              {tab.render(focused ? theme.t.primary : theme.t.inkSub)}
             </Pressable>
           );
         })}
@@ -78,7 +80,7 @@ function FloatingDockImpl({ state, navigation }: BottomTabBarProps): React.React
         testID="dock-add"
         style={styles.add}
       >
-        <IconPlus size={26} color={TOKENS.surface} />
+        <IconPlus size={26} color={theme.t.surface} />
       </Pressable>
     </View>
   );
@@ -86,7 +88,7 @@ function FloatingDockImpl({ state, navigation }: BottomTabBarProps): React.React
 
 export const FloatingDock = memo(FloatingDockImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   wrap: {
     position: 'absolute',
     left: 24,
@@ -101,22 +103,22 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
     borderRadius: RADIUS.full,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: TOKENS.ink04,
-    ...ELEVATION.dock,
+    borderColor: th.t.ink04,
+    ...elevationFor(th).dock,
   },
   add: {
     width: 56,
     height: 56,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.ink,
+    backgroundColor: th.t.ink,
     alignItems: 'center',
     justifyContent: 'center',
-    ...ELEVATION.dock,
+    ...elevationFor(th).dock,
   },
   tab: {
     flex: 1,
@@ -124,4 +126,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

@@ -6,8 +6,9 @@
 // window moves there, so the strip can be long without cost.
 
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { View, type LayoutChangeEvent } from 'react-native';
 import Reanimated, { useAnimatedProps, type SharedValue } from 'react-native-reanimated';
+import { makeStyles } from '../appearance';
 
 interface Props {
   pages: number;
@@ -32,6 +33,7 @@ function PagingStripImpl({
   locked,
   testID,
 }: Props): React.ReactElement {
+  const styles = useStyles();
   const ref = useRef<Reanimated.ScrollView>(null);
   const [pageW, setPageW] = useState(0);
   const onLayout = (e: LayoutChangeEvent): void => setPageW(e.nativeEvent.layout.width);
@@ -97,7 +99,7 @@ function PagingStripImpl({
 
 export const PagingStrip = memo(PagingStripImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   viewport: { flex: 1 },
   page: { position: 'absolute', top: 0, bottom: 0 },
-});
+}));

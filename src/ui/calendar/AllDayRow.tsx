@@ -8,12 +8,14 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import Reanimated, { useAnimatedStyle, type AnimatedStyle } from 'react-native-reanimated';
 
-import { TOKENS, withAlpha } from '../palette';
+import { withAlpha } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
 import { monthCellChips } from './calendar-layout';
 import type { LiveColumns } from './TimeGrid';
 import { TIME_GUTTER } from './time-axis';
+import { makeStyles } from '../appearance';
+import { useTheme } from '../appearance';
 
 const MAX_PER_COLUMN = 2;
 const CHIP_H = 20;
@@ -48,6 +50,8 @@ function AllDayRowImpl({
   firstColumn = 0,
   followStyle,
 }: Props): React.ReactElement | null {
+  const theme = useTheme();
+  const styles = useStyles();
   const span = live?.span;
   const sizing = live?.sizing;
   const viewportW = live?.viewportW ?? 0;
@@ -99,7 +103,7 @@ function AllDayRowImpl({
                     style={[
                       styles.chip,
                       {
-                        backgroundColor: withAlpha(item.color, item.focused ? 0.8 : 0.6),
+                        backgroundColor: withAlpha(item.color, item.focused ? theme.blockFillFocused : theme.blockFill),
                         borderLeftColor: item.deep,
                         opacity: item.dimmed ? 0.2 : 1,
                       },
@@ -122,15 +126,15 @@ function AllDayRowImpl({
 
 export const AllDayRow = memo(AllDayRowImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   row: {
     flexDirection: 'row',
     paddingVertical: 3,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: TOKENS.hair,
+    borderBottomColor: th.t.hair,
   },
   gutter: { width: TIME_GUTTER, justifyContent: 'center', paddingRight: 4 },
-  label: { ...TYPE.axisMeridiem, color: TOKENS.inkSub, textAlign: 'right' },
+  label: { ...TYPE.axisMeridiem, color: th.t.inkSub, textAlign: 'right' },
   viewport: { flex: 1, overflow: 'hidden' },
   strip: { flexDirection: 'row' },
   stripFill: { flex: 1 },
@@ -142,6 +146,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     justifyContent: 'center',
   },
-  chipTitle: { ...TYPE.caption2, color: TOKENS.ink },
-  more: { ...TYPE.caption2, color: TOKENS.inkSub, paddingHorizontal: 3 },
-});
+  chipTitle: { ...TYPE.caption2, color: th.t.onLight }, // on the kid fill, both schemes
+  more: { ...TYPE.caption2, color: th.t.inkSub, paddingHorizontal: 3 },
+}));

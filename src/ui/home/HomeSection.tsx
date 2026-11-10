@@ -2,12 +2,12 @@
 // a right-aligned text action, above a white grouped box.
 
 import { memo, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
+import { makeStyles } from '../appearance';
 
 interface Props {
   title: string;
@@ -30,6 +30,7 @@ function HomeSectionImpl({
   children,
   testID,
 }: Props): React.ReactElement {
+  const styles = useStyles();
   return (
     <View style={styles.section} testID={testID}>
       <View style={styles.header}>
@@ -50,7 +51,7 @@ function HomeSectionImpl({
 
 export const HomeSection = memo(HomeSectionImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   section: { gap: 6 },
   header: {
     flexDirection: 'row',
@@ -58,12 +59,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.xs,
   },
-  title: { ...TYPE.headline, color: TOKENS.ink },
-  count: { ...TYPE.subhead, color: TOKENS.inkSub },
-  action: { ...TYPE.subhead, color: TOKENS.sunday },
+  title: { ...TYPE.headline, color: th.t.ink },
+  count: { ...TYPE.subhead, color: th.t.inkSub },
+  action: { ...TYPE.subhead, color: th.t.sunday },
   box: {
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
     borderRadius: RADIUS.box,
     overflow: 'hidden',
   },
-});
+}));
