@@ -5,6 +5,7 @@
 // Presented by the native modal route app/event/detail.tsx; the route shell
 // owns the ui-store eventDetail open/close. "수정" swaps to the edit form.
 
+import { MemberFaces } from '../common/MemberFaces';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -144,7 +145,9 @@ export function EventDetailContent({
     const date = detail.occurrenceDate;
     Alert.alert(
       '이 회차만 삭제',
-      '이 날의 일정만 취소됩니다. 계속할까요?',
+      (schedule?.memberIds?.length ?? 1) > 1
+        ? '이 날의 일정만 취소됩니다. 함께하는 모두에게 적용돼요. 계속할까요?'
+        : '이 날의 일정만 취소됩니다. 계속할까요?',
       [
         { text: '취소', style: 'cancel' },
         {
@@ -164,7 +167,9 @@ export function EventDetailContent({
     if (schedule === undefined) return;
     Alert.alert(
       '전체 삭제',
-      '이 일정과 모든 예외를 삭제합니다. 계속할까요?',
+      (schedule?.memberIds?.length ?? 1) > 1
+        ? '함께하는 모두의 일정에서 이 일정과 모든 예외를 삭제합니다. 계속할까요?'
+        : '이 일정과 모든 예외를 삭제합니다. 계속할까요?',
       [
         { text: '취소', style: 'cancel' },
         {
@@ -227,6 +232,9 @@ export function EventDetailContent({
           keyboardShouldPersistTaps="handled"
         >
           <DetailBody
+            members={(schedule.memberIds ?? [schedule.childId])
+              .map((id) => children.find((c) => c.id === id))
+              .filter((c): c is Child => c !== undefined)}
             schedule={schedule}
             child={child}
             checklist={checklist}
@@ -249,6 +257,8 @@ export function EventDetailContent({
 interface DetailBodyProps {
   schedule: Schedule;
   child: Child;
+  /** ADR-013: every kid on the schedule (defaults to `child`). */
+  members?: readonly Child[];
   checklist: ChecklistItem[];
   display: { startMinutes: number; endMinutes: number; title: string };
   occurrenceDate: string | undefined;
@@ -260,6 +270,7 @@ interface DetailBodyProps {
 export function DetailBody({
   schedule,
   child,
+  members = [child],
   checklist,
   display,
   occurrenceDate,
@@ -291,8 +302,14 @@ export function DetailBody({
       <FormGroup>
         <FormValueRow
           label="자녀"
-          value={child.name}
-          leading={<View style={[styles.kidDot, { backgroundColor: palette.source, borderColor: palette.deep }]} />}
+          value={[...members.map((k) => k.name), ...(schedule.withGuardian ? ['보호자'] : [])].join(', ')}
+          leading={
+            members.length + (schedule.withGuardian ? 1 : 0) > 1 ? (
+              <MemberFaces kids={members} withGuardian={schedule.withGuardian} size={20} />
+            ) : (
+              <View style={[styles.kidDot, { backgroundColor: palette.source, borderColor: palette.deep }]} />
+            )
+          }
         />
         <FormValueRow
           label="종류"

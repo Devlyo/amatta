@@ -13,7 +13,12 @@ import type {
 } from '../../domain/types';
 
 export interface EditFormState {
+  /** The main kid = memberIds[0] (null while nobody is picked). */
   childId: number | null;
+  /** ADR-013: every kid picked, in pick order (main kid first). */
+  memberIds: number[];
+  /** ADR-013: 보호자 picked together with kids → saved in WeMoa. */
+  withGuardian: boolean;
   title: string;
   type: ScheduleType | null; // null = nothing selected yet (no default)
   daysOfWeek: DaysOfWeekMask;
@@ -74,6 +79,8 @@ export function defaultFormState(
   const start = startMinutes ?? 15 * 60;
   return {
     childId,
+    memberIds: childId !== null ? [childId] : [],
+    withGuardian: false,
     title: '',
     type: null, // 종류는 기본 선택 없음 — 사용자가 직접 골라야 저장 가능
     daysOfWeek: 0,
@@ -93,6 +100,8 @@ export function defaultFormState(
 export function formFromSchedule(s: Schedule): EditFormState {
   return {
     childId: s.childId,
+    memberIds: [...(s.memberIds ?? [s.childId])],
+    withGuardian: s.withGuardian === true,
     title: s.title,
     type: s.type,
     daysOfWeek: s.daysOfWeek,
@@ -255,4 +264,36 @@ export function fmt12hrShortSpaced(minutes: number): string {
   const h = Math.floor(minutes / 60) % 24;
   const m = minutes % 60;
   return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+}
+
+export type PersonPick = number | 'guardian';
+
+/**
+ * ADR-013 자녀 multi-select. Returns the next members + flags.
+ *   · create: guardian alone → device-calendar event (`guardianOnly`);
+ *     guardian + kids → `withGuardian` (saved in WeMoa).
+ *   · editAll: at least one kid stays; guardian only flips `withGuardian`.
+ */
+export function togglePerson(
+  state: { memberIds: readonly number[]; withGuardian: boolean; guardianOnly: boolean },
+  pick: PersonPick,
+  mode: 'create' | 'editAll',
+): { memberIds: number[]; withGuardian: boolean; guardianOnly: boolean } {
+  const guardianOn = state.withGuardian || state.guardianOnly;
+  if (pick === 'guardian') {
+    if (guardianOn) return { memberIds: [...state.memberIds], withGuardian: false, guardianOnly: false };
+    if (state.memberIds.length === 0 && mode === 'create') {
+      return { memberIds: [], withGuardian: false, guardianOnly: true };
+    }
+    return { memberIds: [...state.memberIds], withGuardian: true, guardianOnly: false };
+  }
+  const has = state.memberIds.includes(pick);
+  const next = has ? state.memberIds.filter((id) => id !== pick) : [...state.memberIds, pick];
+  if (next.length === 0 && mode === 'editAll') {
+    return { memberIds: [...state.memberIds], withGuardian: state.withGuardian, guardianOnly: false };
+  }
+  if (next.length === 0) {
+    return { memberIds: [], withGuardian: false, guardianOnly: guardianOn };
+  }
+  return { memberIds: next, withGuardian: guardianOn, guardianOnly: false };
 }

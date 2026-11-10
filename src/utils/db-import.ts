@@ -225,9 +225,24 @@ function normalise(env: Obj, version: number): BackupData {
     const days = int(r, 'daysOfWeek', w);
     if (days < 0 || days > 127) fail(`${w}.daysOfWeek: out of range`);
     const hasV8 = version >= 5;
+    // ADR-013 (v6): every kid member. Older files → the one kid.
+    let memberIds = [childId];
+    if (version >= 6) {
+      const raw = r.memberIds;
+      if (!Array.isArray(raw) || raw.length === 0) fail(`${w}.memberIds: missing`);
+      const ids = (raw as unknown[]).map((v) => {
+        if (typeof v !== 'number' || !Number.isInteger(v) || !kidIds.has(v)) fail(`${w}.memberIds: no such child`);
+        return v as number;
+      });
+      if (new Set(ids).size !== ids.length) fail(`${w}.memberIds: duplicate`);
+      if (!ids.includes(childId)) fail(`${w}.memberIds: main kid missing`);
+      memberIds = [childId, ...ids.filter((id) => id !== childId).sort((a, b) => a - b)];
+    }
     return {
       id: int(r, 'id', w),
       childId,
+      memberIds,
+      withGuardian: version >= 6 ? bool(r, 'withGuardian', w, false) : false,
       title: str(r, 'title', w),
       type: type as Schedule['type'],
       location: strOrNull(r, 'location', w),
@@ -397,6 +412,7 @@ const LEAF_FIRST = [
   'schedule_exceptions',
   'todos',
   'notification_settings',
+  'schedule_children',
   'schedules',
   'children',
 ] as const;
@@ -423,14 +439,18 @@ export async function importDb(db: ImportDb, data: BackupData): Promise<void> {
       await txn.runAsync(
         `INSERT INTO schedules (id, child_id, title, type, location, notes, days_of_week,
            start_minutes, end_minutes, valid_from, valid_until, notify_minutes_before,
-           needs_pickup, all_day, notify_end_minutes_before)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           needs_pickup, all_day, notify_end_minutes_before, with_guardian)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           s.id, s.childId, s.title, s.type, s.location, s.notes, s.daysOfWeek,
           s.startMinutes, s.endMinutes, s.validFrom, s.validUntil, s.notifyMinutesBefore,
-          b(s.needsPickup), b(s.allDay), s.notifyEndMinutesBefore,
+          b(s.needsPickup), b(s.allDay), s.notifyEndMinutesBefore, b(s.withGuardian),
         ],
       );
+      // The v9 trigger already added the main kid; OR IGNORE keeps it idempotent.
+      for (const childId of s.memberIds) {
+        await txn.runAsync('INSERT OR IGNORE INTO schedule_children (schedule_id, child_id) VALUES (?, ?)', [s.id, childId]);
+      }
     }
     for (const e of data.exceptions) {
       await txn.runAsync(

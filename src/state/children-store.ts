@@ -3,6 +3,8 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { Child } from '../domain/types';
 import { childrenRepo, type NewChild } from '../db/repositories';
+import { requestReschedule } from '../notifications/scheduler';
+import { useSchedulesStore } from './schedules-store';
 
 interface ChildrenState {
   children: Child[];
@@ -39,5 +41,8 @@ export const useChildrenStore = create<ChildrenState>()((set) => ({
     await childrenRepo.remove(db, id);
     const children = await childrenRepo.list(db);
     set({ children });
+    // Schedules changed too (deleted, or a shared one got a new main kid).
+    await useSchedulesStore.getState().load(db);
+    requestReschedule(db, 'children-store');
   },
 }));

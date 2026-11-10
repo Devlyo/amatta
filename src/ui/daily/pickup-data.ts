@@ -19,6 +19,7 @@
 // `etaText` is the remaining time from now to the pickup's `endMinutes`,
 // formatted "Nh Nm" / "Nm" / "곧" Korean shorthand.
 
+import { memberNames } from '../../domain/occurrences';
 import { pickupsClash } from '../../domain/pickup-conflict';
 import type { Child, ColorIndex, ISODate, Occurrence } from '../../domain/types';
 import { fmtKoTime, isoToYyyymmdd, todayIso } from '../utils/date';
@@ -106,7 +107,8 @@ export function computePickupCards(
     occurrenceDateInt: isoToYyyymmdd(occ.date),
     time: fmtKoTime(occ.endMinutes),
     timeShort: fmtTimeShort(occ.endMinutes),
-    who: child.name,
+    // ADR-013: everyone on the schedule — one pickup trip.
+    who: memberNames(occ.memberIds ?? [occ.childId], childrenById) || child.name,
     what: occ.title,
     etaText: fmtEta(nowMinutes, occ.endMinutes),
     childColorIndex: child.colorIndex,

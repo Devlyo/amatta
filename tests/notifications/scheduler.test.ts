@@ -678,3 +678,37 @@ describe('SPEC-NOTIF-1 — sessionMap never persisted', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('shared schedules (ADR-013)', () => {
+  const kids: Child[] = [
+    { id: 1, name: '민준', colorIndex: 0, avatar: 'face-wink', createdAt: '2026-01-01' as unknown as Child['createdAt'] },
+    { id: 2, name: '서연', colorIndex: 1, avatar: 'face-dizzy', createdAt: '2026-01-01' as unknown as Child['createdAt'] },
+    { id: 3, name: '도윤', colorIndex: 2, avatar: 'face-cool', createdAt: '2026-01-01' as unknown as Child['createdAt'] },
+  ];
+  const saved = mockState.fakeChildren;
+  beforeEach(() => {
+    mockState.fakeChildren = kids;
+  });
+  afterAll(() => {
+    mockState.fakeChildren = saved;
+  });
+
+  test('one alert per occurrence, however many kids — the title names them', async () => {
+    const now = new Date('2026-06-02T08:00:00');
+    mockState.fakeSchedules = [makeSchedule({})];
+    await rescheduleAll(fakeDb, { now });
+    const solo = mockState.scheduled.length;
+
+    mockState.scheduled.length = 0;
+    mockState.fakeSchedules = [makeSchedule({ memberIds: [1, 2], withGuardian: true })];
+    await rescheduleAll(fakeDb, { now });
+    expect(mockState.scheduled.length).toBe(solo);
+    const title = (mockState.scheduled[0]?.content as { title: string }).title;
+    expect(title).toContain('민준·서연');
+
+    mockState.scheduled.length = 0;
+    mockState.fakeSchedules = [makeSchedule({ memberIds: [1, 2, 3] })];
+    await rescheduleAll(fakeDb, { now });
+    expect((mockState.scheduled[0]?.content as { title: string }).title).toContain('민준 외 2명');
+  });
+});

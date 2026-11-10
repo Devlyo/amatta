@@ -3,7 +3,13 @@ import type { SQLiteDatabase, SQLiteBindValue } from 'expo-sqlite';
 import type { ISODate, Schedule } from '../../domain/types';
 import { rowToSchedule, type ScheduleRow } from '../row-mappers';
 
-export type NewSchedule = Omit<Schedule, 'id' | 'needsPickup' | 'allDay' | 'notifyEndMinutesBefore'> & {
+export type NewSchedule = Omit<
+  Schedule,
+  'id' | 'needsPickup' | 'allDay' | 'notifyEndMinutesBefore' | 'memberIds' | 'withGuardian'
+> & {
+  /** ADR-013: every kid member. Defaults to [childId]; childId is always included. */
+  memberIds?: number[];
+  withGuardian?: boolean;
   needsPickup?: boolean;
   allDay?: boolean;
   notifyEndMinutesBefore?: number | null;
@@ -17,41 +23,76 @@ function normalizeRange(allDay: boolean, start: number, end: number): [number, n
 const SELECT_COLUMNS = `id, child_id, title, type, location, notes,
                         days_of_week, start_minutes, end_minutes,
                         valid_from, valid_until, notify_minutes_before,
-                        needs_pickup, all_day, notify_end_minutes_before`;
+                        needs_pickup, all_day, notify_end_minutes_before,
+                        with_guardian`;
+
+async function membersOf(db: SQLiteDatabase, ids: number[] | null): Promise<Map<number, number[]>> {
+  const rows = await db.getAllAsync<{ schedule_id: number; child_id: number }>(
+    ids === null
+      ? 'SELECT schedule_id, child_id FROM schedule_children'
+      : `SELECT schedule_id, child_id FROM schedule_children WHERE schedule_id IN (${ids.map(() => '?').join(',')})`,
+    ids ?? [],
+  );
+  const map = new Map<number, number[]>();
+  for (const r of rows) {
+    const list = map.get(r.schedule_id);
+    if (list) list.push(r.child_id);
+    else map.set(r.schedule_id, [r.child_id]);
+  }
+  return map;
+}
+
+/** Replace the member rows (the main kid is always kept). No own transaction. */
+async function writeMembers(db: SQLiteDatabase, scheduleId: number, mainId: number, memberIds: readonly number[]): Promise<void> {
+  const ids = [...new Set([mainId, ...memberIds])];
+  await db.runAsync('DELETE FROM schedule_children WHERE schedule_id = ?', [scheduleId]);
+  for (const childId of ids) {
+    await db.runAsync('INSERT OR IGNORE INTO schedule_children (schedule_id, child_id) VALUES (?, ?)', [scheduleId, childId]);
+  }
+}
+
+/** ADR-013: the main kid stays if still a member; otherwise the first remaining one. */
+export function pickMainKid(currentMain: number | null, memberIds: readonly number[]): number | null {
+  if (currentMain !== null && memberIds.includes(currentMain)) return currentMain;
+  return memberIds[0] ?? null;
+}
 
 export async function getById(db: SQLiteDatabase, id: number): Promise<Schedule | null> {
   const row = await db.getFirstAsync<ScheduleRow>(
     `SELECT ${SELECT_COLUMNS} FROM schedules WHERE id = ?`,
     [id],
   );
-  return row ? rowToSchedule(row) : null;
+  if (!row) return null;
+  const members = await membersOf(db, [id]);
+  return rowToSchedule(row, members.get(id) ?? []);
 }
 
 export async function list(db: SQLiteDatabase): Promise<Schedule[]> {
   const rows = await db.getAllAsync<ScheduleRow>(
     `SELECT ${SELECT_COLUMNS} FROM schedules ORDER BY id ASC`,
   );
-  return rows.map(rowToSchedule);
+  const members = await membersOf(db, null);
+  return rows.map((r) => rowToSchedule(r, members.get(r.id) ?? []));
 }
 
+/** Schedules the kid is a member of (ADR-013 — not only the ones they're the main kid of). */
 export async function listByChild(db: SQLiteDatabase, childId: number): Promise<Schedule[]> {
-  const rows = await db.getAllAsync<ScheduleRow>(
-    `SELECT ${SELECT_COLUMNS} FROM schedules WHERE child_id = ? ORDER BY id ASC`,
-    [childId],
-  );
-  return rows.map(rowToSchedule);
+  const all = await list(db);
+  return all.filter((s) => s.memberIds.includes(childId));
 }
 
 export async function create(db: SQLiteDatabase, input: NewSchedule): Promise<Schedule> {
   const allDay = input.allDay ?? false;
   const [start, end] = normalizeRange(allDay, input.startMinutes, input.endMinutes);
+  let newId = 0;
+  await db.withTransactionAsync(async () => {
   const result = await db.runAsync(
     `INSERT INTO schedules
        (child_id, title, type, location, notes,
         days_of_week, start_minutes, end_minutes,
         valid_from, valid_until, notify_minutes_before, needs_pickup,
-        all_day, notify_end_minutes_before)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        all_day, notify_end_minutes_before, with_guardian)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       input.childId,
       input.title,
@@ -68,9 +109,13 @@ export async function create(db: SQLiteDatabase, input: NewSchedule): Promise<Sc
       input.needsPickup && !allDay ? 1 : 0,
       allDay ? 1 : 0,
       input.notifyEndMinutesBefore ?? null,
+      input.withGuardian === true ? 1 : 0,
     ],
   );
-  const schedule = await getById(db, result.lastInsertRowId);
+  newId = result.lastInsertRowId;
+  await writeMembers(db, newId, input.childId, input.memberIds ?? [input.childId]);
+  });
+  const schedule = await getById(db, newId);
   if (!schedule) throw new Error('Failed to retrieve newly created schedule');
   return schedule;
 }
@@ -83,9 +128,25 @@ export async function update(
   const fields: string[] = [];
   const values: SQLiteBindValue[] = [];
 
-  if (patch.childId !== undefined) {
+  // ADR-013: a member change may move the main kid.
+  let members: number[] | null = null;
+  let mainId: number | undefined = patch.childId;
+  if (patch.memberIds !== undefined && patch.memberIds.length > 0) {
+    members = [...new Set(patch.memberIds)];
+    let current: number | null = patch.childId ?? null;
+    if (current === null) {
+      const row = await db.getFirstAsync<{ child_id: number }>('SELECT child_id FROM schedules WHERE id = ?', [id]);
+      current = row?.child_id ?? null;
+    }
+    mainId = pickMainKid(current, members) ?? undefined;
+  }
+  if (mainId !== undefined) {
     fields.push('child_id = ?');
-    values.push(patch.childId);
+    values.push(mainId);
+  }
+  if (patch.withGuardian !== undefined) {
+    fields.push('with_guardian = ?');
+    values.push(patch.withGuardian ? 1 : 0);
   }
   if (patch.title !== undefined) {
     fields.push('title = ?');
@@ -152,12 +213,14 @@ export async function update(
     values.push(patch.notifyEndMinutesBefore);
   }
 
-  if (fields.length > 0) {
+  if (fields.length > 0 || members !== null) {
     values.push(id);
-    await db.runAsync(
-      `UPDATE schedules SET ${fields.join(', ')} WHERE id = ?`,
-      values,
-    );
+    await db.withTransactionAsync(async () => {
+      if (fields.length > 0) {
+        await db.runAsync(`UPDATE schedules SET ${fields.join(', ')} WHERE id = ?`, values);
+      }
+      if (members !== null && mainId !== undefined) await writeMembers(db, id, mainId, members);
+    });
   }
 
   const updated = await getById(db, id);

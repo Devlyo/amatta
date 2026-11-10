@@ -9,7 +9,7 @@ import {
   useUiStore,
 } from '../../state';
 import { getDb } from '../../db/client';
-import { expandOccurrences } from '../../domain/occurrences';
+import { expandOccurrences, memberNames } from '../../domain/occurrences';
 import { isChecklistItemVisibleOn } from '../../domain/checklist-membership';
 import type { Child, ChecklistItem, ISODate, Occurrence } from '../../domain/types';
 import { KidAvatar } from '../common/KidAvatar';
@@ -168,7 +168,8 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
                     <KidAvatar child={kid} size={36} />
                     <View style={styles.kidLine}>
                       <ItemLine
-                        name={kid.name}
+                        // ADR-013: a shared class lists everyone ("민준·서연").
+                        name={memberNames(occ.memberIds ?? [occ.childId], childrenById) || kid.name}
                         title={occ.title}
                         type={occ.type}
                         // Start time only — supplies are needed by then.

@@ -23,6 +23,7 @@ import { withAlpha } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
 import { fmtRange, weekdayKo } from '../utils/date';
+import { MemberFaces } from '../common/MemberFaces';
 import { AllDayRow, type AllDayItem } from './AllDayRow';
 import { WEEK_SPAN_BARS_FROM } from './calendar-layout';
 import { BLOCK_DIMMED_OPACITY, TimeBlock } from './TimeBlock';
@@ -82,6 +83,8 @@ interface WeekItem {
   name: string;
   /** Schedule type (icon in bar mode); 'guardian' for device-calendar events. */
   kind: ScheduleType | 'guardian';
+  /** ADR-013 block mode: stacked faces of a shared schedule. */
+  faces?: React.ReactNode;
   onPress?: () => void;
 }
 
@@ -150,23 +153,41 @@ function WeekViewImpl({
   const items = useMemo<WeekItem[]>(() => {
     const out: WeekItem[] = [];
     for (const occ of occurrences) {
-      const kid = kidById.get(occ.childId);
-      if (kid === undefined) continue;
-      const p = theme.kid(occ.colorIndex);
-      out.push({
-        id: `${occ.scheduleId}|${occ.date as unknown as string}`,
-        person: kid.id,
-        date: occ.date,
-        start: occ.startMinutes,
-        end: occ.endMinutes,
-        allDay: occ.allDay === true,
-        title: occ.title,
-        color: p.source,
-        deep: p.deep,
-        name: `${kid.name} ${occ.title}`,
-        kind: occ.type,
-        onPress: () => onPressOccurrence(occ),
-      });
+      // ADR-013: the people on this schedule that are shown. Bars = a copy in
+      // every member's lane; blocks (one day column) = one block, drawn in the
+      // first shown member's colour.
+      const people: PersonKey[] = [...(occ.memberIds ?? [occ.childId])];
+      if (occ.withGuardian === true && guardian) people.push('guardian');
+      const shown = people.filter((p) => (p === 'guardian' || kidById.has(p)) && (noneOn || !inactive.includes(p)));
+      const shared = people.length > 1;
+      for (const person of bars ? shown : shown.slice(0, 1)) {
+        const kid = person === 'guardian' ? undefined : kidById.get(person);
+        if (person !== 'guardian' && kid === undefined) continue;
+        const p = kid !== undefined ? theme.kid(kid.colorIndex) : { source: theme.t.guardian, deep: theme.t.guardianDeep };
+        const base = `${occ.scheduleId}|${occ.date as unknown as string}`;
+        out.push({
+          id: shared ? `${base}|${person}` : base,
+          person,
+          date: occ.date,
+          start: occ.startMinutes,
+          end: occ.endMinutes,
+          allDay: occ.allDay === true,
+          title: occ.title,
+          color: p.source,
+          deep: p.deep,
+          name: `${kid?.name ?? '보호자'} ${occ.title}`,
+          kind: occ.type,
+          faces:
+            !bars && people.length > 1 ? (
+              <MemberFaces
+                kids={(occ.memberIds ?? []).map((id) => kidById.get(id)).filter((k): k is Child => k !== undefined)}
+                withGuardian={occ.withGuardian === true}
+                size={14}
+              />
+            ) : undefined,
+          onPress: () => onPressOccurrence(occ),
+        });
+      }
     }
     for (const g of guardianEvents) {
       out.push({
@@ -185,7 +206,7 @@ function WeekViewImpl({
       });
     }
     return out;
-  }, [occurrences, guardianEvents, kidById, onPressOccurrence, onPressGuardian, theme]);
+  }, [occurrences, guardianEvents, kidById, onPressOccurrence, onPressGuardian, theme, bars, guardian, inactive, noneOn]);
   const visible = useMemo(
     () => (noneOn ? items : items.filter((i) => !inactive.includes(i.person))),
     [items, inactive, noneOn],
@@ -411,6 +432,7 @@ function WeekViewImpl({
                 deep={item.deep}
                 focused={emphasis === 'solo'}
                 dimmed={emphasis === 'inactive'}
+                footer={item.faces}
                 accessibilityLabel={`${item.name}, ${weekdayKo(item.date)}요일 ${fmtRange(item.start, item.end)}${level > 0 ? ', 다른 일정과 시간이 겹침' : ''}`}
                 onPress={item.onPress}
               />

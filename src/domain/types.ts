@@ -20,7 +20,12 @@ export interface Child {
 
 export interface Schedule {
   id: number;
+  /** The main kid (ADR-013) — always memberIds[0]. */
   childId: number;
+  /** ADR-013: every kid on this schedule, main kid first, then by id. */
+  memberIds: number[];
+  /** ADR-013: the guardian joins too (drawn in the guardian lane). */
+  withGuardian: boolean;
   title: string;
   type: ScheduleType;
   location: string | null;
@@ -58,7 +63,12 @@ export interface NotificationSetting {
 
 export interface Occurrence {
   scheduleId: number;
+  /** The main kid — or, after `fanOutByMember`, the kid whose column this copy is in. */
   childId: number;
+  /** ADR-013: every kid on the schedule (main kid first). */
+  memberIds: number[];
+  /** ADR-013: the guardian joins too. */
+  withGuardian: boolean;
   date: ISODate;
   startMinutes: Minutes;
   endMinutes: Minutes;

@@ -47,6 +47,8 @@ export interface TimeBlockProps {
   compact?: boolean;
   showTime?: boolean;
   needsPickup?: boolean;
+  /** ADR-013: stacked faces under the time (2+ people). */
+  footer?: React.ReactNode;
   accessibilityLabel: string;
   onPress?: () => void;
   testID?: string;
@@ -69,6 +71,7 @@ function TimeBlockImpl({
   showTime = !compact,
   needsPickup = false,
   guardian = false,
+  footer,
   accessibilityLabel,
   onPress,
   testID,
@@ -124,6 +127,7 @@ function TimeBlockImpl({
           </Text>
         </View>
       ) : null}
+      {footer !== undefined && footer !== null && height >= 52 ? <View style={styles.footer}>{footer}</View> : null}
     </Pressable>
   );
 }
@@ -184,6 +188,7 @@ const useStyles = makeStyles((th) => ({
     borderColor: th.t.surface,
   },
   pickupDotCompact: { width: 7, height: 7, borderWidth: 1 },
+  footer: { marginTop: 'auto', paddingBottom: 1 },
   timeRow: {
     flexDirection: 'row',
     alignItems: 'center',

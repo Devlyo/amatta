@@ -482,6 +482,7 @@ describe('EditSheet — 보호자 (device calendar, ADR-008)', () => {
     );
     fireEvent.press(getByTestId('row-kid'));
     fireEvent.press(getByLabelText('자녀: 보호자'));
+    fireEvent.press(getByTestId('row-kid')); // multi-select stays open — close it
     expect(getByLabelText('자녀: 보호자')).toBeTruthy(); // row value
     expect(queryByTestId('row-type')).toBeNull();
     expect(queryByTestId('row-repeat')).toBeNull();
@@ -651,5 +652,51 @@ describe('EditSheet — pickup ↔ 보호자 clash asks before saving', () => {
     await waitFor(() => expect(mocks.updateSchedule).toHaveBeenCalled());
     expect(alert.mock.calls[0]?.[1]).toContain('보호자 일정 "저녁 약속"(5:30–8PM)와 겹쳐요');
     alert.mockRestore();
+  });
+});
+
+describe('EditSheet — 자녀 multi-select (ADR-013)', () => {
+  test('two kids + 보호자 → one WeMoa schedule with members + withGuardian, no calendar write', async () => {
+    const mocks = seedStores({ schedule: mkSchedule(), mode: 'create' });
+    useChildrenStore.setState({
+      children: [mkChild(1), { ...mkChild(2), id: 2, name: '서연', colorIndex: 5 } as never],
+    });
+    useUiStore.setState({
+      editSheetState: { mode: 'create', preFill: { date: iso('2026-11-10'), startMinutes: 18 * 60 } },
+    });
+    const { getByTestId, getByLabelText, getByText } = render(<ScheduleEditContent onClose={() => {}} />);
+    fireEvent.press(getByTestId('row-kid'));
+    fireEvent.press(getByLabelText('자녀: 서연'));
+    fireEvent.press(getByLabelText('자녀: 민준'));
+    fireEvent.press(getByLabelText('자녀: 보호자'));
+    expect(getByText('3명')).toBeTruthy();
+    fireEvent.press(getByTestId('row-type'));
+    fireEvent.press(getByLabelText('기타'));
+    fireEvent.changeText(getByTestId('sheet-title-input'), '가족 모임');
+    fireEvent.press(getByLabelText('추가'));
+    await waitFor(() => expect(mocks.addSchedule).toHaveBeenCalled());
+    expect(mocks.addSchedule).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ childId: 2, memberIds: [2, 1], withGuardian: true, title: '가족 모임' }),
+    );
+  });
+
+  test('editAll: members can change and are saved', async () => {
+    const mocks = seedStores({ schedule: mkSchedule({ memberIds: [1], withGuardian: false } as never), mode: 'editAll' });
+    useChildrenStore.setState({
+      children: [mkChild(1), { ...mkChild(2), id: 2, name: '서연', colorIndex: 5 } as never],
+    });
+    const { getByTestId, getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
+    fireEvent.press(getByTestId('row-kid'));
+    fireEvent.press(getByLabelText('자녀: 서연'));
+    fireEvent.press(getByLabelText('자녀: 민준')); // main kid off → 서연 becomes main
+    fireEvent.press(getByTestId('option-2')); // last kid can't be removed
+    fireEvent.press(getByLabelText('저장'));
+    await waitFor(() => expect(mocks.updateSchedule).toHaveBeenCalled());
+    expect(mocks.updateSchedule).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ memberIds: [2], withGuardian: false }),
+    );
   });
 });

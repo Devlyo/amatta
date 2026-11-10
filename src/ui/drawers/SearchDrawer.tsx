@@ -88,8 +88,9 @@ export function SearchContent({ onClose }: SearchContentProps): React.ReactEleme
 
     for (const s of schedules) {
       const child = childById.get(s.childId);
-      // Also match the kid's name so e.g. "민준" surfaces all of 민준's schedules.
-      if (matches(s.title, q) || matches(s.location, q) || matches(child?.name, q)) {
+      // Also match a member's name so e.g. "민준" surfaces every schedule 민준 is on (ADR-013).
+      const memberHit = (s.memberIds ?? [s.childId]).some((id) => matches(childById.get(id)?.name, q));
+      if (matches(s.title, q) || matches(s.location, q) || memberHit) {
         out.push({
           kind: 'schedule',
           key: `s-${s.id}`,

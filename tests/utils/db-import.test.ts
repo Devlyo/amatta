@@ -96,6 +96,9 @@ function seed(target: DatabaseSync, opts: { guardian?: boolean } = {}): void {
       (10, 3, '학교', 'school', NULL, NULL, 62, 540, 870, '2026-03-02', NULL, NULL, 0, 0, NULL),
       (11, 7, '피아노', 'academy', '피아노학원', '책 챙기기', 20, 900, 960, '2026-03-02', '2026-12-31', 10, 1, 0, 5),
       (12, 7, '현장학습', 'activity', NULL, NULL, 0, 0, 1440, '2026-11-20', NULL, NULL, 0, 1, NULL);
+    -- ADR-013: 학교 is shared by both kids + the guardian.
+    INSERT INTO schedule_children (schedule_id, child_id) VALUES (10, 7);
+    UPDATE schedules SET with_guardian = 1 WHERE id = 10;
     INSERT INTO schedule_exceptions (id, schedule_id, date, kind, override_start_minutes, override_end_minutes, override_title)
     VALUES (20, 11, '2026-11-17', 'modify', 960, 1020, '피아노(보강)'), (21, 10, '2026-11-18', 'cancel', NULL, NULL, NULL);
     INSERT INTO notification_settings (child_id, default_minutes_before, sound, enabled) VALUES (3, 15, 1, 1), (7, 30, 0, 1);
@@ -189,6 +192,53 @@ describe('importDb — round trip', () => {
   });
 });
 
+describe('parseBackup — shared schedules (v6, ADR-013)', () => {
+  test('v6 keeps members + withGuardian; v5 files get the one kid', async () => {
+    const env = await exportedFromSeed();
+    const v6 = ok(JSON.stringify(env));
+    expect(v6.schedules.find((x) => x.id === 10)).toMatchObject({ childId: 3, memberIds: [3, 7], withGuardian: true });
+    const old = JSON.parse(JSON.stringify(env)) as Record<string, unknown>;
+    old.schemaVersion = 5;
+    for (const x of old.schedules as Record<string, unknown>[]) {
+      delete x.memberIds;
+      delete x.withGuardian;
+    }
+    const v5 = ok(JSON.stringify(old));
+    expect(v5.schedules.map((x) => x.memberIds)).toEqual([[3], [7], [7]]);
+    expect(v5.schedules.every((x) => !x.withGuardian)).toBe(true);
+  });
+
+  test('bad members → invalid', async () => {
+    const env = await exportedFromSeed();
+    const bad = (mut: (x: Record<string, unknown>) => void): string => {
+      const e = JSON.parse(JSON.stringify(env)) as { schedules: Record<string, unknown>[] };
+      mut(e.schedules[0]!);
+      return parseBackup(JSON.stringify(e)).kind;
+    };
+    expect(bad((x) => delete x.memberIds)).toBe('invalid');
+    expect(bad((x) => (x.memberIds = [7]))).toBe('invalid'); // main kid missing
+    expect(bad((x) => (x.memberIds = [3, 3]))).toBe('invalid');
+    expect(bad((x) => (x.memberIds = [3, 99]))).toBe('invalid');
+  });
+
+  test('import replaces old memberships (FKs off on the exclusive connection)', async () => {
+    real.exec(`
+      INSERT INTO children (id, name, color_index, avatar, created_at) VALUES (3, '옛날', 0, 'face-wink', '2025-01-01'), (9, '옛날2', 1, 'face-dizzy', '2025-01-01');
+      INSERT INTO schedules (id, child_id, title, type, days_of_week, start_minutes, end_minutes, valid_from) VALUES (11, 3, '옛 일정', 'other', 1, 0, 60, '2025-01-01');
+      INSERT INTO schedule_children (schedule_id, child_id) VALUES (11, 9);
+    `);
+    real.exec('PRAGMA foreign_keys = OFF');
+    await importDb(db as never, ok(JSON.stringify(await exportedFromSeed())));
+    const rows = await db.getAllAsync<{ schedule_id: number; child_id: number }>('SELECT schedule_id, child_id FROM schedule_children ORDER BY schedule_id, child_id');
+    expect(rows).toEqual([
+      { schedule_id: 10, child_id: 3 },
+      { schedule_id: 10, child_id: 7 },
+      { schedule_id: 11, child_id: 7 },
+      { schedule_id: 12, child_id: 7 },
+    ]);
+  });
+});
+
 describe('parseBackup — versions', () => {
   test('v4 file: schedules get allDay false / no end alert', async () => {
     const env = (await exportedFromSeed()) as unknown as Record<string, unknown>;
@@ -222,7 +272,7 @@ describe('parseBackup — versions', () => {
   });
 
   test('newer / too old / not ours', () => {
-    expect(parseBackup(JSON.stringify({ schemaVersion: 6 })).kind).toBe('newer');
+    expect(parseBackup(JSON.stringify({ schemaVersion: 7 })).kind).toBe('newer');
     expect(parseBackup(JSON.stringify({ schemaVersion: 2 })).kind).toBe('tooOld');
     expect(parseBackup(JSON.stringify({ schemaVersion: 1 })).kind).toBe('tooOld');
     expect(parseBackup('not json').kind).toBe('invalid');
@@ -239,7 +289,7 @@ describe('parseBackup — versions', () => {
     const r = parseBackup(JSON.stringify(await exportedFromSeed()));
     expect(r.kind).toBe('ok');
     if (r.kind !== 'ok') return;
-    expect(r.summary).toMatchObject({ kids: 2, schedules: 3, checklist: 3, todos: 2, schemaVersion: 5 });
+    expect(r.summary).toMatchObject({ kids: 2, schedules: 3, checklist: 3, todos: 2, schemaVersion: 6 });
     expect(r.summary.exportedAt?.toISOString()).toBe('2026-11-10T13:15:00.000Z');
   });
 });

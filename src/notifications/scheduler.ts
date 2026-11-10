@@ -34,7 +34,7 @@
 import * as Notifications from 'expo-notifications';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { expandOccurrences } from '../domain/occurrences';
+import { expandOccurrences, memberNames } from '../domain/occurrences';
 import { isChecklistItemVisibleOn } from '../domain/checklist-membership';
 import type {
   ChecklistItem,
@@ -149,6 +149,8 @@ function candidatesForSchedule(input: {
 
   const child = childrenById.get(schedule.childId);
   if (child === undefined) return []; // orphan row — defer to cleanup.
+  // ADR-013: one alert per occurrence for everyone on it — "민준·서연" / "민준 외 2명".
+  const kidName = memberNames(schedule.memberIds ?? [schedule.childId], childrenById) || child.name;
 
   const from = todayIso();
   const to = shiftIsoDate(from, horizonDays);
@@ -172,7 +174,7 @@ function candidatesForSchedule(input: {
         const { title, body } = formatScheduleEndNotification({
           schedule,
           endMinutes: occ.endMinutes,
-          kidName: child.name,
+          kidName,
         });
         candidates.push({
           ownerKey,
@@ -210,7 +212,7 @@ function candidatesForSchedule(input: {
       schedule,
       startMinutes: occ.startMinutes,
       endMinutes: occ.endMinutes,
-      kidName: child.name,
+      kidName,
       pendingLabels,
     });
 

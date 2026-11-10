@@ -16,7 +16,7 @@ import { Redirect, useRouter } from 'expo-router';
 
 import { MAX_CHILDREN } from '../../src/domain/constants';
 import { nowAndNextByKid } from '../../src/domain/now-next';
-import { expandOccurrences } from '../../src/domain/occurrences';
+import { expandOccurrences, fanOutByMember } from '../../src/domain/occurrences';
 import type { Child } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
 import { usePickupLogStore } from '../../src/state/pickup-log-store';
@@ -65,8 +65,9 @@ export default function HomeScreen(): React.ReactElement {
   );
 
   const nowNext = useMemo(
-    () => nowAndNextByKid(occurrences, kids.map((k) => k.id), nowMinutes),
-    [occurrences, kids, nowMinutes],
+    // ADR-013: a shared schedule shows in every member's row.
+    () => nowAndNextByKid(fanOutByMember(occurrences, childrenById), kids.map((k) => k.id), nowMinutes),
+    [occurrences, kids, nowMinutes, childrenById],
   );
 
   // Today's guardian events — only to flag a pickup they clash with.
