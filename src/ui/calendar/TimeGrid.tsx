@@ -169,12 +169,21 @@ function TimeGridImpl({
   const report = strip?.onVisibleColumn;
   const userScrolling = useSharedValue(false);
   const lastWeek = useSharedValue(-1);
+  // Column at the strip's left edge for a scroll offset — measured with the
+  // *live* width (a pinch changes it before React re-renders), -1 = unknown.
+  const columnAt = (x: number): number => {
+    'worklet';
+    const w = liveWidth(live);
+    return w > 0 ? Math.round(x / w) : -1;
+  };
   const onHScroll = useAnimatedScrollHandler(
     {
       onScroll: (e) => {
         scrollX.value = e.contentOffset.x;
-        if (!userScrolling.value || report === undefined || columnWidth <= 0) return;
-        const col = Math.round(e.contentOffset.x / columnWidth);
+        // A pinch moves the offset itself; only user scrolling reports.
+        if (locked.value || !userScrolling.value || report === undefined) return;
+        const col = columnAt(e.contentOffset.x);
+        if (col < 0) return;
         const week = Math.floor(col / 7);
         if (week !== lastWeek.value) {
           lastWeek.value = week;
@@ -182,23 +191,28 @@ function TimeGridImpl({
         }
       },
       onBeginDrag: (e) => {
-        userScrolling.value = true;
-        lastWeek.value = columnWidth > 0 ? Math.floor(Math.round(e.contentOffset.x / columnWidth) / 7) : -1;
+        userScrolling.value = !locked.value;
+        const col = columnAt(e.contentOffset.x);
+        lastWeek.value = col < 0 ? -1 : Math.floor(col / 7);
       },
       onEndDrag: (e) => {
         // No fling → this is where it settles (a fling re-arms in onMomentumBegin).
+        const wasUser = userScrolling.value;
         userScrolling.value = false;
-        if (report !== undefined && columnWidth > 0) runOnJS(report)(Math.round(e.contentOffset.x / columnWidth));
+        const col = columnAt(e.contentOffset.x);
+        if (wasUser && !locked.value && report !== undefined && col >= 0) runOnJS(report)(col);
       },
       onMomentumBegin: () => {
-        userScrolling.value = true;
+        userScrolling.value = !locked.value;
       },
       onMomentumEnd: (e) => {
+        const wasUser = userScrolling.value;
         userScrolling.value = false;
-        if (report !== undefined && columnWidth > 0) runOnJS(report)(Math.round(e.contentOffset.x / columnWidth));
+        const col = columnAt(e.contentOffset.x);
+        if (wasUser && !locked.value && report !== undefined && col >= 0) runOnJS(report)(col);
       },
     },
-    [columnWidth, report],
+    [viewportW, report],
   );
   // A whole week on screen pages week by week; a zoomed week glides and
   // settles on a day boundary.

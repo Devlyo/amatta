@@ -158,6 +158,8 @@ export default function CalendarScreen(): React.ReactElement {
       ? shiftIsoDate(stripOrigin, col - (col % 7) + daysBetweenIso(weekStart, currentDate))
       : shiftIsoDate(stripOrigin, col);
   const onStripColumn = (col: number): void => {
+    // Reports come every week crossed, so a far jump is a stale measurement.
+    if (Math.abs(col - daysBetweenIso(stripOrigin, currentDate)) > 21) return;
     const date = dateAtColumn(col, weekSpan);
     scrolledDate.current = date as unknown as string;
     if ((date as unknown as string) !== dateKey) setCurrentDate(date);
