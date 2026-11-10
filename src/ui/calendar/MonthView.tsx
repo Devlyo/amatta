@@ -3,11 +3,13 @@
 // Whole weeks covering the month. Each date cell lists its events as chips
 // (owner colour at 60%, no side bar, start-time order); fixed schedules
 // (학교·어린이집) are left out. When a cell overflows, its last slot reads
-// "+N". Pinch-zoomed, cells grow and each chip shows two lines — the title
-// (truncated with …) and the start time ("4PM").
+// "+N". Pinch zoom changes the row height live (no stretched text); from
+// MONTH_ROW_TWO_LINE up each chip shows two lines — the title (truncated
+// with …) and the start time ("4PM").
 
 import { memo, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Reanimated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
 import type { Child, ISODate, Occurrence } from '../../domain/types';
@@ -15,14 +17,27 @@ import { getKidPalette, TOKENS, withAlpha } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
 import { fmt12hrShort } from '../utils/date';
-import { monthCellChips, monthGridDates, showsInMonth } from './calendar-layout';
+import {
+  MONTH_CHIP_H,
+  MONTH_CHIP_H_TWO_LINE,
+  MONTH_ROW_MIN,
+  MONTH_ROW_TWO_LINE,
+  monthCellChips,
+  monthChipLimit,
+  monthGridDates,
+  showsInMonth,
+} from './calendar-layout';
 
-const NAMES = ['일', '월', '화', '수', '목', '금', '토'] as const;
-const CELL_H = 104;
-const CELL_H_ZOOMED = 136;
-const CHIP_H = 16;
-const CHIP_H_ZOOMED = 30;
+export const MONTH_NAMES = ['일', '월', '화', '수', '목', '금', '토'] as const;
+/** Legacy "zoomed" row height (tests / callers without a live height). */
+const ROW_H_ZOOMED = 136;
 const DOCK_CLEARANCE = 96;
+
+/** Live row height while a pinch is sizing (UI thread). */
+export interface MonthLiveRows {
+  sizing: SharedValue<boolean>;
+  rowH: SharedValue<number>;
+}
 
 interface Props {
   anchor: ISODate;
@@ -33,6 +48,12 @@ interface Props {
   inactive: readonly PersonKey[];
   zoomed: boolean;
   onPressDay: (date: ISODate) => void;
+  /** Committed row height (overrides `zoomed`). */
+  rowHeight?: number;
+  live?: MonthLiveRows;
+  /** The weekday names row (a month strip draws one shared row instead). */
+  showNames?: boolean;
+  testID?: string;
 }
 
 function MonthViewImpl({
@@ -43,6 +64,10 @@ function MonthViewImpl({
   inactive,
   zoomed,
   onPressDay,
+  rowHeight,
+  live,
+  showNames = true,
+  testID = 'month-view',
 }: Props): React.ReactElement {
   const dates = useMemo(() => monthGridDates(anchor), [anchor]);
   const monthKey = (anchor as unknown as string).slice(0, 7);
@@ -62,35 +87,23 @@ function MonthViewImpl({
     return m;
   }, [occurrences, kidById]);
 
-  const cellH = zoomed ? CELL_H_ZOOMED : CELL_H;
-  const chipH = zoomed ? CHIP_H_ZOOMED : CHIP_H;
-  const limit = zoomed ? 3 : 4;
+  const rowH = rowHeight ?? (zoomed ? ROW_H_ZOOMED : MONTH_ROW_MIN);
+  const twoLine = rowH >= MONTH_ROW_TWO_LINE;
+  const chipH = twoLine ? MONTH_CHIP_H_TWO_LINE : MONTH_CHIP_H;
+  const limit = monthChipLimit(rowH);
   const rows: ISODate[][] = [];
   for (let i = 0; i < dates.length; i += 7) rows.push(dates.slice(i, i + 7));
 
   return (
     <View style={styles.root}>
-      <View style={styles.names}>
-        {NAMES.map((n, i) => (
-          <Text
-            key={n}
-            style={[
-              styles.name,
-              i === 0 ? { color: TOKENS.sunday } : i === 6 ? { color: TOKENS.saturday } : null,
-            ]}
-          >
-            {n}
-          </Text>
-        ))}
-      </View>
+      {showNames ? <MonthNames /> : null}
       <ScrollView
-        testID="month-view"
-        scrollEnabled={zoomed}
+        testID={testID}
         contentContainerStyle={{ paddingBottom: DOCK_CLEARANCE }}
         showsVerticalScrollIndicator={false}
       >
         {rows.map((row) => (
-          <View key={row[0] as unknown as string} style={styles.row}>
+          <MonthRow key={row[0] as unknown as string} height={rowH} live={live}>
             {row.map((date, col) => {
               const key = date as unknown as string;
               const inMonth = key.slice(0, 7) === monthKey;
@@ -114,7 +127,7 @@ function MonthViewImpl({
                   accessibilityRole="button"
                   accessibilityLabel={`${Number(key.slice(5, 7))}월 ${day}일, 일정 ${list.length}개${isToday ? ', 오늘' : ''}`}
                   testID={`month-cell-${key}`}
-                  style={[styles.cell, { height: cellH }, col === 6 ? styles.cellLast : null]}
+                  style={[styles.cell, col === 6 ? styles.cellLast : null]}
                 >
                   <View style={[styles.circle, isToday ? styles.circleToday : null]}>
                     <Text style={[styles.number, { color: numberColor }]}>{day}</Text>
@@ -138,7 +151,7 @@ function MonthViewImpl({
                         <Text style={styles.chipTitle} numberOfLines={1} ellipsizeMode="tail">
                           {occ.title}
                         </Text>
-                        {zoomed ? (
+                        {twoLine ? (
                           <Text style={styles.chipTime} numberOfLines={1}>
                             {occ.allDay ? '하루 종일' : fmt12hrShort(occ.startMinutes)}
                           </Text>
@@ -154,7 +167,7 @@ function MonthViewImpl({
                 </Pressable>
               );
             })}
-          </View>
+          </MonthRow>
         ))}
       </ScrollView>
     </View>
@@ -162,6 +175,43 @@ function MonthViewImpl({
 }
 
 export const MonthView = memo(MonthViewImpl);
+
+/** Weekday names (일…토) above the month grid. */
+export function MonthNames(): React.ReactElement {
+  return (
+    <View style={styles.names}>
+      {MONTH_NAMES.map((n, i) => (
+        <Text
+          key={n}
+          style={[
+            styles.name,
+            i === 0 ? { color: TOKENS.sunday } : i === 6 ? { color: TOKENS.saturday } : null,
+          ]}
+        >
+          {n}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
+/** A week row; follows the live pinch height while sizing, else `height`. */
+function MonthRow({
+  height,
+  live,
+  children,
+}: {
+  height: number;
+  live?: MonthLiveRows;
+  children: React.ReactNode;
+}): React.ReactElement {
+  const sizing = live?.sizing;
+  const rowH = live?.rowH;
+  const sized = useAnimatedStyle(() => ({
+    height: sizing?.value === true && rowH !== undefined ? rowH.value : height,
+  }));
+  return <Reanimated.View style={[styles.row, { height }, sized]}>{children}</Reanimated.View>;
+}
 
 const styles = StyleSheet.create({
   root: { flex: 1 },

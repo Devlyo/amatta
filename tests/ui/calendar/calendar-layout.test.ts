@@ -3,7 +3,10 @@ import {
   monthCellChips,
   monthGridDates,
   showsInMonth,
+  clampMonthRow,
   clampWeekSpan,
+  monthChipLimit,
+  monthsBetween,
   visibleWeekDays,
 } from '../../../src/ui/calendar/calendar-layout';
 import { daysBetweenIso, shiftIsoMonth } from '../../../src/ui/utils/date';
@@ -93,5 +96,23 @@ describe('daysBetweenIso', () => {
     expect(daysBetweenIso(ISO('2026-11-08'), ISO('2026-11-10'))).toBe(2);
     expect(daysBetweenIso(ISO('2026-11-10'), ISO('2026-10-31'))).toBe(-10);
     expect(daysBetweenIso(ISO('2026-03-01'), ISO('2026-03-31'))).toBe(30);
+  });
+});
+
+describe('month zoom', () => {
+  test('row height is continuous between the bounds', () => {
+    expect(clampMonthRow(90)).toBe(104);
+    expect(clampMonthRow(121.5)).toBe(121.5);
+    expect(clampMonthRow(400)).toBe(150);
+  });
+  test('chip slots follow the row height (one line → two lines at 120)', () => {
+    expect(monthChipLimit(104)).toBe(4);
+    expect(monthChipLimit(119)).toBe(4);
+    expect(monthChipLimit(120)).toBe(2);
+    expect(monthChipLimit(136)).toBe(3);
+  });
+  test('monthsBetween', () => {
+    expect(monthsBetween(ISO('2026-11-10'), ISO('2027-02-01'))).toBe(3);
+    expect(monthsBetween(ISO('2026-11-30'), ISO('2026-10-01'))).toBe(-1);
   });
 });

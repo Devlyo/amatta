@@ -48,8 +48,9 @@ interface UiState {
   weekSpan: WeekSpan;
   setWeekSpan: (span: WeekSpan) => void;
   /** Month view pinch zoom (2-line chips). Session only. */
-  monthZoomed: boolean;
-  setMonthZoomed: (zoomed: boolean) => void;
+  /** Month view week-row height (pinch zoom, MONTH_ROW_MIN…MAX). */
+  monthRowH: number;
+  setMonthRowH: (h: number) => void;
   /** People switched off in the filter (faded). Empty = everyone active. */
   inactivePeople: PersonKey[];
   /** Short tap on a filter pill. */
@@ -79,8 +80,8 @@ export const useUiStore = create<UiState>()((set) => ({
   setCalendarView: (view) => set({ calendarView: view }),
   weekSpan: 7,
   setWeekSpan: (span) => set({ weekSpan: span }),
-  monthZoomed: false,
-  setMonthZoomed: (zoomed) => set({ monthZoomed: zoomed }),
+  monthRowH: 104,
+  setMonthRowH: (h) => set({ monthRowH: h }),
   inactivePeople: [],
   togglePerson: (key) => set((s) => ({ inactivePeople: toggleActive(s.inactivePeople, key) })),
   soloPerson: (key, everyone) =>

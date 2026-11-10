@@ -9,8 +9,8 @@
 // One-finger horizontal swipe drags the page with the finger and pages by a
 // day / a month; the week view is a native sideways-scrolling day strip
 // (pages by week at 7 days, glides day by day when zoomed). Pinching stretches the content live, then
-// snaps: month normal ↔ 2-line chips. The week view re-lays out its day
-// columns live (7 … 2 days, continuous) and stays where the fingers stop. Long press on an empty
+// re-lays out live: week columns (7 … 2 days), month rows (taller rows get
+// 2-line chips with the start time); both stay where the fingers stop. Long press on an empty
 // slot (day/week) creates an event there. New events from anywhere else use
 // the dock's "+".
 
@@ -37,8 +37,10 @@ import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useUiStore, type CalendarView, type PersonKey } from '../../src/state/ui-store';
 import { CalendarTopBar } from '../../src/ui/calendar/CalendarTopBar';
 import {
+  clampMonthRow,
   clampWeekSpan,
   monthGridDates,
+  monthsBetween,
   visibleWeekDays,
   WEEK_SPAN_SHOW_TIME,
   type WeekSpan,
@@ -47,7 +49,7 @@ import { TIME_GUTTER } from '../../src/ui/calendar/time-axis';
 import { DateStrip } from '../../src/ui/calendar/DateStrip';
 import { DayView } from '../../src/ui/calendar/DayView';
 import { KidFilterBar } from '../../src/ui/calendar/KidFilterBar';
-import { MonthView } from '../../src/ui/calendar/MonthView';
+import { MonthStrip } from '../../src/ui/calendar/MonthStrip';
 import { useNowMinutes } from '../../src/ui/calendar/useNowMinutes';
 import { WeekView } from '../../src/ui/calendar/WeekView';
 import { TOKENS } from '../../src/ui/palette';
@@ -62,11 +64,13 @@ import {
 
 const ENABLED_VIEWS: readonly CalendarView[] = ['day', 'week', 'month'];
 const SWIPE_THRESHOLD = 60;
-const PINCH_IN = 1.15;
-const PINCH_OUT = 0.87;
 const PAGE_MS = 160;
-/** Month cells: zoomed / normal height (MonthView) — the live stretch snaps to this. */
-const MONTH_ZOOM_RATIO = 136 / 104;
+/** Month strip: months either side of the start (paged natively, like the week strip). */
+const MONTH_HALF = 24;
+const MONTH_PAGES = MONTH_HALF * 2 + 1;
+const MONTH_MARGIN = 3;
+const firstOfMonth = (d: ISODate): ISODate => `${(d as unknown as string).slice(0, 7)}-01` as unknown as ISODate;
+const monthOriginFor = (d: ISODate): ISODate => shiftIsoMonth(firstOfMonth(d), -MONTH_HALF);
 /**
  * The week view is one long native-scrolling day strip (weeks either side of
  * the start), so dragging is plain iOS scrolling — no page swaps. Only a
@@ -94,8 +98,8 @@ export default function CalendarScreen(): React.ReactElement {
   const setCalendarView = useUiStore((s) => s.setCalendarView);
   const weekSpan = useUiStore((s) => s.weekSpan);
   const setWeekSpan = useUiStore((s) => s.setWeekSpan);
-  const monthZoomed = useUiStore((s) => s.monthZoomed);
-  const setMonthZoomed = useUiStore((s) => s.setMonthZoomed);
+  const monthRowH = useUiStore((s) => s.monthRowH);
+  const setMonthRowH = useUiStore((s) => s.setMonthRowH);
   const inactivePeople = useUiStore((s) => s.inactivePeople);
   const togglePerson = useUiStore((s) => s.togglePerson);
   const soloPerson = useUiStore((s) => s.soloPerson);
@@ -173,7 +177,32 @@ export default function CalendarScreen(): React.ReactElement {
   const stripReport = useRef(onStripColumn);
   stripReport.current = onStripColumn;
   const reportStripColumn = useCallback((col: number) => stripReport.current(col), []);
-  const monthDates = useMemo(() => monthGridDates(currentDate), [currentDate]);
+  // Month strip: page 0 = monthOrigin; the window renders the current month ±1.
+  const [monthOrigin, setMonthOrigin] = useState<ISODate>(() => monthOriginFor(currentDate));
+  const [monthJump, setMonthJump] = useState(0);
+  const monthScrolled = useRef<string | null>(null);
+  useEffect(() => {
+    // Entering the month view, or the date changed elsewhere → show its month.
+    if (view !== 'month' || monthScrolled.current === dateKey) return;
+    const page = monthsBetween(monthOrigin, currentDate);
+    if (page < MONTH_MARGIN || page > MONTH_PAGES - 1 - MONTH_MARGIN) setMonthOrigin(monthOriginFor(currentDate));
+    setMonthJump((n) => n + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, dateKey]);
+  const onMonthPage = (page: number): void => {
+    const date = shiftIsoMonth(currentDate, page - monthsBetween(monthOrigin, currentDate));
+    monthScrolled.current = date as unknown as string;
+    setCurrentDate(date);
+    if (page < MONTH_MARGIN || page > MONTH_PAGES - 1 - MONTH_MARGIN) {
+      setMonthOrigin(monthOriginFor(date));
+      setMonthJump((n) => n + 1);
+    }
+  };
+  const monthWindowDates = useMemo(() => {
+    const prev = monthGridDates(shiftIsoMonth(firstOfMonth(currentDate), -1));
+    const next = monthGridDates(shiftIsoMonth(firstOfMonth(currentDate), 1));
+    return [prev[0] ?? currentDate, next[next.length - 1] ?? currentDate];
+  }, [currentDate]);
 
   // Occurrences for exactly what the active view shows.
   const range = useMemo(() => {
@@ -182,9 +211,9 @@ export default function CalendarScreen(): React.ReactElement {
       to: list[list.length - 1] ?? currentDate,
     });
     if (view === 'week') return span(windowDays);
-    if (view === 'month') return span(monthDates);
+    if (view === 'month') return span(monthWindowDates);
     return { from: currentDate, to: currentDate };
-  }, [view, windowDays, monthDates, currentDate]);
+  }, [view, windowDays, monthWindowDates, currentDate]);
   const occurrences = useMemo<Occurrence[]>(
     () => expandOccurrences(schedules, exceptions, range, childrenById),
     [schedules, exceptions, range, childrenById],
@@ -197,40 +226,31 @@ export default function CalendarScreen(): React.ReactElement {
   };
 
   // ── Live motion ──────────────────────────────────────────────────────────
-  // dragX: the page follows one finger; past the threshold it slides out, the
-  // date moves, and the new page slides in from the other side.
-  // stretch: pinch scales the content around the fingers (week → wider
-  // columns, month → taller cells); on release it eases to the next level's
-  // ratio, then the real layout for that level replaces the preview.
+  // Day view: the page follows one finger; past the threshold it slides out,
+  // the date moves, and the new page slides in. Week and month are native
+  // paging strips. Pinch re-lays out week columns / month rows every frame
+  // (no stretched text, no snap-back) and stays where the fingers stop.
   const bodyW = useSharedValue(0);
   const dragX = useSharedValue(0);
-  const stretch = useSharedValue(1);
-  const focal = useSharedValue(0);
   const scrollX = useSharedValue(0);
   const pinchView = useSharedValue<'day' | 'week' | 'month'>(view);
-  // Month pinch can only stretch as far as the zoomed level reaches.
-  const stretchMin = useSharedValue(1);
-  const stretchMax = useSharedValue(1);
-  // Week pinch: the column width itself changes every frame (Apple-style, no
-  // stretched text, no snap-back); the strip scrolls so the day under the
-  // fingers stays put.
   const liveSpan = useSharedValue<number>(weekSpan);
+  const liveRowH = useSharedValue<number>(monthRowH);
   const stripLocked = useSharedValue(false);
   const stripSizing = useSharedValue(false);
   const stripRef = useAnimatedRef<Animated.ScrollView>();
-  const pinchFrom = useSharedValue({ span: 7, focalCol: 0, fScreen: 0 });
+  const pinchFrom = useSharedValue({ span: 7, focalCol: 0, fScreen: 0, rowH: 104 });
   useEffect(() => {
     pinchView.value = view;
-    stretch.value = 1;
     dragX.value = 0;
-    stretchMin.value = monthZoomed ? 1 / MONTH_ZOOM_RATIO : 1;
-    stretchMax.value = monthZoomed ? 1 : MONTH_ZOOM_RATIO;
-  }, [view, monthZoomed, pinchView, stretch, dragX, stretchMin, stretchMax]);
+  }, [view, pinchView, dragX]);
   useEffect(() => {
-    if (!stripLocked.value) liveSpan.value = weekSpan;
+    if (stripLocked.value) return;
+    liveSpan.value = weekSpan;
+    liveRowH.value = monthRowH;
     // The new zoom is rendered → hand layout back to React.
-    if (!stripLocked.value) stripSizing.value = false;
-  }, [weekSpan, stripPos.n, liveSpan, stripLocked, stripSizing]);
+    stripSizing.value = false;
+  }, [weekSpan, monthRowH, stripPos.n, liveSpan, liveRowH, stripLocked, stripSizing]);
 
   const commitMove = (dir: -1 | 1): void => {
     move(dir);
@@ -243,32 +263,11 @@ export default function CalendarScreen(): React.ReactElement {
     const date = dateAtColumn(Math.max(0, Math.round(col)), span);
     scrolledDate.current = date as unknown as string;
     if ((date as unknown as string) !== dateKey) setCurrentDate(date);
-    stretch.value = 1;
-  };
-  const commitMonthZoom = (zoomed: boolean): void => {
-    setMonthZoomed(zoomed);
-    stretch.value = 1;
-  };
-  const endPinch = (scale: number): void => {
-    if (view === 'month') {
-      const zoom = scale >= PINCH_IN ? true : scale <= PINCH_OUT ? false : monthZoomed;
-      if (zoom === monthZoomed) {
-        stretch.value = withTiming(1, { duration: PAGE_MS });
-        return;
-      }
-      stretch.value = withTiming(
-        zoom ? MONTH_ZOOM_RATIO : 1 / MONTH_ZOOM_RATIO,
-        { duration: PAGE_MS },
-        (done) => {
-          if (done) runOnJS(commitMonthZoom)(zoom);
-        },
-      );
-    }
   };
 
   const swipe = Gesture.Pan()
-    // The week view scrolls sideways natively (see the strip).
-    .enabled(view !== 'week')
+    // Week and month scroll sideways natively (see the strips).
+    .enabled(view === 'day')
     .maxPointers(1)
     .activeOffsetX([-20, 20])
     .failOffsetY([-12, 12])
@@ -301,9 +300,12 @@ export default function CalendarScreen(): React.ReactElement {
           span: liveSpan.value,
           fScreen,
           focalCol: vw > 0 ? (fScreen + scrollX.value) / (vw / liveSpan.value) : 0,
+          rowH: liveRowH.value,
         };
       } else {
-        focal.value = e.focalY;
+        stripLocked.value = true;
+        stripSizing.value = true;
+        pinchFrom.value = { span: liveSpan.value, fScreen: 0, focalCol: 0, rowH: liveRowH.value };
       }
     })
     .onUpdate((e) => {
@@ -314,7 +316,7 @@ export default function CalendarScreen(): React.ReactElement {
         liveSpan.value = span;
         scrollTo(stripRef, Math.max(0, from.focalCol * (vw / span) - from.fScreen), 0, false);
       } else {
-        stretch.value = Math.min(Math.max(e.scale, stretchMin.value), stretchMax.value);
+        liveRowH.value = clampMonthRow(pinchFrom.value.rowH * e.scale);
       }
     })
     .onFinalize(() => {
@@ -327,22 +329,18 @@ export default function CalendarScreen(): React.ReactElement {
         // Stays exactly where the fingers left it (no snapping to levels).
         runOnJS(commitWeekSpan)(span, vw > 0 ? Math.max(0, from.focalCol - from.fScreen / (vw / span)) : 0);
       } else {
-        runOnJS(endPinch)(stretch.value);
+        if (!stripLocked.value) return;
+        stripLocked.value = false;
+        runOnJS(setMonthRowH)(liveRowH.value);
       }
     });
   const gestures = Gesture.Simultaneous(swipe, pinch);
 
   const bodyStyle = useAnimatedStyle(() => {
     const w = bodyW.value;
-    const s = stretch.value;
-    const pinchT = focal.value * (1 - s);
-    const isMonth = pinchView.value === 'month';
     return {
       opacity: w > 0 ? 1 - Math.min(Math.abs(dragX.value) / w, 1) * 0.6 : 1,
-      // Week stretch is applied inside the grid (columns only, gutter fixed).
-      transform: isMonth
-        ? [{ translateX: dragX.value }, { translateY: pinchT }, { scaleY: s }]
-        : [{ translateX: dragX.value }],
+      transform: [{ translateX: dragX.value }],
     };
   });
   const onBodyLayout = (e: LayoutChangeEvent): void => {
@@ -458,13 +456,19 @@ export default function CalendarScreen(): React.ReactElement {
                 onLongPressSlot={(date, minutes) => createAt(date, minutes)}
               />
             ) : (
-              <MonthView
+              <MonthStrip
                 anchor={currentDate}
+                origin={monthOrigin}
+                pages={MONTH_PAGES}
+                jumpKey={`${monthOrigin as unknown as string}-${monthJump}`}
                 today={today}
                 kids={kids}
                 occurrences={occurrences}
                 inactive={inactivePeople}
-                zoomed={monthZoomed}
+                rowHeight={monthRowH}
+                live={{ sizing: stripSizing, rowH: liveRowH }}
+                locked={stripLocked}
+                onPage={onMonthPage}
                 onPressDay={openDay}
               />
             )}

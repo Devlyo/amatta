@@ -25,6 +25,36 @@ export function visibleWeekDays(anchor: ISODate, span: number): ISODate[] {
 }
 
 /**
+ * Month view zoom: week-row height (px), continuous between these bounds.
+ * From MONTH_ROW_TWO_LINE up, chips get a second line with the start time.
+ */
+export const MONTH_ROW_MIN = 104;
+export const MONTH_ROW_MAX = 150;
+export const MONTH_ROW_TWO_LINE = 120;
+export const MONTH_CHIP_H = 16;
+export const MONTH_CHIP_H_TWO_LINE = 30;
+/** Space above the chips (date circle + padding). */
+const MONTH_CELL_HEAD = 32;
+
+export function clampMonthRow(h: number): number {
+  'worklet';
+  return Math.min(MONTH_ROW_MAX, Math.max(MONTH_ROW_MIN, h));
+}
+
+/** Chip slots that fit a cell of this row height ("+N" takes the last one). */
+export function monthChipLimit(rowHeight: number): number {
+  const chip = rowHeight >= MONTH_ROW_TWO_LINE ? MONTH_CHIP_H_TWO_LINE : MONTH_CHIP_H;
+  return Math.max(1, Math.floor((rowHeight - MONTH_CELL_HEAD) / (chip + 2)));
+}
+
+/** Whole months from `a`'s month to `b`'s month. */
+export function monthsBetween(a: ISODate, b: ISODate): number {
+  const s = a as unknown as string;
+  const t = b as unknown as string;
+  return (Number(t.slice(0, 4)) - Number(s.slice(0, 4))) * 12 + Number(t.slice(5, 7)) - Number(s.slice(5, 7));
+}
+
+/**
  * Month view grid: whole weeks (Sun..Sat) covering the anchor's month —
  * 4 to 6 rows, leading/trailing days from the neighbouring months included.
  */

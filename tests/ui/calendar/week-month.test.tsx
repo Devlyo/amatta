@@ -4,6 +4,7 @@ import { State } from 'react-native-gesture-handler';
 import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 
 import type { Child, ColorIndex, ISODate, Occurrence, ScheduleType } from '../../../src/domain/types';
+import { MonthStrip } from '../../../src/ui/calendar/MonthStrip';
 import { MonthView } from '../../../src/ui/calendar/MonthView';
 import { BLOCK_DIMMED_OPACITY } from '../../../src/ui/calendar/TimeBlock';
 import { WeekView } from '../../../src/ui/calendar/WeekView';
@@ -268,5 +269,37 @@ describe('WeekView — zoomed strip scrolls sideways through the whole week', ()
     // Thu = window index 4 → strip column 18 → 18 × 150px.
     expect(style('week-slot-3|2026-11-12').left).toBeGreaterThanOrEqual(18 * 150);
     expect(style('week-slot-3|2026-11-12').left).toBeLessThan(19 * 150);
+  });
+});
+
+describe('MonthStrip — months page sideways natively', () => {
+  test('renders the current month ±1 at their pages; paging reports the page', () => {
+    const onPage = jest.fn();
+    render(
+      <MonthStrip
+        anchor={ISO('2026-11-10')}
+        origin={ISO('2026-09-01')}
+        pages={5}
+        jumpKey="j"
+        today={ISO('2026-11-10')}
+        kids={kids}
+        occurrences={[occ(2, 1, '2026-11-10', 16 * 60, 17 * 60, '영어학원')]}
+        inactive={[]}
+        rowHeight={128}
+        onPage={onPage}
+        onPressDay={() => {}}
+      />,
+    );
+    fireEvent(screen.getByTestId('month-strip-viewport'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 350, height: 600 } },
+    });
+    expect(screen.getByTestId('month-view')).toBeTruthy(); // Nov (page 2)
+    expect(screen.getByTestId('month-view--1')).toBeTruthy(); // Oct
+    expect(screen.getByTestId('month-view-1')).toBeTruthy(); // Dec
+    expect(screen.getByText('4PM')).toBeTruthy(); // 128px rows → two-line chips
+    fireEvent(screen.getByTestId('month-strip'), 'momentumScrollEnd', {
+      nativeEvent: { contentOffset: { x: 3 * 350, y: 0 } },
+    });
+    expect(onPage).toHaveBeenCalledWith(3);
   });
 });
