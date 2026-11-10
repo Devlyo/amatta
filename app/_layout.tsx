@@ -276,7 +276,7 @@ export default function RootLayout() {
             artifacts, now fixed by the runtime Appearance.setColorScheme('light')
             + contentStyle white. */}
         <Stack.Screen
-          name="calendar/index"
+          name="date-picker"
           options={{
             headerShown: false,
             presentation: 'formSheet',

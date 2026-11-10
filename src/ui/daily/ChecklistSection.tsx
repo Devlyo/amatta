@@ -11,7 +11,7 @@ import {
 import { getDb } from '../../db/client';
 import { expandOccurrences } from '../../domain/occurrences';
 import { isChecklistItemVisibleOn } from '../../domain/checklist-membership';
-import type { Child, ChecklistItem, Occurrence } from '../../domain/types';
+import type { Child, ChecklistItem, ISODate, Occurrence } from '../../domain/types';
 import { KidAvatar } from '../common/KidAvatar';
 import { FONT_FAMILIES } from '../fonts';
 import { IconCheck } from '../icons';
@@ -82,13 +82,19 @@ function SectionHeader({ label, done, total }: { label: string; done: number; to
   );
 }
 
-function ChecklistSectionImpl(): React.ReactElement {
+interface ChecklistSectionProps {
+  /** Date to show. Defaults to the calendar's `currentDate`; home passes today. */
+  date?: ISODate;
+}
+
+function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.ReactElement {
   const children = useChildrenStore((s) => s.children);
   const schedules = useSchedulesStore((s) => s.schedules);
   const exceptions = useSchedulesStore((s) => s.exceptions);
   const itemsByScheduleId = useChecklistStore((s) => s.itemsByScheduleId);
   const completionMap = useChecklistCompletionStore((s) => s.completionMap);
-  const currentDate = useUiStore((s) => s.currentDate);
+  const storeDate = useUiStore((s) => s.currentDate);
+  const currentDate = date ?? storeDate;
 
   // The viewed day as a yyyymmdd int — the key both for membership filtering
   // (day-specific items show only on their date) and per-occurrence completion

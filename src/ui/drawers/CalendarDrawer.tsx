@@ -1,5 +1,5 @@
 // Calendar month-grid body. Presented as the expo-router `formSheet` route
-// app/calendar/index.tsx (see .omc/plans/ralplan-drawer-route-modal.md); the
+// app/date-picker.tsx (see .omc/plans/ralplan-drawer-route-modal.md); the
 // route shell owns native presentation + the ui-store open/close lockstep.
 //
 // Single-month grid. Prev/next month chevrons; weekday header 일~토; tap a date

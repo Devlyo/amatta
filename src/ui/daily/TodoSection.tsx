@@ -34,9 +34,15 @@ function SectionHeader({ label, done, total }: { label: string; done: number; to
   );
 }
 
-function TodoSectionImpl(): React.ReactElement {
+interface TodoSectionProps {
+  /** Date to show. Defaults to the calendar's `currentDate`; home passes today. */
+  date?: ISODate;
+}
+
+function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
   const todos = useTodosStore((s) => s.todos);
-  const currentDate = useUiStore((s) => s.currentDate);
+  const storeDate = useUiStore((s) => s.currentDate);
+  const currentDate = date ?? storeDate;
 
   // Todos are date-bound — only show the ones due on the day the daily view
   // is anchored to. A todo added on June 5 must not appear on June 6.

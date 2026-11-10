@@ -1,7 +1,7 @@
 // Render-level tests for the calendar body (CalendarBody).
 //
 // Post-migration: CalendarBody is the de-chromed content rendered by the
-// app/calendar/index.tsx formSheet route. It reads currentDate from the store
+// app/date-picker.tsx formSheet route. It reads currentDate from the store
 // and delegates dismissal to an `onClose` prop (the route calls router.back()).
 // (The old @gorhom/bottom-sheet mock was dead — the component never imported
 // gorhom — and has been removed.)
