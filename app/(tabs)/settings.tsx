@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { MAX_CHILDREN } from '../../src/domain/constants';
+import { APP_VERSION } from '../../src/utils/app-version';
 import type { Child } from '../../src/domain/types';
 import { getDb } from '../../src/db/client';
 import { rescheduleAll } from '../../src/notifications/scheduler';
@@ -36,7 +37,6 @@ import {
 } from '../../src/ui/sheets/form-rows';
 import { makeStyles, useTheme } from '../../src/ui/appearance';
 
-const APP_VERSION = '1.0.0';
 const MODE_LABEL = { system: '시스템', light: '라이트', dark: '다크' } as const;
 /** Space under the content so the floating dock never covers the last row. */
 const DOCK_CLEARANCE = 110;
