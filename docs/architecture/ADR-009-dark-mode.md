@@ -1,6 +1,6 @@
 # ADR-009 — 다크 모드
 
-- **Status**: Proposed — Architect/Critic 승인(수정 조건부), 계획 v2 (2026-11-10) — 오너 "다크모드 추가 가능?" → 시안 확인 후 진행 결정. 계획: `.omc/plans/ralplan-dark-mode.md`
+- **Status**: **Accepted / 구현 완료** (2026-11-10) — 계획 v2의 0–5단계 완료 — 오너 "다크모드 추가 가능?" → 시안 확인 후 진행 결정. 계획: `.omc/plans/ralplan-dark-mode.md`
 - **Amends**: ADR-004 (앱 라이트모드 런타임 고정 `Appearance.setColorScheme('light')`, `app.json userInterfaceStyle: "light"`)
 - **Source**: 디자인 캔버스(비공개) https://claude.ai/artifact/7378YLCUUr4pMf7SgDfybx — 보드 `0-D 홈 — 다크`, `3-D 일간 — 다크`, `6-D 새 일정 — 다크` (2026-11-10, 바탕 밝기 3회 조정 후 확정)
 

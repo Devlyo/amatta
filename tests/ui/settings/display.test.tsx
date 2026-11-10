@@ -41,3 +41,53 @@ test('the dock puts + on the chosen side', () => {
   rerender(<FloatingDock {...(props as object)} />);
   expect(wrapStyle().flexDirection).toBe('row-reverse');
 });
+
+describe('화면 모드 (ADR-009 step 5)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const RN = require('react-native') as typeof import('react-native');
+
+  function fakeDb() {
+    const rows = new Map<string, string>();
+    return {
+      rows,
+      getFirstAsync: jest.fn(async (_sql: string, [key]: [string]) => (rows.has(key) ? { value: rows.get(key) } : null)),
+      runAsync: jest.fn(async (_sql: string, [key, value]: [string, string]) => {
+        rows.set(key, value);
+      }),
+    };
+  }
+
+  afterEach(() => jest.restoreAllMocks());
+
+  test('default = 시스템 (no override); saved 다크 is applied on load; reset → 시스템', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const actual = jest.requireActual('../../../src/state/display-store') as typeof import('../../../src/state/display-store');
+    const spy = jest.spyOn(RN.Appearance, 'setColorScheme').mockImplementation(() => undefined);
+    const db = fakeDb();
+    await actual.useDisplayStore.getState().load(db as never);
+    expect(actual.useDisplayStore.getState().appearance).toBe('system');
+    expect(spy).toHaveBeenLastCalledWith(null);
+
+    db.rows.set('appearance', 'dark');
+    await actual.useDisplayStore.getState().load(db as never);
+    expect(spy).toHaveBeenLastCalledWith('dark');
+
+    await actual.useDisplayStore.getState().setAppearance(db as never, 'light');
+    expect(db.rows.get('appearance')).toBe('light');
+    expect(spy).toHaveBeenLastCalledWith('light');
+
+    actual.useDisplayStore.getState().resetToDefaults();
+    expect(spy).toHaveBeenLastCalledWith(null);
+    expect(actual.useDisplayStore.getState().appearance).toBe('system');
+  });
+
+  test('the 화면 screen lists 시스템 / 라이트 / 다크 and saves the choice', async () => {
+    const setAppearance = jest.fn(async () => undefined);
+    useDisplayStore.setState({ appearance: 'system', setAppearance: setAppearance as never });
+    render(<DisplaySettingsScreen />);
+    expect(screen.getByLabelText('화면 모드: 시스템 설정 따르기').props.accessibilityState).toMatchObject({ selected: true });
+    fireEvent.press(screen.getByLabelText('화면 모드: 다크'));
+    await waitFor(() => expect(setAppearance).toHaveBeenCalledWith(expect.anything(), 'dark'), { timeout: 5000 });
+    expect(screen.queryByText('다크 미리보기')).toBeNull(); // the dev-only switch is gone
+  });
+});

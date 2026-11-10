@@ -36,6 +36,7 @@ import {
 import { makeStyles, useTheme } from '../../src/ui/appearance';
 
 const APP_VERSION = '1.0.0';
+const MODE_LABEL = { system: '시스템', light: '라이트', dark: '다크' } as const;
 /** Space under the content so the floating dock never covers the last row. */
 const DOCK_CLEARANCE = 110;
 
@@ -60,7 +61,7 @@ export default function SettingsScreen(): React.ReactElement {
   const setDefaultMinutesBefore = useNotifSettingsStore((s) => s.setDefaultMinutesBefore);
   const lastScheduleTruncated = useNotifSettingsStore((s) => s.lastScheduleTruncated);
   const guardianEnabled = useGuardianStore((s) => s.enabled);
-  const addSide = useDisplayStore((s) => s.addButtonSide);
+  const appearanceMode = useDisplayStore((s) => s.appearance);
   const [leadOpen, setLeadOpen] = useState(false);
 
   // Toggling 시스템 알림: persist then reconcile so turning OFF cancels every
@@ -153,7 +154,7 @@ export default function SettingsScreen(): React.ReactElement {
         <HomeSection title="화면">
           <FormValueRow
             label="화면 설정"
-            value={addSide === 'left' ? '+ 버튼 왼쪽' : '+ 버튼 오른쪽'}
+            value={MODE_LABEL[appearanceMode]}
             onPress={() => router.push('/settings/display')}
             last
             testID="settings-row-display"

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Appearance, AppState, Platform, Text, View, Image } from 'react-native';
+import { AppState, Platform, Text, View, Image } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -40,11 +40,8 @@ export const unstable_settings = {
 // Module-scope so it runs once on app load (before any boot effect).
 // Without this, expo-notifications silently suppresses notifications
 // while the app is in the foreground.
-// Lock the app to light appearance at RUNTIME (ADR-004). ADR-009: app.json
-// now says userInterfaceStyle:'automatic' so dark can be turned on, but until
-// every screen reads the theme (ADR-009 steps 1–4) users stay on light here.
-// In __DEV__ the dev gallery can switch schemes to check converted screens.
-Appearance.setColorScheme('light');
+// ADR-009: no light lock any more. The saved 화면 모드 (system / light / dark)
+// is applied by useDisplayStore.load() during boot, before the splash hides.
 
 // Keep the native splash visible until boot is READY (migrations + stores +
 // notif reconcile). Without this, expo-router would tear down the splash as
