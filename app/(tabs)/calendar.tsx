@@ -43,7 +43,12 @@ import {
   WEEK_SPAN_SHOW_TIME,
   type WeekSpan,
 } from '../../src/ui/calendar/calendar-layout';
-import { DEFAULT_HOUR_HEIGHT, initialScrollY, TIME_GUTTER } from '../../src/ui/calendar/time-axis';
+import {
+  DEFAULT_HOUR_HEIGHT,
+  initialScrollY,
+  ongoingStart,
+  TIME_GUTTER,
+} from '../../src/ui/calendar/time-axis';
 import { PagingStrip } from '../../src/ui/calendar/PagingStrip';
 import { DateStrip } from '../../src/ui/calendar/DateStrip';
 import { DayView } from '../../src/ui/calendar/DayView';
@@ -245,6 +250,7 @@ export default function CalendarScreen(): React.ReactElement {
       hourHeight: DEFAULT_HOUR_HEIGHT,
       nowMinutes: isToday ? nowMinutes : null,
       firstStart: todayTimed.length > 0 ? Math.min(...todayTimed.map((o) => o.startMinutes)) : null,
+      ongoingStart: ongoingStart(todayTimed, isToday ? nowMinutes : null),
     });
   const onDayPage = (page: number): void => {
     const date = shiftIsoDate(dayOrigin, page);

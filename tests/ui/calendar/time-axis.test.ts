@@ -3,6 +3,7 @@ import {
   axisHeight,
   hourLabel,
   initialScrollY,
+  ongoingStart,
   minutesAtY,
   minutesToY,
   newEventStart,
@@ -49,6 +50,23 @@ describe('initialScrollY', () => {
 
   test('other day without events: 7 AM', () => {
     expect(initialScrollY({ hourHeight, nowMinutes: null, firstStart: null })).toBe(7 * hourHeight);
+  });
+
+  test('an event in progress → reach back to show its title, NOW stays on screen', () => {
+    // 학원 15:00–17:00, now 16:00 → 14:45 at the top (instead of 14:30 — already shows).
+    expect(initialScrollY({ hourHeight, nowMinutes: 16 * 60, firstStart: 9 * 60, ongoingStart: 15 * 60 })).toBe(14.5 * hourHeight);
+    // 학교 9:00–14:30, now 13:00 → 8:45 at the top.
+    expect(initialScrollY({ hourHeight, nowMinutes: 13 * 60, firstStart: 9 * 60, ongoingStart: 9 * 60 })).toBe(8.75 * hourHeight);
+    // Started 10h ago → only as far back as keeps NOW 40px above a 360px screen.
+    const y = initialScrollY({ hourHeight, nowMinutes: 20 * 60, firstStart: 10 * 60, ongoingStart: 10 * 60 });
+    expect(20 * hourHeight + 8 - y).toBeLessThanOrEqual(360 - 40 + 0.001);
+  });
+
+  test('ongoingStart: earliest event spanning now (all-day ignored)', () => {
+    const ev = (s: number, e: number, allDay = false) => ({ startMinutes: s, endMinutes: e, allDay });
+    expect(ongoingStart([ev(540, 870), ev(780, 840), ev(0, 1440, true)], 800)).toBe(540);
+    expect(ongoingStart([ev(540, 800)], 800)).toBeNull(); // ended exactly now
+    expect(ongoingStart([ev(540, 870)], null)).toBeNull();
   });
 
   test('never negative near midnight', () => {

@@ -14,7 +14,7 @@ import { fmtRange } from '../utils/date';
 import { AllDayRow, type AllDayItem } from './AllDayRow';
 import { TimeBlock } from './TimeBlock';
 import { TimeGrid } from './TimeGrid';
-import { DEFAULT_HOUR_HEIGHT, initialScrollY } from './time-axis';
+import { DEFAULT_HOUR_HEIGHT, initialScrollY, ongoingStart } from './time-axis';
 
 /** Horizontal step for each cascade level. */
 const INDENT = 22;
@@ -99,7 +99,12 @@ function DayViewImpl({
 
   const timed = occurrences.filter((o) => !o.allDay);
   const firstStart = timed.length > 0 ? Math.min(...timed.map((o) => o.startMinutes)) : null;
-  const openAt = openAtProp ?? initialScrollY({ hourHeight: DEFAULT_HOUR_HEIGHT, nowMinutes, firstStart });
+  const openAt = openAtProp ?? initialScrollY({
+      hourHeight: DEFAULT_HOUR_HEIGHT,
+      nowMinutes,
+      firstStart,
+      ongoingStart: ongoingStart(timed, nowMinutes),
+    });
 
   return (
     <View style={styles.root}>

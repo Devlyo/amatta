@@ -19,7 +19,7 @@ import { fmtRange, weekdayKo } from '../utils/date';
 import { AllDayRow, type AllDayItem } from './AllDayRow';
 import { TimeBlock } from './TimeBlock';
 import { TimeGrid, type LiveColumns, type TimeGridStrip } from './TimeGrid';
-import { initialScrollY, TIME_GUTTER } from './time-axis';
+import { initialScrollY, ongoingStart, TIME_GUTTER } from './time-axis';
 
 const HOUR_HEIGHT = 44;
 const INDENT = 15;
@@ -161,6 +161,10 @@ function WeekViewImpl({
     hourHeight: HOUR_HEIGHT,
     nowMinutes: todayColumn !== null ? nowMinutes : null,
     firstStart,
+    ongoingStart: ongoingStart(
+      visible.filter((o) => (o.date as unknown as string) === (today as unknown as string)),
+      todayColumn !== null ? nowMinutes : null,
+    ),
   });
   const indentStep = zoomed ? INDENT_ZOOMED : INDENT;
 

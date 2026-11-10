@@ -50,8 +50,33 @@ export function nowLabel(minutes: number): string {
 }
 
 /**
+ * Smallest grid height we count on (px) — the NOW line must stay inside it,
+ * NOW_KEEP_PX above its bottom, when the opening scroll reaches back.
+ */
+const MIN_VIEWPORT_PX = 360;
+const NOW_KEEP_PX = 40;
+/** Room above an in-progress event's top edge so its title reads clearly. */
+const ONGOING_TITLE_PAD_MIN = 15;
+
+/** Earliest start among events in progress at `nowMinutes` (start ≤ now < end), or null. */
+export function ongoingStart(
+  events: readonly { startMinutes: number; endMinutes: number; allDay?: boolean }[],
+  nowMinutes: number | null,
+): number | null {
+  if (nowMinutes === null) return null;
+  let first: number | null = null;
+  for (const e of events) {
+    if (e.allDay === true || e.startMinutes > nowMinutes || e.endMinutes <= nowMinutes) continue;
+    if (first === null || e.startMinutes < first) first = e.startMinutes;
+  }
+  return first;
+}
+
+/**
  * Where a time grid should open (scroll offset, px):
- *  - today → keep NOW about 1.5 hours below the top edge,
+ *  - today → keep NOW about 1.5 hours below the top edge; if an event is in
+ *    progress, reach back so its top (title) shows too — but never so far
+ *    that the NOW line leaves the screen,
  *  - another day with events → 30 minutes above its first event,
  *  - otherwise → 7 AM.
  */
@@ -59,11 +84,18 @@ export function initialScrollY(input: {
   hourHeight: number;
   nowMinutes: number | null;
   firstStart: number | null;
+  /** Earliest start of an event in progress now (see `ongoingStart`). */
+  ongoingStart?: number | null;
 }): number {
-  const { hourHeight, nowMinutes, firstStart } = input;
+  const { hourHeight, nowMinutes, firstStart, ongoingStart: ongoing = null } = input;
   let anchor: number;
-  if (nowMinutes !== null) anchor = nowMinutes - 90;
-  else if (firstStart !== null) anchor = firstStart - 30;
+  if (nowMinutes !== null) {
+    anchor = nowMinutes - 90;
+    if (ongoing !== null && ongoing - ONGOING_TITLE_PAD_MIN < anchor) {
+      const maxBack = ((MIN_VIEWPORT_PX - NOW_KEEP_PX - AXIS_TOP_PAD) / hourHeight) * 60;
+      anchor = Math.max(ongoing - ONGOING_TITLE_PAD_MIN, nowMinutes - maxBack);
+    }
+  } else if (firstStart !== null) anchor = firstStart - 30;
   else anchor = 7 * 60;
   return Math.max(0, minutesToY(anchor, hourHeight) - AXIS_TOP_PAD);
 }
