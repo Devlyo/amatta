@@ -648,7 +648,7 @@ describe('EditSheet — pickup ↔ 보호자 clash asks before saving', () => {
     const { getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
     fireEvent.press(getByLabelText('저장'));
     await waitFor(() => expect(mocks.updateSchedule).toHaveBeenCalled());
-    expect(alert.mock.calls[0]?.[1]).toContain('보호자 일정 ‘저녁 약속’');
+    expect(alert.mock.calls[0]?.[1]).toContain('보호자 일정 "저녁 약속"(5:30–8PM)와 겹쳐요');
     alert.mockRestore();
   });
 });

@@ -52,6 +52,8 @@ export const TOKENS = {
   primary: '#FF7144',
   primaryDeep: '#D8501F',
   primaryTint: '#FFE2D0',
+  // Home "다음 픽업" clash line (design board "0 홈") — dark orange text.
+  pickupWarn: '#B8431A',
 
   ink: '#1D1D1B',
   inkSub: '#7A756E',

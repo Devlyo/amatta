@@ -46,7 +46,8 @@ function renderCarousel(guardianEvents: (typeof dinner)[]) {
 test('home pickup card: one line when a 보호자 event clashes with the pickup', () => {
   renderCarousel([dinner]);
   expect(screen.getByTestId('pickup-guardian-clash')).toBeTruthy();
-  expect(screen.getByText(/보호자 일정 ‘저녁 약속’\(5:30–8PM\)과 픽업 시간이 겹쳐요/)).toBeTruthy();
+  // Design board "0 홈" wording.
+  expect(screen.getByText('보호자 일정 "저녁 약속"(5:30–8PM)와 겹쳐요')).toBeTruthy();
 });
 
 test('no clash → no line', () => {

@@ -13,7 +13,7 @@
 
 import { memo, type ComponentType } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import type { ScheduleType } from '../domain/types';
 import { TOKENS } from './palette';
@@ -123,6 +123,16 @@ function ViewGlyph({ size, color, children }: IconProps & { children: React.Reac
     </Svg>
   );
 }
+
+/** Circle with "!" — the pickup ↔ guardian clash line (design board "0 홈"). */
+export const IconAlertCircle = memo(function IconAlertCircle({ size = 14, color = TOKENS.ink }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+      <Circle cx={12} cy={12} r={9} />
+      <Path d="M12 7v5M12 16h.01" />
+    </Svg>
+  );
+});
 
 export const IconViewDay = memo(function IconViewDay({ size = 20, color = TOKENS.ink }: IconProps) {
   return (

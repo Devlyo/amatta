@@ -24,6 +24,7 @@ import type { GuardianOccurrence } from '../../domain/guardian';
 import { guardianClashes } from '../../domain/pickup-conflict';
 import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { TOKENS } from '../palette';
+import { IconAlertCircle } from '../icons';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
@@ -114,9 +115,9 @@ export function PickupCarousel({
         if (clash === undefined) return null;
         return (
           <View style={styles.clash} testID="pickup-guardian-clash" accessibilityRole="alert">
-            <Text style={styles.clashIcon}>⚠︎</Text>
+            <IconAlertCircle size={14} color={TOKENS.pickupWarn} />
             <Text style={styles.clashText}>
-              보호자 일정 ‘{clash.title}’({fmtRange(clash.startMinutes, clash.endMinutes)})과 픽업 시간이 겹쳐요
+              보호자 일정 &quot;{clash.title}&quot;({fmtRange(clash.startMinutes, clash.endMinutes)})와 겹쳐요
             </Text>
           </View>
         );
@@ -128,18 +129,15 @@ export function PickupCarousel({
 const styles = StyleSheet.create({
   // Full width of the home content column (the screen supplies the side
   // padding), same as the grouped boxes below it.
+  // Design board "0 홈": the line sits 8px under the card, no box.
   outer: { gap: SPACING.sm },
   clash: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 6,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.box,
-    backgroundColor: TOKENS.surface,
+    paddingHorizontal: SPACING.xs,
   },
-  clashIcon: { ...TYPE.subhead, color: TOKENS.danger },
-  clashText: { ...TYPE.subhead, color: TOKENS.ink, flex: 1 },
+  clashText: { ...TYPE.footnote, color: TOKENS.pickupWarn, flex: 1 },
   viewport: {
     overflow: 'hidden',
     borderRadius: RADIUS.box,
