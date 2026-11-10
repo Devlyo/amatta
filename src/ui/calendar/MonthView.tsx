@@ -45,6 +45,9 @@ interface Props {
   anchor: ISODate;
   today: ISODate;
   kids: readonly Child[];
+  /** 보호자 as a person (pill / column). False while 보호자 일정 is off in 설정. */
+  guardian?: boolean;
+
   /** Occurrences covering the visible grid (any order). */
   occurrences: readonly Occurrence[];
   inactive: readonly PersonKey[];
@@ -83,13 +86,14 @@ function MonthViewImpl({
   showNames = true,
   testID = 'month-view',
   guardianEvents = [],
+  guardian = true,
 }: Props): React.ReactElement {
   const theme = useTheme();
   const styles = useStyles();
   const dates = useMemo(() => monthGridDates(anchor), [anchor]);
   const monthKey = (anchor as unknown as string).slice(0, 7);
   const kidById = useMemo(() => new Map(kids.map((k) => [k.id, k])), [kids]);
-  const everyone = useMemo<PersonKey[]>(() => [...kids.map((k) => k.id), 'guardian'], [kids]);
+  const everyone = useMemo<PersonKey[]>(() => guardian ? [...kids.map((k) => k.id), 'guardian'] : kids.map((k) => k.id), [kids, guardian]);
 
   const byDate = useMemo(() => {
     const m = new Map<string, MonthChip[]>();

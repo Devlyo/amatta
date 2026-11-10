@@ -32,6 +32,9 @@ interface Props {
   days: readonly ISODate[];
   today: ISODate;
   kids: readonly Child[];
+  /** 보호자 as a person (pill / column). False while 보호자 일정 is off in 설정. */
+  guardian?: boolean;
+
   /** Occurrences for the visible days (any order). */
   occurrences: readonly Occurrence[];
   nowMinutes: number;
@@ -89,6 +92,7 @@ function WeekViewImpl({
   firstColumn = 0,
   totalColumns = firstColumn + days.length,
   guardianEvents = [],
+  guardian = true,
   onPressGuardian,
 }: Props): React.ReactElement {
   const theme = useTheme();
@@ -124,7 +128,7 @@ function WeekViewImpl({
     [days, firstColumn],
   );
   const kidById = useMemo(() => new Map(kids.map((k) => [k.id, k])), [kids]);
-  const everyone = useMemo<PersonKey[]>(() => [...kids.map((k) => k.id), 'guardian'], [kids]);
+  const everyone = useMemo<PersonKey[]>(() => guardian ? [...kids.map((k) => k.id), 'guardian'] : kids.map((k) => k.id), [kids, guardian]);
   const todayColumn = columnOfDate.get(today as unknown as string) ?? null;
 
   // People switched off in the filter are hidden — only the ones that are on

@@ -54,6 +54,45 @@ describe('KidFilterBar', () => {
     expect(opacityOf('kid-filter-1')).toBe(PILL_FADED_OPACITY);
     expect(opacityOf('kid-filter-guardian')).toBe(PILL_FADED_OPACITY);
   });
+
+  test('no 보호자 pill while 보호자 일정 is off in 설정', () => {
+    render(<KidFilterBar kids={kids} inactive={[]} onToggle={() => {}} onSolo={() => {}} guardian={false} />);
+    expect(screen.getByTestId('kid-filter-1')).toBeTruthy();
+    expect(screen.queryByTestId('kid-filter-guardian')).toBeNull();
+  });
+});
+
+describe('DayView — 보호자 일정 off', () => {
+  test('no guardian column: the kids share the whole width', () => {
+    jest.useFakeTimers();
+    const onLongPressSlot = jest.fn();
+    render(
+      <DayView
+        kids={kids}
+        occurrences={[]}
+        nowMinutes={null}
+        inactive={[]}
+        scrollKey="2026-11-10"
+        onPressOccurrence={() => {}}
+        onLongPressSlot={onLongPressSlot}
+        guardian={false}
+      />,
+    );
+    fireEvent(screen.getByTestId('day-view'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: TIME_GUTTER + 2 * 100, height: 600 } },
+    });
+    // Rightmost column is the second kid, not 보호자.
+    fireGestureHandler(getByGestureTestId('time-grid-slots'), [
+      { state: State.BEGAN, x: 150, y: 8 + 14.5 * 46 + 1 },
+      { state: State.ACTIVE, x: 150, y: 8 + 14.5 * 46 + 1 },
+      { state: State.END, x: 150, y: 8 + 14.5 * 46 + 1 },
+    ]);
+    act(() => {
+      jest.advanceTimersByTime(250);
+    });
+    expect(onLongPressSlot).toHaveBeenCalledWith(kids[1]?.id, 14 * 60);
+    jest.useRealTimers();
+  });
 });
 
 describe('CalendarTopBar', () => {

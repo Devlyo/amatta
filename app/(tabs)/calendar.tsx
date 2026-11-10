@@ -56,6 +56,7 @@ import { KidFilterBar } from '../../src/ui/calendar/KidFilterBar';
 import { MonthStrip } from '../../src/ui/calendar/MonthStrip';
 import { useNowMinutes } from '../../src/ui/calendar/useNowMinutes';
 import { useGuardianEvents } from '../../src/ui/calendar/useGuardianEvents';
+import { useGuardianStore } from '../../src/state/guardian-store';
 import type { GuardianOccurrence } from '../../src/domain/guardian';
 import { WeekView } from '../../src/ui/calendar/WeekView';
 import {
@@ -123,7 +124,12 @@ export default function CalendarScreen(): React.ReactElement {
     [children],
   );
   const childrenById = useMemo(() => new Map(kids.map((k) => [k.id, k])), [kids]);
-  const everyone = useMemo<PersonKey[]>(() => [...kids.map((k) => k.id), 'guardian'], [kids]);
+  // 보호자 is a person only while 보호자 일정 is on in 설정 (onboarding / settings).
+  const guardianEnabled = useGuardianStore((s) => s.enabled);
+  const everyone = useMemo<PersonKey[]>(
+    () => (guardianEnabled ? [...kids.map((k) => k.id), 'guardian'] : kids.map((k) => k.id)),
+    [kids, guardianEnabled],
+  );
 
   // Title week (Sun..Sat of the current date).
   const weekDays = useMemo(() => visibleWeekDays(currentDate, 7), [currentDate]);
@@ -438,6 +444,7 @@ export default function CalendarScreen(): React.ReactElement {
       ) : null}
       {/* Day view: names sit under the dates, right above their columns. */}
       <KidFilterBar
+        guardian={guardianEnabled}
         kids={kids}
         inactive={inactivePeople}
         onToggle={togglePerson}
@@ -458,6 +465,7 @@ export default function CalendarScreen(): React.ReactElement {
                   const pageIsToday = (date as unknown as string) === (today as unknown as string);
                   return (
                     <DayView
+                      guardian={guardianEnabled}
                       testID={p === dayPage ? 'day-view' : `day-view-${p - dayPage}`}
                       kids={kids}
                       occurrences={occurrencesOn(date)}
@@ -476,6 +484,7 @@ export default function CalendarScreen(): React.ReactElement {
               />
             ) : view === 'week' ? (
               <WeekView
+                guardian={guardianEnabled}
                 guardianEvents={guardianEvents}
                 onPressGuardian={openGuardian}
                 days={windowDays}
@@ -505,6 +514,7 @@ export default function CalendarScreen(): React.ReactElement {
               />
             ) : (
               <MonthStrip
+                guardian={guardianEnabled}
                 guardianEvents={guardianEvents}
                 anchor={currentDate}
                 origin={monthOrigin}

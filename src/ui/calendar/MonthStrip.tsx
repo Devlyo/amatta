@@ -36,6 +36,8 @@ interface Props {
   onPage: (page: number) => void;
   onPressDay: (date: ISODate) => void;
   guardianEvents?: readonly GuardianOccurrence[];
+  /** 보호자 as a person — see MonthView. */
+  guardian?: boolean;
 }
 
 function MonthStripImpl({
@@ -53,6 +55,7 @@ function MonthStripImpl({
   onPage,
   onPressDay,
   guardianEvents,
+  guardian = true,
 }: Props): React.ReactElement {
   const current = monthsBetween(origin, anchor);
   return (
@@ -79,6 +82,7 @@ function MonthStripImpl({
             testID={p === current ? 'month-view' : `month-view-${p - current}`}
             onPressDay={onPressDay}
             guardianEvents={guardianEvents}
+            guardian={guardian}
           />
         )}
       />
