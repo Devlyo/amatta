@@ -145,7 +145,7 @@ export function GuardianEventDetailContent({
           </FormGroup>
 
           <FormGroup>
-            <FormValueRow label="자녀" value="보호자" leading={<View style={styles.guardianDot} />} />
+            <FormValueRow label="참여" value="보호자" leading={<View style={styles.guardianDot} />} />
             <FormValueRow
               label="캘린더"
               value={calendar?.title ?? '아이폰 캘린더'}

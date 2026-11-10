@@ -152,7 +152,7 @@ describe('EventDetailContent', () => {
 
   test('reads like the edit form: same rows, values and actions', () => {
     const { getByLabelText, queryByLabelText } = render(<EventDetailContent onClose={() => {}} />);
-    expect(getByLabelText('자녀: 민준')).toBeTruthy();
+    expect(getByLabelText('참여: 민준')).toBeTruthy();
     expect(getByLabelText('종류: 학원')).toBeTruthy();
     expect(getByLabelText(/^시작: \d{4}\. \d+\. \d+\. 4:00 PM$/)).toBeTruthy();
     expect(getByLabelText('종료: 5:30 PM')).toBeTruthy();

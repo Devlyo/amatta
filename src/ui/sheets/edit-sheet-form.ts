@@ -164,7 +164,7 @@ export function validate(
   const errors: ValidationResult['errors'] = {};
 
   if (options.requireChildId && (form.childId === null || !Number.isFinite(form.childId))) {
-    errors.childId = '자녀를 선택하세요.';
+    errors.childId = '참여할 사람을 선택하세요.';
   }
   if (form.type === null) {
     errors.type = '종류를 선택하세요.';

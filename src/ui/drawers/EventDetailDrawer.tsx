@@ -301,7 +301,7 @@ export function DetailBody({
       {/* 자녀 · 종류 */}
       <FormGroup>
         <FormValueRow
-          label="자녀"
+          label="참여"
           value={[...members.map((k) => k.name), ...(schedule.withGuardian ? ['보호자'] : [])].join(', ')}
           leading={
             members.length + (schedule.withGuardian ? 1 : 0) > 1 ? (

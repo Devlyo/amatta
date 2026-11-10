@@ -779,7 +779,7 @@ export function ScheduleEditContent({
         <View style={styles.block}>
           <FormGroup>
             <FormValueRow
-              label="자녀"
+              label="참여"
               value={kidRowValue}
               leading={
                 forGuardian ? (
@@ -806,7 +806,7 @@ export function ScheduleEditContent({
                 isSelected={(id) =>
                   id === GUARDIAN_OPTION ? forGuardian || form.withGuardian : id !== null && form.memberIds.includes(id)
                 }
-                labelPrefix="자녀: "
+                labelPrefix="참여: "
                 onSelect={(id) => {
                   if (id === null || sheetMode === null) return;
                   const next = togglePerson(

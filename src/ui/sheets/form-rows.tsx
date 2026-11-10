@@ -246,7 +246,7 @@ export function FormOptionList<T extends string | number | null>({
   selected: T;
   onSelect: (key: T) => void;
   render?: (key: T) => ReactNode;
-  /** Prepended to each option's accessibility label (e.g. "자녀: "). */
+  /** Prepended to each option's accessibility label (e.g. "참여: "). */
   labelPrefix?: string;
   /** Multi-select (ADR-013 자녀): round check boxes; `selected` is ignored. */
   isSelected?: (key: T) => boolean;

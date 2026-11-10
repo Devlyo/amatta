@@ -359,7 +359,7 @@ describe('EditSheet 준비물 — Decision C save normalization', () => {
     );
     // Create requires childId + type + title; date comes from preFill.
     fireEvent.press(getByTestId('row-kid'));
-    fireEvent.press(getByLabelText('자녀: 민준'));
+    fireEvent.press(getByLabelText('참여: 민준'));
     fireEvent.press(getByTestId('row-type'));
     fireEvent.press(getByLabelText('학원'));
     fireEvent.changeText(getByTestId('sheet-title-input'), '체험학습');
@@ -481,9 +481,9 @@ describe('EditSheet — 보호자 (device calendar, ADR-008)', () => {
       <ScheduleEditContent onClose={onClose} />,
     );
     fireEvent.press(getByTestId('row-kid'));
-    fireEvent.press(getByLabelText('자녀: 보호자'));
+    fireEvent.press(getByLabelText('참여: 보호자'));
     fireEvent.press(getByTestId('row-kid')); // multi-select stays open — close it
-    expect(getByLabelText('자녀: 보호자')).toBeTruthy(); // row value
+    expect(getByLabelText('참여: 보호자')).toBeTruthy(); // row value
     expect(queryByTestId('row-type')).toBeNull();
     expect(queryByTestId('row-repeat')).toBeNull();
     expect(queryByTestId('row-alert-end')).toBeNull();
@@ -508,7 +508,7 @@ describe('EditSheet — 보호자 (device calendar, ADR-008)', () => {
     Calendar.requestCalendarPermissionsAsync.mockResolvedValue({ status: 'denied' } as never);
     const onClose = jest.fn();
     const { getByLabelText } = render(<ScheduleEditContent onClose={onClose} />);
-    expect(getByLabelText('자녀: 보호자')).toBeTruthy();
+    expect(getByLabelText('참여: 보호자')).toBeTruthy();
     fireEvent.changeText(getByLabelText('제목 입력'), '회의');
     fireEvent.press(getByLabelText('추가'));
     await waitFor(() => expect(Calendar.requestCalendarPermissionsAsync).toHaveBeenCalled());
@@ -584,7 +584,7 @@ describe('EditSheet — editing a 보호자 event (ADR-008)', () => {
     const onClose = jest.fn();
     const { findByDisplayValue, getByLabelText, queryByTestId } = render(<ScheduleEditContent onClose={onClose} />);
     expect(await findByDisplayValue('회의')).toBeTruthy();
-    expect(getByLabelText('자녀: 보호자')).toBeTruthy();
+    expect(getByLabelText('참여: 보호자')).toBeTruthy();
     expect(getByLabelText('시작 전 알림: 10분 전')).toBeTruthy();
     expect(queryByTestId('row-type')).toBeNull();
     expect(getByLabelText('일정 삭제')).toBeTruthy();
@@ -666,9 +666,9 @@ describe('EditSheet — 자녀 multi-select (ADR-013)', () => {
     });
     const { getByTestId, getByLabelText, getByText } = render(<ScheduleEditContent onClose={() => {}} />);
     fireEvent.press(getByTestId('row-kid'));
-    fireEvent.press(getByLabelText('자녀: 서연'));
-    fireEvent.press(getByLabelText('자녀: 민준'));
-    fireEvent.press(getByLabelText('자녀: 보호자'));
+    fireEvent.press(getByLabelText('참여: 서연'));
+    fireEvent.press(getByLabelText('참여: 민준'));
+    fireEvent.press(getByLabelText('참여: 보호자'));
     expect(getByText('3명')).toBeTruthy();
     fireEvent.press(getByTestId('row-type'));
     fireEvent.press(getByLabelText('기타'));
@@ -688,8 +688,8 @@ describe('EditSheet — 자녀 multi-select (ADR-013)', () => {
     });
     const { getByTestId, getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
     fireEvent.press(getByTestId('row-kid'));
-    fireEvent.press(getByLabelText('자녀: 서연'));
-    fireEvent.press(getByLabelText('자녀: 민준')); // main kid off → 서연 becomes main
+    fireEvent.press(getByLabelText('참여: 서연'));
+    fireEvent.press(getByLabelText('참여: 민준')); // main kid off → 서연 becomes main
     fireEvent.press(getByTestId('option-2')); // last kid can't be removed
     fireEvent.press(getByLabelText('저장'));
     await waitFor(() => expect(mocks.updateSchedule).toHaveBeenCalled());
