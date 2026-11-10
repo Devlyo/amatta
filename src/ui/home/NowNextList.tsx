@@ -4,9 +4,10 @@ import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { formatUntil, type KidNowNext } from '../../domain/now-next';
-import type { Child } from '../../domain/types';
+import type { Child, ScheduleType } from '../../domain/types';
+import { ItemLine } from './ItemLine';
 import { KidAvatar } from '../common/KidAvatar';
-import { getKidPalette, kidFill, TOKENS } from '../palette';
+import { kidFill, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
@@ -17,19 +18,25 @@ interface Props {
   rows: readonly KidNowNext[];
 }
 
-function describe(row: KidNowNext): { title: string; detail: string; sub: string | null } {
+function describe(row: KidNowNext): {
+  title: string;
+  type: ScheduleType | null;
+  detail: string;
+  sub: string | null;
+} {
   const { current, next } = row;
   if (current !== null) {
     return {
       title: current.title,
+      type: current.type,
       detail: `${fmt12hrShort(current.endMinutes)}까지`,
       sub: next !== null ? `다음 ${fmt12hrShort(next.startMinutes)} ${next.title}` : '이후 일정 없음',
     };
   }
   if (next !== null) {
-    return { title: next.title, detail: fmtRange(next.startMinutes, next.endMinutes), sub: null };
+    return { title: next.title, type: next.type, detail: fmtRange(next.startMinutes, next.endMinutes), sub: null };
   }
-  return { title: row.status === 'doneForToday' ? '오늘 일정 끝' : '오늘 일정 없음', detail: '', sub: null };
+  return { title: row.status === 'doneForToday' ? '오늘 일정 끝' : '오늘 일정 없음', type: null, detail: '', sub: null };
 }
 
 function NowNextListImpl({ kids, rows }: Props): React.ReactElement {
@@ -51,13 +58,7 @@ function NowNextListImpl({ kids, rows }: Props): React.ReactElement {
             <View style={styles.text}>
               {/* Whose row it is, right before what they do — the avatar
                   alone was hard to tell apart. */}
-              <View style={styles.titleLine}>
-                <Text style={[styles.title, { color: getKidPalette(kid.colorIndex).deep }]}>{kid.name}</Text>
-                <Text style={[styles.title, styles.titleText]} numberOfLines={1}>
-                  {d.title}
-                  {d.detail !== '' ? <Text style={styles.detail}> · {d.detail}</Text> : null}
-                </Text>
-              </View>
+              <ItemLine name={kid.name} title={d.title} type={d.type} detail={d.detail} />
               {d.sub !== null ? (
                 <Text style={styles.sub} numberOfLines={1}>
                   {d.sub}
@@ -99,10 +100,6 @@ const styles = StyleSheet.create({
     borderBottomColor: TOKENS.ink12,
   },
   text: { flex: 1, minWidth: 0, gap: 2 },
-  titleLine: { flexDirection: 'row', alignItems: 'baseline', gap: SPACING.sm },
-  title: { ...TYPE.subhead, fontFamily: TYPE.headline.fontFamily, color: TOKENS.ink },
-  titleText: { flexShrink: 1 },
-  detail: { ...TYPE.subhead, color: TOKENS.inkSub },
   sub: { ...TYPE.footnote, color: TOKENS.inkSub },
   chip: {
     height: 22,

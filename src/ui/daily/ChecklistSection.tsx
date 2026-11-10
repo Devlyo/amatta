@@ -13,7 +13,7 @@ import { expandOccurrences } from '../../domain/occurrences';
 import { isChecklistItemVisibleOn } from '../../domain/checklist-membership';
 import type { Child, ChecklistItem, ISODate, Occurrence } from '../../domain/types';
 import { KidAvatar } from '../common/KidAvatar';
-import { TypeIcon } from '../common/TypeIcon';
+import { ItemLine } from '../home/ItemLine';
 import { FONT_FAMILIES } from '../fonts';
 import { IconCheck } from '../icons';
 import { getKidPalette, TOKENS } from '../palette';
@@ -153,15 +153,13 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
               </View>
               {group.classes.map(({ occ, items }) => (
                 <View key={occ.scheduleId} testID={`checklist-class-${occ.scheduleId}`}>
-                  {/* Which class these are for: type icon, title, time. */}
+                  {/* Which class these are for — same line as the 지금 rows. */}
                   <View style={styles.classRow}>
-                    <TypeIcon type={occ.type} size={13} color={TOKENS.inkSub} />
-                    <Text style={styles.classTitle} numberOfLines={1}>
-                      {occ.title}
-                    </Text>
-                    <Text style={styles.classTime}>
-                      {occ.allDay === true ? '하루 종일' : fmtRange(occ.startMinutes, occ.endMinutes)}
-                    </Text>
+                    <ItemLine
+                      title={occ.title}
+                      type={occ.type}
+                      detail={occ.allDay === true ? '하루 종일' : fmtRange(occ.startMinutes, occ.endMinutes)}
+                    />
                   </View>
                   {items.map((item) => {
                     const isDone = isComplete(item.id);
@@ -301,6 +299,4 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
     paddingHorizontal: 12,
   },
-  classTitle: { ...TYPE.footnote, color: TOKENS.inkSub, flexShrink: 1 },
-  classTime: { ...TYPE.footnote, color: TOKENS.inkSub, marginLeft: 'auto' },
 });

@@ -19,7 +19,7 @@ test('each row names its kid right before what they are doing', () => {
         {
           childId: 1,
           status: 'inProgress',
-          current: { title: '영어학원', startMinutes: 14 * 60, endMinutes: 15 * 60 + 30 },
+          current: { title: '영어학원', type: 'academy', startMinutes: 14 * 60, endMinutes: 15 * 60 + 30 },
           next: null,
           minutesUntilNext: null,
         },
@@ -31,4 +31,6 @@ test('each row names its kid right before what they are doing', () => {
   expect(screen.getByText('민준')).toBeTruthy();
   expect(screen.getByText('서연')).toBeTruthy();
   expect(screen.getByLabelText(/^민준, 영어학원 3:30PM까지/)).toBeTruthy();
+  // Detail without a leading dot.
+  expect(screen.getByText('3:30PM까지')).toBeTruthy();
 });
