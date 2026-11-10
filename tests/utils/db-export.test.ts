@@ -146,10 +146,10 @@ describe('exportDb', () => {
     expect(parsed).toEqual(result.envelope);
   });
 
-  test('suggested filename matches schedulapp-export-YYYYMMDD-HHMM.json', async () => {
+  test('suggested filename matches wemoa-export-YYYYMMDD-HHMM.json', async () => {
     const now = new Date(2026, 5, 2, 13, 24); // local Jun 2 13:24
     const result = await exportDb(db as never, now);
-    expect(result.suggestedFilename).toBe('schedulapp-export-20260602-1324.json');
+    expect(result.suggestedFilename).toBe('wemoa-export-20260602-1324.json');
   });
 
   test('populated DB → every table round-trips its row count into the export', async () => {
