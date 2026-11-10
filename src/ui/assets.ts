@@ -28,14 +28,6 @@ export const AVATAR_IMAGE_BY_KEY: Readonly<Record<AvatarKey, number>> = {
   'face-dizzy': AVATAR_FACES.dizzy,
 };
 
-export const AVATAR_ANIMALS = {
-  bear: require('../../assets/amatta/avatar-bear.png'),
-  cat: require('../../assets/amatta/avatar-cat.png'),
-  deer: require('../../assets/amatta/avatar-deer.png'),
-  rabbit: require('../../assets/amatta/avatar-rabbit.png'),
-} as const;
-export type AvatarAnimalKey = keyof typeof AVATAR_ANIMALS;
-
 export const MASCOTS = {
   orange: require('../../assets/amatta/mascot-orange.png'),
   pink: require('../../assets/amatta/mascot-pink.png'),
@@ -43,9 +35,3 @@ export const MASCOTS = {
   yellow: require('../../assets/amatta/mascot-yellow.png'),
 } as const;
 export type MascotKey = keyof typeof MASCOTS;
-
-export const LOGOS = {
-  sparkle: require('../../assets/amatta/logo-sparkle.png'),
-  wordmark: require('../../assets/amatta/logo-wordmark.png'),
-} as const;
-export type LogoKey = keyof typeof LOGOS;

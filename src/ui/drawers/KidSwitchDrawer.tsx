@@ -1,4 +1,4 @@
-// Kid-switch BODY (자녀 선택). Presented as the gorhom bottom-sheet route
+// Kid-switch BODY (자녀 선택). Presented by the native formSheet route
 // app/kid-switch.tsx (see ralplan-drawer-route-modal.md). Lists the user's kids;
 // tapping one commits via the `onPick` callback. Active kid gets an ink04
 // background + a black checkmark chip.
@@ -58,7 +58,7 @@ export function KidSwitchBody({
 }
 
 const styles = StyleSheet.create({
-  // De-chromed: the gorhom route sheet owns scrim/shape/grabber.
+  // De-chromed: the native route sheet owns scrim/shape/grabber.
   body: { paddingBottom: 18 },
   title: {
     fontSize: 16,

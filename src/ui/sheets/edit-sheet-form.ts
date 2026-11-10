@@ -1,6 +1,6 @@
 // Pure form model + validation for ScheduleEditSheet.
 // Extracted from the component so tests can exercise validation without
-// mounting @gorhom/bottom-sheet.
+// mounting the sheet.
 
 import { GRID_END_HOUR, GRID_START_HOUR } from '../../domain/constants';
 import { useNotifSettingsStore } from '../../state/notif-settings-store';
@@ -167,7 +167,7 @@ export function validate(
     errors.endMinutes = '종료 시간은 시작 시간보다 늦어야 합니다.';
   }
   if (form.endMinutes > GRID_END_MIN + 30) {
-    // hard cap at 24:00 (next-day midnight) so the block can be clamped by layoutDay
+    // hard cap at 24:00 (next-day midnight) so the block can be clamped by the grid layout
     errors.endMinutes = '종료 시간은 24:00 이전이어야 합니다.';
   }
   if (form.validFrom.length === 0) {

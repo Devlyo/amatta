@@ -126,8 +126,8 @@ export function SearchContent({ onClose }: SearchContentProps): React.ReactEleme
     return out;
   }, [query, schedules, todos, itemsByScheduleId, childById, scheduleById]);
 
-  // Sibling-swap via replace (NOT onClose()+push — that races: gorhom's close
-  // animation fires router.back after the push, popping the new route).
+  // Sibling-swap via replace (NOT onClose()+push — that races: the close
+  // fires router.back after the push, popping the new route).
   const handleSelectSchedule = useCallback(
     (schedule: Schedule) => {
       router.replace({
@@ -360,7 +360,7 @@ function ResultRow({
 }
 
 const styles = StyleSheet.create({
-  // De-chromed: the gorhom route sheet owns scrim/shape/grabber.
+  // De-chromed: the native route sheet owns scrim/shape/grabber.
   contentRoot: { flex: 1, backgroundColor: TOKENS.surface },
   sheetScroll: { flex: 1 },
   sheetContent: {

@@ -24,11 +24,6 @@ export const GRID_END_HOUR = 25;
 export const GRID_SLOTS = (GRID_END_HOUR - GRID_START_HOUR) * 2;
 export const MAX_CHILDREN = 4;
 
-// Grid layout tokens — px (density-independent). Locked by ADR-001 + design §6.
-export const ROW_HEIGHT = 24;
-export const TIME_COL_WIDTH = 56;
-export const CHILD_COL_MIN = 80;
-
 export const SCHEDULE_TYPES: readonly ScheduleType[] = [
   'school',
   'academy',

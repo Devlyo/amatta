@@ -1,4 +1,4 @@
-import { AVATAR_ANIMALS, AVATAR_FACES, LOGOS, MASCOTS } from '../../src/ui/assets';
+import { AVATAR_FACES, MASCOTS } from '../../src/ui/assets';
 
 describe('assets map', () => {
   test('AVATAR_FACES exposes all 7 expression keys', () => {
@@ -11,15 +11,8 @@ describe('assets map', () => {
     expect(AVATAR_FACES.wink).toBeDefined();
   });
 
-  test('AVATAR_ANIMALS exposes 4 animal keys', () => {
-    expect(Object.keys(AVATAR_ANIMALS).sort()).toEqual(['bear', 'cat', 'deer', 'rabbit']);
-    expect(AVATAR_ANIMALS.bear).toBeDefined();
-  });
-
-  test('MASCOTS + LOGOS', () => {
+  test('MASCOTS', () => {
     expect(Object.keys(MASCOTS).sort()).toEqual(['orange', 'pink', 'sleep', 'yellow']);
     expect(MASCOTS.orange).toBeDefined();
-    expect(Object.keys(LOGOS).sort()).toEqual(['sparkle', 'wordmark']);
-    expect(LOGOS.sparkle).toBeDefined();
   });
 });

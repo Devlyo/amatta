@@ -2,6 +2,12 @@
 
 형식: `## YYYY-MM-DD — 한 줄 요약`. 위가 최신.
 
+## 2026-11-10 — Chore: 미사용 코드·의존성 정리
+
+- 삭제: `src/ui/grid/`(DailyGrid·SlotCell·ScheduleBlock) + `layoutDay`/`BlockLayout`, `sheet-container.tsx`, `constants/Colors.ts`, 미사용 아이콘 8종(Car·Grid·Bell·Sparkle·Brain·Game·Pencil·Emoji), `AVATAR_ANIMALS`·`LOGOS` 및 PNG 6개(원본은 `docs/design/amatta-v1/assets/`에 유지).
+- 의존성 제거: `@gorhom/bottom-sheet`, `expo-haptics`, `expo-web-browser`, `@testing-library/jest-native` (네이티브 모듈 2종 제거 → 다음 배포는 새 네이티브 빌드 필요).
+- gorhom을 전제로 한 낡은 주석을 ADR-004(네이티브 라우트) 기준으로 정정.
+
 ## 2026-11-10 — Fix: 백업 준비물 반복 정보 누락 + 알림 재예약 중복 실행
 
 - **백업(JSON export)**: `checklist_items` SELECT에 `occurrence_date`·`recurring` 누락 → 모든 항목이 `recurring:false`·앵커 없음으로 내보내지던 문제 수정. `app_settings`(알림 설정)도 `appSettings`로 포함. `EXPORT_SCHEMA_VERSION` 3 → **4** (v3 번들의 membership 필드는 신뢰 불가 — 가져오기 구현 시 NULL/매번으로 취급).

@@ -1,4 +1,4 @@
-// Reset-all-data confirm BODY. Presented as the gorhom bottom-sheet route
+// Reset-all-data confirm BODY. Presented by the native formSheet route
 // app/settings/reset-confirm.tsx (see ralplan-drawer-route-modal.md). The route
 // owns presentation + the destructive wipe; this is the de-chromed content:
 // 17/700 title, 13/inkSub explanation, danger CTA over an ink04 cancel.
@@ -53,7 +53,7 @@ export function ResetConfirmBody({
 }
 
 const styles = StyleSheet.create({
-  // De-chromed: the gorhom route sheet owns scrim/shape/grabber.
+  // De-chromed: the native route sheet owns scrim/shape/grabber.
   body: {
     paddingHorizontal: 18,
     paddingTop: SPACING.sm,

@@ -7,33 +7,25 @@ import { render } from '@testing-library/react-native';
 import {
   IconAcademy,
   IconActivity,
-  IconBell,
-  IconCar,
   IconCheck,
   IconChevronDown,
   IconChevronLeft,
   IconChevronRight,
   IconEtc,
   IconGear,
-  IconGrid,
   IconHome,
   IconPlus,
   IconSchool,
   IconSearch,
-  IconSparkle,
   IconXMark,
   KIND_ICON,
 } from '../../src/ui/icons';
 
 describe('icons — smoke render', () => {
   test.each([
-    ['IconCar', IconCar],
     ['IconSearch', IconSearch],
-    ['IconGrid', IconGrid],
     ['IconHome', IconHome],
     ['IconGear', IconGear],
-    ['IconBell', IconBell],
-    ['IconSparkle', IconSparkle],
     ['IconChevronLeft', IconChevronLeft],
     ['IconChevronRight', IconChevronRight],
     ['IconChevronDown', IconChevronDown],

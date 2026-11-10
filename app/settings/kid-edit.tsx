@@ -93,7 +93,6 @@ export default function KidEditScreen(): React.ReactElement {
     setAvatar(existing.avatar);
   }, [existing]);
 
-  const colorIndex = colorIndexForAvatarKey(avatar);
   const trimmedName = name.trim();
   const canSave = trimmedName.length > 0 && trimmedName.length <= NAME_MAX;
 
@@ -129,8 +128,6 @@ export default function KidEditScreen(): React.ReactElement {
       ],
     );
   }, [existing, removeChild, router]);
-
-  void colorIndex; // currently informational only — kept for future surfaces
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

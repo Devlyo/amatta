@@ -1,4 +1,4 @@
-// Read-only event detail BODY. Presented as the gorhom bottom-sheet route
+// Read-only event detail BODY. Presented by the native modal route
 // app/event/detail.tsx (see .omc/plans/ralplan-drawer-route-modal.md). The
 // route shell owns native presentation + the ui-store eventDetail open/close
 // lockstep; this component reads eventDetailState, looks up the Schedule/Child/
@@ -113,7 +113,7 @@ export function EventDetailContent({
   }, [schedule, exception]);
 
   // Sibling-swap: REPLACE this detail route with the edit route in one atomic
-  // nav action. Calling onClose() (gorhom close animation) and then router.push
+  // nav action. Calling onClose() and then router.push
   // races — it can leave a stuck transparent route that eats touches. replace
   // unmounts detail (→ closeEventDetail via the shell) and shows edit cleanly.
   const handleEditOccurrence = useCallback(() => {
@@ -500,7 +500,7 @@ function ActionRow({
 }
 
 const styles = StyleSheet.create({
-  // De-chromed: the gorhom route sheet owns the scrim/shape/grabber.
+  // De-chromed: the native route owns the scrim/shape/grabber.
   contentRoot: { flex: 1, backgroundColor: TOKENS.surfaceWarm },
 
   headerBar: {

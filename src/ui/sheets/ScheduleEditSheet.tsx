@@ -515,8 +515,7 @@ export function ScheduleEditContent({
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           // iOS-native keyboard inset: auto-scrolls the focused input above the
-          // keyboard (gorhom's own keyboard handling wasn't lifting bottom
-          // fields on new arch). The sheet stays put (keyboardBehavior extend).
+          // keyboard (ADR-004). The modal itself stays put.
           automaticallyAdjustKeyboardInsets
         >
           {/* Group 1: 자녀 + 종류 (create only shows the kid picker; editAll/
@@ -1362,7 +1361,7 @@ export type { EditFormState } from './edit-sheet-form';
 void (null as unknown as ScheduleType);
 
 const styles = StyleSheet.create({
-  // De-chromed: the gorhom route sheet owns scrim/shape/grabber.
+  // De-chromed: the native modal route owns scrim/shape/grabber.
   contentRoot: { flex: 1, backgroundColor: TOKENS.surfaceWarm },
 
   headerBar: {
