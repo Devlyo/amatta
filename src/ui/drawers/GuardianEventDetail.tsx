@@ -3,6 +3,11 @@
 // The event lives in the device calendar: it is read here on open (and again
 // when the edit form on top closes), edited through the same form, and
 // deleted straight from the calendar.
+//
+// Dates shown are the TAPPED instance's (passed in), not the event's own: a
+// recurring event reads back as its first instance. Recurring events are not
+// changed in the app (expo-calendar can't target one instance reliably) —
+// they open the Calendar app on that day instead.
 
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -11,6 +16,8 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import {
   deleteGuardianEvent,
   getGuardianEvent,
+  isSingleDay,
+  openCalendarAppAt,
   openGuardianEvent,
   type GuardianEventDetail,
 } from '../../calendar/guardian-calendar';
@@ -31,56 +38,56 @@ function minutesOf(d: Date): number {
 
 export interface GuardianEventDetailProps {
   eventId: string;
-  /** ISO timestamp of the instance's start (recurring events). */
+  /** ISO timestamps of the tapped instance's start / end. */
   instance: string;
+  instanceEnd: string;
   onClose: () => void;
 }
 
-export function GuardianEventDetailContent({ eventId, instance, onClose }: GuardianEventDetailProps): React.ReactElement {
+export function GuardianEventDetailContent({
+  eventId,
+  instance,
+  instanceEnd,
+  onClose,
+}: GuardianEventDetailProps): React.ReactElement {
   const router = useRouter();
   const calendars = useGuardianStore((s) => s.calendars);
   const [event, setEvent] = useState<GuardianEventDetail | null>(null);
   const [missing, setMissing] = useState(false);
 
+  const reload = useCallback(() => {
+    getGuardianEvent(eventId)
+      .then(setEvent)
+      .catch(() => setMissing(true));
+  }, [eventId]);
   // (Re)read on open and whenever the edit form on top closes.
-  useFocusEffect(
-    useCallback(() => {
-      let alive = true;
-      getGuardianEvent(eventId, new Date(instance))
-        .then((e) => {
-          if (alive) setEvent(e);
-        })
-        .catch(() => {
-          if (alive) setMissing(true);
-        });
-      return () => {
-        alive = false;
-      };
-    }, [eventId, instance]),
-  );
-
-  const calendar = calendars.find((c) => c.id === event?.calendarId);
-  const writable = calendar?.writable === true;
-  const editable = event !== null && writable && event.singleDay;
+  useFocusEffect(reload);
 
   const done = useCallback(() => {
     useGuardianStore.getState().invalidate();
     onClose();
   }, [onClose]);
+  // Deleted (here, in the form or elsewhere) — nothing left to show.
+  useEffect(() => {
+    if (missing) done();
+  }, [missing, done]);
 
-  const remove = (andFuture: boolean): void => {
+  const start = new Date(instance);
+  const end = new Date(instanceEnd.length > 0 ? instanceEnd : instance);
+  const calendar = calendars.find((c) => c.id === event?.calendarId);
+  const writable = calendar?.writable === true;
+  const singleDay = isSingleDay(start, end);
+  const editable = event !== null && writable && !event.recurring && singleDay;
+
+  const remove = (): void => {
     if (event === null) return;
-    const title = andFuture ? '이후 일정 모두 삭제' : event.recurring ? '이 회차만 삭제' : '일정 삭제';
-    const body = andFuture
-      ? '이 날과 그 뒤의 반복 일정을 아이폰 캘린더에서 삭제합니다. 계속할까요?'
-      : '아이폰 캘린더에서 이 일정을 삭제합니다. 계속할까요?';
-    Alert.alert(title, body, [
+    Alert.alert('일정 삭제', '아이폰 캘린더에서 이 일정을 삭제합니다. 계속할까요?', [
       { text: '취소', style: 'cancel' },
       {
         text: '삭제',
         style: 'destructive',
         onPress: () => {
-          void deleteGuardianEvent(event.id, new Date(instance), event.recurring, andFuture)
+          void deleteGuardianEvent(event.id)
             .then(done)
             .catch(() => Alert.alert('삭제하지 못했어요', '잠시 후 다시 시도해 주세요.'));
         },
@@ -90,30 +97,24 @@ export function GuardianEventDetailContent({ eventId, instance, onClose }: Guard
 
   const edit = (): void => {
     if (!editable) return;
-    router.push({ pathname: '/schedule/edit', params: { mode: 'editGuardian', eventId, instance } });
+    router.push({ pathname: '/schedule/edit', params: { mode: 'editGuardian', eventId } });
   };
 
   const openInCalendar = (): void => {
-    void openGuardianEvent(eventId, new Date(instance))
+    const opening = event?.recurring === true ? openCalendarAppAt(start) : openGuardianEvent(eventId);
+    void opening
       .catch(() => undefined)
       .finally(() => {
-        // The user may have edited or deleted it there.
-        getGuardianEvent(eventId, new Date(instance))
-          .then(setEvent)
-          .catch(() => done());
+        // The user may have changed it there.
+        reload();
         useGuardianStore.getState().invalidate();
       });
   };
 
-  // Deleted elsewhere (or no longer readable) — nothing to show.
-  useEffect(() => {
-    if (missing) done();
-  }, [missing, done]);
-
-  const startIso = event !== null ? isoOf(event.startDate) : '';
+  const startIso = isoOf(start);
   // All-day ends at the following midnight → its last day is the one before.
-  const endIso =
-    event === null ? '' : isoOf(event.allDay ? new Date(event.endDate.getTime() - 1) : event.endDate);
+  const endIso = isoOf(event?.allDay === true ? new Date(end.getTime() - 1) : end);
+  const allDay = event?.allDay === true;
 
   return (
     <View style={styles.contentRoot}>
@@ -155,21 +156,17 @@ export function GuardianEventDetailContent({ eventId, instance, onClose }: Guard
           <FormGroup>
             <FormValueRow
               label="시작"
-              value={
-                event.allDay
-                  ? `${formatKoDateChip(startIso)} · 하루 종일`
-                  : `${formatKoDateChip(startIso)} ${fmt12hrShortSpaced(minutesOf(event.startDate))}`
-              }
+              value={allDay ? `${formatKoDateChip(startIso)} · 하루 종일` : `${formatKoDateChip(startIso)} ${fmt12hrShortSpaced(minutesOf(start))}`}
             />
-            {event.allDay && endIso === startIso ? null : (
+            {allDay && endIso === startIso ? null : (
               <FormValueRow
                 label="종료"
                 value={
-                  event.allDay
+                  allDay
                     ? formatKoDateChip(endIso)
                     : endIso === startIso
-                      ? fmt12hrShortSpaced(minutesOf(event.endDate))
-                      : `${formatKoDateChip(endIso)} ${fmt12hrShortSpaced(minutesOf(event.endDate))}`
+                      ? fmt12hrShortSpaced(minutesOf(end))
+                      : `${formatKoDateChip(endIso)} ${fmt12hrShortSpaced(minutesOf(end))}`
                 }
               />
             )}
@@ -188,22 +185,15 @@ export function GuardianEventDetailContent({ eventId, instance, onClose }: Guard
 
           {!writable ? (
             <Text style={styles.note}>읽기 전용 캘린더의 일정이라 앱에서 바꿀 수 없어요.</Text>
-          ) : !event.singleDay ? (
-            <Text style={styles.note}>여러 날에 걸친 일정은 아이폰 캘린더에서 수정할 수 있어요.</Text>
           ) : event.recurring ? (
-            <Text style={styles.note}>반복 일정은 이 날만 바뀌어요. 반복 자체는 아이폰 캘린더에서 바꿀 수 있어요.</Text>
+            <Text style={styles.note}>반복 일정은 아이폰 캘린더에서 수정하거나 삭제할 수 있어요.</Text>
+          ) : !singleDay ? (
+            <Text style={styles.note}>여러 날에 걸친 일정은 아이폰 캘린더에서 수정할 수 있어요.</Text>
           ) : null}
 
           <FormGroup>
-            <FormActionRow label="아이폰 캘린더에서 열기" onPress={openInCalendar} last={!writable} />
-            {writable && event.recurring ? (
-              <>
-                <FormActionRow label="이 회차만 삭제" onPress={() => remove(false)} tone="danger" />
-                <FormActionRow label="이후 일정 모두 삭제" onPress={() => remove(true)} tone="danger" last />
-              </>
-            ) : writable ? (
-              <FormActionRow label="일정 삭제" onPress={() => remove(false)} tone="danger" last />
-            ) : null}
+            <FormActionRow label="아이폰 캘린더에서 열기" onPress={openInCalendar} last={!(writable && !event.recurring)} />
+            {writable && !event.recurring ? <FormActionRow label="일정 삭제" onPress={remove} tone="danger" last /> : null}
           </FormGroup>
 
           <View style={styles.tail} />

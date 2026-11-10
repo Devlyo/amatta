@@ -30,8 +30,9 @@ export interface GuardianOccurrence {
   startMinutes: number;
   endMinutes: number;
   allDay: boolean;
-  /** Start of this instance (for opening one instance of a recurring event). */
+  /** Start / end of this instance (a recurring event's dates differ per instance). */
   instanceStart: Date;
+  instanceEnd: Date;
 }
 
 const DAY_MIN = 24 * 60;
@@ -92,6 +93,7 @@ export function guardianOccurrences(
         endMinutes: en,
         allDay: e.allDay,
         instanceStart: start,
+        instanceEnd: end,
       });
     }
   }

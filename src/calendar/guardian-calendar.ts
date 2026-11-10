@@ -4,7 +4,7 @@
 // calendars, writes guardian events the user adds in the app, and opens one
 // in the system event screen. Nothing here is stored in SQLite.
 
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 
 import { dateAt, type GuardianRawEvent } from '../domain/guardian';
 import { ALL_DAY_ALERT_BASE_MINUTES } from '../notifications/scheduler';
@@ -147,84 +147,79 @@ export async function createGuardianEvent(calendarId: string, e: NewGuardianEven
   return need().createEventAsync(calendarId, eventFields(e));
 }
 
-/** One guardian event as the detail / edit screens need it. */
+/**
+ * One guardian event as the detail / edit screens need it.
+ *
+ * expo-calendar's iOS lookup by instance start is broken (a non-recurring
+ * event comes back "not found", a recurring one always as its FIRST
+ * instance), so events are read, updated and deleted by id only, and a
+ * recurring event's dates come from the instance the user tapped. Recurring
+ * events are therefore not changed in the app (wrong instance) — the detail
+ * sends them to the Calendar app instead.
+ */
 export interface GuardianEventDetail {
   id: string;
   calendarId: string;
   title: string;
   location: string;
   notes: string;
-  startDate: Date;
-  endDate: Date;
   allDay: boolean;
   /** Minutes before the start of its first alarm (all-day: before 08:00), or null. */
   alarmMinutesBefore: number | null;
   recurring: boolean;
-  /** Starts and ends on the same day (all-day: one day) — the app's form can edit it. */
-  singleDay: boolean;
+  /** The event's own dates (a recurring event: its first instance). */
+  startDate: Date;
+  endDate: Date;
 }
 
-function sameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
-/** Read one event (the instance starting at `instanceStart` for a recurring one). */
-export async function getGuardianEvent(eventId: string, instanceStart: Date): Promise<GuardianEventDetail> {
-  const e = await need().getEventAsync(eventId, { instanceStartDate: instanceStart });
-  const start = new Date(e.startDate);
-  const end = new Date(e.endDate);
+/** Read one event by id. */
+export async function getGuardianEvent(eventId: string): Promise<GuardianEventDetail> {
+  const e = await need().getEventAsync(eventId);
   const allDay = e.allDay === true;
   const offset = e.alarms?.[0]?.relativeOffset;
   const alarm =
     typeof offset !== 'number' ? null : allDay ? Math.max(0, ALL_DAY_ALERT_BASE_MINUTES - offset) : Math.max(0, -offset);
-  // All-day ends at the next midnight (or 23:59:59 of the same day).
-  const lastMoment = new Date(end.getTime() - 1);
   return {
     id: e.id,
     calendarId: e.calendarId,
     title: e.title ?? '',
     location: e.location ?? '',
     notes: e.notes ?? '',
-    startDate: start,
-    endDate: end,
     allDay,
     alarmMinutesBefore: alarm,
     recurring: e.recurrenceRule !== null && e.recurrenceRule !== undefined,
-    singleDay: allDay ? sameDay(start, lastMoment) : sameDay(start, lastMoment),
+    startDate: new Date(e.startDate),
+    endDate: new Date(e.endDate),
   };
 }
 
-/** Update an event; a recurring one only for the instance at `instanceStart`. */
-export async function updateGuardianEvent(
-  eventId: string,
-  instanceStart: Date,
-  recurring: boolean,
-  e: NewGuardianEvent,
-): Promise<void> {
-  await need().updateEventAsync(
-    eventId,
-    eventFields(e),
-    recurring ? { instanceStartDate: instanceStart, futureEvents: false } : undefined,
+/** Starts and ends on the same day (all-day: one day) — the app's form can edit it. */
+export function isSingleDay(start: Date, end: Date): boolean {
+  const last = new Date(end.getTime() - 1);
+  return (
+    start.getFullYear() === last.getFullYear() &&
+    start.getMonth() === last.getMonth() &&
+    start.getDate() === last.getDate()
   );
 }
 
-/** Delete an event; a recurring one: this instance, or this and all later ones. */
-export async function deleteGuardianEvent(
-  eventId: string,
-  instanceStart: Date,
-  recurring: boolean,
-  andFuture = false,
-): Promise<void> {
-  await need().deleteEventAsync(
-    eventId,
-    recurring ? { instanceStartDate: instanceStart, futureEvents: andFuture } : undefined,
-  );
+/** Update a (non-recurring) event. */
+export async function updateGuardianEvent(eventId: string, e: NewGuardianEvent): Promise<void> {
+  await need().updateEventAsync(eventId, eventFields(e));
 }
 
-/** Show one event (one instance of a recurring one) in the system screen; editing allowed. */
-export async function openGuardianEvent(eventId: string, instanceStart: Date): Promise<void> {
-  await need().openEventInCalendarAsync(
-    { id: eventId, instanceStartDate: instanceStart },
-    { allowsEditing: true },
-  );
+/** Delete a (non-recurring) event. */
+export async function deleteGuardianEvent(eventId: string): Promise<void> {
+  await need().deleteEventAsync(eventId);
+}
+
+/** Show a non-recurring event in the system event screen (editing allowed). */
+export async function openGuardianEvent(eventId: string): Promise<void> {
+  await need().openEventInCalendarAsync({ id: eventId }, { allowsEditing: true });
+}
+
+/** Open the Calendar app on a date (iOS `calshow:` — seconds since 2001-01-01). */
+export async function openCalendarAppAt(date: Date): Promise<void> {
+  const seconds = Math.floor(date.getTime() / 1000 - 978307200);
+  await Linking.openURL(`calshow:${seconds}`);
 }

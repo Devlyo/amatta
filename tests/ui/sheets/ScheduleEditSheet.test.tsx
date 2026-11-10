@@ -589,7 +589,7 @@ describe('EditSheet — editing a 보호자 event (ADR-008)', () => {
     fireEvent.changeText(getByLabelText('제목 입력'), '회의 (변경)');
     fireEvent.press(getByLabelText('저장'));
     await waitFor(() => expect(Calendar.updateEventAsync).toHaveBeenCalled());
-    expect(Calendar.updateEventAsync).toHaveBeenCalledWith('e1', expect.objectContaining({ title: '회의 (변경)' }), undefined);
+    expect(Calendar.updateEventAsync).toHaveBeenCalledWith('e1', expect.objectContaining({ title: '회의 (변경)' }));
     expect(Calendar.createEventAsync).not.toHaveBeenCalled();
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });

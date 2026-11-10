@@ -10,11 +10,16 @@ import { GuardianEventDetailContent } from '../../src/ui/drawers/GuardianEventDe
 // event's detail (app/event/detail.tsx), ADR-008.
 export default function GuardianEventRoute(): React.ReactElement {
   const router = useRouter();
-  const { eventId, instance } = useLocalSearchParams<{ eventId: string; instance: string }>();
+  const { eventId, instance, end } = useLocalSearchParams<{ eventId: string; instance: string; end?: string }>();
   const handleClose = useCallback(() => router.back(), [router]);
   return (
     <View style={styles.root}>
-      <GuardianEventDetailContent eventId={eventId ?? ''} instance={instance ?? ''} onClose={handleClose} />
+      <GuardianEventDetailContent
+        eventId={eventId ?? ''}
+        instance={instance ?? ''}
+        instanceEnd={end ?? ''}
+        onClose={handleClose}
+      />
     </View>
   );
 }

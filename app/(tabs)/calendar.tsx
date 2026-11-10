@@ -391,7 +391,11 @@ export default function CalendarScreen(): React.ReactElement {
   const openGuardian = (g: GuardianOccurrence): void => {
     router.push({
       pathname: '/event/guardian',
-      params: { eventId: g.eventId, instance: g.instanceStart.toISOString() },
+      params: {
+        eventId: g.eventId,
+        instance: g.instanceStart.toISOString(),
+        end: g.instanceEnd.toISOString(),
+      },
     });
   };
   const openDay = (date: ISODate): void => {

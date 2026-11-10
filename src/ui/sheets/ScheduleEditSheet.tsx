@@ -218,9 +218,6 @@ export function ScheduleEditContent({
   // 보호자 picked in the 자녀 row (create only): only the fields a calendar
   // event has are shown, and save writes to the device calendar (ADR-008).
   const [forGuardian, setForGuardian] = useState(false);
-  // editGuardian: whether the device-calendar event repeats (edits / deletes
-  // then apply to this instance only).
-  const [guardianRecurring, setGuardianRecurring] = useState(false);
   const [expanded, setExpanded] = useState<Expand>(null);
   const [checklist, setChecklist] = useState<ChecklistDraft[]>([]);
   // 이 회차만 수정: the 매번 / always items visible on that day are shown but
@@ -283,15 +280,14 @@ export function ScheduleEditContent({
       setForGuardian(true);
       originalChecklistRef.current = [];
       setChecklist([]);
-      const instance = new Date(editSheetState.guardianInstance ?? Date.now());
-      void getGuardianEvent(editSheetState.guardianEventId, instance)
+      // Only non-recurring events are edited in the app (see guardian-calendar).
+      void getGuardianEvent(editSheetState.guardianEventId)
         .then((e) => {
           const d = e.startDate;
           const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` as unknown as ISODate;
           const start = d.getHours() * 60 + d.getMinutes();
           const endsNextMidnight = e.endDate.getDate() !== d.getDate();
           const end = endsNextMidnight ? 24 * 60 : e.endDate.getHours() * 60 + e.endDate.getMinutes();
-          setGuardianRecurring(e.recurring);
           setForm({
             ...defaultFormState(null, iso, start),
             title: e.title,
@@ -362,12 +358,7 @@ export function ScheduleEditContent({
     };
     if (sheetMode === 'editGuardian' && editSheetState.guardianEventId !== undefined) {
       try {
-        await updateGuardianEvent(
-          editSheetState.guardianEventId,
-          new Date(editSheetState.guardianInstance ?? Date.now()),
-          guardianRecurring,
-          fields,
-        );
+        await updateGuardianEvent(editSheetState.guardianEventId, fields);
       } catch {
         Alert.alert('저장하지 못했어요', '아이폰 캘린더의 일정을 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.');
         return false;
@@ -388,7 +379,7 @@ export function ScheduleEditContent({
     }
     useGuardianStore.getState().invalidate();
     return true;
-  }, [form, sheetMode, editSheetState.guardianEventId, editSheetState.guardianInstance, guardianRecurring]);
+  }, [form, sheetMode, editSheetState.guardianEventId]);
 
   const handleSave = useCallback(async () => {
     setSubmitted(true);
@@ -599,11 +590,11 @@ export function ScheduleEditContent({
     onClose,
   ]);
 
-  const handleDeleteGuardian = (andFuture: boolean): void => {
+  const handleDeleteGuardian = (): void => {
     const id = editSheetState.guardianEventId;
     if (id === undefined) return;
     Alert.alert(
-      andFuture ? '이후 일정 모두 삭제' : guardianRecurring ? '이 회차만 삭제' : '일정 삭제',
+      '일정 삭제',
       '아이폰 캘린더에서 삭제합니다. 계속할까요?',
       [
         { text: '취소', style: 'cancel' },
@@ -611,7 +602,7 @@ export function ScheduleEditContent({
           text: '삭제',
           style: 'destructive',
           onPress: () => {
-            void deleteGuardianEvent(id, new Date(editSheetState.guardianInstance ?? Date.now()), guardianRecurring, andFuture)
+            void deleteGuardianEvent(id)
               .then(() => {
                 useGuardianStore.getState().invalidate();
                 onClose();
@@ -784,9 +775,7 @@ export function ScheduleEditContent({
           </FormGroup>
           {forGuardian ? (
             <Text style={styles.guardianNote}>
-              {sheetMode === 'editGuardian' && guardianRecurring
-                ? '반복 일정이라 이 날만 바뀌어요. 아이폰 캘린더에 저장돼요.'
-                : '보호자 일정은 아이폰 캘린더에 저장돼요.'}
+              보호자 일정은 아이폰 캘린더에 저장돼요.
             </Text>
           ) : null}
           <FormError text={showError('childId') ?? showError('type')} />
@@ -1082,14 +1071,7 @@ export function ScheduleEditContent({
         ) : null}
         {sheetMode === 'editGuardian' && editSheetState.guardianEventId !== undefined ? (
           <FormGroup>
-            {guardianRecurring ? (
-              <>
-                <FormActionRow label="이 회차만 삭제" onPress={() => handleDeleteGuardian(false)} tone="danger" />
-                <FormActionRow label="이후 일정 모두 삭제" onPress={() => handleDeleteGuardian(true)} tone="danger" last />
-              </>
-            ) : (
-              <FormActionRow label="일정 삭제" onPress={() => handleDeleteGuardian(false)} tone="danger" last />
-            )}
+            <FormActionRow label="일정 삭제" onPress={handleDeleteGuardian} tone="danger" last />
           </FormGroup>
         ) : null}
         {sheetMode === 'editOccurrence' && existingSchedule !== undefined ? (
