@@ -1,10 +1,11 @@
 // Calendar top bar — ADR-007 §1.
 //
-//   [ 오늘  11월 10일 · 화 ⌄ ]      [▭ ▥ ▦]  🔍  +
+//   [ 오늘  11월 10일 · 화 ⌄ ]        [▭ ▥ ▦]  🔍
 //
 // Left: big title (today → "오늘" + date caption; other day → "11월 12일" +
 // weekday; week/month → "11월" + caption), tap opens the date picker sheet.
-// Right: icon segment for day/week/month, search, and the red "+" (new event).
+// Right: icon segment for day/week/month and search. New event (+) lives in
+// the floating dock.
 // No "today" button (ADR-007): getting back to today is the date strip /
 // title picker.
 
@@ -14,7 +15,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { CalendarView } from '../../state/ui-store';
 import {
   IconChevronDown,
-  IconPlus,
   IconSearch,
   IconViewDay,
   IconViewMonth,
@@ -37,7 +37,6 @@ interface Props {
   onChangeView: (view: CalendarView) => void;
   onPressTitle: () => void;
   onPressSearch: () => void;
-  onPressAdd: () => void;
 }
 
 const VIEWS: { key: CalendarView; label: string; Icon: React.ComponentType<IconProps> }[] = [
@@ -55,7 +54,6 @@ function CalendarTopBarImpl({
   onChangeView,
   onPressTitle,
   onPressSearch,
-  onPressAdd,
 }: Props): React.ReactElement {
   const tint = holiday ? { color: TOKENS.sunday } : null;
   return (
@@ -105,15 +103,6 @@ function CalendarTopBarImpl({
         style={styles.iconButton}
       >
         <IconSearch size={20} color={TOKENS.ink} />
-      </Pressable>
-      <Pressable
-        onPress={onPressAdd}
-        accessibilityRole="button"
-        accessibilityLabel="일정 추가"
-        testID="calendar-add"
-        style={styles.iconButton}
-      >
-        <IconPlus size={26} color={TOKENS.sunday} />
       </Pressable>
     </View>
   );

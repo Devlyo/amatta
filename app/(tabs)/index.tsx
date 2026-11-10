@@ -3,14 +3,14 @@
 // The app's first screen and the root route `/` (onboarding and data reset
 // both `router.replace('/')` here, so this file must stay at (tabs)/index).
 // Always shows TODAY, independent of the calendar's selected date:
-//   1. date caption + large "오늘" title, red "+" (new event for today)
+//   1. date caption + large "오늘" title (new event = the dock's +)
 //   2. 다음 픽업 card(s) — the existing pickup carousel, today's occurrences
 //   3. 지금 · 다음 — per kid: running / next event + status chip
 //   4. 오늘 챙길 것 — today's checklist (per-occurrence completion, ADR-006)
 //   5. 오늘 할 일 — todos due today
 
 import { useCallback, useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, useRouter } from 'expo-router';
 
@@ -28,7 +28,6 @@ import { PickupCarousel } from '../../src/ui/daily/PickupCarousel';
 import { TodoSection } from '../../src/ui/daily/TodoSection';
 import { HomeSection } from '../../src/ui/home/HomeSection';
 import { NowNextList } from '../../src/ui/home/NowNextList';
-import { IconPlus } from '../../src/ui/icons';
 import { TOKENS } from '../../src/ui/palette';
 import { SPACING } from '../../src/ui/spacing';
 import { TYPE } from '../../src/ui/typography';
@@ -74,10 +73,6 @@ export default function HomeScreen(): React.ReactElement {
     [completionMap],
   );
 
-  const handleAdd = (): void => {
-    router.push({ pathname: '/schedule/edit', params: { mode: 'create', date: today } });
-  };
-
   const handleOpenCalendar = (): void => {
     setCurrentDate(today);
     router.navigate('/(tabs)/calendar');
@@ -101,15 +96,6 @@ export default function HomeScreen(): React.ReactElement {
             오늘
           </Text>
         </View>
-        <Pressable
-          onPress={handleAdd}
-          accessibilityRole="button"
-          accessibilityLabel="일정 추가"
-          hitSlop={8}
-          style={styles.addButton}
-        >
-          <IconPlus size={26} color={TOKENS.sunday} />
-        </Pressable>
       </View>
 
       <ScrollView
@@ -145,12 +131,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: SPACING.xs,
     paddingLeft: 18,
-    paddingRight: SPACING.xs,
+    paddingRight: SPACING.lg,
+    paddingBottom: SPACING.xs,
   },
   headerText: { flex: 1, gap: 1 },
   caption: { ...TYPE.footnote, color: TOKENS.inkSub },
   title: { ...TYPE.largeTitle, color: TOKENS.ink },
-  addButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   content: {
     paddingTop: SPACING.sm,
     paddingHorizontal: SPACING.lg,

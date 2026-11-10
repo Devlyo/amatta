@@ -7,7 +7,7 @@ import { memo, useMemo } from 'react';
 
 import { layoutCascade, clipToDay } from '../../domain/layout';
 import type { Child, Occurrence } from '../../domain/types';
-import type { FocusKey } from '../../state/ui-store';
+import { emphasisOf, type PersonKey } from '../../domain/people-filter';
 import { getKidPalette } from '../palette';
 import { fmtRange } from '../utils/date';
 import { TimeBlock } from './TimeBlock';
@@ -26,7 +26,8 @@ interface Props {
   occurrences: readonly Occurrence[];
   /** Minutes-from-midnight when the shown day is today, else null. */
   nowMinutes: number | null;
-  focusKey: FocusKey | null;
+  /** People switched off in the filter. */
+  inactive: readonly PersonKey[];
   /** Changes when the shown day changes — re-applies the opening scroll. */
   scrollKey: string;
   onPressOccurrence: (occ: Occurrence) => void;
@@ -36,12 +37,13 @@ function DayViewImpl({
   kids,
   occurrences,
   nowMinutes,
-  focusKey,
+  inactive,
   scrollKey,
   onPressOccurrence,
 }: Props): React.ReactElement {
   const columnOfKid = useMemo(() => new Map(kids.map((k, i) => [k.id, i])), [kids]);
   const columns = kids.length + 1; // + guardian
+  const everyone = useMemo<PersonKey[]>(() => [...kids.map((k) => k.id), 'guardian'], [kids]);
 
   const placed = useMemo(() => {
     const byId = new Map<string, Occurrence>();
@@ -75,6 +77,7 @@ function DayViewImpl({
           const kid = kids[column];
           if (kid === undefined) return null;
           const palette = getKidPalette(occ.colorIndex);
+          const emphasis = emphasisOf(inactive, everyone, kid.id);
           const top = y(start) + 1;
           const indent = Math.min(level * INDENT, columnWidth / 2);
           return (
@@ -91,8 +94,8 @@ function DayViewImpl({
               endMinutes={occ.endMinutes}
               color={palette.source}
               deep={palette.deep}
-              focused={focusKey === kid.id}
-              dimmed={focusKey !== null && focusKey !== kid.id}
+              focused={emphasis === 'solo'}
+              dimmed={emphasis === 'inactive'}
               needsPickup={occ.needsPickup}
               accessibilityLabel={`${kid.name} ${occ.title}, ${fmtRange(occ.startMinutes, occ.endMinutes)}${level > 0 ? ', 다른 일정과 시간이 겹침' : ''}`}
               onPress={() => onPressOccurrence(occ)}

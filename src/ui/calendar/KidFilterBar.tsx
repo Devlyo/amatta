@@ -1,15 +1,16 @@
-// Kid filter row — ADR-007 §2. Shared by the day / week / month views.
+// People filter row — ADR-007 §2. Shared by the day / week / month views.
 //
 // One pill per kid plus 보호자 (guardian). Border = the owner's deep tone,
 // fill = owner colour at 25% (guardian 40%), avatar + name centred.
-// Tapping a pill focuses it (other pills fade to 45%, other kids' blocks to
-// 20%); tapping the focused pill again clears focus.
+// Everyone starts active. Short tap = switch that person off/on; long press =
+// that person only (long press again = everyone). Inactive pills fade to 45%,
+// their blocks to 20% (see domain/people-filter).
 
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Child } from '../../domain/types';
-import type { FocusKey } from '../../state/ui-store';
+import { emphasisOf, type PersonKey } from '../../domain/people-filter';
 import { KidAvatar } from '../common/KidAvatar';
 import { IconPerson } from '../icons';
 import { getKidPalette, TOKENS, withAlpha } from '../palette';
@@ -21,9 +22,13 @@ export const PILL_FADED_OPACITY = 0.45;
 
 interface Props {
   kids: readonly Child[];
-  focusKey: FocusKey | null;
-  onToggle: (key: FocusKey) => void;
+  inactive: readonly PersonKey[];
+  onToggle: (key: PersonKey) => void;
+  onSolo: (key: PersonKey) => void;
 }
+
+/** Hold time for "this person only". */
+const LONG_PRESS_MS = 350;
 
 function Pill({
   label,
@@ -32,6 +37,7 @@ function Pill({
   faded,
   selected,
   onPress,
+  onLongPress,
   testID,
   children,
 }: {
@@ -41,14 +47,18 @@ function Pill({
   faded: boolean;
   selected: boolean;
   onPress: () => void;
+  onLongPress: () => void;
   testID: string;
   children: React.ReactNode;
 }): React.ReactElement {
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={LONG_PRESS_MS}
       accessibilityRole="button"
-      accessibilityLabel={`${label} 일정만 강조`}
+      accessibilityLabel={label}
+      accessibilityHint="누르면 켜고 끄기, 길게 누르면 이 사람만 보기"
       accessibilityState={{ selected }}
       testID={testID}
       style={[
@@ -64,8 +74,9 @@ function Pill({
   );
 }
 
-function KidFilterBarImpl({ kids, focusKey, onToggle }: Props): React.ReactElement {
-  const faded = (key: FocusKey): boolean => focusKey !== null && focusKey !== key;
+function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.ReactElement {
+  const everyone: PersonKey[] = [...kids.map((k) => k.id), 'guardian'];
+  const faded = (key: PersonKey): boolean => emphasisOf(inactive, everyone, key) === 'inactive';
   return (
     <View style={styles.row}>
       {kids.map((kid) => {
@@ -77,8 +88,9 @@ function KidFilterBarImpl({ kids, focusKey, onToggle }: Props): React.ReactEleme
             border={p.deep}
             fill={withAlpha(p.source, 0.25)}
             faded={faded(kid.id)}
-            selected={focusKey === kid.id}
+            selected={!faded(kid.id)}
             onPress={() => onToggle(kid.id)}
+            onLongPress={() => onSolo(kid.id)}
             testID={`kid-filter-${kid.id}`}
           >
             <KidAvatar child={kid} size={22} />
@@ -90,8 +102,9 @@ function KidFilterBarImpl({ kids, focusKey, onToggle }: Props): React.ReactEleme
         border={TOKENS.guardianDeep}
         fill={withAlpha(TOKENS.guardian, 0.4)}
         faded={faded('guardian')}
-        selected={focusKey === 'guardian'}
+        selected={!faded('guardian')}
         onPress={() => onToggle('guardian')}
+        onLongPress={() => onSolo('guardian')}
         testID="kid-filter-guardian"
       >
         <View style={styles.guardianAvatar}>

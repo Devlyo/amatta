@@ -10,7 +10,7 @@ describe('useUiStore', () => {
     useUiStore.setState({
       currentDate: new Date().toISOString().slice(0, 10) as ISODate,
       calendarView: 'day',
-      focusKey: null,
+      inactivePeople: [],
       editSheetState: { mode: 'closed' },
     });
   });
@@ -22,9 +22,9 @@ describe('useUiStore', () => {
     expect(state.currentDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  test('calendar opens on the day view with no focus', () => {
+  test('calendar opens on the day view with everyone active', () => {
     expect(useUiStore.getState().calendarView).toBe('day');
-    expect(useUiStore.getState().focusKey).toBeNull();
+    expect(useUiStore.getState().inactivePeople).toEqual([]);
   });
 
   test('editSheetState defaults to { mode: "closed" }', () => {
@@ -36,14 +36,16 @@ describe('useUiStore', () => {
     expect(useUiStore.getState().currentDate).toBe('2026-07-04');
   });
 
-  test('toggleFocus focuses a kid, switches to another, and clears on re-tap', () => {
-    const { toggleFocus } = useUiStore.getState();
-    toggleFocus(42);
-    expect(useUiStore.getState().focusKey).toBe(42);
-    toggleFocus('guardian');
-    expect(useUiStore.getState().focusKey).toBe('guardian');
-    toggleFocus('guardian');
-    expect(useUiStore.getState().focusKey).toBeNull();
+  test('togglePerson switches one person off and on; soloPerson keeps one', () => {
+    const { togglePerson, soloPerson } = useUiStore.getState();
+    togglePerson(42);
+    expect(useUiStore.getState().inactivePeople).toEqual([42]);
+    togglePerson(42);
+    expect(useUiStore.getState().inactivePeople).toEqual([]);
+    soloPerson('guardian', [42, 43, 'guardian']);
+    expect(useUiStore.getState().inactivePeople).toEqual([42, 43]);
+    soloPerson('guardian', [42, 43, 'guardian']);
+    expect(useUiStore.getState().inactivePeople).toEqual([]);
   });
 
   test('setCalendarView switches the view', () => {

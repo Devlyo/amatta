@@ -30,10 +30,15 @@ export interface EventDetailState {
 // local day and breaks isToday() comparisons. The canonical helper in
 // src/ui/utils/date.ts uses local-time getters and is the only source of
 // truth for "today" across the app.
-// ADR-007 §1–2: calendar view and kid focus mode.
+import {
+  soloActive,
+  toggleActive,
+  type PersonKey,
+} from '../domain/people-filter';
+
+// ADR-007 §1–2: calendar view and the people filter.
 export type CalendarView = 'day' | 'week' | 'month';
-/** A kid id, or the guardian (iPhone Calendar) column. */
-export type FocusKey = number | 'guardian';
+export type { PersonKey };
 
 interface UiState {
   currentDate: ISODate;
@@ -41,10 +46,12 @@ interface UiState {
 
   calendarView: CalendarView;
   setCalendarView: (view: CalendarView) => void;
-  /** Focused kid/guardian — others are faded. null = no focus. */
-  focusKey: FocusKey | null;
-  /** Tap a filter pill: focus it, or clear when it is already focused. */
-  toggleFocus: (key: FocusKey) => void;
+  /** People switched off in the filter (faded). Empty = everyone active. */
+  inactivePeople: PersonKey[];
+  /** Short tap on a filter pill. */
+  togglePerson: (key: PersonKey) => void;
+  /** Long press on a filter pill: only that person (again → everyone). */
+  soloPerson: (key: PersonKey, everyone: readonly PersonKey[]) => void;
 
   editSheetState: EditSheetState;
   openEditSheet: (
@@ -66,8 +73,10 @@ export const useUiStore = create<UiState>()((set) => ({
 
   calendarView: 'day',
   setCalendarView: (view) => set({ calendarView: view }),
-  focusKey: null,
-  toggleFocus: (key) => set((s) => ({ focusKey: s.focusKey === key ? null : key })),
+  inactivePeople: [],
+  togglePerson: (key) => set((s) => ({ inactivePeople: toggleActive(s.inactivePeople, key) })),
+  soloPerson: (key, everyone) =>
+    set((s) => ({ inactivePeople: soloActive(s.inactivePeople, key, everyone) })),
 
   editSheetState: { mode: 'closed' },
 

@@ -1,7 +1,7 @@
 // 캘린더 탭 — ADR-007 §1–4 (design canvas boards "1 월간" "2 주간" "3 일간").
 //
-//   CalendarTopBar   title + date picker · day/week/month · search · red +
-//   KidFilterBar     kid + guardian pills, focus mode
+//   CalendarTopBar   title + date picker · day/week/month · search
+//   KidFilterBar     kid + guardian pills (tap = on/off, long press = only)
 //   DateStrip        (day view) Sun..Sat of the selected week
 //   DayView          kid columns + guardian column on the shared TimeGrid
 //
@@ -42,8 +42,9 @@ export default function CalendarScreen(): React.ReactElement {
   const setCurrentDate = useUiStore((s) => s.setCurrentDate);
   const calendarView = useUiStore((s) => s.calendarView);
   const setCalendarView = useUiStore((s) => s.setCalendarView);
-  const focusKey = useUiStore((s) => s.focusKey);
-  const toggleFocus = useUiStore((s) => s.toggleFocus);
+  const inactivePeople = useUiStore((s) => s.inactivePeople);
+  const togglePerson = useUiStore((s) => s.togglePerson);
+  const soloPerson = useUiStore((s) => s.soloPerson);
 
   const nowMinutes = useNowMinutes();
   const today = todayIso();
@@ -96,11 +97,13 @@ export default function CalendarScreen(): React.ReactElement {
         onChangeView={setCalendarView}
         onPressTitle={() => router.push('/date-picker')}
         onPressSearch={() => router.push('/search')}
-        onPressAdd={() =>
-          router.push({ pathname: '/schedule/edit', params: { mode: 'create', date: currentDate } })
-        }
       />
-      <KidFilterBar kids={kids} focusKey={focusKey} onToggle={toggleFocus} />
+      <KidFilterBar
+        kids={kids}
+        inactive={inactivePeople}
+        onToggle={togglePerson}
+        onSolo={(key) => soloPerson(key, [...kids.map((k) => k.id), 'guardian'])}
+      />
       <DateStrip selected={currentDate} today={today} onSelect={(d: ISODate) => setCurrentDate(d)} />
       <GestureDetector gesture={swipe}>
         <View style={styles.body}>
@@ -108,7 +111,7 @@ export default function CalendarScreen(): React.ReactElement {
             kids={kids}
             occurrences={occurrences}
             nowMinutes={isToday ? nowMinutes : null}
-            focusKey={focusKey}
+            inactive={inactivePeople}
             scrollKey={dateKey}
             onPressOccurrence={openDetail}
           />

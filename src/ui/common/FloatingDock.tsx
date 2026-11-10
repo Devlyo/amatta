@@ -1,8 +1,12 @@
-// Floating bottom dock = the tab bar (ADR-007 §6).
+// Floating bottom dock = the tab bar (ADR-007 §6, + moved here 2026-11-10).
+//
+//   ( 홈 · 캘린더 · 설정 )  (+)
 //
 // White pill with a soft shadow (same shape as the old BottomDock), three
-// icon-only tabs — 홈 · 캘린더 · 설정. No visible labels; each button keeps an
-// accessibility label. Active tab = primary orange, others = inkSub.
+// icon-only tabs; no visible labels, each button keeps an accessibility label.
+// Active tab = primary orange, others = inkSub. The round "+" next to the pill
+// opens a new event — for the calendar's selected date when the calendar tab is
+// showing, otherwise for today.
 // Rendered by expo-router <Tabs tabBar={...}> so it appears on every tab and
 // floats over the screen (screens add bottom clearance themselves).
 
@@ -10,11 +14,14 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useRouter } from 'expo-router';
 
+import { useUiStore } from '../../state/ui-store';
 import { ELEVATION } from '../elevation';
-import { IconGear, IconHome } from '../icons';
+import { IconGear, IconHome, IconPlus } from '../icons';
 import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
+import { todayIso } from '../utils/date';
 
 const ICON = 26;
 
@@ -25,6 +32,12 @@ const TABS: Record<string, { label: string; render: (color: string) => React.Rea
 };
 
 function FloatingDockImpl({ state, navigation }: BottomTabBarProps): React.ReactElement {
+  const router = useRouter();
+  const onAdd = (): void => {
+    const onCalendar = state.routes[state.index]?.name === 'calendar';
+    const date = onCalendar ? useUiStore.getState().currentDate : todayIso();
+    router.push({ pathname: '/schedule/edit', params: { mode: 'create', date } });
+  };
   return (
     <View pointerEvents="box-none" style={styles.wrap}>
       <View style={styles.bar}>
@@ -51,6 +64,15 @@ function FloatingDockImpl({ state, navigation }: BottomTabBarProps): React.React
           );
         })}
       </View>
+      <Pressable
+        onPress={onAdd}
+        accessibilityRole="button"
+        accessibilityLabel="일정 추가"
+        testID="dock-add"
+        style={styles.add}
+      >
+        <IconPlus size={26} color={TOKENS.surface} />
+      </Pressable>
     </View>
   );
 }
@@ -60,11 +82,15 @@ export const FloatingDock = memo(FloatingDockImpl);
 const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
-    left: 40,
-    right: 40,
+    left: 24,
+    right: 24,
     bottom: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   bar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: TOKENS.surface,
@@ -73,6 +99,15 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: TOKENS.ink04,
+    ...ELEVATION.dock,
+  },
+  add: {
+    width: 56,
+    height: 56,
+    borderRadius: RADIUS.full,
+    backgroundColor: TOKENS.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
     ...ELEVATION.dock,
   },
   tab: {
