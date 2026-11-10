@@ -1,5 +1,5 @@
 // One "what is it" line on the home screen, shared by 지금 and 준비물:
-//   [이름]  📖 영어학원  7:30PM까지
+//   [이름]  📖 영어학원  ~7:30PM
 // name (black, bold) · gap · type icon + small gap · title (bold) · smaller
 // grey detail. The title truncates; name, icon and detail never do.
 
@@ -17,7 +17,7 @@ interface Props {
   name?: string;
   title: string;
   type: ScheduleType | null;
-  /** "7:30PM까지" / "2–3:30PM"; '' = none. */
+  /** "~7:30PM" / "2–3:30PM"; '' = none. */
   detail: string;
 }
 

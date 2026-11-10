@@ -22,6 +22,8 @@ function describe(row: KidNowNext): {
   title: string;
   type: ScheduleType | null;
   detail: string;
+  /** Spoken form of `detail` ("~8:30PM" reads badly aloud). */
+  spoken: string;
   sub: string | null;
 } {
   const { current, next } = row;
@@ -29,14 +31,16 @@ function describe(row: KidNowNext): {
     return {
       title: current.title,
       type: current.type,
-      detail: `${fmt12hrShort(current.endMinutes)}까지`,
+      detail: `~${fmt12hrShort(current.endMinutes)}`,
+      spoken: `${fmt12hrShort(current.endMinutes)}까지`,
       sub: next !== null ? `다음 ${fmt12hrShort(next.startMinutes)} ${next.title}` : '이후 일정 없음',
     };
   }
   if (next !== null) {
-    return { title: next.title, type: next.type, detail: fmtRange(next.startMinutes, next.endMinutes), sub: null };
+    const range = fmtRange(next.startMinutes, next.endMinutes);
+    return { title: next.title, type: next.type, detail: range, spoken: range, sub: null };
   }
-  return { title: row.status === 'doneForToday' ? '오늘 일정 끝' : '오늘 일정 없음', type: null, detail: '', sub: null };
+  return { title: row.status === 'doneForToday' ? '오늘 일정 끝' : '오늘 일정 없음', type: null, detail: '', spoken: '', sub: null };
 }
 
 function NowNextListImpl({ kids, rows }: Props): React.ReactElement {
@@ -52,7 +56,7 @@ function NowNextListImpl({ kids, rows }: Props): React.ReactElement {
             key={row.childId}
             style={[styles.row, isLast ? null : styles.rowDivider]}
             accessible
-            accessibilityLabel={`${kid.name}, ${d.title} ${d.detail}${d.sub !== null ? `, ${d.sub}` : ''}`}
+            accessibilityLabel={`${kid.name}, ${d.title} ${d.spoken}${d.sub !== null ? `, ${d.sub}` : ''}`}
           >
             <KidAvatar child={kid} size={30} />
             <View style={styles.text}>

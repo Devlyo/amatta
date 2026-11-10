@@ -31,6 +31,6 @@ test('each row names its kid right before what they are doing', () => {
   expect(screen.getByText('민준')).toBeTruthy();
   expect(screen.getByText('서연')).toBeTruthy();
   expect(screen.getByLabelText(/^민준, 영어학원 3:30PM까지/)).toBeTruthy();
-  // Detail without a leading dot.
-  expect(screen.getByText('3:30PM까지')).toBeTruthy();
+  // Shown as "~3:30PM" (spoken "3:30PM까지").
+  expect(screen.getByText('~3:30PM')).toBeTruthy();
 });
