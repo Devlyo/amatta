@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     paddingRight: SPACING.md,
   },
   rowPressed: { backgroundColor: TOKENS.ink04 },
-  separator: { marginLeft: 16, height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.ink12 },
+  separator: { marginLeft: 16, height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.separator },
   name: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
   empty: { ...TYPE.row, color: TOKENS.inkSub, flex: 1 },
   addLabel: { ...TYPE.row, color: TOKENS.danger, flex: 1 },

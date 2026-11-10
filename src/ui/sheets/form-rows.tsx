@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   separator: {
     marginLeft: INSET,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: TOKENS.ink12,
+    backgroundColor: TOKENS.separator,
   },
   label: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
   switchBox: { height: ROW_H, justifyContent: 'center' },
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
   chevronOpen: { transform: [{ rotate: '90deg' }] },
   panel: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TOKENS.ink12,
+    borderTopColor: TOKENS.separator,
     marginLeft: INSET,
   },
   chips: { flexDirection: 'row', gap: 6 },
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingRight: SPACING.md,
   },
-  optionDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: TOKENS.ink12 },
+  optionDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: TOKENS.separator },
   optionLabel: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
   action: { ...TYPE.row, color: TOKENS.danger },
   actionDanger: { color: TOKENS.danger },

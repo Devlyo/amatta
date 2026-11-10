@@ -398,6 +398,6 @@ const styles = StyleSheet.create({
   checkBoxDone: { backgroundColor: TOKENS.controlActive, borderColor: TOKENS.controlActive },
   checkLabel: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
   checkLabelDone: { color: TOKENS.inkSub, textDecorationLine: 'line-through' },
-  separator: { marginLeft: 16, height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.ink12 },
+  separator: { marginLeft: 16, height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.separator },
   tail: { height: SPACING.xxxl },
 });

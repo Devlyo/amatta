@@ -228,8 +228,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xl,
   },
   divider: {
-    borderTopWidth: 1,
-    borderTopColor: TOKENS.hair,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: TOKENS.separator,
     marginVertical: SPACING.xs,
     marginHorizontal: SPACING.sm,
   },

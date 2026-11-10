@@ -1296,7 +1296,7 @@ const styles = StyleSheet.create({
     paddingRight: SPACING.md,
   },
   checklistInput: { ...TYPE.row, flex: 1, color: TOKENS.ink, paddingVertical: 11 },
-  separator: { marginLeft: SPACING.lg, height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.ink12 },
+  separator: { marginLeft: SPACING.lg, height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.separator },
   repeatTag: {
     height: 24,
     paddingHorizontal: SPACING.sm,

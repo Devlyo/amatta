@@ -61,6 +61,9 @@ export const TOKENS = {
   ink50: 'rgba(29,29,27,0.50)',
   ink30: 'rgba(29,29,27,0.30)',
   ink12: 'rgba(29,29,27,0.12)',
+  // Row separators in grouped lists (home, settings, forms) — a touch
+  // darker than ink12 (owner, 2026-11-10).
+  separator: 'rgba(29,29,27,0.2)',
   ink06: 'rgba(29,29,27,0.06)',
   ink04: 'rgba(29,29,27,0.04)',
   hair: '#ECEAE4',

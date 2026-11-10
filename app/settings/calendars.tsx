@@ -180,5 +180,5 @@ const styles = StyleSheet.create({
   calText: { flex: 1, minWidth: 0 },
   calTitle: { ...TYPE.row, color: TOKENS.ink },
   calSource: { ...TYPE.footnote, color: TOKENS.inkSub },
-  separator: { height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.hair, marginLeft: SPACING.lg },
+  separator: { height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.separator, marginLeft: SPACING.lg },
 });

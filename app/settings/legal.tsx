@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: SPACING.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TOKENS.ink12,
+    borderTopColor: TOKENS.separator,
     paddingTop: SPACING.md,
   },
 

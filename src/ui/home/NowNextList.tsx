@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   },
   rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: TOKENS.ink12,
+    borderBottomColor: TOKENS.separator,
   },
   text: { flex: 1, minWidth: 0, gap: 2 },
   sub: { ...TYPE.footnote, color: TOKENS.inkSub },

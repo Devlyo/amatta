@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   },
   addRowDivider: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TOKENS.ink12,
+    borderTopColor: TOKENS.separator,
     marginTop: SPACING.xxs,
   },
   addLabel: { ...TYPE.row, flex: 1, color: TOKENS.danger },
