@@ -6,12 +6,13 @@
 
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import Reanimated, { type AnimatedStyle } from 'react-native-reanimated';
+import Reanimated, { useAnimatedStyle, type AnimatedStyle } from 'react-native-reanimated';
 
 import { TOKENS, withAlpha } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
 import { monthCellChips } from './calendar-layout';
+import { liveWidth, type LiveColumns } from './TimeGrid';
 import { TIME_GUTTER } from './time-axis';
 
 const MAX_PER_COLUMN = 2;
@@ -32,8 +33,8 @@ export interface AllDayItem {
 interface Props {
   columns: number;
   items: readonly AllDayItem[];
-  /** Fixed column width when the grid scrolls sideways (week view strip). */
-  columnWidth?: number;
+  /** Live column width when the grid scrolls sideways (week view strip). */
+  live?: LiveColumns;
   /** Strip column of the first rendered column (long strip window). */
   firstColumn?: number;
   /** Animated style that keeps the row aligned with the scrolling strip. */
@@ -43,11 +44,19 @@ interface Props {
 function AllDayRowImpl({
   columns,
   items,
-  columnWidth,
+  live,
   firstColumn = 0,
   followStyle,
 }: Props): React.ReactElement | null {
+  const w = (): number => {
+    'worklet';
+    return live === undefined ? 0 : liveWidth(live);
+  };
+  const stripStyle = useAnimatedStyle(() => ({ width: w() * (firstColumn + columns) }));
+  const spacerStyle = useAnimatedStyle(() => ({ width: w() * firstColumn }));
+  const cellStyle = useAnimatedStyle(() => ({ width: w(), flex: 0 }));
   if (items.length === 0) return null;
+  const sized = live !== undefined;
   const byColumn = Array.from({ length: columns }, (_, c) => items.filter((i) => i.column === c));
   const rows = Math.min(MAX_PER_COLUMN, Math.max(...byColumn.map((l) => l.length)));
   return (
@@ -59,25 +68,15 @@ function AllDayRowImpl({
         <Reanimated.View
           style={[
             styles.strip,
-            columnWidth !== undefined
-              ? { width: columnWidth * (firstColumn + columns) }
-              : styles.stripFill,
+            sized ? stripStyle : styles.stripFill,
             followStyle,
           ]}
         >
-          {columnWidth !== undefined && firstColumn > 0 ? (
-            <View style={{ width: columnWidth * firstColumn }} />
-          ) : null}
+          {sized && firstColumn > 0 ? <Reanimated.View style={spacerStyle} /> : null}
           {byColumn.map((list, c) => {
             const { shown, more } = monthCellChips(list, MAX_PER_COLUMN);
             return (
-              <View
-                key={c}
-                style={[
-                  styles.column,
-                  columnWidth !== undefined ? { width: columnWidth, flex: 0 } : null,
-                ]}
-              >
+              <Reanimated.View key={c} style={[styles.column, sized ? cellStyle : null]}>
                 {shown.map((item) => (
                   <Pressable
                     key={item.id}
@@ -100,7 +99,7 @@ function AllDayRowImpl({
                   </Pressable>
                 ))}
                 {more > 0 ? <Text style={styles.more}>+{more}</Text> : null}
-              </View>
+              </Reanimated.View>
             );
           })}
         </Reanimated.View>
@@ -121,7 +120,7 @@ const styles = StyleSheet.create({
   gutter: { width: TIME_GUTTER, justifyContent: 'center', paddingRight: 4 },
   label: { ...TYPE.axisMeridiem, color: TOKENS.inkSub, textAlign: 'right' },
   viewport: { flex: 1, overflow: 'hidden' },
-  strip: { flexDirection: 'row', transformOrigin: 'left top' },
+  strip: { flexDirection: 'row' },
   stripFill: { flex: 1 },
   column: { flex: 1, minWidth: 0, paddingHorizontal: 1, gap: 2 },
   chip: {

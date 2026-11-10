@@ -3,34 +3,25 @@
 import type { ISODate, Occurrence } from '../../domain/types';
 import { shiftIsoDate, weekDatesIso, weekStartIso } from '../utils/date';
 
-/** Week view zoom levels: days on screen (7 = Sun..Sat; pinch out → 4 → 3 → 2). */
-export const WEEK_SPANS = [7, 4, 3, 2] as const;
-export type WeekSpan = (typeof WEEK_SPANS)[number];
+/**
+ * Week view zoom: days on screen, continuous between these bounds (pinch
+ * changes the column width live, no levels). 7 = the whole week.
+ */
+export const WEEK_SPAN_MAX = 7;
+export const WEEK_SPAN_MIN = 2;
+export type WeekSpan = number;
+/** At or under this many days the blocks have room for their time range. */
+export const WEEK_SPAN_SHOW_TIME = 4.5;
+
+export function clampWeekSpan(span: number): number {
+  'worklet';
+  return Math.min(WEEK_SPAN_MAX, Math.max(WEEK_SPAN_MIN, span));
+}
 
 /** Week view: Sun..Sat of the anchor's week, or `span` days from the anchor. */
-export function visibleWeekDays(anchor: ISODate, span: WeekSpan): ISODate[] {
+export function visibleWeekDays(anchor: ISODate, span: number): ISODate[] {
   if (span === 7) return weekDatesIso(anchor);
-  return Array.from({ length: span }, (_, i) => shiftIsoDate(anchor, i));
-}
-
-/** How far one swipe moves the week view. */
-export function weekSwipeDays(span: WeekSpan): number {
-  return span;
-}
-
-/**
- * Zoom level after a pinch of `scale` (>1 = fingers apart = zoom in = fewer
- * days). Snaps to the level nearest `current / scale`, moving at least one step
- * once the pinch passes a small dead zone.
- */
-export function nextWeekSpan(current: WeekSpan, scale: number): WeekSpan {
-  const target = current / scale;
-  let best: WeekSpan = current;
-  for (const s of WEEK_SPANS) if (Math.abs(s - target) < Math.abs(best - target)) best = s;
-  const i = WEEK_SPANS.indexOf(current);
-  if (best === current && scale > 1.08 && i < WEEK_SPANS.length - 1) best = WEEK_SPANS[i + 1] as WeekSpan;
-  if (best === current && scale < 0.92 && i > 0) best = WEEK_SPANS[i - 1] as WeekSpan;
-  return best;
+  return Array.from({ length: Math.ceil(span) }, (_, i) => shiftIsoDate(anchor, i));
 }
 
 /**

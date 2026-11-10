@@ -5,9 +5,9 @@
 // are blocks; overlaps within a day stack via layoutCascade. Pinch-zoomed it
 // shows 4 days and each block gains its time range.
 
-import { memo, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
+import Reanimated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
 import { cascadeStep, clipToDay, layoutCascade } from '../../domain/layout';
@@ -18,7 +18,7 @@ import { TYPE } from '../typography';
 import { fmtRange, weekdayKo } from '../utils/date';
 import { AllDayRow, type AllDayItem } from './AllDayRow';
 import { TimeBlock } from './TimeBlock';
-import { TimeGrid, type TimeGridStrip } from './TimeGrid';
+import { liveWidth, TimeGrid, type LiveColumns, type TimeGridStrip } from './TimeGrid';
 import { initialScrollY, TIME_GUTTER } from './time-axis';
 
 const HOUR_HEIGHT = 44;
@@ -71,16 +71,20 @@ function WeekViewImpl({
 }: Props): React.ReactElement {
   const [width, setWidth] = useState(0);
   const onLayout = (e: LayoutChangeEvent): void => setWidth(e.nativeEvent.layout.width);
-  const columnWidth = width > 0 ? (width - TIME_GUTTER) / span : 0;
+  const viewportW = Math.max(0, width - TIME_GUTTER);
+  // Column width that follows a live pinch; shared by header, all-day row and grid.
+  const ownSpan = useSharedValue(span);
+  useEffect(() => {
+    ownSpan.value = span;
+  }, [span, ownSpan]);
+  const live: LiveColumns = { span: strip?.span ?? ownSpan, viewportW };
 
-  // Header + all-day row follow the strip's sideways scroll and pinch stretch.
-  const followStyle = useAnimatedStyle(() => {
-    if (strip === undefined) return {};
-    const s = strip.stretch.value;
-    const x = strip.scrollX.value;
-    const fc = strip.focalX.value - TIME_GUTTER + x;
-    return { transform: [{ translateX: -x + fc * (1 - s) }, { scaleX: s }] };
-  });
+  // Header + all-day row follow the strip's sideways scroll.
+  const followStyle = useAnimatedStyle(() =>
+    strip === undefined ? {} : { transform: [{ translateX: -strip.scrollX.value }] },
+  );
+  const headerStripStyle = useAnimatedStyle(() => ({ width: liveWidth(live) * totalColumns }));
+  const headerSpacerStyle = useAnimatedStyle(() => ({ width: liveWidth(live) * firstColumn }));
   const columnOfDate = useMemo(
     () => new Map(days.map((d, i) => [d as unknown as string, firstColumn + i])),
     [days, firstColumn],
@@ -144,9 +148,9 @@ function WeekViewImpl({
       <View style={styles.header}>
         <View style={styles.headerViewport}>
           <Reanimated.View
-            style={[styles.headerStrip, { width: columnWidth * totalColumns }, followStyle]}
+            style={[styles.headerStrip, headerStripStyle, followStyle]}
           >
-            <View style={{ width: columnWidth * firstColumn }} />
+            <Reanimated.View style={headerSpacerStyle} />
             {days.map((date) => {
               const key = date as unknown as string;
               const wd = weekdayKo(date);
@@ -154,13 +158,13 @@ function WeekViewImpl({
               const nameColor =
                 wd === '일' ? TOKENS.sunday : wd === '토' ? TOKENS.saturday : TOKENS.inkSub;
               return (
+                <LiveCell key={key} live={live}>
                 <Pressable
-                  key={key}
                   onPress={() => onPressDay(date)}
                   accessibilityRole="button"
                   accessibilityLabel={`${Number(key.slice(5, 7))}월 ${Number(key.slice(8, 10))}일 ${wd}요일${isToday ? ', 오늘' : ''} — 일간 보기`}
                   testID={`week-day-${key}`}
-                  style={[styles.headerCell, { width: columnWidth }]}
+                  style={styles.headerCell}
                 >
                   <Text style={[styles.headerName, { color: nameColor }]}>{wd}</Text>
                   <View style={[styles.headerCircle, isToday ? styles.headerCircleToday : null]}>
@@ -174,6 +178,7 @@ function WeekViewImpl({
                     </Text>
                   </View>
                 </Pressable>
+                </LiveCell>
               );
             })}
           </Reanimated.View>
@@ -183,7 +188,7 @@ function WeekViewImpl({
       <AllDayRow
         columns={days.length}
         items={allDayItems}
-        columnWidth={columnWidth}
+        live={live}
         firstColumn={firstColumn}
         followStyle={followStyle}
       />
@@ -208,23 +213,33 @@ function WeekViewImpl({
                 if (date !== undefined) onLongPressSlot(date, minutes);
               }
         }
-        renderColumns={({ columnWidth, y }) =>
+        renderColumns={({ live: liveCols, y }) =>
           placed.map(({ id, column, start, end, level, depth, occ }) => {
             const kid = kidById.get(occ.childId);
             if (kid === undefined) return null;
             const palette = getKidPalette(occ.colorIndex);
             const emphasis = emphasisOf(inactive, everyone, kid.id);
-            const indent = level * cascadeStep(columnWidth, depth, indentStep);
+            const height = Math.max(y(end) - y(start) - 2, MIN_BLOCK_H);
             return (
-              <TimeBlock
+              <LiveBlockBox
                 key={id}
+                testID={`week-slot-${id}`}
+                live={liveCols}
+                column={column}
+                level={level}
+                depth={depth}
+                indentStep={indentStep}
+                top={y(start) + 1}
+                height={height}
+              >
+              <TimeBlock
                 testID={`week-block-${id}`}
                 compact
                 showTime={zoomed}
-                top={y(start) + 1}
-                left={column * columnWidth + 1 + indent}
-                width={columnWidth - 2 - indent}
-                height={Math.max(y(end) - y(start) - 2, MIN_BLOCK_H)}
+                top={0}
+                left={0}
+                width="100%"
+                height={height}
                 level={level}
                 title={occ.title}
                 startMinutes={occ.startMinutes}
@@ -236,6 +251,7 @@ function WeekViewImpl({
                 accessibilityLabel={`${kid.name} ${occ.title}, ${weekdayKo(occ.date)}요일 ${fmtRange(occ.startMinutes, occ.endMinutes)}${level > 0 ? ', 다른 일정과 시간이 겹침' : ''}`}
                 onPress={() => onPressOccurrence(occ)}
               />
+              </LiveBlockBox>
             );
           })
         }
@@ -245,6 +261,53 @@ function WeekViewImpl({
 }
 
 export const WeekView = memo(WeekViewImpl);
+
+/** Header cell whose width follows the live column width. */
+function LiveCell({ live, children }: { live: LiveColumns; children: React.ReactNode }): React.ReactElement {
+  const sized = useAnimatedStyle(() => ({ width: liveWidth(live) }));
+  return <Reanimated.View style={sized}>{children}</Reanimated.View>;
+}
+
+/**
+ * A block's slot in its day column, re-laid out every frame of a pinch
+ * (same cascade maths as a static layout), so the block resizes instead of
+ * being stretched.
+ */
+function LiveBlockBox({
+  live,
+  column,
+  level,
+  depth,
+  indentStep,
+  top,
+  height,
+  testID,
+  children,
+}: {
+  live: LiveColumns;
+  column: number;
+  level: number;
+  depth: number;
+  indentStep: number;
+  top: number;
+  height: number;
+  testID?: string;
+  children: React.ReactNode;
+}): React.ReactElement {
+  const sized = useAnimatedStyle(() => {
+    const w = liveWidth(live);
+    const indent = level * cascadeStep(w, depth, indentStep);
+    return { left: column * w + 1 + indent, width: w - 2 - indent };
+  });
+  return (
+    <Reanimated.View
+      testID={testID}
+      style={[{ position: 'absolute', top, height, zIndex: level + 1 }, sized]}
+    >
+      {children}
+    </Reanimated.View>
+  );
+}
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
@@ -256,8 +319,8 @@ const styles = StyleSheet.create({
     borderBottomColor: TOKENS.hair,
   },
   headerViewport: { flex: 1, overflow: 'hidden' },
-  headerStrip: { flexDirection: 'row', height: '100%', transformOrigin: 'left top' },
-  headerCell: { alignItems: 'center', justifyContent: 'center', gap: 3 },
+  headerStrip: { flexDirection: 'row', height: '100%' },
+  headerCell: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
   headerName: { ...TYPE.caption },
   headerCircle: {
     width: 28,

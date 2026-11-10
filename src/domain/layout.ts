@@ -51,6 +51,7 @@ export function cascadeStep(
   base: number,
   minWidthRatio = 0.45,
 ): number {
+  'worklet'; // also runs per frame while the week view is pinched
   if (depth <= 1) return 0;
   const room = columnWidth * (1 - minWidthRatio);
   return Math.min(base, room / (depth - 1));

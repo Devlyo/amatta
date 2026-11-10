@@ -9,7 +9,8 @@
 // One-finger horizontal swipe drags the page with the finger and pages by a
 // day / a month; the week view is a native sideways-scrolling day strip
 // (pages by week at 7 days, glides day by day when zoomed). Pinching stretches the content live, then
-// snaps: week 7 → 4 → 3 → 2 days, month normal ↔ 2-line chips. Long press on an empty
+// snaps: month normal ↔ 2-line chips. The week view re-lays out its day
+// columns live (7 … 2 days, continuous) and stays where the fingers stop. Long press on an empty
 // slot (day/week) creates an event there. New events from anywhere else use
 // the dock's "+".
 
@@ -19,6 +20,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
+  scrollTo,
+  useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -34,9 +37,10 @@ import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useUiStore, type CalendarView, type PersonKey } from '../../src/state/ui-store';
 import { CalendarTopBar } from '../../src/ui/calendar/CalendarTopBar';
 import {
+  clampWeekSpan,
   monthGridDates,
-  nextWeekSpan,
   visibleWeekDays,
+  WEEK_SPAN_SHOW_TIME,
   type WeekSpan,
 } from '../../src/ui/calendar/calendar-layout';
 import { TIME_GUTTER } from '../../src/ui/calendar/time-axis';
@@ -202,22 +206,26 @@ export default function CalendarScreen(): React.ReactElement {
   const focal = useSharedValue(0);
   const scrollX = useSharedValue(0);
   const pinchView = useSharedValue<'day' | 'week' | 'month'>(view);
-  // Pinch can only stretch as far as a real zoom level reaches:
-  // week [span/7 … span/2], month [normal … zoomed].
+  // Month pinch can only stretch as far as the zoomed level reaches.
   const stretchMin = useSharedValue(1);
   const stretchMax = useSharedValue(1);
+  // Week pinch: the column width itself changes every frame (Apple-style, no
+  // stretched text, no snap-back); the strip scrolls so the day under the
+  // fingers stays put.
+  const liveSpan = useSharedValue<number>(weekSpan);
+  const stripLocked = useSharedValue(false);
+  const stripRef = useAnimatedRef<Animated.ScrollView>();
+  const pinchFrom = useSharedValue({ span: 7, focalCol: 0, fScreen: 0 });
   useEffect(() => {
     pinchView.value = view;
     stretch.value = 1;
     dragX.value = 0;
-    if (view === 'week') {
-      stretchMin.value = weekSpan / 7;
-      stretchMax.value = weekSpan / 2;
-    } else {
-      stretchMin.value = monthZoomed ? 1 / MONTH_ZOOM_RATIO : 1;
-      stretchMax.value = monthZoomed ? 1 : MONTH_ZOOM_RATIO;
-    }
-  }, [view, weekSpan, monthZoomed, pinchView, stretch, dragX, stretchMin, stretchMax]);
+    stretchMin.value = monthZoomed ? 1 / MONTH_ZOOM_RATIO : 1;
+    stretchMax.value = monthZoomed ? 1 : MONTH_ZOOM_RATIO;
+  }, [view, monthZoomed, pinchView, stretch, dragX, stretchMin, stretchMax]);
+  useEffect(() => {
+    if (!stripLocked.value) liveSpan.value = weekSpan;
+  }, [weekSpan, liveSpan, stripLocked]);
 
   const commitMove = (dir: -1 | 1): void => {
     move(dir);
@@ -227,7 +235,7 @@ export default function CalendarScreen(): React.ReactElement {
   const commitWeekSpan = (span: WeekSpan, col: number): void => {
     setWeekSpan(span);
     setStripPos((p) => ({ col, n: p.n + 1 }));
-    const date = dateAtColumn(col, span);
+    const date = dateAtColumn(Math.max(0, Math.round(col)), span);
     scrolledDate.current = date as unknown as string;
     if ((date as unknown as string) !== dateKey) setCurrentDate(date);
     stretch.value = 1;
@@ -237,24 +245,7 @@ export default function CalendarScreen(): React.ReactElement {
     stretch.value = 1;
   };
   const endPinch = (scale: number): void => {
-    if (view === 'week') {
-      const next = nextWeekSpan(weekSpan, scale);
-      if (next === weekSpan) {
-        stretch.value = withTiming(1, { duration: PAGE_MS });
-        return;
-      }
-      // Keep the day under the fingers in place across the level change.
-      const w = bodyW.value - TIME_GUTTER;
-      const fScreen = focal.value - TIME_GUTTER;
-      const fContent = fScreen + scrollX.value;
-      const focalCol = fContent / (w / weekSpan);
-      // Whole week → the week under the fingers; zoomed → nearest day edge.
-      const col =
-        next === 7 ? Math.floor(focalCol / 7) * 7 : Math.max(0, Math.round(focalCol - fScreen / (w / next)));
-      stretch.value = withTiming(weekSpan / next, { duration: PAGE_MS }, (done) => {
-        if (done) runOnJS(commitWeekSpan)(next, col);
-      });
-    } else if (view === 'month') {
+    if (view === 'month') {
       const zoom = scale >= PINCH_IN ? true : scale <= PINCH_OUT ? false : monthZoomed;
       if (zoom === monthZoomed) {
         stretch.value = withTiming(1, { duration: PAGE_MS });
@@ -296,13 +287,42 @@ export default function CalendarScreen(): React.ReactElement {
   const pinch = Gesture.Pinch()
     .enabled(view !== 'day')
     .onStart((e) => {
-      focal.value = pinchView.value === 'week' ? e.focalX : e.focalY;
+      if (pinchView.value === 'week') {
+        const vw = bodyW.value - TIME_GUTTER;
+        const fScreen = e.focalX - TIME_GUTTER;
+        stripLocked.value = true;
+        pinchFrom.value = {
+          span: liveSpan.value,
+          fScreen,
+          focalCol: vw > 0 ? (fScreen + scrollX.value) / (vw / liveSpan.value) : 0,
+        };
+      } else {
+        focal.value = e.focalY;
+      }
     })
     .onUpdate((e) => {
-      stretch.value = Math.min(Math.max(e.scale, stretchMin.value), stretchMax.value);
+      if (pinchView.value === 'week') {
+        const vw = bodyW.value - TIME_GUTTER;
+        const from = pinchFrom.value;
+        const span = clampWeekSpan(from.span / e.scale);
+        liveSpan.value = span;
+        scrollTo(stripRef, Math.max(0, from.focalCol * (vw / span) - from.fScreen), 0, false);
+      } else {
+        stretch.value = Math.min(Math.max(e.scale, stretchMin.value), stretchMax.value);
+      }
     })
-    .onEnd(() => {
-      runOnJS(endPinch)(stretch.value);
+    .onFinalize(() => {
+      if (pinchView.value === 'week') {
+        if (!stripLocked.value) return;
+        const vw = bodyW.value - TIME_GUTTER;
+        const from = pinchFrom.value;
+        const span = liveSpan.value;
+        stripLocked.value = false;
+        // Stays exactly where the fingers left it (no snapping to levels).
+        runOnJS(commitWeekSpan)(span, vw > 0 ? Math.max(0, from.focalCol - from.fScreen / (vw / span)) : 0);
+      } else {
+        runOnJS(endPinch)(stretch.value);
+      }
     });
   const gestures = Gesture.Simultaneous(swipe, pinch);
 
@@ -414,12 +434,13 @@ export default function CalendarScreen(): React.ReactElement {
                 occurrences={occurrences}
                 nowMinutes={nowMinutes}
                 inactive={inactivePeople}
-                zoomed={weekSpan < 7}
+                zoomed={weekSpan <= WEEK_SPAN_SHOW_TIME}
                 span={weekSpan}
                 strip={{
                   scrollX,
-                  stretch,
-                  focalX: focal,
+                  span: liveSpan,
+                  scrollRef: stripRef,
+                  locked: stripLocked,
                   initialColumn: stripPos.col,
                   key: `${stripOrigin as unknown as string}-${weekSpan}-${stripPos.n}`,
                   onVisibleColumn: reportStripColumn,

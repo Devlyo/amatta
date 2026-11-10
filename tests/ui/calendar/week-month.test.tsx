@@ -72,8 +72,8 @@ describe('WeekView', () => {
 
   test('fixed schedules are regular blocks; same-day overlaps stack', () => {
     renderWeek(false);
-    const a = style('week-block-1|2026-11-10');
-    const b = style('week-block-2|2026-11-10');
+    const a = style('week-slot-1|2026-11-10');
+    const b = style('week-slot-2|2026-11-10');
     expect(b.left).toBeGreaterThan(a.left);
     expect(b.zIndex).toBeGreaterThan(a.zIndex);
     expect(screen.getByTestId('week-block-3|2026-11-12')).toBeTruthy();
@@ -198,8 +198,8 @@ describe('WeekView — many people (6) in a narrow day column', () => {
     fireEvent(screen.getByTestId('week-view'), 'layout', {
       nativeEvent: { layout: { x: 0, y: 0, width: TIME_GUTTER + 7 * 50, height: 600 } },
     });
-    const lefts = [1, 2, 3, 4, 5].map((id) => style(`week-block-${id}|2026-11-10`).left);
-    const widths = [1, 2, 3, 4, 5].map((id) => style(`week-block-${id}|2026-11-10`).width);
+    const lefts = [1, 2, 3, 4, 5].map((id) => style(`week-slot-${id}|2026-11-10`).left);
+    const widths = [1, 2, 3, 4, 5].map((id) => style(`week-slot-${id}|2026-11-10`).width);
     expect(new Set(lefts).size).toBe(5); // no two stacked on the same spot
     const columnLeft = 2 * 50; // Tue column
     for (let i = 0; i < 5; i += 1) {
@@ -239,8 +239,7 @@ describe('WeekView — zoomed strip scrolls sideways through the whole week', ()
     renderStrip();
     expect(screen.getByTestId('week-day-2026-11-08')).toBeTruthy(); // Sun, off-screen left
     expect(screen.getByTestId('week-day-2026-11-14')).toBeTruthy(); // Sat, off-screen right
-    expect(style('week-block-3|2026-11-12').width).toBeGreaterThan(140); // ≈ 150px column
-    expect(screen.getByTestId('week-view-strip').props.scrollEnabled).toBe(true);
+    expect(style('week-slot-3|2026-11-12').width).toBeGreaterThan(140); // ≈ 150px column
   });
 
   test('a long strip renders only its window, at the window\'s columns', () => {
@@ -267,7 +266,7 @@ describe('WeekView — zoomed strip scrolls sideways through the whole week', ()
       nativeEvent: { layout: { x: 0, y: 0, width: TIME_GUTTER + 300, height: 600 } },
     });
     // Thu = window index 4 → strip column 18 → 18 × 150px.
-    expect(style('week-block-3|2026-11-12').left).toBeGreaterThanOrEqual(18 * 150);
-    expect(style('week-block-3|2026-11-12').left).toBeLessThan(19 * 150);
+    expect(style('week-slot-3|2026-11-12').left).toBeGreaterThanOrEqual(18 * 150);
+    expect(style('week-slot-3|2026-11-12').left).toBeLessThan(19 * 150);
   });
 });

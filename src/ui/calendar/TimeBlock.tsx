@@ -11,7 +11,7 @@
 // + TimeGrid's `y`), so this component never computes layout.
 
 import { memo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 
 import { IconClock } from '../icons';
 import { TOKENS, withAlpha } from '../palette';
@@ -26,7 +26,8 @@ export const BLOCK_DIMMED_OPACITY = 0.2;
 export interface TimeBlockProps {
   top: number;
   left: number;
-  width: number;
+  /** Number, or '100%' inside a live-sized box (pinched week view). */
+  width: DimensionValue;
   height: number;
   /** Cascade level — higher levels draw on top. */
   level: number;

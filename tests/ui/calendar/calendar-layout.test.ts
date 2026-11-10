@@ -3,9 +3,8 @@ import {
   monthCellChips,
   monthGridDates,
   showsInMonth,
-  nextWeekSpan,
+  clampWeekSpan,
   visibleWeekDays,
-  weekSwipeDays,
 } from '../../../src/ui/calendar/calendar-layout';
 import { daysBetweenIso, shiftIsoMonth } from '../../../src/ui/utils/date';
 
@@ -23,18 +22,10 @@ describe('visibleWeekDays / zoom levels', () => {
     expect(visibleWeekDays(ISO('2026-11-10'), 3).map(str)).toEqual(['2026-11-10', '2026-11-11', '2026-11-12']);
     expect(visibleWeekDays(ISO('2026-11-10'), 2).map(str)).toEqual(['2026-11-10', '2026-11-11']);
   });
-  test('swipe moves by the visible span', () => {
-    expect(weekSwipeDays(7)).toBe(7);
-    expect(weekSwipeDays(2)).toBe(2);
-  });
-  test('pinch snaps to the nearest level, at least one step past the dead zone', () => {
-    expect(nextWeekSpan(7, 1.1)).toBe(4); // small pinch → next step
-    expect(nextWeekSpan(7, 2.4)).toBe(3); // 7/2.4 ≈ 2.9
-    expect(nextWeekSpan(7, 4)).toBe(2);
-    expect(nextWeekSpan(2, 0.5)).toBe(4);
-    expect(nextWeekSpan(2, 0.2)).toBe(7);
-    expect(nextWeekSpan(4, 1.0)).toBe(4); // no pinch → stay
-    expect(nextWeekSpan(2, 1.5)).toBe(2); // already max zoom
+  test('pinch zoom is continuous between 2 and 7 days', () => {
+    expect(clampWeekSpan(9)).toBe(7);
+    expect(clampWeekSpan(3.4)).toBe(3.4);
+    expect(clampWeekSpan(1)).toBe(2);
   });
 });
 

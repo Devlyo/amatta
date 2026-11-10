@@ -11,9 +11,12 @@ import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'reac
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Reanimated, {
   runOnJS,
+  useAnimatedProps,
+  useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
+  type AnimatedRef,
   type SharedValue,
 } from 'react-native-reanimated';
 import { Animated, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
@@ -33,23 +36,41 @@ import {
 } from './time-axis';
 import { TimeBlock } from './TimeBlock';
 
+/**
+ * Column width that follows a live pinch on the UI thread: viewport width ÷
+ * the live column count. Read it in worklets with `liveWidth`.
+ */
+export interface LiveColumns {
+  span: SharedValue<number>;
+  viewportW: number;
+}
+export function liveWidth(l: LiveColumns): number {
+  'worklet';
+  return l.viewportW > 0 && l.span.value > 0 ? l.viewportW / l.span.value : 0;
+}
+
 export interface TimeGridColumnsLayout {
   columnWidth: number;
+  /** Live column width source (pinch) — position blocks with `liveWidth(live)`. */
+  live: LiveColumns;
   /** Absolute y (px) inside the grid for minutes-from-midnight. */
   y: (minutes: number) => number;
 }
 
 /**
  * Horizontal day strip (week view, ADR-007 §4): more columns than fit, scrolled
- * sideways under a fixed hour gutter, plus a live pinch stretch around the
- * fingers. All values are shared so the header row above can follow them.
+ * sideways under a fixed hour gutter. A pinch changes `span` every frame and
+ * every column re-lays out at the new width (text never stretches); the
+ * screen keeps the day under the fingers by scrolling `scrollRef`.
  */
 export interface TimeGridStrip {
   /** Written by the strip's scroll (px). */
   scrollX: SharedValue<number>;
-  /** Live pinch scale (1 = none) and the pinch focal x in viewport coords. */
-  stretch: SharedValue<number>;
-  focalX: SharedValue<number>;
+  /** Live number of columns on screen (may be fractional mid-pinch). */
+  span: SharedValue<number>;
+  scrollRef: AnimatedRef<Reanimated.ScrollView>;
+  /** True while pinching — the strip's own scrolling is switched off. */
+  locked: SharedValue<boolean>;
   /** Column to show at the left edge after `key` changes. */
   initialColumn: number;
   key: string;
@@ -132,13 +153,17 @@ function TimeGridImpl({
   const scrollable = columns > visibleColumns;
 
   // ── horizontal strip ──
-  const hRef = useRef<Reanimated.ScrollView>(null);
+  const ownRef = useAnimatedRef<Reanimated.ScrollView>();
+  const hRef = strip?.scrollRef ?? ownRef;
   const ownScrollX = useSharedValue(0);
-  const ownStretch = useSharedValue(1);
-  const ownFocal = useSharedValue(0);
+  const ownLocked = useSharedValue(false);
   const scrollX = strip?.scrollX ?? ownScrollX;
-  const stretch = strip?.stretch ?? ownStretch;
-  const focalX = strip?.focalX ?? ownFocal;
+  const locked = strip?.locked ?? ownLocked;
+  const ownSpan = useSharedValue(visibleColumns);
+  useEffect(() => {
+    ownSpan.value = visibleColumns;
+  }, [visibleColumns, ownSpan]);
+  const live: LiveColumns = { span: strip?.span ?? ownSpan, viewportW };
   // Native scrolling does the motion (iOS physics); the worklet only mirrors
   // the offset for the header and tells the screen which days are in view.
   const report = strip?.onVisibleColumn;
@@ -186,12 +211,8 @@ function TimeGridImpl({
     // Re-position only when the caller's key or the column size changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [strip?.key, columnWidth]);
-  // Pinch preview: stretch the columns around the fingers (gutter stays put).
-  const stretchStyle = useAnimatedStyle(() => {
-    const s = stretch.value;
-    const fc = focalX.value - TIME_GUTTER + scrollX.value; // focal in content coords
-    return { transform: [{ translateX: fc * (1 - s) }, { scaleX: s }] };
-  });
+  const stageStyle = useAnimatedStyle(() => ({ width: columns * liveWidth(live) }));
+  const stripProps = useAnimatedProps(() => ({ scrollEnabled: scrollable && !locked.value }));
   const height = axisHeight(hourHeight);
   const y = useMemo(() => (m: number) => minutesToY(m, hourHeight), [hourHeight]);
 
@@ -259,7 +280,7 @@ function TimeGridImpl({
           <Reanimated.ScrollView
             ref={hRef}
             horizontal
-            scrollEnabled={scrollable}
+            animatedProps={stripProps}
             bounces={scrollable}
             showsHorizontalScrollIndicator={false}
             onScroll={onHScroll}
@@ -271,23 +292,24 @@ function TimeGridImpl({
             contentOffset={{ x: initialX, y: 0 }}
             testID={testID !== undefined ? `${testID}-strip` : undefined}
           >
-            <Reanimated.View style={[{ width: contentW, height }, styles.stage, stretchStyle]}>
+            <Reanimated.View style={[{ width: contentW, height }, stageStyle]}>
               {Array.from({ length: renderRange?.count ?? columns }, (_, i) => (renderRange?.from ?? 0) + i).map((c) => (
-                <View
+                <LiveColumn
                   key={`rule-${c}`}
-                  pointerEvents="none"
-                  style={[styles.columnRule, { left: c * columnWidth, height }]}
+                  column={c}
+                  live={live}
+                  inset={0}
+                  style={[styles.columnRule, { height }]}
                 />
               ))}
 
               {todayColumn !== null ? (
-                <View
-                  pointerEvents="none"
+                <LiveColumn
                   testID="time-grid-today-column"
-                  style={[
-                    styles.todayColumn,
-                    { left: todayColumn * columnWidth + 1, width: columnWidth - 1, height },
-                  ]}
+                  column={todayColumn}
+                  live={live}
+                  inset={1}
+                  style={[styles.todayColumn, { height }]}
                 />
               ) : null}
 
@@ -300,7 +322,7 @@ function TimeGridImpl({
                   />
                 </GestureDetector>
               ) : null}
-              {renderColumns({ columnWidth, y })}
+              {renderColumns({ columnWidth, live, y })}
               {draft !== null ? (
                 <Animated.View
                   pointerEvents="none"
@@ -358,6 +380,31 @@ function TimeGridImpl({
 
 export const TimeGrid = memo(TimeGridImpl);
 
+/**
+ * A column-anchored box that follows the live column width: `left` = column
+ * edge + inset, `width` = column − inset (rules pass a fixed hairline width
+ * in `style`, which wins).
+ */
+function LiveColumn({
+  column,
+  live,
+  inset,
+  style,
+  testID,
+}: {
+  column: number;
+  live: LiveColumns;
+  inset: number;
+  style: React.ComponentProps<typeof View>['style'];
+  testID?: string;
+}): React.ReactElement {
+  const sized = useAnimatedStyle(() => {
+    const w = liveWidth(live);
+    return { left: column * w + inset, width: w - inset };
+  });
+  return <Reanimated.View pointerEvents="none" testID={testID} style={[sized, style]} />;
+}
+
 const NOW_PILL_H = 19;
 const NOW_DOT = 11;
 
@@ -392,7 +439,7 @@ const styles = StyleSheet.create({
   columnRule: {
     position: 'absolute',
     top: 0,
-    width: StyleSheet.hairlineWidth,
+    width: StyleSheet.hairlineWidth, // overrides LiveColumn's width
     backgroundColor: TOKENS.hair,
   },
   todayColumn: {
@@ -405,8 +452,6 @@ const styles = StyleSheet.create({
     zIndex: 40,
     ...ELEVATION.dock,
   },
-  // Left origin so the pinch stretch pivots via translateX (see stretchStyle).
-  stage: { transformOrigin: 'left top' },
   columns: {
     position: 'absolute',
     top: 0,
