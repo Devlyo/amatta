@@ -1,0 +1,44 @@
+# ADR-009 — 다크 모드
+
+- **Status**: Proposed — Architect/Critic 승인(수정 조건부), 계획 v2 (2026-11-10) — 오너 "다크모드 추가 가능?" → 시안 확인 후 진행 결정. 계획: `.omc/plans/ralplan-dark-mode.md`
+- **Amends**: ADR-004 (앱 라이트모드 런타임 고정 `Appearance.setColorScheme('light')`, `app.json userInterfaceStyle: "light"`)
+- **Source**: 디자인 캔버스(비공개) https://claude.ai/artifact/7378YLCUUr4pMf7SgDfybx — 보드 `0-D 홈 — 다크`, `3-D 일간 — 다크`, `6-D 새 일정 — 다크` (2026-11-10, 바탕 밝기 3회 조정 후 확정)
+
+## Context
+앱은 라이트로 고정돼 있다(ADR-004: 네이티브 시트·모달이 시스템 다크에서 깨지던 문제). 색은 `src/ui/palette.ts`의 `TOKENS`로 모여 있지만 48개 파일이 `StyleSheet.create` 안에서 정적으로 읽고(약 430곳), 아이콘·스위치·SVG 등 약 70곳이 색을 문자열 prop으로 받는다. 즉 "토큰 값만 바꾸면" 다크가 되지 않는다.
+
+## Decision
+1. **모드 = 시스템 / 라이트 / 다크**(설정 > 화면, 기본 = 시스템). `Appearance.setColorScheme(null | 'light' | 'dark')`로 적용 — 앱 전체(네이티브 시트·날짜 선택기·키보드 포함)가 같은 모드. 선택은 `app_settings`(`appearance`)에 저장, JSON 내보내기 포함, 초기화 시 기본값.
+2. **색 = 시안 확정 팔레트**(아래 표). 모든 `TOKENS` 키에 라이트/다크 쌍을 둔다. 아이 6색 `source`는 그대로, `deep`(테두리·막대)은 다크에서 한 단계 밝게. 일정 블록 채움은 라이트 60%/80%, **다크 85%/95% + 검정 글씨**(연한 채움은 다크에서 탁해짐). 브랜드 주황 `#FF7144`는 양쪽 동일.
+3. **구현 방식(Architect 검토 대상)**: 색이 문자열로 정적으로 박히지 않게, 화면 렌더 시점에 현재 모드의 토큰을 읽는다 — `useTheme()` 훅(현재 팔레트 + 스킴)과 `makeStyles((t) => StyleSheet.create(...))`(스킴별 메모). 대안 `DynamicColorIOS`(iOS가 스킴에 따라 자동 전환)는 StyleSheet를 거의 그대로 두는 장점이 있으나 iOS 전용, `withAlpha` 같은 색 계산·SVG·Reanimated 문자열 보간과 맞지 않아 혼용이 필요 → 계획서 §2에서 비교 후 확정.
+4. **화면별 점진 전환**: 토큰 레이어 → 공용 프리미티브(폼 줄·HomeSection·SettingsChrome·TimeBlock 등) → 화면 순. 전환 전 화면은 라이트 색 그대로 보이므로, **다크 선택지는 전 화면 전환이 끝난 뒤에 노출**(그 전엔 시스템 다크여도 라이트 유지).
+5. ADR-004의 "라이트 고정" 조항만 대체한다. "모달/시트 = 네이티브 expo-router 라우트, gorhom 미사용" 등 나머지는 유지.
+
+### 팔레트 (라이트 → 다크)
+| 토큰 | 라이트 | 다크 |
+|---|---|---|
+| groupedBg (바탕) | `#F2F1EF` | `#1A1917` |
+| surface (박스·캘린더) | `#FFFFFF` | `#272523` |
+| ink (글씨) | `#1D1D1B` | `#F2F1EF` |
+| inkSub (보조 글씨) | `#7A756E` | `#A39D94` |
+| separator / hair | ink 20% / `#ECEAE4` | `#403E3A` / `#34322F` |
+| chip bg (ink06) | — | `#34322F` |
+| danger (빨강) | `#FF4444` | `#FF6B5E` |
+| primary (주황) | `#FF7144` | `#FF7144` |
+| pickupWarn | `#B8431A` | `#FF9A70` |
+| guardian / guardianDeep | `#E4E2DD` / `#8E8A83` | `#5A5751` / `#A8A49D` |
+| 아이 deep (예: 핑크·라벤더·시트러스) | `#D957D9` `#8E6BE8` `#A8AD12` | `#F08BF0` `#B39CFF` `#D3D84A` |
+| 그림자 | 옅음 | 진하게(0.45) |
+
+## Consequences
+- `app.json` `userInterfaceStyle: "automatic"` → **새 네이티브 빌드 필요**.
+- 모든 화면 파일이 스타일 생성 방식을 바꾼다(기계적 변경이 대부분, 단계별 커밋).
+- 테스트: 토큰 쌍 완전성(키 누락 금지), 대비 검사(본문 4.5:1), 스킴별 스냅샷 몇 개.
+- 아바타 PNG·차 일러스트 등 이미지는 그대로(배경 투명 확인), 필요 시 다크용 테두리.
+
+## Open Questions
+1. ~~구현 방식~~ → 검토 결과 A안(훅 + 모듈 로드 시 두 벌 만드는 makeStyles) 확정.
+4. **기본값 "시스템"의 영향**: 폰이 다크인 사용자는 업데이트 후 바로 다크 — 의도적으로 결정(대안: 기본 라이트, 설정에서 켜기).
+5. **팔레트 나머지 ~30개 토큰**(반투명 글씨 단계, 선택된 칩, 토요일 파랑, 픽업 카드·차, 아이 bg 등) — 단계 0 전에 시안에서 확정. 보호자 블록은 밝은 글씨(검정 글씨는 대비 미달).
+2. 설정 위치/이름: "설정 > 화면 > 모드" vs 알림 아래 한 줄.
+3. 안드로이드는 같은 방식으로 지원(훅 방식이면 자동) — DynamicColorIOS 선택 시 안드로이드는 라이트 고정.
