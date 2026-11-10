@@ -6,6 +6,8 @@ import { Image, View } from 'react-native';
 
 import type { Child } from '../../domain/types';
 import { AVATAR_IMAGE_BY_KEY } from '../assets';
+import { withAlpha } from '../palette';
+import { AVATAR_CIRCLE_ALPHA } from './KidAvatar';
 import { IconPerson } from '../icons';
 import { RADIUS } from '../radius';
 import { makeStyles, useTheme } from '../appearance';
@@ -33,7 +35,7 @@ function MemberFacesImpl({ kids, withGuardian = false, size = 16, testID }: Prop
               width: size,
               height: size,
               marginLeft: i === 0 ? 0 : -overlap,
-              backgroundColor: theme.kid(k.colorIndex).source,
+              backgroundColor: withAlpha(theme.kid(k.colorIndex).source, AVATAR_CIRCLE_ALPHA),
             },
           ]}
         >

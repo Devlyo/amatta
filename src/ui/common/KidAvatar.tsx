@@ -3,6 +3,7 @@ import { Image, View } from 'react-native';
 
 import type { Child } from '../../domain/types';
 import { AVATAR_IMAGE_BY_KEY } from '../assets';
+import { withAlpha } from '../palette';
 import { makeStyles, useTheme } from '../appearance';
 
 interface Props {
@@ -15,6 +16,9 @@ interface Props {
   ring?: boolean;
 }
 
+/** Kid avatar circle fill (board AV1-B). */
+export const AVATAR_CIRCLE_ALPHA = 0.45;
+
 function KidAvatarImpl({ child, size = 32, ring = false }: Props): React.ReactElement {
   const theme = useTheme();
   const styles = useStyles();
@@ -22,13 +26,24 @@ function KidAvatarImpl({ child, size = 32, ring = false }: Props): React.ReactEl
   const source = AVATAR_IMAGE_BY_KEY[child.avatar];
 
   if (!ring) {
+    // Board AV1-B (2026-11-11): the face sits on a 45% kid-colour circle, like
+    // the 보호자 grey circle.
+    const face = Math.round(size * 0.92);
     return (
-      <Image
-        source={source}
-        style={{ width: size, height: size }}
-        resizeMode="contain"
-        accessibilityLabel={child.name}
-      />
+      <View
+        testID="kid-avatar-circle"
+        style={[
+          styles.circle,
+          { width: size, height: size, borderRadius: size / 2, backgroundColor: withAlpha(palette.source, AVATAR_CIRCLE_ALPHA) },
+        ]}
+      >
+        <Image
+          source={source}
+          style={{ width: face, height: face }}
+          resizeMode="contain"
+          accessibilityLabel={child.name}
+        />
+      </View>
     );
   }
 
@@ -73,5 +88,6 @@ export const KidAvatar = memo(KidAvatarImpl);
 
 const useStyles = makeStyles((th) => ({
   outer: { alignItems: 'center', justifyContent: 'center' },
+  circle: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   gap: { alignItems: 'center', justifyContent: 'center' },
 }));

@@ -22,6 +22,7 @@ import { MAX_CHILDREN } from '../../src/domain/constants';
 import { AVATAR_KEYS, colorIndexForAvatarKey, type AvatarKey } from '../../src/domain/avatar';
 import { useChildrenStore } from '../../src/state/children-store';
 import { AVATAR_IMAGE_BY_KEY } from '../../src/ui/assets';
+import { AVATAR_CIRCLE_ALPHA } from '../../src/ui/common/KidAvatar';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { IconCheck, IconChevronLeft } from '../../src/ui/icons';
 import { withAlpha } from '../../src/ui/palette';
@@ -158,7 +159,14 @@ export default function OnbAddKidScreen(): React.ReactElement {
             <Text style={styles.chipsLabel}>등록한 아이</Text>
             {registered.map((k) => (
               <View key={k.avatar} style={styles.chip}>
-                <Image source={AVATAR_IMAGE_BY_KEY[k.avatar]} style={styles.chipAvatar} resizeMode="contain" />
+                <View
+                  style={[
+                    styles.chipCircle,
+                    { backgroundColor: withAlpha(theme.kid(colorIndexForAvatarKey(k.avatar)).source, AVATAR_CIRCLE_ALPHA) },
+                  ]}
+                >
+                  <Image source={AVATAR_IMAGE_BY_KEY[k.avatar]} style={styles.chipAvatar} resizeMode="contain" />
+                </View>
                 <Text style={styles.chipName}>{k.name}</Text>
               </View>
             ))}
@@ -324,7 +332,8 @@ const useStyles = makeStyles((th) => ({
     borderRadius: RADIUS.full,
     backgroundColor: th.t.surface,
   },
-  chipAvatar: { width: 26, height: 26 },
+  chipCircle: { width: 26, height: 26, borderRadius: RADIUS.full, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  chipAvatar: { width: 24, height: 24 },
   chipName: {
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
     fontSize: 14,
