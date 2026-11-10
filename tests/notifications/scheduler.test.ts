@@ -499,6 +499,87 @@ describe('PREP-RECUR 3.2f — per-occurrence checklist suppression (Option A)', 
   });
 });
 
+// Invariant 5 — reconcile runs are serialized + coalesced. Regression for the
+// overlap bug: stores fire rescheduleAll() un-awaited after every mutation, so
+// saving one schedule with N checklist rows launched N+1 concurrent runs whose
+// cancelAll/schedule calls interleaved → duplicate triggers in the OS queue.
+describe('rescheduleAll — serialized + coalesced (invariant 5)', () => {
+  const now = new Date('2026-06-01T08:00:00');
+
+  function triggerTimes(): number[] {
+    return mockState.scheduled.map((n) =>
+      (n.trigger as { date: Date }).date.getTime(),
+    );
+  }
+
+  test('a burst of concurrent calls never leaves duplicate triggers', async () => {
+    mockState.fakeSchedules = [makeSchedule({})];
+    await rescheduleAll(fakeDb, { now });
+    const single = triggerTimes();
+    expect(single.length).toBeGreaterThan(0);
+
+    mockState.callOrder.length = 0;
+    await Promise.all(
+      Array.from({ length: 6 }, () => rescheduleAll(fakeDb, { now })),
+    );
+
+    // Same queue as one clean run — no duplicates, no leftovers.
+    expect(triggerTimes()).toEqual(single);
+    expect(new Set(triggerTimes()).size).toBe(single.length);
+  });
+
+  test('runs never interleave: every run is cancelAll followed by its own schedules', async () => {
+    mockState.fakeSchedules = [makeSchedule({})];
+    await rescheduleAll(fakeDb, { now });
+    const perRun = mockState.scheduled.length;
+
+    mockState.callOrder.length = 0;
+    const first = rescheduleAll(fakeDb, { now });
+    // Let the first run get in flight, then pile more requests on top of it.
+    await Promise.resolve();
+    await Promise.resolve();
+    const rest = Array.from({ length: 5 }, () => rescheduleAll(fakeDb, { now }));
+    await Promise.all([first, ...rest]);
+
+    // 6 requests collapse to exactly 2 runs (in-flight + one shared trailing).
+    const expectedRun = ['cancelAll', ...Array<string>(perRun).fill('schedule')];
+    expect(mockState.callOrder).toEqual([...expectedRun, ...expectedRun]);
+  });
+
+  test('a request made mid-run gets a trailing run that sees the newer DB state', async () => {
+    mockState.fakeSchedules = [makeSchedule({ id: 1, title: '이전' })];
+    const first = rescheduleAll(fakeDb, { now });
+    await Promise.resolve();
+    await Promise.resolve();
+    // "Mutation" lands while the first run is in flight, then its reconcile.
+    mockState.fakeSchedules = [makeSchedule({ id: 1, title: '이후' })];
+    const second = rescheduleAll(fakeDb, { now });
+    await Promise.all([first, second]);
+
+    const titles = mockState.scheduled.map(
+      (n) => (n.content as { title: string }).title,
+    );
+    expect(titles.length).toBeGreaterThan(0);
+    expect(titles.every((t) => t.includes('이후'))).toBe(true);
+  });
+
+  test('a failed run rejects its caller but does not block the next run', async () => {
+    const Notifications = jest.requireMock('expo-notifications') as {
+      cancelAllScheduledNotificationsAsync: jest.Mock;
+    };
+    Notifications.cancelAllScheduledNotificationsAsync.mockImplementationOnce(
+      async () => {
+        throw new Error('boom');
+      },
+    );
+    mockState.fakeSchedules = [makeSchedule({})];
+
+    await expect(rescheduleAll(fakeDb, { now })).rejects.toThrow('boom');
+    await rescheduleAll(fakeDb, { now });
+    expect(mockState.scheduled.length).toBeGreaterThan(0);
+  });
+});
+
 describe('SPEC-NOTIF-1 — sessionMap never persisted', () => {
   // Grep test: walk every src/notifications/* .ts file and assert no
   // AsyncStorage.setItem call references the notification map. Spec

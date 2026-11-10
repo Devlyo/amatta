@@ -3,7 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { ChecklistItem } from '../domain/types';
 import { checklistItemsRepo, type NewChecklistItem } from '../db/repositories';
-import { rescheduleAll } from '../notifications/scheduler';
+import { requestReschedule } from '../notifications/scheduler';
 import {
   useChecklistCompletionStore,
   selectChecklistIsComplete,
@@ -11,12 +11,9 @@ import {
 
 // Checklist edits change the body of a schedule's notifications
 // (ADR-002: items prepend to the body), so every mutation triggers a
-// reschedule. Errors swallowed — body staleness for a few seconds is
-// not worth blocking on.
+// reschedule. Fire-and-forget; runs are coalesced in the scheduler.
 function reconcile(db: SQLiteDatabase): void {
-  void rescheduleAll(db).catch((e) => {
-    console.warn('[checklist-store] reconcile failed:', e);
-  });
+  requestReschedule(db, 'checklist-store');
 }
 
 interface ChecklistState {

@@ -3,14 +3,12 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { Todo } from '../domain/types';
 import { todosRepo, type NewTodo } from '../db/repositories';
-import { rescheduleAll } from '../notifications/scheduler';
+import { requestReschedule } from '../notifications/scheduler';
 
 // Every mutation here changes either a todo's notify trigger directly
 // or its visibility — reconcile after every set().
 function reconcile(db: SQLiteDatabase): void {
-  void rescheduleAll(db).catch((e) => {
-    console.warn('[todos-store] reconcile failed:', e);
-  });
+  requestReschedule(db, 'todos-store');
 }
 
 interface TodosState {

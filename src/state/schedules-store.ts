@@ -3,16 +3,14 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { ISODate, Schedule, ScheduleException } from '../domain/types';
 import { schedulesRepo, exceptionsRepo, type NewSchedule, type NewScheduleException } from '../db/repositories';
-import { rescheduleAll } from '../notifications/scheduler';
+import { requestReschedule } from '../notifications/scheduler';
 
 // Fire-and-forget — every mutation in this store changes what the OS
 // notification queue should hold, so we always reconcile via the
-// cancelAll-first reschedule path. Errors are swallowed: the OS queue
-// being a few seconds stale isn't worth blocking a user action over.
+// cancelAll-first reschedule path. Fire-and-forget + serialized/coalesced
+// inside the scheduler (requestReschedule).
 function reconcile(db: SQLiteDatabase): void {
-  void rescheduleAll(db).catch((e) => {
-    console.warn('[schedules-store] reconcile failed:', e);
-  });
+  requestReschedule(db, 'schedules-store');
 }
 
 export type ExceptionOverrides =

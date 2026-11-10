@@ -2,6 +2,12 @@
 
 형식: `## YYYY-MM-DD — 한 줄 요약`. 위가 최신.
 
+## 2026-11-10 — Fix: 백업 준비물 반복 정보 누락 + 알림 재예약 중복 실행
+
+- **백업(JSON export)**: `checklist_items` SELECT에 `occurrence_date`·`recurring` 누락 → 모든 항목이 `recurring:false`·앵커 없음으로 내보내지던 문제 수정. `app_settings`(알림 설정)도 `appSettings`로 포함. `EXPORT_SCHEMA_VERSION` 3 → **4** (v3 번들의 membership 필드는 신뢰 불가 — 가져오기 구현 시 NULL/매번으로 취급).
+- **알림**: `rescheduleAll()`을 직렬화 + 병합(coalesce). 스토어 변경마다 un-await로 호출돼 실행이 겹치면 `cancelAll`/예약이 뒤섞여 중복·stale 알림이 남던 문제 수정 (scheduler invariant 5). 3개 스토어의 `reconcile` 복사본은 `requestReschedule` 하나로 통합.
+- 회귀 테스트 추가: export membership round-trip, 동시 호출 중복 없음·비인터리빙·trailing run·실패 후 복구.
+
 ## 2026-05-05 — Scope expansion: 준비물·할 일·픽업 트래킹 (ADR-002)
 
 - ADR-002 채택 (`docs/architecture/ADR-002-prep-todos-pickup.md`)

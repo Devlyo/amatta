@@ -23,6 +23,13 @@
 //      attempt to cover the iOS 64-trigger cap by reaching further into
 //      the future — re-fire is owned by the AppState=active hook in
 //      app/_layout.tsx.
+//
+//   5. Reconcile runs are SERIALIZED and COALESCED. `rescheduleAll()` never
+//      overlaps itself: a call made while a run is in flight shares ONE
+//      trailing run with every other waiting caller. Two interleaved runs
+//      would let the later run's cancelAll wipe only part of the earlier
+//      run's triggers, leaving the earlier run's tail + the later run's full
+//      set in the OS queue (duplicate / stale pushes, over the iOS 64 cap).
 
 import * as Notifications from 'expo-notifications';
 import type { SQLiteDatabase } from 'expo-sqlite';
@@ -237,9 +244,60 @@ function candidatesForTodo(input: {
  *   - any store mutation that affects scheduling (schedules / todos /
  *     checklist_items / schedule_exceptions / notification_settings)
  */
-export async function rescheduleAll(
+export function rescheduleAll(
   db: SQLiteDatabase,
-  opts: { horizonDays?: number; now?: Date } = {},
+  opts: RescheduleOptions = {},
+): Promise<void> {
+  // Invariant 5. `waitingRun` is a run that has been requested but has not
+  // STARTED reading the DB yet, so it will observe every mutation made before
+  // now — later callers can safely share it instead of queueing another.
+  if (waitingRun !== null) {
+    waitingRun.db = db;
+    waitingRun.opts = opts;
+    return waitingRun.promise;
+  }
+  const slot: WaitingRun = { db, opts, promise: Promise.resolve() };
+  slot.promise = runChain.then(() => {
+    // Starting now: from here on, new callers must queue a fresh trailing run.
+    waitingRun = null;
+    return runReschedule(slot.db, slot.opts);
+  });
+  waitingRun = slot;
+  // The chain itself never rejects — one failed run must not block the next.
+  runChain = slot.promise.catch(() => undefined);
+  return slot.promise;
+}
+
+/**
+ * Fire-and-forget reconcile for store mutations. Errors are swallowed (logged):
+ * the OS queue being briefly stale isn't worth blocking a user action over,
+ * and the next reconcile (or cold start) repairs it.
+ */
+export function requestReschedule(db: SQLiteDatabase, source: string): void {
+  void rescheduleAll(db).catch((e) => {
+    console.warn(`[${source}] reconcile failed:`, e);
+  });
+}
+
+export interface RescheduleOptions {
+  horizonDays?: number;
+  now?: Date;
+}
+
+interface WaitingRun {
+  db: SQLiteDatabase;
+  opts: RescheduleOptions;
+  promise: Promise<void>;
+}
+
+/** Tail of the serialized run queue; always settles fulfilled. */
+let runChain: Promise<void> = Promise.resolve();
+/** The requested-but-not-yet-started run, if any (see `rescheduleAll`). */
+let waitingRun: WaitingRun | null = null;
+
+async function runReschedule(
+  db: SQLiteDatabase,
+  opts: RescheduleOptions,
 ): Promise<void> {
   const horizonDays = opts.horizonDays ?? DEFAULT_HORIZON_DAYS;
   const now = opts.now ?? new Date();
