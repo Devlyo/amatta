@@ -130,7 +130,7 @@ const useStyles = makeStyles((th) => ({
     flexDirection: 'row',
     paddingVertical: 3,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: th.t.hair,
+    borderBottomColor: th.t.gridLine,
   },
   gutter: { width: TIME_GUTTER, justifyContent: 'center', paddingRight: 4 },
   label: { ...TYPE.axisMeridiem, color: th.t.inkSub, textAlign: 'right' },

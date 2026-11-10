@@ -270,7 +270,7 @@ const useStyles = makeStyles((th) => ({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: th.t.hair,
+    borderBottomColor: th.t.gridLine,
   },
   name: { ...TYPE.caption, flex: 1, textAlign: 'center', color: th.t.inkSub },
   row: { flexDirection: 'row' },
@@ -283,7 +283,7 @@ const useStyles = makeStyles((th) => ({
     overflow: 'hidden',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderRightWidth: StyleSheet.hairlineWidth,
-    borderColor: th.t.hair,
+    borderColor: th.t.gridLine,
   },
   cellLast: { borderRightWidth: 0 },
   circle: {

@@ -90,6 +90,9 @@ const LIGHT = {
   ink06: 'rgba(29,29,27,0.06)',
   ink04: 'rgba(29,29,27,0.04)',
   hair: '#ECEAE4',
+  // Calendar grid lines (hour rows, day rules, month cells) — a step stronger
+  // than `hair` in both schemes so the hairlines read on the surface.
+  gridLine: '#DCD9D2',
 
   surface: '#FFFFFF',
   surfaceWarm: '#FAF8F2',
@@ -178,6 +181,7 @@ export const DARK_TOKENS: Readonly<Record<TokenName, string>> = {
   ink06: 'rgba(242,241,239,0.08)',
   ink04: 'rgba(242,241,239,0.06)',
   hair: '#34322F',
+  gridLine: '#4A4743',
 
   surface: '#272523',
   surfaceWarm: '#2B2926',

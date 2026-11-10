@@ -64,7 +64,7 @@ const useStyles = makeStyles((th) => ({
     paddingHorizontal: 8,
     height: 54,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: th.t.hair,
+    borderBottomColor: th.t.gridLine,
   },
   cell: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
   name: { ...TYPE.caption },
