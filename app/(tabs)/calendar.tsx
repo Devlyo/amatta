@@ -6,9 +6,9 @@
 //   week  → WeekView (7 days; pinch → 4 days with times)
 //   month → MonthView (chips, "+N"; pinch → 2-line chips with start time)
 //
-// One-finger horizontal swipe drags the page with the finger and pages by a
-// day / a month; the week view is a native sideways-scrolling day strip
-// (pages by week at 7 days, glides day by day when zoomed). Pinching stretches the content live, then
+// Day, week and month all scroll sideways natively (iOS paging physics): day
+// and month page one at a time; the week strip pages by week at 7 days and
+// glides day by day when zoomed. Pinching stretches the content live, then
 // re-lays out live: week columns (7 … 2 days), month rows (taller rows get
 // 2-line chips with the start time); both stay where the fingers stop. Long press on an empty
 // slot (day/week) creates an event there. New events from anywhere else use
@@ -22,9 +22,7 @@ import Animated, {
   runOnJS,
   scrollTo,
   useAnimatedRef,
-  useAnimatedStyle,
   useSharedValue,
-  withTiming,
 } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 
@@ -45,7 +43,8 @@ import {
   WEEK_SPAN_SHOW_TIME,
   type WeekSpan,
 } from '../../src/ui/calendar/calendar-layout';
-import { TIME_GUTTER } from '../../src/ui/calendar/time-axis';
+import { DEFAULT_HOUR_HEIGHT, initialScrollY, TIME_GUTTER } from '../../src/ui/calendar/time-axis';
+import { PagingStrip } from '../../src/ui/calendar/PagingStrip';
 import { DateStrip } from '../../src/ui/calendar/DateStrip';
 import { DayView } from '../../src/ui/calendar/DayView';
 import { KidFilterBar } from '../../src/ui/calendar/KidFilterBar';
@@ -63,8 +62,10 @@ import {
 } from '../../src/ui/utils/date';
 
 const ENABLED_VIEWS: readonly CalendarView[] = ['day', 'week', 'month'];
-const SWIPE_THRESHOLD = 60;
-const PAGE_MS = 160;
+/** Day strip: days either side of the start (native paging). */
+const DAY_HALF = 366;
+const DAY_PAGES = DAY_HALF * 2 + 1;
+const DAY_MARGIN = 3;
 /** Month strip: months either side of the start (paged natively, like the week strip). */
 const MONTH_HALF = 24;
 const MONTH_PAGES = MONTH_HALF * 2 + 1;
@@ -198,6 +199,22 @@ export default function CalendarScreen(): React.ReactElement {
       setMonthJump((n) => n + 1);
     }
   };
+  // Day strip: page 0 = dayOrigin; current day ±1 rendered. Pages share one
+  // vertical offset so paging keeps the hour you were looking at.
+  const [dayOrigin, setDayOrigin] = useState<ISODate>(() => shiftIsoDate(currentDate, -DAY_HALF));
+  const [dayJump, setDayJump] = useState(0);
+  const [dayY, setDayY] = useState<{ y: number; n: number } | null>(null);
+  const dayScrolled = useRef<string | null>(null);
+  const dayPage = daysBetweenIso(dayOrigin, currentDate);
+  useEffect(() => {
+    if (view !== 'day' || dayScrolled.current === dateKey) return;
+    if (dayPage < DAY_MARGIN || dayPage > DAY_PAGES - 1 - DAY_MARGIN) {
+      setDayOrigin(shiftIsoDate(currentDate, -DAY_HALF));
+    }
+    setDayY(null); // a jump opens at "now" / the first event again
+    setDayJump((n) => n + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, dateKey]);
   const monthWindowDates = useMemo(() => {
     const prev = monthGridDates(shiftIsoMonth(firstOfMonth(currentDate), -1));
     const next = monthGridDates(shiftIsoMonth(firstOfMonth(currentDate), 1));
@@ -212,18 +229,36 @@ export default function CalendarScreen(): React.ReactElement {
     });
     if (view === 'week') return span(windowDays);
     if (view === 'month') return span(monthWindowDates);
-    return { from: currentDate, to: currentDate };
+    return { from: shiftIsoDate(currentDate, -1), to: shiftIsoDate(currentDate, 1) };
   }, [view, windowDays, monthWindowDates, currentDate]);
   const occurrences = useMemo<Occurrence[]>(
     () => expandOccurrences(schedules, exceptions, range, childrenById),
     [schedules, exceptions, range, childrenById],
   );
-
-  const move = (dir: -1 | 1): void => {
-    if (view === 'day') setCurrentDate(shiftIsoDate(currentDate, dir));
-    else if (view === 'week') setCurrentDate(shiftIsoDate(currentDate, dir * 7));
-    else setCurrentDate(shiftIsoMonth(currentDate, dir));
+  // Day pages: their own day's occurrences; one shared opening offset.
+  const occurrencesOn = (date: ISODate): Occurrence[] =>
+    occurrences.filter((o) => (o.date as unknown as string) === (date as unknown as string));
+  const todayTimed = occurrencesOn(currentDate).filter((o) => !o.allDay);
+  const dayOpenY =
+    dayY?.y ??
+    initialScrollY({
+      hourHeight: DEFAULT_HOUR_HEIGHT,
+      nowMinutes: isToday ? nowMinutes : null,
+      firstStart: todayTimed.length > 0 ? Math.min(...todayTimed.map((o) => o.startMinutes)) : null,
+    });
+  const onDayPage = (page: number): void => {
+    const date = shiftIsoDate(dayOrigin, page);
+    dayScrolled.current = date as unknown as string;
+    // Freeze the vertical position so the new neighbours open at it.
+    setDayY((d) => d ?? { y: dayOpenY, n: 0 });
+    setCurrentDate(date);
+    if (page < DAY_MARGIN || page > DAY_PAGES - 1 - DAY_MARGIN) {
+      setDayOrigin(shiftIsoDate(date, -DAY_HALF));
+      setDayJump((n) => n + 1);
+    }
   };
+
+
 
   // ── Live motion ──────────────────────────────────────────────────────────
   // Day view: the page follows one finger; past the threshold it slides out,
@@ -231,7 +266,6 @@ export default function CalendarScreen(): React.ReactElement {
   // paging strips. Pinch re-lays out week columns / month rows every frame
   // (no stretched text, no snap-back) and stays where the fingers stop.
   const bodyW = useSharedValue(0);
-  const dragX = useSharedValue(0);
   const scrollX = useSharedValue(0);
   const pinchView = useSharedValue<'day' | 'week' | 'month'>(view);
   const liveSpan = useSharedValue<number>(weekSpan);
@@ -242,8 +276,7 @@ export default function CalendarScreen(): React.ReactElement {
   const pinchFrom = useSharedValue({ span: 7, focalCol: 0, fScreen: 0, rowH: 104 });
   useEffect(() => {
     pinchView.value = view;
-    dragX.value = 0;
-  }, [view, pinchView, dragX]);
+  }, [view, pinchView]);
   useEffect(() => {
     if (stripLocked.value) return;
     liveSpan.value = weekSpan;
@@ -252,11 +285,7 @@ export default function CalendarScreen(): React.ReactElement {
     stripSizing.value = false;
   }, [weekSpan, monthRowH, stripPos.n, liveSpan, liveRowH, stripLocked, stripSizing]);
 
-  const commitMove = (dir: -1 | 1): void => {
-    move(dir);
-    dragX.value = -dir * bodyW.value * 0.35;
-    dragX.value = withTiming(0, { duration: PAGE_MS });
-  };
+
   const commitWeekSpan = (span: WeekSpan, col: number): void => {
     setWeekSpan(span);
     setStripPos((p) => ({ col, n: p.n + 1 }));
@@ -265,29 +294,6 @@ export default function CalendarScreen(): React.ReactElement {
     if ((date as unknown as string) !== dateKey) setCurrentDate(date);
   };
 
-  const swipe = Gesture.Pan()
-    // Week and month scroll sideways natively (see the strips).
-    .enabled(view === 'day')
-    .maxPointers(1)
-    .activeOffsetX([-20, 20])
-    .failOffsetY([-12, 12])
-    .onUpdate((e) => {
-      dragX.value = e.translationX;
-    })
-    .onEnd((e) => {
-      const w = bodyW.value;
-      if (e.translationX <= -SWIPE_THRESHOLD) {
-        dragX.value = withTiming(-w, { duration: PAGE_MS }, (done) => {
-          if (done) runOnJS(commitMove)(1);
-        });
-      } else if (e.translationX >= SWIPE_THRESHOLD) {
-        dragX.value = withTiming(w, { duration: PAGE_MS }, (done) => {
-          if (done) runOnJS(commitMove)(-1);
-        });
-      } else {
-        dragX.value = withTiming(0, { duration: PAGE_MS });
-      }
-    });
   const pinch = Gesture.Pinch()
     .enabled(view !== 'day')
     .onStart((e) => {
@@ -334,15 +340,7 @@ export default function CalendarScreen(): React.ReactElement {
         runOnJS(setMonthRowH)(liveRowH.value);
       }
     });
-  const gestures = Gesture.Simultaneous(swipe, pinch);
 
-  const bodyStyle = useAnimatedStyle(() => {
-    const w = bodyW.value;
-    return {
-      opacity: w > 0 ? 1 - Math.min(Math.abs(dragX.value) / w, 1) * 0.6 : 1,
-      transform: [{ translateX: dragX.value }],
-    };
-  });
   const onBodyLayout = (e: LayoutChangeEvent): void => {
     bodyW.value = e.nativeEvent.layout.width;
   };
@@ -415,18 +413,34 @@ export default function CalendarScreen(): React.ReactElement {
           onSelect={(d: ISODate) => setCurrentDate(d)}
         />
       ) : null}
-      <GestureDetector gesture={gestures}>
+      <GestureDetector gesture={pinch}>
         <View style={styles.body} onLayout={onBodyLayout}>
-          <Animated.View style={[styles.stage, bodyStyle]}>
+          <View style={styles.stage}>
             {view === 'day' ? (
-              <DayView
-                kids={kids}
-                occurrences={occurrences}
-                nowMinutes={isToday ? nowMinutes : null}
-                inactive={inactivePeople}
-                scrollKey={`day-${dateKey}`}
-                onPressOccurrence={openDetail}
-                onLongPressSlot={(person, minutes) => createAt(currentDate, minutes, person)}
+              <PagingStrip
+                testID="day-strip"
+                pages={DAY_PAGES}
+                current={dayPage}
+                jumpKey={`${dayOrigin as unknown as string}-${dayJump}`}
+                onPage={onDayPage}
+                renderPage={(p) => {
+                  const date = shiftIsoDate(dayOrigin, p);
+                  const pageIsToday = (date as unknown as string) === (today as unknown as string);
+                  return (
+                    <DayView
+                      testID={p === dayPage ? 'day-view' : `day-view-${p - dayPage}`}
+                      kids={kids}
+                      occurrences={occurrencesOn(date)}
+                      nowMinutes={pageIsToday ? nowMinutes : null}
+                      inactive={inactivePeople}
+                      openAt={dayOpenY}
+                      scrollKey={`day-${dayJump}-${dayY?.n ?? 0}`}
+                      onScrollEndY={(y) => setDayY((d) => ({ y, n: (d?.n ?? 0) + 1 }))}
+                      onPressOccurrence={openDetail}
+                      onLongPressSlot={(person, minutes) => createAt(date, minutes, person)}
+                    />
+                  );
+                }}
               />
             ) : view === 'week' ? (
               <WeekView
@@ -472,7 +486,7 @@ export default function CalendarScreen(): React.ReactElement {
                 onPressDay={openDay}
               />
             )}
-          </Animated.View>
+          </View>
         </View>
       </GestureDetector>
     </SafeAreaView>

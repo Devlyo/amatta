@@ -32,6 +32,10 @@ interface Props {
   inactive: readonly PersonKey[];
   /** Changes when the shown day changes — re-applies the opening scroll. */
   scrollKey: string;
+  /** Opening vertical offset (a day strip keeps pages in step); default = now / first event. */
+  openAt?: number;
+  onScrollEndY?: (y: number) => void;
+  testID?: string;
   onPressOccurrence: (occ: Occurrence) => void;
   /** Long press on an empty slot: the column's person and the pressed time. */
   onLongPressSlot?: (person: PersonKey, minutes: number) => void;
@@ -43,6 +47,9 @@ function DayViewImpl({
   nowMinutes,
   inactive,
   scrollKey,
+  openAt: openAtProp,
+  onScrollEndY,
+  testID = 'day-view',
   onPressOccurrence,
   onLongPressSlot,
 }: Props): React.ReactElement {
@@ -92,18 +99,19 @@ function DayViewImpl({
 
   const timed = occurrences.filter((o) => !o.allDay);
   const firstStart = timed.length > 0 ? Math.min(...timed.map((o) => o.startMinutes)) : null;
-  const openAt = initialScrollY({ hourHeight: DEFAULT_HOUR_HEIGHT, nowMinutes, firstStart });
+  const openAt = openAtProp ?? initialScrollY({ hourHeight: DEFAULT_HOUR_HEIGHT, nowMinutes, firstStart });
 
   return (
     <View style={styles.root}>
       <AllDayRow columns={columns} items={allDayItems} />
       <TimeGrid
-        testID="day-view"
+        testID={testID}
         columns={columns}
         hourHeight={DEFAULT_HOUR_HEIGHT}
         nowMinutes={nowMinutes}
         initialScrollY={openAt}
         scrollKey={scrollKey}
+        onScrollEndY={onScrollEndY}
         bottomInset={DOCK_CLEARANCE}
         onLongPressSlot={
           onLongPressSlot === undefined
@@ -127,7 +135,7 @@ function DayViewImpl({
             return (
               <TimeBlock
                 key={id}
-                testID={`day-block-${id}`}
+                testID={`${testID === 'day-view' ? 'day-block' : `${testID}-block`}-${id}`}
                 top={top}
                 left={column * columnWidth + 2 + indent}
                 width={columnWidth - 4 - indent}

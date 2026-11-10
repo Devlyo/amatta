@@ -109,6 +109,8 @@ export interface TimeGridProps {
   scrollKey: string;
   /** Extra scroll space under 24:00 so the floating dock never hides the last hour. */
   bottomInset?: number;
+  /** The user's vertical scroll came to rest at this offset. */
+  onScrollEndY?: (y: number) => void;
   renderColumns: (layout: TimeGridColumnsLayout) => ReactNode;
   /**
    * Long press on an empty part of the grid (blocks sit above this layer and
@@ -143,6 +145,7 @@ function TimeGridImpl({
   initialScrollY,
   scrollKey,
   bottomInset = 0,
+  onScrollEndY,
   renderColumns,
   onLongPressSlot,
   draftColorOf,
@@ -293,6 +296,15 @@ function TimeGridImpl({
       onLayout={onLayout}
       contentOffset={{ x: 0, y: initialScrollY }}
       directionalLockEnabled
+      onMomentumScrollEnd={onScrollEndY === undefined ? undefined : (e) => onScrollEndY(e.nativeEvent.contentOffset.y)}
+      onScrollEndDrag={
+        onScrollEndY === undefined
+          ? undefined
+          : (e) => {
+              // Only a release without a fling is the resting point.
+              if ((e.nativeEvent.velocity?.y ?? 0) === 0) onScrollEndY(e.nativeEvent.contentOffset.y);
+            }
+      }
       contentContainerStyle={{ height: height + bottomInset }}
       showsVerticalScrollIndicator={false}
     >
