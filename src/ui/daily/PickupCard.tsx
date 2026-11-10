@@ -11,14 +11,15 @@
 // with no JS-thread cost.
 
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Text, View } from 'react-native';
 
 import { FONT_FAMILIES } from '../fonts';
-import { PICKUP_CARD_PALETTE, TOKENS, withAlpha, type PickupCardPalette } from '../palette';
+import { LIGHT_TOKENS, PICKUP_CARD_PALETTE, withAlpha, type PickupCardPalette } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { CartoonCar } from './CartoonCar';
 import type { PickupCardData } from './pickup-data';
+import { makeStyles, useTheme } from '../appearance';
 
 interface Props {
   data: PickupCardData;
@@ -26,21 +27,23 @@ interface Props {
 }
 
 export function PickupCard({ data, index }: Props): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   // Card N → palette[N % 4]; shape + car fills come straight from the token
   // group. Card 1 follows the live app theme `primary` (handoff §70) — the
-  // palette already points slot 0 at TOKENS.primary, so this stays in sync if
+  // palette already points slot 0 at theme.t.primary, so this stays in sync if
   // the theme color is ever swapped.
   const slot = PICKUP_CARD_PALETTE[
     index % PICKUP_CARD_PALETTE.length
   ] as PickupCardPalette;
   const bg = slot.bg;
   // ADR-009: text on the card uses the scheme-independent onLight / onDark,
-  // so comparing against them stays right in dark (was TOKENS.surface/ink,
+  // so comparing against them stays right in dark (was theme.t.surface/ink,
   // which flip with the theme).
   const onBg = pickOnBg(bg);
-  const lightText = onBg === TOKENS.onDark;
+  const lightText = onBg === theme.t.onDark;
   const onBgSub = withAlpha(onBg, lightText ? 0.85 : 0.6);
-  const roadLineColor = lightText ? withAlpha(TOKENS.onDark, 0.18) : withAlpha(TOKENS.shadow, 0.1);
+  const roadLineColor = lightText ? withAlpha(theme.t.onDark, 0.18) : withAlpha(theme.t.shadow, 0.1);
 
   const pulseScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(1)).current;
@@ -123,9 +126,9 @@ export function PickupCard({ data, index }: Props): React.ReactElement {
         shape={slot.shape}
         body={slot.carBody}
         window={slot.carWindow}
-        wheel={TOKENS.carWheel}
+        wheel={theme.t.carWheel}
         hub={slot.carBody}
-        shine={TOKENS.carShine}
+        shine={theme.t.carShine}
       />
     </View>
   );
@@ -142,10 +145,10 @@ function pickOnBg(hex: string): string {
   const g = parseInt(h.slice(2, 4), 16);
   const b = parseInt(h.slice(4, 6), 16);
   const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return lum > 0.65 ? TOKENS.onLight : TOKENS.onDark;
+  return lum > 0.65 ? LIGHT_TOKENS.onLight : LIGHT_TOKENS.onDark; // same in both schemes
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   card: {
     position: 'relative',
     overflow: 'hidden',
@@ -199,4 +202,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
   },
-});
+}));

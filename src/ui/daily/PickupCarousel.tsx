@@ -15,7 +15,6 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -23,7 +22,6 @@ import {
 import type { GuardianOccurrence } from '../../domain/guardian';
 import { guardianClashes, pickupsClash } from '../../domain/pickup-conflict';
 import type { Child, ISODate, Occurrence } from '../../domain/types';
-import { TOKENS } from '../palette';
 import { IconAlertCircle } from '../icons';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
@@ -31,6 +29,7 @@ import { TYPE } from '../typography';
 import { fmt12hrShort, fmtRange } from '../utils/date';
 import { PickupCard } from './PickupCard';
 import { computePickupCards } from './pickup-data';
+import { makeStyles, useTheme } from '../appearance';
 
 interface Props {
   occurrences: Occurrence[];
@@ -50,6 +49,8 @@ export function PickupCarousel({
   pickupLogIsComplete,
   guardianEvents = [],
 }: Props): React.ReactElement | null {
+  const theme = useTheme();
+  const styles = useStyles();
   const [activeIdx, setActiveIdx] = useState(0);
   const [viewportW, setViewportW] = useState(0);
 
@@ -133,7 +134,7 @@ export function PickupCarousel({
           <View style={styles.clashes}>
             {lines.map((l) => (
               <View key={l.key} style={styles.clash} testID={l.testID} accessibilityRole="alert">
-                <IconAlertCircle size={14} color={TOKENS.pickupWarn} />
+                <IconAlertCircle size={14} color={theme.t.pickupWarn} />
                 <Text style={styles.clashText}>{l.text}</Text>
               </View>
             ))}
@@ -144,7 +145,7 @@ export function PickupCarousel({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   // Full width of the home content column (the screen supplies the side
   // padding), same as the grouped boxes below it.
   // Design board "0 홈": the line sits 8px under the card, no box.
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: SPACING.xs,
   },
-  clashText: { ...TYPE.footnote, color: TOKENS.pickupWarn, flex: 1 },
+  clashText: { ...TYPE.footnote, color: th.t.pickupWarn, flex: 1 },
   clashes: { gap: SPACING.xs },
   viewport: {
     overflow: 'hidden',
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
   dot: {
     height: 3,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
   },
   dotActive: {
     width: 10,
@@ -188,4 +189,4 @@ const styles = StyleSheet.create({
     width: 3,
     opacity: 0.5,
   },
-});
+}));

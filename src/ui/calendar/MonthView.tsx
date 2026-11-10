@@ -14,7 +14,7 @@ import Reanimated, { useAnimatedStyle, type SharedValue } from 'react-native-rea
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
 import type { GuardianOccurrence } from '../../domain/guardian';
 import type { Child, ISODate, Occurrence } from '../../domain/types';
-import { getKidPalette, TOKENS, withAlpha } from '../palette';
+import { withAlpha } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
 import { fmt12hrShort } from '../utils/date';
@@ -28,6 +28,7 @@ import {
   monthGridDates,
   showsInMonth,
 } from './calendar-layout';
+import { makeStyles, useTheme } from '../appearance';
 
 export const MONTH_NAMES = ['일', '월', '화', '수', '목', '금', '토'] as const;
 /** Legacy "zoomed" row height (tests / callers without a live height). */
@@ -83,6 +84,8 @@ function MonthViewImpl({
   testID = 'month-view',
   guardianEvents = [],
 }: Props): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   const dates = useMemo(() => monthGridDates(anchor), [anchor]);
   const monthKey = (anchor as unknown as string).slice(0, 7);
   const kidById = useMemo(() => new Map(kids.map((k) => [k.id, k])), [kids]);
@@ -105,18 +108,18 @@ function MonthViewImpl({
         id: String(occ.scheduleId),
         person: occ.childId,
         title: occ.title,
-        color: getKidPalette(occ.colorIndex).source,
+        color: theme.kid(occ.colorIndex).source,
         start: occ.startMinutes,
         allDay: occ.allDay === true,
       });
     }
     for (const g of shown('guardian') ? guardianEvents : []) {
-      add(g.date, { id: `g:${g.eventId}`, person: 'guardian', title: g.title, color: TOKENS.guardian, start: g.startMinutes, allDay: g.allDay });
+      add(g.date, { id: `g:${g.eventId}`, person: 'guardian', title: g.title, color: theme.t.guardian, start: g.startMinutes, allDay: g.allDay });
     }
     // All-day first, then by start time.
     for (const list of m.values()) list.sort((a, b) => (a.allDay === b.allDay ? a.start - b.start : a.allDay ? -1 : 1));
     return m;
-  }, [occurrences, guardianEvents, kidById, everyone, inactive]);
+  }, [occurrences, guardianEvents, kidById, everyone, inactive, theme]);
 
   const rowH = rowHeight ?? (zoomed ? ROW_H_ZOOMED : MONTH_ROW_MIN);
   const twoLine = rowH >= MONTH_ROW_TWO_LINE;
@@ -143,14 +146,14 @@ function MonthViewImpl({
               const { shown, more } = monthCellChips(list, limit);
               const day = Number(key.slice(8, 10));
               const numberColor = isToday
-                ? TOKENS.surface
+                ? theme.t.surface
                 : !inMonth
-                  ? TOKENS.ink30
+                  ? theme.t.ink30
                   : col === 0
-                    ? TOKENS.sunday
+                    ? theme.t.sunday
                     : col === 6
-                      ? TOKENS.saturday
-                      : TOKENS.ink;
+                      ? theme.t.saturday
+                      : theme.t.ink;
               return (
                 <Pressable
                   key={key}
@@ -173,16 +176,26 @@ function MonthViewImpl({
                           styles.chip,
                           {
                             height: chipH,
-                            backgroundColor: withAlpha(chip.color, emphasis === 'solo' ? 0.8 : 0.6),
+                            backgroundColor: withAlpha(chip.color, emphasis === 'solo' ? theme.blockFillFocused : theme.blockFill),
                             opacity: emphasis === 'inactive' ? 0.2 : 1,
                           },
                         ]}
                       >
-                        <Text style={styles.chipTitle} numberOfLines={1} ellipsizeMode="tail">
+                        <Text
+                          style={[styles.chipTitle, chip.person === 'guardian' ? { color: theme.onGuardianBlock } : null]}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
                           {chip.title}
                         </Text>
                         {twoLine ? (
-                          <Text style={styles.chipTime} numberOfLines={1}>
+                          <Text
+                            style={[
+                              styles.chipTime,
+                              chip.person === 'guardian' ? { color: withAlpha(theme.onGuardianBlock, 0.7) } : null,
+                            ]}
+                            numberOfLines={1}
+                          >
                             {chip.allDay ? '하루 종일' : fmt12hrShort(chip.start)}
                           </Text>
                         ) : null}
@@ -208,6 +221,8 @@ export const MonthView = memo(MonthViewImpl);
 
 /** Weekday names (일…토) above the month grid. */
 export function MonthNames(): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.names}>
       {MONTH_NAMES.map((n, i) => (
@@ -215,7 +230,7 @@ export function MonthNames(): React.ReactElement {
           key={n}
           style={[
             styles.name,
-            i === 0 ? { color: TOKENS.sunday } : i === 6 ? { color: TOKENS.saturday } : null,
+            i === 0 ? { color: theme.t.sunday } : i === 6 ? { color: theme.t.saturday } : null,
           ]}
         >
           {n}
@@ -235,6 +250,7 @@ function MonthRow({
   live?: MonthLiveRows;
   children: React.ReactNode;
 }): React.ReactElement {
+  const styles = useStyles();
   const sizing = live?.sizing;
   const rowH = live?.rowH;
   const sized = useAnimatedStyle(() => ({
@@ -243,16 +259,16 @@ function MonthRow({
   return <Reanimated.View style={[styles.row, { height }, sized]}>{children}</Reanimated.View>;
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   root: { flex: 1 },
   names: {
     height: 24,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: TOKENS.hair,
+    borderBottomColor: th.t.hair,
   },
-  name: { ...TYPE.caption, flex: 1, textAlign: 'center', color: TOKENS.inkSub },
+  name: { ...TYPE.caption, flex: 1, textAlign: 'center', color: th.t.inkSub },
   row: { flexDirection: 'row' },
   cell: {
     flex: 1,
@@ -263,7 +279,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderRightWidth: StyleSheet.hairlineWidth,
-    borderColor: TOKENS.hair,
+    borderColor: th.t.hair,
   },
   cellLast: { borderRightWidth: 0 },
   circle: {
@@ -274,14 +290,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  circleToday: { backgroundColor: TOKENS.primary },
+  circleToday: { backgroundColor: th.t.primary },
   number: { ...TYPE.body, fontFamily: TYPE.mono.fontFamily },
   chip: {
     borderRadius: 3,
     paddingHorizontal: 3,
     justifyContent: 'center',
   },
-  chipTitle: { ...TYPE.caption2, color: TOKENS.ink, letterSpacing: -0.4 },
-  chipTime: { ...TYPE.caption2, fontFamily: TYPE.mono.fontFamily, color: TOKENS.ink70 },
-  more: { ...TYPE.caption2, color: TOKENS.inkSub, paddingHorizontal: 3 },
-});
+  // Text on a kid fill — dark in both schemes (ADR-009); guardian chips override.
+  chipTitle: { ...TYPE.caption2, color: th.t.onLight, letterSpacing: -0.4 },
+  chipTime: { ...TYPE.caption2, fontFamily: TYPE.mono.fontFamily, color: withAlpha(th.t.onLight, 0.7) },
+  more: { ...TYPE.caption2, color: th.t.inkSub, paddingHorizontal: 3 },
+}));

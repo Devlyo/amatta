@@ -37,7 +37,7 @@
    - ESLint: `TOKENS` 직접 import = **경고**(남은 개수 추적), 색 리터럴 금지에 `rgba(` 추가.
    - 테스트: 쌍 완전성, 대비(반투명 채움은 **바탕에 섞은 뒤** 4.5:1/3:1 검사), makeStyles 캐시.
 1. ✅ 2026-11-10 공용 프리미티브(form-rows, HomeSection, SettingsChrome, TimeBlock, TimeGrid, AllDayRow, KidFilterBar, FloatingDock, SwipeToDelete, ItemLine, PagingStrip) + **아이콘 기본 색**(icons.tsx `color = TOKENS.ink` 기본값 → 테마) + `ELEVATION`을 테마 함수로.
-2. 캘린더 화면 + 픽업 카드(`PickupCard`의 `onBg === TOKENS.surface` 비교 → `onLight/onDark` 고정 토큰) + `PICKUP_CARD_PALETTE`, `WeekView` 등 색을 굽는 `useMemo`에 `t` 의존성.
+2. ✅ 2026-11-10 캘린더 화면 + 픽업 카드(`PickupCard`의 `onBg === TOKENS.surface` 비교 → `onLight/onDark` 고정 토큰) + `PICKUP_CARD_PALETTE`, `WeekView` 등 색을 굽는 `useMemo`에 `t` 의존성.
 3. 홈 / 설정 / 설정 안쪽 / 온보딩(`BLOB_CITRUS`) / 검색 / 날짜 선택(`CalendarDrawer` `WEEKEND_COLOR_SAT`) / 상세·폼(DateTimePicker `themeVariant="light"`·`textColor` 하드코딩 제거).
    + React Navigation `ThemeProvider`(커스텀 Default/DarkTheme)로 탭·스택·헤더 바탕.
 4. `TOKENS` 별칭 제거, ESLint 경고 → **에러**.

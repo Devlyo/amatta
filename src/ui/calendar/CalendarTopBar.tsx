@@ -10,7 +10,7 @@
 // title picker.
 
 import { memo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import type { CalendarView } from '../../state/ui-store';
 import {
@@ -21,10 +21,10 @@ import {
   IconViewWeek,
   type IconProps,
 } from '../icons';
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
+import { makeStyles, useTheme } from '../appearance';
 
 interface Props {
   title: string;
@@ -55,7 +55,9 @@ function CalendarTopBarImpl({
   onPressTitle,
   onPressSearch,
 }: Props): React.ReactElement {
-  const tint = holiday ? { color: TOKENS.sunday } : null;
+  const theme = useTheme();
+  const styles = useStyles();
+  const tint = holiday ? { color: theme.t.sunday } : null;
   return (
     <View style={styles.bar}>
       <Pressable
@@ -71,7 +73,7 @@ function CalendarTopBarImpl({
           <Text style={[styles.caption, tint]} numberOfLines={1}>
             {caption}
           </Text>
-          <IconChevronDown size={16} color={TOKENS.inkSub} />
+          <IconChevronDown size={16} color={theme.t.inkSub} />
         </View>
       </Pressable>
 
@@ -90,7 +92,7 @@ function CalendarTopBarImpl({
               testID={`view-${key}`}
               style={[styles.segmentItem, active ? styles.segmentItemActive : null]}
             >
-              <Icon size={20} color={active ? TOKENS.ink : enabled ? TOKENS.inkSub : TOKENS.ink30} />
+              <Icon size={20} color={active ? theme.t.ink : enabled ? theme.t.inkSub : theme.t.ink30} />
             </Pressable>
           );
         })}
@@ -102,7 +104,7 @@ function CalendarTopBarImpl({
         accessibilityLabel="검색"
         style={styles.iconButton}
       >
-        <IconSearch size={20} color={TOKENS.ink} />
+        <IconSearch size={20} color={theme.t.ink} />
       </Pressable>
     </View>
   );
@@ -110,7 +112,7 @@ function CalendarTopBarImpl({
 
 export const CalendarTopBar = memo(CalendarTopBarImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   bar: {
     height: 52,
     flexDirection: 'row',
@@ -127,15 +129,15 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: SPACING.sm,
   },
-  title: { ...TYPE.titleL, fontFamily: TYPE.titleM.fontFamily, color: TOKENS.ink },
+  title: { ...TYPE.titleL, fontFamily: TYPE.titleM.fontFamily, color: th.t.ink },
   captionRow: { flexDirection: 'row', alignItems: 'center', gap: 2, flexShrink: 1 },
-  caption: { ...TYPE.body, color: TOKENS.inkSub },
+  caption: { ...TYPE.body, color: th.t.inkSub },
   segment: {
     flexDirection: 'row',
     padding: 2,
     gap: 2,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.ink04,
+    backgroundColor: th.t.ink04,
   },
   segmentItem: {
     width: 40,
@@ -147,8 +149,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   segmentItemActive: {
-    backgroundColor: TOKENS.surface,
-    borderColor: TOKENS.hair,
+    backgroundColor: th.t.surface,
+    borderColor: th.t.hair,
   },
   iconButton: {
     width: 40,
@@ -156,4 +158,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));
