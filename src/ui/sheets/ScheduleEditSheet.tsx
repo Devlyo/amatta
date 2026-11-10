@@ -836,6 +836,7 @@ export function ScheduleEditContent({
                   setExpanded(null);
                   setForm({ ...form, allDay: v, needsPickup: v ? false : form.needsPickup });
                 }}
+                onColor={TOKENS.primary}
               />
             ) : null}
             <FormChipsRow label="시작" last={form.allDay && forGuardian}>

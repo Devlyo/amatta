@@ -16,6 +16,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useRouter } from 'expo-router';
 
+import { nextHourStart } from '../calendar/time-axis';
 import { useUiStore } from '../../state/ui-store';
 import { ELEVATION } from '../elevation';
 import { IconGear, IconHome, IconPlus } from '../icons';
@@ -36,7 +37,10 @@ function FloatingDockImpl({ state, navigation }: BottomTabBarProps): React.React
   const onAdd = (): void => {
     const onCalendar = state.routes[state.index]?.name === 'calendar';
     const date = onCalendar ? useUiStore.getState().currentDate : todayIso();
-    router.push({ pathname: '/schedule/edit', params: { mode: 'create', date } });
+    // Starts at the next full hour from now (7:06 → 8:00), one hour long.
+    const now = new Date();
+    const start = nextHourStart(now.getHours() * 60 + now.getMinutes());
+    router.push({ pathname: '/schedule/edit', params: { mode: 'create', date, start: String(start) } });
   };
   return (
     <View pointerEvents="box-none" style={styles.wrap}>
