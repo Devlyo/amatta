@@ -5,7 +5,7 @@
 // Presented by the native modal route app/event/detail.tsx; the route shell
 // owns the ui-store eventDetail open/close. "수정" swaps to the edit form.
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -105,13 +105,12 @@ export function EventDetailContent({
     return { startMinutes, endMinutes, title };
   }, [schedule, exception]);
 
-  // Sibling-swap: REPLACE this detail route with the edit route in one atomic
-  // nav action. Calling onClose() and then router.push
-  // races — it can leave a stuck transparent route that eats touches. replace
-  // unmounts detail (→ closeEventDetail via the shell) and shows edit cleanly.
+  // The edit form opens ON TOP of this detail (iPhone Calendar: 편집 comes
+  // out of the event sheet); saving / cancelling goes back here, showing the
+  // updated event. (Never onClose() + push — that raced into a stuck route.)
   const handleEditOccurrence = useCallback(() => {
     if (schedule === undefined || detail.occurrenceDate === undefined) return;
-    router.replace({
+    router.push({
       pathname: '/schedule/edit',
       params: {
         mode: 'editOccurrence',
@@ -123,7 +122,7 @@ export function EventDetailContent({
 
   const handleEditAll = useCallback(() => {
     if (schedule === undefined) return;
-    router.replace({
+    router.push({
       pathname: '/schedule/edit',
       params: {
         mode: 'editAll',
@@ -179,6 +178,13 @@ export function EventDetailContent({
       ],
     );
   }, [schedule, removeSchedule, onClose]);
+
+  // Deleted from the edit form on top (전체 삭제 / 이 회차만 삭제) → nothing
+  // left to show here: close the detail too.
+  const gone = detail.mode === 'open' && (schedule === undefined || exception?.kind === 'cancel');
+  useEffect(() => {
+    if (gone) onClose();
+  }, [gone, onClose]);
 
   // The modal must still mount with a body even if the schedule was just
   // deleted (drawer closes the next tick). Render a minimal frame so the

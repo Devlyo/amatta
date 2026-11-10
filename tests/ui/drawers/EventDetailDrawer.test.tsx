@@ -11,9 +11,9 @@ jest.mock('../../../src/db/client', () => ({
 }));
 
 // "수정" now navigates to the edit route (via replace) instead of setting the store.
-const mockReplace = jest.fn();
+const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn(), replace: mockReplace }),
+  useRouter: () => ({ push: mockPush, replace: jest.fn() }),
 }));
 
 // eslint-disable-next-line import/first
@@ -121,7 +121,7 @@ function primeStores(): void {
 
 describe('EventDetailContent', () => {
   beforeEach(() => {
-    mockReplace.mockClear();
+    mockPush.mockClear();
     primeStores();
   });
 
@@ -172,12 +172,13 @@ describe('EventDetailContent', () => {
 
   test('header "수정" replaces this route with the edit route in editAll mode', () => {
     // The per-occurrence vs schedule-wide split lives inside the edit sheet.
-    // "수정" atomically swaps detail → edit via router.replace (no onClose race).
+    // "수정" opens the edit form over the detail via router.push (no onClose race).
     const onClose = jest.fn();
     const { getByLabelText } = render(<EventDetailContent onClose={onClose} />);
     fireEvent.press(getByLabelText('수정'));
     expect(onClose).not.toHaveBeenCalled();
-    expect(mockReplace).toHaveBeenCalledWith(
+    // Opens on top of the detail (back returns here).
+    expect(mockPush).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/schedule/edit',
         params: expect.objectContaining({

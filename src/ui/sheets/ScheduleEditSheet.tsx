@@ -30,6 +30,7 @@ import { useUiStore } from '../../state/ui-store';
 import { useGuardianStore } from '../../state/guardian-store';
 import { createGuardianEvent, resolveWriteCalendar } from '../../calendar/guardian-calendar';
 import { getDb } from '../../db/client';
+import { isChecklistItemVisibleOn } from '../../domain/checklist-membership';
 import type {
   ChecklistItem,
   DaysOfWeekMask,
@@ -64,6 +65,7 @@ import {
   type EditFormState,
 } from './edit-sheet-form';
 import {
+  FormTextRow,
   FormActionRow,
   FormChipsRow,
   FormError,
@@ -212,6 +214,10 @@ export function ScheduleEditContent({
   const [forGuardian, setForGuardian] = useState(false);
   const [expanded, setExpanded] = useState<Expand>(null);
   const [checklist, setChecklist] = useState<ChecklistDraft[]>([]);
+  // 이 회차만 수정: the 매번 / always items visible on that day are shown but
+  // belong to the whole schedule, so they're read-only here; only this day's
+  // 이번만 items are edited (ADR-006b membership).
+  const [fixedChecklist, setFixedChecklist] = useState<ChecklistItem[]>([]);
   // Snapshot of the checklist as it was when the sheet opened. Used by save
   // to compute INSERT / UPDATE / DELETE diffs against the in-memory edits.
   const originalChecklistRef = useRef<ChecklistItem[]>([]);
@@ -251,11 +257,18 @@ export function ScheduleEditContent({
     ) {
       setForGuardian(false);
       setForm(formFromOccurrence(existingSchedule, existingException));
-      // editOccurrence is single-day; checklists live at the schedule level,
-      // so we skip the section (see render guard below) and stash empty.
-      originalChecklistRef.current = [];
-      setChecklist([]);
+      const dayInt = isoToYyyymmdd(editSheetState.occurrenceDate ?? existingSchedule.validFrom);
+      const visible = (checklistItemsByScheduleId.get(existingSchedule.id) ?? []).filter((it) =>
+        isChecklistItemVisibleOn(it, dayInt),
+      );
+      const onlyThisDay = visible.filter((it) => !it.recurring && it.occurrenceDate === dayInt);
+      originalChecklistRef.current = onlyThisDay;
+      setChecklist(
+        onlyThisDay.map((it) => ({ id: it.id, label: it.label, occurrenceDate: it.occurrenceDate, recurring: false })),
+      );
+      setFixedChecklist(visible.filter((it) => !onlyThisDay.includes(it)));
     }
+    if (sheetMode !== 'editOccurrence') setFixedChecklist([]);
     setSubmitted(false);
     setExpanded(null);
   }, [
@@ -263,6 +276,7 @@ export function ScheduleEditContent({
     existingSchedule,
     existingException,
     editSheetState.preFill,
+    editSheetState.occurrenceDate,
     checklistItemsByScheduleId,
   ]);
 
@@ -454,6 +468,14 @@ export function ScheduleEditContent({
               : null,
         },
       );
+      // This day's 이번만 supplies (anchored to the day, never 매번 here).
+      await persistChecklistDiff(
+        db,
+        existingSchedule.id,
+        originalChecklistRef.current,
+        checklist.map((c) => ({ ...c, occurrenceDate: boundDateInt, recurring: false })),
+        { add: checklistAdd, update: checklistUpdate, remove: checklistRemove },
+      );
     }
 
     Keyboard.dismiss();
@@ -474,6 +496,7 @@ export function ScheduleEditContent({
     checklistRemove,
     forGuardian,
     saveGuardian,
+    boundDateInt,
   ]);
 
   const handleDeleteAll = useCallback(() => {
@@ -539,6 +562,7 @@ export function ScheduleEditContent({
         : '새 일정';
   const saveLabel = sheetMode === 'create' ? '추가' : '저장';
 
+  const isOccurrence = sheetMode === 'editOccurrence';
   const showError = (key: keyof EditFormState): string | undefined =>
     submitted ? validation.errors[key] : undefined;
 
@@ -599,15 +623,19 @@ export function ScheduleEditContent({
               accessibilityLabel="제목 입력"
               onFocus={() => setExpanded(null)}
             />
-            <FormInputRow
-              last
-              value={form.location}
-              onChangeText={(v: string) => setForm({ ...form, location: v })}
-              placeholder="장소"
-              maxLength={60}
-              accessibilityLabel="위치 입력"
-              onFocus={() => setExpanded(null)}
-            />
+            {isOccurrence ? (
+              <FormTextRow text={form.location} placeholder="장소 없음" last />
+            ) : (
+              <FormInputRow
+                last
+                value={form.location}
+                onChangeText={(v: string) => setForm({ ...form, location: v })}
+                placeholder="장소"
+                maxLength={60}
+                accessibilityLabel="위치 입력"
+                onFocus={() => setExpanded(null)}
+              />
+            )}
           </FormGroup>
           <FormError text={showError('title')} />
         </View>
@@ -658,7 +686,7 @@ export function ScheduleEditContent({
             <FormValueRow
               label="종류"
               value={form.type !== null ? TYPE_LABELS_KO[form.type] : '선택'}
-              onPress={() => toggle('type')}
+              onPress={isOccurrence ? undefined : () => toggle('type')}
               expanded={expanded === 'type'}
               last
               testID="row-type"
@@ -694,7 +722,7 @@ export function ScheduleEditContent({
                 }}
               />
             ) : null}
-            <FormChipsRow label="시작" last={form.allDay && (sheetMode === 'editOccurrence' || forGuardian)}>
+            <FormChipsRow label="시작" last={form.allDay && forGuardian}>
               <TimeChip
                 text={formatKoDateChip(form.validFrom)}
                 active={expanded === 'date'}
@@ -733,7 +761,7 @@ export function ScheduleEditContent({
               />
             ) : null}
             {form.allDay ? null : (
-              <FormChipsRow label="종료" last={(sheetMode === 'editOccurrence' || forGuardian) && expanded !== 'end'}>
+              <FormChipsRow label="종료" last={forGuardian && expanded !== 'end'}>
                 <TimeChip
                   text={fmt12hrShortSpaced(form.endMinutes)}
                   active={expanded === 'end'}
@@ -754,11 +782,11 @@ export function ScheduleEditContent({
                 onDone={() => setExpanded(null)}
               />
             ) : null}
-            {sheetMode !== 'editOccurrence' && !forGuardian ? (
+            {!forGuardian ? (
               <FormValueRow
                 label="반복"
                 value={repeatSummary(form.daysOfWeek)}
-                onPress={() => toggle('repeat')}
+                onPress={isOccurrence ? undefined : () => toggle('repeat')}
                 expanded={expanded === 'repeat'}
                 last
                 testID="row-repeat"
@@ -793,7 +821,7 @@ export function ScheduleEditContent({
           <FormValueRow
             label="시작 전 알림"
             value={alertSummary(form.notifyMinutesBefore)}
-            onPress={() => toggle('alertStart')}
+            onPress={isOccurrence ? undefined : () => toggle('alertStart')}
             expanded={expanded === 'alertStart'}
             last={(form.allDay || forGuardian) && expanded !== 'alertStart'}
             testID="row-alert-start"
@@ -811,7 +839,7 @@ export function ScheduleEditContent({
             <FormValueRow
               label="종료 전 알림"
               value={alertSummary(form.notifyEndMinutesBefore)}
-              onPress={() => toggle('alertEnd')}
+              onPress={isOccurrence ? undefined : () => toggle('alertEnd')}
               expanded={expanded === 'alertEnd'}
               testID="row-alert-end"
             >
@@ -825,7 +853,9 @@ export function ScheduleEditContent({
               />
             </FormValueRow>
           )}
-          {form.allDay || forGuardian ? null : (
+          {form.allDay || forGuardian ? null : isOccurrence ? (
+            <FormValueRow label="픽업 필요" value={form.needsPickup ? '예' : '아니요'} last />
+          ) : (
             <FormToggleRow
               label="픽업 필요"
               value={form.needsPickup}
@@ -836,11 +866,25 @@ export function ScheduleEditContent({
           )}
         </FormGroup>
 
-        {/* 준비물 — template-level, so hidden when editing one occurrence (ADR-002). */}
-        {sheetMode !== 'editOccurrence' && !forGuardian ? (
+        {/* 준비물 — one occurrence: that day's items; 매번 ones read-only, this
+            day's 이번만 ones editable (ADR-006b). */}
+        {!forGuardian ? (
           <View style={styles.block}>
             <FormSectionHeader label="준비물" />
             <FormGroup>
+              {fixedChecklist.map((item) => (
+                <View key={`fixed-${item.id}`}>
+                  <View style={styles.checklistRow}>
+                    <Text style={[styles.checklistInput, styles.checklistFixed]} numberOfLines={1}>
+                      {item.label}
+                    </Text>
+                    <View style={styles.repeatTag}>
+                      <Text style={styles.repeatTagLabel}>매번</Text>
+                    </View>
+                  </View>
+                  <View style={styles.separator} />
+                </View>
+              ))}
               {checklist.map((item, idx) => (
                 <View key={item.id ?? `new-${idx}`}>
                   <View style={styles.checklistRow}>
@@ -860,7 +904,11 @@ export function ScheduleEditContent({
                         recurring schedule. Tap flips `recurring`; the anchor is
                         kept (a legacy NULL anchor is re-anchored when switching
                         to 이번만, otherwise "always visible" would win). */}
-                    {suppliesRepeatable ? (
+                    {isOccurrence ? (
+                      <View style={[styles.repeatTag, styles.repeatTagOnce]}>
+                        <Text style={[styles.repeatTagLabel, styles.repeatTagLabelOnce]}>이번만</Text>
+                      </View>
+                    ) : suppliesRepeatable ? (
                       <Pressable
                         onPress={() =>
                           setChecklist((cs) =>
@@ -906,9 +954,10 @@ export function ScheduleEditContent({
                   setChecklist((cs) => [
                     ...cs,
                     // ADR-006b: new items anchor to boundDateInt (the edit-context
-                    // date) and default to 매번 (recurring). One-time schedules are
-                    // normalised to { null, recurring } on save.
-                    { id: null, label: '', occurrenceDate: boundDateInt, recurring: true },
+                    // date) and default to 매번 (recurring) — 이번만 when editing
+                    // one occurrence. One-time schedules are normalised to
+                    // { null, recurring } on save.
+                    { id: null, label: '', occurrenceDate: boundDateInt, recurring: !isOccurrence },
                   ])
                 }
               />
@@ -917,6 +966,11 @@ export function ScheduleEditContent({
         ) : null}
 
         {/* 메모 */}
+        {isOccurrence ? (
+          <FormGroup>
+            <FormTextRow text={form.notes} placeholder="메모 없음" last />
+          </FormGroup>
+        ) : (
         <FormGroup>
           <TextInput
             value={form.notes}
@@ -930,6 +984,10 @@ export function ScheduleEditContent({
             onFocus={() => setExpanded(null)}
           />
         </FormGroup>
+        )}
+        {isOccurrence ? (
+          <Text style={styles.guardianNote}>이 날만 바뀌어요. 제목·시간과 이번만 준비물을 바꿀 수 있어요.</Text>
+        ) : null}
 
         {/* 회차 / 삭제 actions */}
         {sheetMode === 'editAll' && existingSchedule !== undefined ? (
@@ -1126,6 +1184,7 @@ const styles = StyleSheet.create({
   },
   repeatTagOnce: { backgroundColor: TOKENS.ink06 },
   repeatTagLabel: { ...TYPE.footnote, color: TOKENS.primaryDeep },
+  checklistFixed: { color: TOKENS.inkSub },
   repeatTagLabelOnce: { color: TOKENS.inkSub },
   notesInput: {
     ...TYPE.row,

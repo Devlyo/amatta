@@ -514,3 +514,44 @@ describe('EditSheet — 보호자 (device calendar, ADR-008)', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 });
+
+describe('EditSheet — 이 회차만 수정 keeps the detail\u2019s rows', () => {
+  test('fixed rows are read-only; 매번 supplies shown, this day\u2019s 이번만 editable; new one saved as 이번만', async () => {
+    const day = iso('2026-06-02'); // a Tuesday
+    const mocks = seedStores({
+      schedule: mkSchedule({ location: 'JLS', notes: '현관 앞' }),
+      mode: 'editOccurrence',
+      occurrenceDate: day,
+      items: [
+        mkItem({ id: 1, label: '교재', occurrenceDate: null, recurring: true }),
+        mkItem({ id: 2, label: '실내화', occurrenceDate: 20260602, recurring: false }),
+        mkItem({ id: 3, label: '다른날', occurrenceDate: 20260609, recurring: false }),
+      ],
+    });
+    const applyException = jest.fn().mockResolvedValue(undefined);
+    useSchedulesStore.setState({ applyException } as never);
+    const { getByText, queryByText, getByLabelText, queryByLabelText, getByTestId } = render(
+      <ScheduleEditContent onClose={() => {}} />,
+    );
+    // Same rows as the detail, but fixed ones have no picker.
+    expect(getByText('JLS')).toBeTruthy();
+    expect(getByText('현관 앞')).toBeTruthy();
+    expect(getByLabelText('반복: 매주 화')).toBeTruthy();
+    fireEvent.press(getByTestId('row-repeat'));
+    expect(queryByLabelText('요일 화')).toBeNull(); // no repeat panel
+    // Supplies: 매번 one read-only, this day's 이번만 editable, other day's hidden.
+    expect(getByText('교재')).toBeTruthy();
+    expect(getByLabelText('준비물 1').props.value).toBe('실내화');
+    expect(queryByText('다른날')).toBeNull();
+    fireEvent.press(getByLabelText('준비물 추가'));
+    fireEvent.changeText(getByLabelText('준비물 2'), '물통');
+    fireEvent.press(getByLabelText('저장'));
+    await waitFor(() => expect(mocks.add).toHaveBeenCalled());
+    expect(mocks.add).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ label: '물통', occurrenceDate: 20260602, recurring: false }),
+    );
+    expect(mocks.remove).not.toHaveBeenCalled();
+    expect(applyException).toHaveBeenCalledWith(expect.anything(), 7, day, expect.objectContaining({ kind: 'modify' }));
+  });
+});
