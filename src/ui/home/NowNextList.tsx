@@ -6,7 +6,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { formatUntil, type KidNowNext } from '../../domain/now-next';
 import type { Child } from '../../domain/types';
 import { KidAvatar } from '../common/KidAvatar';
-import { kidFill, TOKENS } from '../palette';
+import { getKidPalette, kidFill, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
@@ -49,6 +49,10 @@ function NowNextListImpl({ kids, rows }: Props): React.ReactElement {
           >
             <KidAvatar child={kid} size={30} />
             <View style={styles.text}>
+              {/* Whose row it is — the avatar alone was hard to tell apart. */}
+              <Text style={[styles.name, { color: getKidPalette(kid.colorIndex).deep }]} numberOfLines={1}>
+                {kid.name}
+              </Text>
               <Text style={styles.title} numberOfLines={1}>
                 {d.title}
                 {d.detail !== '' ? <Text style={styles.detail}> · {d.detail}</Text> : null}
@@ -93,7 +97,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: TOKENS.ink12,
   },
-  text: { flex: 1, minWidth: 0, gap: 2 },
+  text: { flex: 1, minWidth: 0, gap: 1 },
+  name: { ...TYPE.caption, fontFamily: TYPE.headline.fontFamily },
   title: { ...TYPE.subhead, fontFamily: TYPE.headline.fontFamily, color: TOKENS.ink },
   detail: { ...TYPE.subhead, color: TOKENS.inkSub },
   sub: { ...TYPE.footnote, color: TOKENS.inkSub },
