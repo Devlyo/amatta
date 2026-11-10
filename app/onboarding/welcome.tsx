@@ -1,81 +1,135 @@
-// Scene 1 — Welcome.
-// 1:1 layout port of docs/design/amatta-v1/app-onboarding.jsx OnbWelcome.
+// Onboarding 1 — Welcome (design canvas "O1 환영 — 3D 얼굴").
 //
-// Notes:
-//   - Spec defines ONB_BG '#FEF4F2' but app-onboarding.jsx line 26 overrides
-//     it with 'rgb(255,255,255)'. The final intended background is white,
-//     so we ship with the surface token.
-//   - The lime "blob" tray behind the mascots is an organic SVG path in the
-//     prototype. react-native-svg's Fabric components are not registered in
-//     Expo Go SDK 54 (see src/ui/icons.tsx header) — until the EAS build
-//     ships we approximate the blob with a View-shaped oval at #E0E446.
-//     The 'lime tray under the mascots' visual stays; the exact bezier
-//     dimples are deferred. Color literal #E0E446 matches NOW_YELLOW
-//     used by the time grids.
+// The six 3D kid faces float in a loose cluster above the copy; each one
+// bobs a few points on its own rhythm. Orange CTA, offline reassurance line.
 
-import { memo } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { memo, useEffect } from 'react';
+import { Image, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
-import { MASCOTS } from '../../src/ui/assets';
+import type { AvatarKey } from '../../src/domain/avatar';
+import { APP_NAME } from '../../src/domain/constants';
+import { AVATAR_IMAGE_BY_KEY, WORDMARK, WORDMARK_ASPECT } from '../../src/ui/assets';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { RADIUS } from '../../src/ui/radius';
 import { SPACING } from '../../src/ui/spacing';
 import { makeStyles } from '../../src/ui/appearance';
 
+/** Cluster laid out on a 390 × 290 stage, scaled down on narrower phones. */
+const STAGE_W = 390;
+const STAGE_H = 290;
+const CLUSTER: readonly { key: AvatarKey; size: number; x: number; y: number; rotate: number }[] = [
+  { key: 'face-sleep', size: 80, x: 150, y: 0, rotate: 4 },
+  { key: 'face-surprise', size: 96, x: 26, y: 40, rotate: -10 },
+  { key: 'face-cool', size: 92, x: 262, y: 28, rotate: 8 },
+  { key: 'face-dizzy', size: 84, x: 18, y: 196, rotate: 6 },
+  { key: 'face-calm', size: 96, x: 268, y: 186, rotate: -6 },
+  { key: 'face-wink', size: 150, x: 120, y: 96, rotate: -4 },
+];
+
+function FloatingFace({
+  avatar,
+  size,
+  x,
+  y,
+  rotate,
+  index,
+}: {
+  avatar: AvatarKey;
+  size: number;
+  x: number;
+  y: number;
+  rotate: number;
+  index: number;
+}): React.ReactElement {
+  const lift = useSharedValue(0);
+  useEffect(() => {
+    const half = 1600 + index * 175;
+    lift.value = withDelay(
+      index * 250,
+      withRepeat(
+        withSequence(
+          withTiming(-6, { duration: half, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0, { duration: half, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+      ),
+    );
+  }, [lift, index]);
+  const anim = useAnimatedStyle(() => ({
+    transform: [{ translateY: lift.value }, { rotate: `${rotate}deg` }],
+  }));
+  return (
+    <Animated.View style={[{ position: 'absolute', left: x, top: y, width: size, height: size }, anim]}>
+      <Image
+        source={AVATAR_IMAGE_BY_KEY[avatar]}
+        style={{ width: size, height: size }}
+        resizeMode="contain"
+        accessibilityIgnoresInvertColors
+      />
+    </Animated.View>
+  );
+}
+
 function OnbWelcomeImpl(): React.ReactElement {
   const styles = useStyles();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const scale = Math.min(1, width / STAGE_W);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      {/* Spec: group positioned with top: 66.67% + translateY(-50% - 100px).
-          In RN we center the group then shift it upward via paddingBottom
-          (≈100px) so its vertical centre sits a bit above the screen mid. */}
-      <View style={styles.heroContainer}>
-        <View style={styles.heroGroup}>
-          {/* ── Mascot row + lime tray ────────────────────────── */}
-          <View style={styles.mascotRow}>
-            <View style={styles.limeBlob} pointerEvents="none" />
-            <Image
-              source={MASCOTS.pink}
-              style={styles.mascotPink}
-              resizeMode="contain"
-              accessibilityIgnoresInvertColors
+      <View style={styles.hero}>
+        <View
+          style={{ width: STAGE_W * scale, height: STAGE_H * scale, alignSelf: 'center' }}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          {CLUSTER.map((f, i) => (
+            <FloatingFace
+              key={f.key}
+              avatar={f.key}
+              size={f.size * scale}
+              x={f.x * scale}
+              y={f.y * scale}
+              rotate={f.rotate}
+              index={i}
             />
-            <Image
-              source={MASCOTS.orange}
-              style={styles.mascotOrange}
-              resizeMode="contain"
-              accessibilityLabel="주황이"
-              accessibilityIgnoresInvertColors
-            />
-          </View>
-
-          {/* ── Copy block ──────────────────────────────────── */}
-          <View style={styles.copyBlock}>
-            <Text style={styles.welcomeTitle}>Welcome</Text>
-            <Text style={styles.welcomeSub}>
-              {'아마따와 함께 여러 자녀의\n일정과 준비물을 관리해보세요.'}
-            </Text>
-          </View>
-
-          {/* ── CTA ─────────────────────────────────────────── */}
-          <View style={styles.ctaWrap}>
-            <Pressable
-              onPress={() => router.replace('/onboarding/add-kid')}
-              accessibilityRole="button"
-              accessibilityLabel="시작하기"
-              style={({ pressed }) => [
-                styles.primaryCta,
-                pressed ? styles.primaryCtaPressed : null,
-              ]}
-            >
-              <Text style={styles.primaryCtaLabel}>시작하기</Text>
-            </Pressable>
-          </View>
+          ))}
         </View>
+        <View style={styles.copy}>
+          <Image
+            source={WORDMARK}
+            style={styles.brand}
+            resizeMode="contain"
+            accessibilityRole="image"
+            accessibilityLabel={APP_NAME}
+          />
+          <Text style={styles.title} accessibilityRole="header">
+            {'여러 자녀들 일정을\n위모아와 함께 관리하세요'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.ctaWrap}>
+        <Pressable
+          onPress={() => router.replace('/onboarding/add-kid')}
+          accessibilityRole="button"
+          accessibilityLabel="게스트로 시작하기"
+          style={({ pressed }) => [styles.cta, pressed ? styles.ctaPressed : null]}
+        >
+          <Text style={styles.ctaLabel}>게스트로 시작하기</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -83,105 +137,40 @@ function OnbWelcomeImpl(): React.ReactElement {
 
 export default memo(OnbWelcomeImpl);
 
-const MASCOT_PINK_SIZE = 120;
-const MASCOT_ORANGE_SIZE = 130;
-// The organic lime "tray" is an SVG path in the prototype, but react-native-svg
-// can't load in Expo Go (Fabric components unregistered) — approximated as a
-// plain 2px line for now. TODO(A-ICONS, EAS build): restore the organic blob.
-// eslint-disable-next-line no-restricted-syntax -- kid-palette Citrus Green, no token mapping
-const BLOB_CITRUS = '#E0E446';
-const BLOB_W = 230;
-const BLOB_H = 2;
-
 const useStyles = makeStyles((th) => ({
   safe: { flex: 1, backgroundColor: th.t.surface },
-
-  // Group sits ~30px below screen vertical centre per user direction.
-  // paddingBottom shrinks from 40 → 10 to nudge it down another 30px.
-  heroContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingBottom: 10,
-  },
-  heroGroup: {
-    alignSelf: 'stretch',
-  },
-
-  // ─── Mascots + lime blob ──────────────────────────────────
-  mascotRow: {
-    position: 'relative',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: MASCOT_ORANGE_SIZE + 30, // room for orange's translateY(-20) headroom
-  },
-  limeBlob: {
-    position: 'absolute',
-    width: BLOB_W,
-    height: BLOB_H,
-    left: '50%',
-    top: '50%',
-    marginLeft: -BLOB_W / 2 + 6, // spec: translate(calc(-50% + 6px), ...)
-    marginTop: -BLOB_H / 2 + 38, // a touch below the mascot feet line.
-    backgroundColor: BLOB_CITRUS,
-    borderRadius: 1,
-  },
-  mascotPink: {
-    width: MASCOT_PINK_SIZE,
-    height: MASCOT_PINK_SIZE,
-    zIndex: 1,
-  },
-  mascotOrange: {
-    width: MASCOT_ORANGE_SIZE,
-    height: MASCOT_ORANGE_SIZE,
-    marginLeft: -20,    // spec: marginLeft -20
-    marginTop: -20,     // spec: translateY(-20)
-    zIndex: 1,
-  },
-
-  // ─── Copy block ──────────────────────────────────────────
-  copyBlock: {
-    alignItems: 'center',
-    paddingHorizontal: 28,
-    paddingTop: SPACING.xl,
-  },
-  welcomeTitle: {
-    fontSize: 24,
-    fontFamily: FONT_FAMILIES.pretendardBold,
-    color: th.t.ink,
-    letterSpacing: -1,
-    lineHeight: 26, // 1.1 of 24
-    textAlign: 'center',
-  },
-  welcomeSub: {
+  hero: { flex: 1, justifyContent: 'center', paddingBottom: SPACING.sm },
+  copy: { alignItems: 'center', paddingHorizontal: 28, paddingTop: 34 },
+  brand: { width: 108, height: 108 / WORDMARK_ASPECT },
+  title: {
     marginTop: SPACING.md,
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: th.t.inkSub,
-    letterSpacing: -0.3,
-    lineHeight: 22, // ≈ 1.55 of 14
+    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    fontSize: 20,
+    lineHeight: 28,
+    letterSpacing: -0.5,
+    color: th.t.ink,
     textAlign: 'center',
   },
-
-  // ─── CTA ─────────────────────────────────────────────────
   ctaWrap: {
-    marginTop: 40,
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.lg,
+    alignItems: 'center',
+    gap: 10,
   },
-  primaryCta: {
-    width: '100%',
-    paddingVertical: 14,
-    paddingHorizontal: SPACING.lg,
+  cta: {
+    alignSelf: 'stretch',
+    height: 54,
     borderRadius: RADIUS.full,
-    backgroundColor: th.t.ink,
+    backgroundColor: th.t.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryCtaPressed: { opacity: 0.85 },
-  primaryCtaLabel: {
-    fontSize: 16,
+  ctaPressed: { backgroundColor: th.t.primaryDeep },
+  ctaLabel: {
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: th.t.surface,
+    fontSize: 17,
     letterSpacing: -0.3,
+    color: th.t.onDark,
   },
 }));

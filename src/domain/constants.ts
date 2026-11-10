@@ -26,6 +26,9 @@ export const GRID_SLOTS = (GRID_END_HOUR - GRID_START_HOUR) * 2;
 // up to 6 people (4 kids + up to 2 guardians, guardian 2 planned).
 export const MAX_CHILDREN = 4;
 
+/** User-facing app name (2026-11-10: 아마따 → WeMoa). Bundle id / slug unchanged. */
+export const APP_NAME = 'WeMoa';
+
 export const SCHEDULE_TYPES: readonly ScheduleType[] = [
   'school',
   'academy',
