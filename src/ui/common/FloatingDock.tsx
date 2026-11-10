@@ -12,6 +12,7 @@
 
 import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { requireOptionalNativeModule } from 'expo';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useRouter } from 'expo-router';
@@ -26,6 +27,12 @@ import { todayIso } from '../utils/date';
 import { makeStyles, useTheme } from '../appearance';
 
 const ICON = 26;
+
+// ADR-014: frosted dock (iOS material). expo-blur is a native module — an
+// older build without it gets the solid white pill instead of crashing.
+const HAS_BLUR = requireOptionalNativeModule('ExpoBlurView') !== null;
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const BlurView = HAS_BLUR ? (require('expo-blur') as typeof import('expo-blur')).BlurView : null;
 
 const TABS: Record<string, { label: string; render: (color: string) => React.ReactElement }> = {
   index: { label: '홈', render: (color) => <IconHome size={ICON} color={color} /> },
@@ -49,7 +56,15 @@ function FloatingDockImpl({ state, navigation }: BottomTabBarProps): React.React
   };
   return (
     <View pointerEvents="box-none" style={[styles.wrap, addLeft ? styles.wrapAddLeft : null]} testID="dock">
-      <View style={styles.bar}>
+      <View style={[styles.bar, BlurView !== null ? styles.barFrosted : null]}>
+        {BlurView !== null ? (
+          <BlurView
+            intensity={60}
+            tint={theme.scheme === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
+            style={styles.blur}
+            testID="dock-blur"
+          />
+        ) : null}
         {state.routes.map((route, index) => {
           const tab = TABS[route.name];
           if (tab === undefined) return null;
@@ -120,6 +135,8 @@ const useStyles = makeStyles((th) => ({
     justifyContent: 'center',
     ...elevationFor(th).dock,
   },
+  barFrosted: { backgroundColor: th.t.dockTint },
+  blur: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS.full, overflow: 'hidden' },
   tab: {
     flex: 1,
     height: 48,

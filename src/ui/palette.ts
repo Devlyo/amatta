@@ -161,6 +161,8 @@ const LIGHT = {
   // same in both schemes, like onLight.
   surfaceOnFill: 'rgba(255,255,255,0.92)',
   surfaceOnFillMuted: 'rgba(255,255,255,0.55)',
+  // ADR-014: tint over the dock blur (translucent dock); solid surface without blur.
+  dockTint: 'rgba(255,255,255,0.55)',
 } as const;
 
 export type TokenName = keyof typeof LIGHT;
@@ -228,6 +230,7 @@ export const DARK_TOKENS: Readonly<Record<TokenName, string>> = {
   onDark: '#FFFFFF',
   surfaceOnFill: 'rgba(255,255,255,0.92)',
   surfaceOnFillMuted: 'rgba(255,255,255,0.55)',
+  dockTint: 'rgba(39,37,35,0.55)',
 };
 
 // Pickup carousel card spec (handoff #4). Index → palette[index % 4]; shape
