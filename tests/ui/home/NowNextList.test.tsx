@@ -28,7 +28,7 @@ test('each row names its kid right before what they are doing', () => {
     />,
   );
   // Inline, right before the title.
-  expect(screen.getByText('민준 ')).toBeTruthy();
-  expect(screen.getByText('서연 ')).toBeTruthy();
+  expect(screen.getByText('민준')).toBeTruthy();
+  expect(screen.getByText('서연')).toBeTruthy();
   expect(screen.getByLabelText(/^민준, 영어학원 3:30PM까지/)).toBeTruthy();
 });

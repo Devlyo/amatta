@@ -49,13 +49,15 @@ function NowNextListImpl({ kids, rows }: Props): React.ReactElement {
           >
             <KidAvatar child={kid} size={30} />
             <View style={styles.text}>
-              <Text style={styles.title} numberOfLines={1}>
-                {/* Whose row it is, right before what they do — the avatar
-                    alone was hard to tell apart. */}
-                <Text style={{ color: getKidPalette(kid.colorIndex).deep }}>{kid.name} </Text>
-                {d.title}
-                {d.detail !== '' ? <Text style={styles.detail}> · {d.detail}</Text> : null}
-              </Text>
+              {/* Whose row it is, right before what they do — the avatar
+                  alone was hard to tell apart. */}
+              <View style={styles.titleLine}>
+                <Text style={[styles.title, { color: getKidPalette(kid.colorIndex).deep }]}>{kid.name}</Text>
+                <Text style={[styles.title, styles.titleText]} numberOfLines={1}>
+                  {d.title}
+                  {d.detail !== '' ? <Text style={styles.detail}> · {d.detail}</Text> : null}
+                </Text>
+              </View>
               {d.sub !== null ? (
                 <Text style={styles.sub} numberOfLines={1}>
                   {d.sub}
@@ -97,7 +99,9 @@ const styles = StyleSheet.create({
     borderBottomColor: TOKENS.ink12,
   },
   text: { flex: 1, minWidth: 0, gap: 2 },
+  titleLine: { flexDirection: 'row', alignItems: 'baseline', gap: SPACING.sm },
   title: { ...TYPE.subhead, fontFamily: TYPE.headline.fontFamily, color: TOKENS.ink },
+  titleText: { flexShrink: 1 },
   detail: { ...TYPE.subhead, color: TOKENS.inkSub },
   sub: { ...TYPE.footnote, color: TOKENS.inkSub },
   chip: {
