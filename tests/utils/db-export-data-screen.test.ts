@@ -109,9 +109,9 @@ describe('data.tsx backup-promise consistency', () => {
     if (existsSync(dbPath)) rmSync(dbPath, { force: true });
   });
 
-  test('schema version is 3 (checklistCompletion added in v3)', () => {
+  test('schema version is 4 (checklist membership + appSettings added in v4)', () => {
     // Hard assertion so a version bump without updating data.tsx copy is caught.
-    expect(EXPORT_SCHEMA_VERSION).toBe(3);
+    expect(EXPORT_SCHEMA_VERSION).toBe(4);
   });
 
   test('every category data.tsx displays is present in the export envelope', async () => {

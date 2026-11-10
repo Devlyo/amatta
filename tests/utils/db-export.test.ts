@@ -90,7 +90,7 @@ describe('exportDb', () => {
   test('empty DB → envelope has all eight arrays empty + schemaVersion bump', async () => {
     const result = await exportDb(db as never);
     expect(result.envelope.schemaVersion).toBe(EXPORT_SCHEMA_VERSION);
-    expect(EXPORT_SCHEMA_VERSION).toBeGreaterThanOrEqual(3);
+    expect(EXPORT_SCHEMA_VERSION).toBeGreaterThanOrEqual(4);
     expect(result.envelope.children).toEqual([]);
     expect(result.envelope.schedules).toEqual([]);
     expect(result.envelope.exceptions).toEqual([]);
@@ -99,6 +99,7 @@ describe('exportDb', () => {
     expect(result.envelope.todos).toEqual([]);
     expect(result.envelope.pickupLog).toEqual([]);
     expect(result.envelope.checklistCompletion).toEqual([]);
+    expect(result.envelope.appSettings).toEqual([]);
   });
 
   // Reject-vector guard (P3.3): every category the data screen counts/displays
@@ -110,6 +111,7 @@ describe('exportDb', () => {
     const exportedKeys = Object.keys(result.envelope).sort();
     expect(exportedKeys).toEqual(
       [
+        'appSettings',
         'checklistCompletion',
         'checklistItems',
         'children',
@@ -284,6 +286,55 @@ describe('exportDb', () => {
       occurrenceDate: 20260602,
       completedAt: 1717000001000,
     });
+  });
+
+  // Regression: the v3 export SELECT omitted occurrence_date / recurring, so
+  // every item was serialized as recurring=false with no anchor — a restore
+  // would have turned every 매번 item into an orphaned 이번만 item.
+  test('checklist membership (occurrenceDate + recurring) survives the export', async () => {
+    real.exec(
+      `INSERT INTO children (name, color_index, created_at)
+       VALUES ('민준', 0, '2026-05-01')`,
+    );
+    real.exec(
+      `INSERT INTO schedules
+         (child_id, title, type, days_of_week, start_minutes, end_minutes, valid_from, notify_minutes_before, needs_pickup)
+       VALUES (1, '영어학원', 'academy', 21, 960, 1050, '2026-05-01', 30, 0)`,
+    );
+    real.exec(
+      `INSERT INTO checklist_items (schedule_id, label, sort_order, occurrence_date, recurring)
+       VALUES
+         (1, '레거시-항상', 0, NULL, 1),
+         (1, '매번-앵커', 1, 20260602, 1),
+         (1, '이번만', 2, 20260604, 0)`,
+    );
+
+    const result = await exportDb(db as never);
+    expect(result.envelope.checklistItems).toMatchObject([
+      { label: '레거시-항상', occurrenceDate: null, recurring: true },
+      { label: '매번-앵커', occurrenceDate: 20260602, recurring: true },
+      { label: '이번만', occurrenceDate: 20260604, recurring: false },
+    ]);
+    // …and through the serialized JSON too (undefined would be dropped there).
+    const parsed = JSON.parse(result.json) as {
+      checklistItems: { occurrenceDate: number | null; recurring: boolean }[];
+    };
+    expect(parsed.checklistItems.map((c) => [c.occurrenceDate, c.recurring])).toEqual([
+      [null, true],
+      [20260602, true],
+      [20260604, false],
+    ]);
+  });
+
+  test('app_settings rows (persisted notif settings) are exported', async () => {
+    real.exec(
+      `INSERT INTO app_settings (key, value) VALUES ('zeta', '15'), ('alpha', '0')`,
+    );
+    const result = await exportDb(db as never);
+    expect(result.envelope.appSettings).toEqual([
+      { key: 'alpha', value: '0' },
+      { key: 'zeta', value: '15' },
+    ]);
   });
 
   test('JSON output is pretty-printed (indent 2)', async () => {
