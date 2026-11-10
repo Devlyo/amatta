@@ -1,6 +1,5 @@
-import { Fragment, memo, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import Swipeable from 'react-native-gesture-handler/Swipeable';
+import { memo, useMemo, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useTodosStore, useUiStore } from '../../state';
 import { getDb } from '../../db/client';
@@ -8,7 +7,8 @@ import type { ISODate, Todo } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { IconCheck, IconTrash } from '../icons';
+import { IconCheck } from '../icons';
+import { SwipeToDelete } from '../common/SwipeToDelete';
 import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
@@ -70,21 +70,11 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
     await useTodosStore.getState().toggleDone(db, id);
   };
 
-  const onDelete = (id: number, title: string): void => {
-    // Confirm before destroying so an accidental swipe-fling doesn't nuke
-    // a todo. Matches the destructive-action pattern used elsewhere in the
-    // app (ScheduleEditSheet → 전체 삭제).
-    Alert.alert('할일 삭제', `"${title}" 항목을 삭제할까요?`, [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '삭제',
-        style: 'destructive',
-        onPress: async () => {
-          const db = await getDb();
-          await useTodosStore.getState().removeOne(db, id);
-        },
-      },
-    ]);
+  // Swipe-to-delete is a deliberate gesture (a long swipe or the 삭제 tap),
+  // so no extra confirm — like iOS lists.
+  const onDelete = async (id: number): Promise<void> => {
+    const db = await getDb();
+    await useTodosStore.getState().removeOne(db, id);
   };
 
   const commitDraft = async (): Promise<void> => {
@@ -122,35 +112,25 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
         {sorted.map((todo, i) => {
           const isDone = todo.isDone;
           return (
-            <Fragment key={todo.id}>
+            <SwipeToDelete
+              key={todo.id}
+              onDelete={() => void onDelete(todo.id)}
+              accessibilityLabel={todo.title}
+              testID={`todo-row-${todo.id}`}
+            >
             {/* Line between todos, inset to the labels (same as 준비물). */}
             {i > 0 ? <View style={styles.itemSeparator} /> : null}
-            <Swipeable
-              renderRightActions={() => (
-                <Pressable
-                  onPress={() => onDelete(todo.id, todo.title)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${todo.title} 삭제`}
-                  style={styles.swipeDeleteAction}
-                  testID={`todo-delete-${todo.id}`}
-                >
-                  <IconTrash size={18} color={TOKENS.surface} />
-                </Pressable>
-              )}
-              rightThreshold={40}
-              friction={2}
-              overshootRight={false}
-            >
               <Pressable
                 onPress={() => {
                   void onToggle(todo.id);
                 }}
-                style={[styles.itemRow, isDone ? styles.itemRowDone : null]}
+                style={styles.itemRow}
                 testID={`todo-item-${todo.id}`}
               >
                 <View
                   style={[
                     styles.checkbox,
+                    isDone ? styles.itemRowDone : null,
                     isDone
                       ? { backgroundColor: TOKENS.primary, borderColor: TOKENS.primary }
                       : styles.checkboxIdle,
@@ -158,12 +138,11 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
                 >
                   {isDone ? <IconCheck size={12} color={TOKENS.surface} /> : null}
                 </View>
-                <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null]}>
+                <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null, isDone ? styles.itemRowDone : null]}>
                   {todo.title}
                 </Text>
               </Pressable>
-            </Swipeable>
-            </Fragment>
+            </SwipeToDelete>
           );
         })}
 
@@ -241,7 +220,8 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 7,
     paddingHorizontal: 10,
-    borderRadius: RADIUS.md,
+    // Opaque, so the red 삭제 behind it shows only while swiping.
+    backgroundColor: TOKENS.surface,
   },
   itemRowDone: {
     opacity: 0.5,
@@ -268,15 +248,6 @@ const styles = StyleSheet.create({
   },
   itemLabelDone: {
     textDecorationLine: 'line-through',
-  },
-  swipeDeleteAction: {
-    backgroundColor: TOKENS.danger,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    marginVertical: 0,
-    borderRadius: RADIUS.md,
-    marginLeft: SPACING.xs,
   },
   // The form's FormActionRow look (준비물 추가): 44pt row, hairline above.
   addRow: {

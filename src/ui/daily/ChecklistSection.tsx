@@ -1,5 +1,5 @@
 import { Fragment, memo, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   useChecklistCompletionStore,
@@ -13,6 +13,7 @@ import { expandOccurrences } from '../../domain/occurrences';
 import { isChecklistItemVisibleOn } from '../../domain/checklist-membership';
 import type { Child, ChecklistItem, ISODate, Occurrence } from '../../domain/types';
 import { KidAvatar } from '../common/KidAvatar';
+import { SwipeToDelete } from '../common/SwipeToDelete';
 import { ItemLine } from '../home/ItemLine';
 import { FONT_FAMILIES } from '../fonts';
 import { IconCheck } from '../icons';
@@ -126,6 +127,20 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
   // exists for (itemId, viewed date). is_done is FROZEN and never read here.
   const done = flatItems.filter((i) => isComplete(i.id)).length;
 
+  const onDeleteItem = async (itemId: number): Promise<void> => {
+    const db = await getDb();
+    await useChecklistStore.getState().removeOne(db, itemId);
+  };
+  // A 매번 supply is shared by every occurrence of the class — deleting it
+  // here removes it from the other days too, so ask once.
+  const confirmRecurring = (label: string): Promise<boolean> =>
+    new Promise((resolve) => {
+      Alert.alert('매번 챙기는 준비물이에요', `"${label}"을(를) 삭제하면 다른 날에도 보이지 않아요.`, [
+        { text: '취소', style: 'cancel', onPress: () => resolve(false) },
+        { text: '삭제', style: 'destructive', onPress: () => resolve(true) },
+      ]);
+    });
+
   const onToggle = async (itemId: number): Promise<void> => {
     const db = await getDb();
     await useChecklistStore.getState().toggleDone(db, itemId, dateInt);
@@ -164,7 +179,13 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
                   {items.map((item, i) => {
                     const isDone = isComplete(item.id);
                     return (
-                      <Fragment key={item.id}>
+                      <SwipeToDelete
+                        key={item.id}
+                        onDelete={() => void onDeleteItem(item.id)}
+                        confirm={item.recurring ? () => confirmRecurring(item.label) : undefined}
+                        accessibilityLabel={item.label}
+                        testID={`checklist-row-${item.id}`}
+                      >
                       {/* Line between supplies, inset to the labels (iOS list). */}
                       {i > 0 ? <View style={styles.itemSeparator} /> : null}
                       <Pressable
@@ -174,12 +195,13 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
                         accessibilityRole="checkbox"
                         accessibilityState={{ checked: isDone }}
                         accessibilityLabel={`${occ.title} 준비물 ${item.label}`}
-                        style={[styles.itemRow, isDone ? styles.itemRowDone : null]}
+                        style={styles.itemRow}
                         testID={`checklist-item-${item.id}`}
                       >
                         <View
                           style={[
                             styles.checkbox,
+                            isDone ? styles.itemRowDone : null,
                             isDone
                               ? { backgroundColor: palette.source, borderColor: palette.source }
                               : styles.checkboxIdle,
@@ -187,11 +209,11 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
                         >
                           {isDone ? <IconCheck size={12} color={TOKENS.surface} /> : null}
                         </View>
-                        <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null]}>
+                        <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null, isDone ? styles.itemRowDone : null]}>
                           {item.label}
                         </Text>
                       </Pressable>
-                      </Fragment>
+                      </SwipeToDelete>
                     );
                   })}
                 </View>
@@ -258,7 +280,8 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 7,
     paddingHorizontal: 10,
-    borderRadius: RADIUS.md,
+    // Opaque, so the red 삭제 behind it shows only while swiping.
+    backgroundColor: TOKENS.surface,
   },
   // Inset to the label: card padding 6 + row padding 10 + checkbox 22 + gap 10.
   itemSeparator: {
