@@ -22,6 +22,7 @@ import { useTodosStore } from '../src/state/todos-store';
 import { usePickupLogStore } from '../src/state/pickup-log-store';
 import { useChecklistCompletionStore } from '../src/state/checklist-completion-store';
 import { useNotifSettingsStore } from '../src/state/notif-settings-store';
+import { useGuardianStore } from '../src/state/guardian-store';
 import { TOKENS } from '../src/ui/palette';
 
 export { ErrorBoundary } from 'expo-router';
@@ -111,6 +112,7 @@ export default function RootLayout() {
           useTodosStore.getState().load(db),
           usePickupLogStore.getState().load(db),
           useChecklistCompletionStore.getState().load(db),
+          useGuardianStore.getState().load(db),
         ]);
         for (const r of v2Results) {
           if (r.status === 'rejected') {

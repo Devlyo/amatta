@@ -128,8 +128,10 @@ export async function exportDb(
     `SELECT id, checklist_item_id, occurrence_date, completed_at
      FROM checklist_completion ORDER BY id ASC`,
   );
+  // Guardian calendar choices are device-specific calendar ids (ADR-008) —
+  // meaningless on another device, so they never leave this one.
   const appSettingsRows = await db.getAllAsync<ExportedAppSetting>(
-    'SELECT key, value FROM app_settings ORDER BY key ASC',
+    "SELECT key, value FROM app_settings WHERE key NOT LIKE 'guardian\\_%' ESCAPE '\\' ORDER BY key ASC",
   );
 
   const envelope: ExportEnvelope = {

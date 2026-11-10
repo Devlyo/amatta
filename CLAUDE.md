@@ -12,7 +12,7 @@
 - **State**: Zustand (per-slice)
 - **DB 접근**: raw SQL + 손수 마이그레이션 (PRAGMA user_version 트랜잭션 안쪽)
 - **Recurrence**: daysOfWeek 비트마스크 + ScheduleException 단일 예외 only (NO RRULE)
-- **캘린더 개편 (ADR-007, 2026-11 Accepted)**: 독 = **홈 · 캘린더 · 설정**(아이콘만) + 오른쪽 둥근 `+`, 앱 첫 화면 = **홈(오늘 요약: 다음 픽업·지금/다음·오늘 챙길 것·오늘 할 일)**. 캘린더 = **일·주·월** 한 화면(기본 일간, 아이콘 세그먼트, 오늘 버튼 없음). 사람 필터 = 기본 모두 활성, 탭 = 켜기/끄기, 길게 = 그 사람만(꺼짐 20%, 혼자 켜짐 80%). 타임 블록 = 자녀 색 60% + 1.5px 진한 막대, `3–4PM` 표기(AM/PM), 겹침 = 계단식 포개기. 월간 `+N`, 핀치 확대(월간 2줄 / 주간 4일). 시스템 화면 바탕 `#F2F1EF` + 흰 박스 radius 14. 보호자 일정 = 아이폰 캘린더 읽기 전용(저장 안 함). 하루 종일·종료 전 알림 = 마이그레이션 v8. 계획: `.omc/plans/ralplan-calendar-redesign.md`.
+- **캘린더 개편 (ADR-007, 2026-11 Accepted)**: 독 = **홈 · 캘린더 · 설정**(아이콘만) + 오른쪽 둥근 `+`, 앱 첫 화면 = **홈(오늘 요약: 다음 픽업·지금/다음·오늘 챙길 것·오늘 할 일)**. 캘린더 = **일·주·월** 한 화면(기본 일간, 아이콘 세그먼트, 오늘 버튼 없음). 사람 필터 = 기본 모두 활성, 탭 = 켜기/끄기, 길게 = 그 사람만(꺼짐 20%, 혼자 켜짐 80%). 타임 블록 = 자녀 색 60% + 1.5px 진한 막대, `3–4PM` 표기(AM/PM), 겹침 = 계단식 포개기. 월간 `+N`, 핀치 확대(월간 2줄 / 주간 4일). 시스템 화면 바탕 `#F2F1EF` + 흰 박스 radius 14. 보호자 일정 = 아이폰 캘린더 읽기 + **앱에서 추가 시 기기 캘린더에 쓰기**(ADR-008, SQLite 저장 안 함). 하루 종일·종료 전 알림 = 마이그레이션 v8. 계획: `.omc/plans/ralplan-calendar-redesign.md`.
 - **그리드**: **0–24시 축(ADR-007)** / 자녀 최대 4명 + 보호자 열(보호자 2 후속 — 사람 6명까지 레이아웃 보장) / 주간 핀치 7→4→3→2일 / 6색 팔레트(+deep 톤) / 일정 타입 4종 (school|academy|activity|other)
 - **TS**: strict + noUncheckedIndexedAccess (NO exactOptionalPropertyTypes)
 - **온라인 기능 일체 없음**: 회원가입·로그인·가족공유·클라우드동기화 모두 비목표
@@ -34,7 +34,7 @@
 | Architect/Critic 리뷰 | `.omc/plans/ralplan-schedul-app-v2.{architect,critic}-review.md` |
 | 보류된 결정 | `.omc/plans/open-questions.md` |
 | 제품 PRD·페르소나 | `docs/product/` |
-| 아키텍처·ADR | `docs/architecture/` (ADR-001 stack lock, ADR-002 prep·todos·pickup, ADR-003 pickup carousel + NOW tick, **ADR-004 modal sheets — 네이티브 formSheet/modal, gorhom 미사용**, ADR-006 PREP-RECUR 회차별 완료, **ADR-006a 준비물 반복 ↻ pill — 반복 일정 종속 노출**, **ADR-007 캘린더 개편 — 홈·일주월·보호자 캘린더·UI 통일**) |
+| 아키텍처·ADR | `docs/architecture/` (ADR-001 stack lock, ADR-002 prep·todos·pickup, ADR-003 pickup carousel + NOW tick, **ADR-004 modal sheets — 네이티브 formSheet/modal, gorhom 미사용**, ADR-006 PREP-RECUR 회차별 완료, **ADR-006a 준비물 반복 ↻ pill — 반복 일정 종속 노출**, **ADR-007 캘린더 개편 — 홈·일주월·보호자 캘린더·UI 통일**, **ADR-008 보호자 일정 쓰기 — 새 일정 화면에서 보호자 → 기기 캘린더**) |
 | UI/UX 가이드 | `docs/design/` |
 | 회의록 | `docs/meetings/` |
 | 로드맵·백로그·스프린트 | `schedule/` |
