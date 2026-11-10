@@ -49,7 +49,7 @@ describe('WeekView', () => {
   ];
 
   function renderWeek(zoomed: boolean, extra: Partial<React.ComponentProps<typeof WeekView>> = {}) {
-    const days = visibleWeekDays(ISO('2026-11-10'), zoomed);
+    const days = visibleWeekDays(ISO('2026-11-10'), zoomed ? 4 : 7);
     render(
       <WeekView
         days={days}
@@ -166,5 +166,46 @@ describe('MonthView', () => {
     renderMonth(false, [2]);
     expect(style('month-chip-2026-11-10-3').opacity).toBe(0.2);
     expect(style('month-chip-2026-11-10-2').opacity).toBe(1);
+  });
+});
+
+describe('WeekView — many people (6) in a narrow day column', () => {
+  test('six overlapping blocks fan out with distinct, in-column offsets', () => {
+    const six: Child[] = [1, 2, 3, 4, 5].map((id) => ({
+      id,
+      name: `k${id}`,
+      colorIndex: (id % 6) as ColorIndex,
+      avatar: 'face-wink',
+      createdAt: ISO('2026-01-01'),
+    }));
+    const occ6 = [1, 2, 3, 4, 5].map((id) =>
+      occ(id, id, '2026-11-10', 9 * 60, (13 + id / 10) * 60, `학교${id}`, 'school'),
+    );
+    render(
+      <WeekView
+        days={visibleWeekDays(ISO('2026-11-10'), 7)}
+        today={ISO('2026-11-10')}
+        kids={six}
+        occurrences={occ6}
+        nowMinutes={13 * 60}
+        inactive={[]}
+        zoomed={false}
+        scrollKey="w"
+        onPressOccurrence={() => {}}
+        onPressDay={() => {}}
+      />,
+    );
+    fireEvent(screen.getByTestId('week-view'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: TIME_GUTTER + 7 * 50, height: 600 } },
+    });
+    const lefts = [1, 2, 3, 4, 5].map((id) => style(`week-block-${id}|2026-11-10`).left);
+    const widths = [1, 2, 3, 4, 5].map((id) => style(`week-block-${id}|2026-11-10`).width);
+    expect(new Set(lefts).size).toBe(5); // no two stacked on the same spot
+    const columnLeft = 2 * 50; // Tue column
+    for (let i = 0; i < 5; i += 1) {
+      expect(lefts[i]).toBeGreaterThanOrEqual(columnLeft);
+      expect((lefts[i] ?? 0) + (widths[i] ?? 0)).toBeLessThanOrEqual(columnLeft + 50);
+      expect(widths[i]).toBeGreaterThan(20); // deepest still ≈45% of the column
+    }
   });
 });

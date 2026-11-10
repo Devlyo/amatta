@@ -1,4 +1,5 @@
 import {
+  cascadeStep,
   clipToDay,
   layoutCascade,
   type CascadeInput,
@@ -92,7 +93,7 @@ describe('layoutCascade', () => {
 
   test('keeps the input fields on each placement', () => {
     const [p] = layoutCascade([item('a', 60, 120, 3)]);
-    expect(p).toEqual({ id: 'a', column: 3, start: 60, end: 120, level: 0 });
+    expect(p).toEqual({ id: 'a', column: 3, start: 60, end: 120, level: 0, depth: 1 });
   });
 });
 
@@ -121,5 +122,33 @@ describe('clipToDay', () => {
 
   test('custom axis bounds', () => {
     expect(clipToDay(5 * H, 8 * H, 6 * H, 25 * H)).toEqual({ start: 6 * H, end: 8 * H });
+  });
+});
+
+describe('cascade depth + step (many people in a narrow column)', () => {
+  test('depth = levels used by the whole overlap group', () => {
+    const out = layoutCascade([
+      item('a', 9 * H, 14 * H),
+      item('b', 9 * H, 13 * H),
+      item('c', 9 * H + 30, 15 * H),
+      item('d', 16 * H, 17 * H), // separate group
+    ]);
+    const depth = Object.fromEntries(out.map((p) => [p.id, p.depth]));
+    expect(depth).toEqual({ a: 3, b: 3, c: 3, d: 1 });
+  });
+
+  test('six overlapping people get six distinct levels', () => {
+    const six = [1, 2, 3, 4, 5, 6].map((i) => item(`k${i}`, 9 * H, (13 + i / 10) * H));
+    const out = layoutCascade(six);
+    expect(new Set(out.map((p) => p.level)).size).toBe(6);
+    expect(out.every((p) => p.depth === 6)).toBe(true);
+  });
+
+  test('step shrinks so the deepest block keeps 45% of the column', () => {
+    expect(cascadeStep(50, 1, 15)).toBe(0);
+    expect(cascadeStep(50, 2, 15)).toBe(15);
+    const step = cascadeStep(50, 6, 15);
+    expect(step).toBeCloseTo(5.5);
+    expect(50 - 5 * step).toBeCloseTo(22.5); // 45% of 50
   });
 });

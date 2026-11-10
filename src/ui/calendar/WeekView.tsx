@@ -9,7 +9,7 @@ import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
-import { clipToDay, layoutCascade } from '../../domain/layout';
+import { cascadeStep, clipToDay, layoutCascade } from '../../domain/layout';
 import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
@@ -159,12 +159,12 @@ function WeekViewImpl({
               }
         }
         renderColumns={({ columnWidth, y }) =>
-          placed.map(({ id, column, start, end, level, occ }) => {
+          placed.map(({ id, column, start, end, level, depth, occ }) => {
             const kid = kidById.get(occ.childId);
             if (kid === undefined) return null;
             const palette = getKidPalette(occ.colorIndex);
             const emphasis = emphasisOf(inactive, everyone, kid.id);
-            const indent = Math.min(level * indentStep, columnWidth / 2);
+            const indent = level * cascadeStep(columnWidth, depth, indentStep);
             return (
               <TimeBlock
                 key={id}

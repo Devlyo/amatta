@@ -33,6 +33,27 @@ export interface CascadePlacement<K extends string | number> {
   end: Minutes;
   /** 0 = flush left; n = indented n steps and drawn above levels < n. */
   level: number;
+  /**
+   * Number of levels used by this item's overlap group (items linked by
+   * overlaps, transitively). Renderers size the indent step from it so a deep
+   * stack in a narrow column still fans out instead of piling up.
+   */
+  depth: number;
+}
+
+/**
+ * Indent step for a cascade: `base` px per level, shrunk so the deepest level
+ * still leaves `minWidthRatio` of the column for its block.
+ */
+export function cascadeStep(
+  columnWidth: number,
+  depth: number,
+  base: number,
+  minWidthRatio = 0.45,
+): number {
+  if (depth <= 1) return 0;
+  const room = columnWidth * (1 - minWidthRatio);
+  return Math.min(base, room / (depth - 1));
 }
 
 function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
@@ -61,10 +82,31 @@ export function layoutCascade<K extends string | number>(
     let level = 0;
     while (used.has(level)) level += 1;
 
-    const placement: CascadePlacement<K> = { ...item, level };
+    const placement: CascadePlacement<K> = { ...item, level, depth: 1 };
     placed.push(placement);
     placedByColumn.set(item.column, placed);
     out.push(placement);
+  }
+
+  // Overlap groups per column: in start order, a new group begins when an item
+  // starts at/after the latest end seen so far in the current group.
+  for (const placed of placedByColumn.values()) {
+    let group: CascadePlacement<K>[] = [];
+    let groupEnd = -Infinity;
+    const close = (): void => {
+      const depth = group.reduce((m, p) => Math.max(m, p.level + 1), 1);
+      for (const p of group) p.depth = depth;
+    };
+    for (const p of placed) {
+      if (group.length > 0 && p.start >= groupEnd) {
+        close();
+        group = [];
+        groupEnd = -Infinity;
+      }
+      group.push(p);
+      groupEnd = Math.max(groupEnd, p.end);
+    }
+    if (group.length > 0) close();
   }
   return out;
 }

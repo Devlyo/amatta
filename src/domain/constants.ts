@@ -22,7 +22,8 @@ export const GRID_START_HOUR = 6;
 // has reachable upcoming hours.
 export const GRID_END_HOUR = 25;
 export const GRID_SLOTS = (GRID_END_HOUR - GRID_START_HOUR) * 2;
-export const MAX_CHILDREN = 4;
+// ADR-007 (2026-11-10): raised 4 → 6 — one per palette colour / avatar.
+export const MAX_CHILDREN = 6;
 
 export const SCHEDULE_TYPES: readonly ScheduleType[] = [
   'school',

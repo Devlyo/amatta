@@ -3,6 +3,7 @@ import {
   monthCellChips,
   monthGridDates,
   showsInMonth,
+  nextWeekSpan,
   visibleWeekDays,
   weekSwipeDays,
 } from '../../../src/ui/calendar/calendar-layout';
@@ -11,20 +12,29 @@ import { shiftIsoMonth } from '../../../src/ui/utils/date';
 const ISO = (s: string) => s as unknown as ISODate;
 const str = (d: ISODate) => d as unknown as string;
 
-describe('visibleWeekDays', () => {
-  test('normal: Sun..Sat of the anchor week', () => {
-    expect(visibleWeekDays(ISO('2026-11-10'), false).map(str)).toEqual([
+describe('visibleWeekDays / zoom levels', () => {
+  test('7: Sun..Sat of the anchor week', () => {
+    expect(visibleWeekDays(ISO('2026-11-10'), 7).map(str)).toEqual([
       '2026-11-08', '2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14',
     ]);
   });
-  test('zoomed: 4 days from the anchor', () => {
-    expect(visibleWeekDays(ISO('2026-11-10'), true).map(str)).toEqual([
-      '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13',
-    ]);
+  test('4 / 3 / 2: that many days from the anchor', () => {
+    expect(visibleWeekDays(ISO('2026-11-10'), 4).map(str)).toEqual(['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13']);
+    expect(visibleWeekDays(ISO('2026-11-10'), 3).map(str)).toEqual(['2026-11-10', '2026-11-11', '2026-11-12']);
+    expect(visibleWeekDays(ISO('2026-11-10'), 2).map(str)).toEqual(['2026-11-10', '2026-11-11']);
   });
-  test('swipe step', () => {
-    expect(weekSwipeDays(false)).toBe(7);
-    expect(weekSwipeDays(true)).toBe(4);
+  test('swipe moves by the visible span', () => {
+    expect(weekSwipeDays(7)).toBe(7);
+    expect(weekSwipeDays(2)).toBe(2);
+  });
+  test('pinch snaps to the nearest level, at least one step past the dead zone', () => {
+    expect(nextWeekSpan(7, 1.1)).toBe(4); // small pinch → next step
+    expect(nextWeekSpan(7, 2.4)).toBe(3); // 7/2.4 ≈ 2.9
+    expect(nextWeekSpan(7, 4)).toBe(2);
+    expect(nextWeekSpan(2, 0.5)).toBe(4);
+    expect(nextWeekSpan(2, 0.2)).toBe(7);
+    expect(nextWeekSpan(4, 1.0)).toBe(4); // no pinch → stay
+    expect(nextWeekSpan(2, 1.5)).toBe(2); // already max zoom
   });
 });
 

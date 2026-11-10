@@ -6,7 +6,7 @@
 import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { layoutCascade, clipToDay } from '../../domain/layout';
+import { cascadeStep, clipToDay, layoutCascade } from '../../domain/layout';
 import type { Child, Occurrence } from '../../domain/types';
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
 import { getKidPalette, TOKENS } from '../palette';
@@ -117,13 +117,13 @@ function DayViewImpl({
           return { color: p.source, deep: p.deep };
         }}
         renderColumns={({ columnWidth, y }) =>
-          placed.map(({ id, column, start, end, level, occ }) => {
+          placed.map(({ id, column, start, end, level, depth, occ }) => {
             const kid = kids[column];
             if (kid === undefined) return null;
             const palette = getKidPalette(occ.colorIndex);
             const emphasis = emphasisOf(inactive, everyone, kid.id);
             const top = y(start) + 1;
-            const indent = Math.min(level * INDENT, columnWidth / 2);
+            const indent = level * cascadeStep(columnWidth, depth, INDENT);
             return (
               <TimeBlock
                 key={id}
@@ -141,6 +141,9 @@ function DayViewImpl({
                 focused={emphasis === 'solo'}
                 dimmed={emphasis === 'inactive'}
                 needsPickup={occ.needsPickup}
+              // 5+ columns (many kids) → week-style compact blocks; time only if it fits.
+              compact={columns >= 5}
+              showTime={columns < 5 || columnWidth >= 64}
                 accessibilityLabel={`${kid.name} ${occ.title}, ${fmtRange(occ.startMinutes, occ.endMinutes)}${level > 0 ? ', 다른 일정과 시간이 겹침' : ''}`}
                 onPress={() => onPressOccurrence(occ)}
               />

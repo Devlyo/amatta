@@ -29,6 +29,10 @@ interface Props {
 
 /** Hold time for "this person only". */
 const LONG_PRESS_MS = 350;
+/** From this many pills (kids + 보호자) on, pills switch to the compact size. */
+const COMPACT_FROM = 5;
+/** From this many pills on, names are dropped (avatar only; name stays the a11y label). */
+const AVATAR_ONLY_FROM = 7;
 
 function Pill({
   label,
@@ -38,6 +42,8 @@ function Pill({
   selected,
   onPress,
   onLongPress,
+  compact,
+  avatarOnly,
   testID,
   children,
 }: {
@@ -48,6 +54,8 @@ function Pill({
   selected: boolean;
   onPress: () => void;
   onLongPress: () => void;
+  compact: boolean;
+  avatarOnly: boolean;
   testID: string;
   children: React.ReactNode;
 }): React.ReactElement {
@@ -63,13 +71,16 @@ function Pill({
       testID={testID}
       style={[
         styles.pill,
+        compact ? styles.pillCompact : null,
         { borderColor: border, backgroundColor: fill, opacity: faded ? PILL_FADED_OPACITY : 1 },
       ]}
     >
       {children}
-      <Text style={styles.name} numberOfLines={1}>
-        {label}
-      </Text>
+      {avatarOnly ? null : (
+        <Text style={compact ? styles.nameCompact : styles.name} numberOfLines={1}>
+          {label}
+        </Text>
+      )}
     </Pressable>
   );
 }
@@ -77,6 +88,10 @@ function Pill({
 function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.ReactElement {
   const everyone: PersonKey[] = [...kids.map((k) => k.id), 'guardian'];
   const faded = (key: PersonKey): boolean => emphasisOf(inactive, everyone, key) === 'inactive';
+  // Up to 6 people (5 kids + 보호자) must fit one row on a 375pt phone.
+  const compact = everyone.length >= COMPACT_FROM;
+  const avatarOnly = everyone.length >= AVATAR_ONLY_FROM;
+  const avatar = avatarOnly ? 24 : compact ? 18 : 22;
   return (
     <View style={styles.row}>
       {kids.map((kid) => {
@@ -91,9 +106,11 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.Re
             selected={!faded(kid.id)}
             onPress={() => onToggle(kid.id)}
             onLongPress={() => onSolo(kid.id)}
+            compact={compact}
+            avatarOnly={avatarOnly}
             testID={`kid-filter-${kid.id}`}
           >
-            <KidAvatar child={kid} size={22} />
+            <KidAvatar child={kid} size={avatar} />
           </Pill>
         );
       })}
@@ -105,10 +122,12 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.Re
         selected={!faded('guardian')}
         onPress={() => onToggle('guardian')}
         onLongPress={() => onSolo('guardian')}
+        compact={compact}
+        avatarOnly={avatarOnly}
         testID="kid-filter-guardian"
       >
-        <View style={styles.guardianAvatar}>
-          <IconPerson size={14} color={TOKENS.ink} />
+        <View style={[styles.guardianAvatar, { width: avatar, height: avatar }]}>
+          <IconPerson size={avatarOnly ? 15 : compact ? 12 : 14} color={TOKENS.ink} />
         </View>
       </Pill>
     </View>
@@ -136,7 +155,9 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.full,
     borderWidth: 1.5,
   },
+  pillCompact: { gap: 3, paddingHorizontal: 4 },
   name: { ...TYPE.footnote, fontFamily: TYPE.caption.fontFamily, color: TOKENS.ink, flexShrink: 1 },
+  nameCompact: { ...TYPE.caption2, color: TOKENS.ink, flexShrink: 1, letterSpacing: -0.4 },
   guardianAvatar: {
     width: 22,
     height: 22,

@@ -152,21 +152,21 @@ describe('childrenRepo', () => {
     expect(all).toHaveLength(4);
   });
 
-  test('4-child cap: create() throws ChildCapError when adding a 5th child', async () => {
-    for (let i = 0; i < 4; i++) {
+  test('6-child cap: create() throws ChildCapError when adding a 7th child', async () => {
+    for (let i = 0; i < 6; i++) {
       await childrenRepo.create(db as never, { name: `자녀${i}`, colorIndex: 0 });
     }
     await expect(
-      childrenRepo.create(db as never, { name: '5번째', colorIndex: 0 }),
+      childrenRepo.create(db as never, { name: '7번째', colorIndex: 0 }),
     ).rejects.toBeInstanceOf(ChildCapError);
   });
 
   test('ChildCapError has code CHILD_CAP_EXCEEDED', async () => {
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       await childrenRepo.create(db as never, { name: `자녀${i}`, colorIndex: 0 });
     }
     try {
-      await childrenRepo.create(db as never, { name: '5번째', colorIndex: 0 });
+      await childrenRepo.create(db as never, { name: '7번째', colorIndex: 0 });
       fail('expected ChildCapError');
     } catch (e) {
       expect(e).toBeInstanceOf(ChildCapError);

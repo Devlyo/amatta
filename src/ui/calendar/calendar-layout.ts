@@ -3,15 +3,34 @@
 import type { ISODate, Occurrence } from '../../domain/types';
 import { shiftIsoDate, weekDatesIso, weekStartIso } from '../utils/date';
 
-/** Week view: Sun..Sat of the anchor's week, or (pinch-zoomed) 4 days from the anchor. */
-export function visibleWeekDays(anchor: ISODate, zoomed: boolean): ISODate[] {
-  if (!zoomed) return weekDatesIso(anchor);
-  return [0, 1, 2, 3].map((i) => shiftIsoDate(anchor, i));
+/** Week view zoom levels: days on screen (7 = Sun..Sat; pinch out → 4 → 3 → 2). */
+export const WEEK_SPANS = [7, 4, 3, 2] as const;
+export type WeekSpan = (typeof WEEK_SPANS)[number];
+
+/** Week view: Sun..Sat of the anchor's week, or `span` days from the anchor. */
+export function visibleWeekDays(anchor: ISODate, span: WeekSpan): ISODate[] {
+  if (span === 7) return weekDatesIso(anchor);
+  return Array.from({ length: span }, (_, i) => shiftIsoDate(anchor, i));
 }
 
 /** How far one swipe moves the week view. */
-export function weekSwipeDays(zoomed: boolean): number {
-  return zoomed ? 4 : 7;
+export function weekSwipeDays(span: WeekSpan): number {
+  return span;
+}
+
+/**
+ * Zoom level after a pinch of `scale` (>1 = fingers apart = zoom in = fewer
+ * days). Snaps to the level nearest `current / scale`, moving at least one step
+ * once the pinch passes a small dead zone.
+ */
+export function nextWeekSpan(current: WeekSpan, scale: number): WeekSpan {
+  const target = current / scale;
+  let best: WeekSpan = current;
+  for (const s of WEEK_SPANS) if (Math.abs(s - target) < Math.abs(best - target)) best = s;
+  const i = WEEK_SPANS.indexOf(current);
+  if (best === current && scale > 1.08 && i < WEEK_SPANS.length - 1) best = WEEK_SPANS[i + 1] as WeekSpan;
+  if (best === current && scale < 0.92 && i > 0) best = WEEK_SPANS[i - 1] as WeekSpan;
+  return best;
 }
 
 /**

@@ -172,3 +172,27 @@ describe('DayView', () => {
     jest.useRealTimers();
   });
 });
+
+describe('KidFilterBar — up to 6 kids + 보호자', () => {
+  const many = (n: number): Child[] =>
+    Array.from({ length: n }, (_, i) => ({
+      id: i + 1,
+      name: `아이${i + 1}`,
+      colorIndex: (i % 6) as ColorIndex,
+      avatar: 'face-wink',
+      createdAt: ISO('2026-01-01'),
+    }));
+
+  test('4 kids + 보호자 (5 pills): names still shown (compact)', () => {
+    render(<KidFilterBar kids={many(4)} inactive={[]} onToggle={() => {}} onSolo={() => {}} />);
+    expect(screen.getByText('아이4')).toBeTruthy();
+    expect(screen.getByText('보호자')).toBeTruthy();
+  });
+
+  test('6 kids + 보호자 (7 pills): avatar only, names kept as labels', () => {
+    render(<KidFilterBar kids={many(6)} inactive={[]} onToggle={() => {}} onSolo={() => {}} />);
+    expect(screen.queryByText('아이6')).toBeNull();
+    expect(screen.getByLabelText('아이6')).toBeTruthy();
+    expect(screen.getByLabelText('보호자')).toBeTruthy();
+  });
+});

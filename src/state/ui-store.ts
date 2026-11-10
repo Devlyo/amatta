@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { soloActive, toggleActive, type PersonKey } from '../domain/people-filter';
+import type { WeekSpan } from '../ui/calendar/calendar-layout';
 import type { ISODate } from '../domain/types';
 import { todayIso } from '../ui/utils/date';
 
@@ -43,10 +44,12 @@ interface UiState {
 
   calendarView: CalendarView;
   setCalendarView: (view: CalendarView) => void;
-  /** Pinch zoom per view (session only): week = 4 days, month = 2-line chips. */
-  weekZoomed: boolean;
+  /** Week view days on screen (pinch): 7 / 4 / 3 / 2. Session only. */
+  weekSpan: WeekSpan;
+  setWeekSpan: (span: WeekSpan) => void;
+  /** Month view pinch zoom (2-line chips). Session only. */
   monthZoomed: boolean;
-  setZoomed: (view: 'week' | 'month', zoomed: boolean) => void;
+  setMonthZoomed: (zoomed: boolean) => void;
   /** People switched off in the filter (faded). Empty = everyone active. */
   inactivePeople: PersonKey[];
   /** Short tap on a filter pill. */
@@ -74,9 +77,10 @@ export const useUiStore = create<UiState>()((set) => ({
 
   calendarView: 'day',
   setCalendarView: (view) => set({ calendarView: view }),
-  weekZoomed: false,
+  weekSpan: 7,
+  setWeekSpan: (span) => set({ weekSpan: span }),
   monthZoomed: false,
-  setZoomed: (view, zoomed) => set(view === 'week' ? { weekZoomed: zoomed } : { monthZoomed: zoomed }),
+  setMonthZoomed: (zoomed) => set({ monthZoomed: zoomed }),
   inactivePeople: [],
   togglePerson: (key) => set((s) => ({ inactivePeople: toggleActive(s.inactivePeople, key) })),
   soloPerson: (key, everyone) =>
