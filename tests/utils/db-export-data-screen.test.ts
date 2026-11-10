@@ -183,7 +183,9 @@ describe('data.tsx backup-promise consistency', () => {
     const src = readFileSync(resolve(__dirname, '../../app/settings/data.tsx'), 'utf8');
     expect(src).toContain('파일에서 가져오기');
     expect(src).toContain("restoreFromBackup('settings'");
-    expect(src).toContain('지금 데이터가 모두 그 파일 내용으로 바뀌어요');
+    // The replace-everything warning lives in the confirm alert.
+    const restoreSrc = readFileSync(resolve(__dirname, '../../src/state/restore.ts'), 'utf8');
+    expect(restoreSrc).toContain('지금 앱에 있는 데이터는 모두 지워져요');
     expect(src).not.toContain('v1.1 출시 예정');
     expect(src).not.toContain('v1.1에서 지원돼요');
   });

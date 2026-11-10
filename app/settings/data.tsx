@@ -130,9 +130,6 @@ export default function DataScreen(): React.ReactElement {
             </Text>
           </Pressable>
         </HomeSection>
-        <Text style={ss.footnote}>
-          WeMoa에서 내보낸 파일을 고르면, 지금 데이터가 모두 그 파일 내용으로 바뀌어요.
-        </Text>
       </View>
     </SettingsDetailScreen>
   );
