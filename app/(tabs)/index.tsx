@@ -23,6 +23,7 @@ import { usePickupLogStore } from '../../src/state/pickup-log-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useUiStore } from '../../src/state/ui-store';
 import { useNowMinutes } from '../../src/ui/calendar/useNowMinutes';
+import { useGuardianEvents } from '../../src/ui/calendar/useGuardianEvents';
 import { ChecklistSection } from '../../src/ui/daily/ChecklistSection';
 import { PickupCarousel } from '../../src/ui/daily/PickupCarousel';
 import { TodoSection } from '../../src/ui/daily/TodoSection';
@@ -66,6 +67,9 @@ export default function HomeScreen(): React.ReactElement {
     () => nowAndNextByKid(occurrences, kids.map((k) => k.id), nowMinutes),
     [occurrences, kids, nowMinutes],
   );
+
+  // Today's guardian events — only to flag a pickup they clash with.
+  const guardianToday = useGuardianEvents(today, today);
 
   const pickupLogIsComplete = useCallback(
     (scheduleId: number, occurrenceDateInt: number): boolean =>
@@ -111,6 +115,7 @@ export default function HomeScreen(): React.ReactElement {
           nowMinutes={nowMinutes}
           currentDate={today}
           pickupLogIsComplete={pickupLogIsComplete}
+          guardianEvents={guardianToday}
         />
 
         <HomeSection title="지금" actionLabel="캘린더" onPressAction={handleOpenCalendar}>

@@ -10,7 +10,7 @@ import { AppState } from 'react-native';
 import { getPermission } from '../../calendar/guardian-calendar';
 import type { GuardianOccurrence } from '../../domain/guardian';
 import type { ISODate } from '../../domain/types';
-import { useGuardianStore } from '../../state/guardian-store';
+import { rangeKey, useGuardianStore } from '../../state/guardian-store';
 
 export function useGuardianEvents(from: ISODate, to: ISODate): readonly GuardianOccurrence[] {
   const enabled = useGuardianStore((s) => s.enabled);
@@ -18,8 +18,7 @@ export function useGuardianEvents(from: ISODate, to: ISODate): readonly Guardian
   const calendarIds = useGuardianStore((s) => s.calendarIds);
   const calendars = useGuardianStore((s) => s.calendars);
   const version = useGuardianStore((s) => s.version);
-  const events = useGuardianStore((s) => s.events);
-  const range = useGuardianStore((s) => s.range);
+  const events = useGuardianStore((s) => s.byRange[rangeKey(from, to)]);
 
   useEffect(() => {
     void useGuardianStore.getState().fetchRange(from, to);
@@ -39,9 +38,7 @@ export function useGuardianEvents(from: ISODate, to: ISODate): readonly Guardian
     return () => sub.remove();
   }, [enabled]);
 
-  // Only hand out events read for this range (a stale range would misplace them).
-  const fresh = range !== null && range.from === from && range.to === to;
-  return enabled && fresh ? events : EMPTY;
+  return enabled && events !== undefined ? events : EMPTY;
 }
 
 const EMPTY: readonly GuardianOccurrence[] = [];

@@ -1,6 +1,6 @@
 import * as Calendar from 'expo-calendar';
 
-import { useGuardianStore, visibleCalendarIds } from '../../src/state/guardian-store';
+import { rangeKey, useGuardianStore, visibleCalendarIds } from '../../src/state/guardian-store';
 import type { ISODate } from '../../src/domain/types';
 
 const ISO = (s: string) => s as unknown as ISODate;
@@ -63,7 +63,9 @@ test('granted → on, persisted, calendars listed; events read only from chosen 
   ] as never);
   await useGuardianStore.getState().fetchRange(ISO('2026-11-08'), ISO('2026-11-14'));
   expect(mocked.getEventsAsync.mock.calls[0]?.[0]).toEqual(['home']);
-  expect(useGuardianStore.getState().events).toMatchObject([{ title: '병원', date: '2026-11-10', startMinutes: 600 }]);
+  expect(useGuardianStore.getState().byRange[rangeKey(ISO('2026-11-08'), ISO('2026-11-14'))]).toMatchObject([
+    { title: '병원', date: '2026-11-10', startMinutes: 600 },
+  ]);
 });
 
 test('load restores the choices; vanished calendar ids are ignored', async () => {
@@ -81,5 +83,5 @@ test('load restores the choices; vanished calendar ids are ignored', async () =>
 test('off or no permission → no device reads', async () => {
   await useGuardianStore.getState().fetchRange(ISO('2026-11-08'), ISO('2026-11-14'));
   expect(mocked.getEventsAsync).not.toHaveBeenCalled();
-  expect(useGuardianStore.getState().events).toEqual([]);
+  expect(useGuardianStore.getState().byRange[rangeKey(ISO('2026-11-08'), ISO('2026-11-14'))]).toEqual([]);
 });

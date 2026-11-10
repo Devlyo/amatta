@@ -31,9 +31,11 @@ interface GuardianState {
   writeCalendarId: string | null;
   permission: CalendarPermission | 'unknown';
   calendars: DeviceCalendar[];
-  /** Pieces for `range` (one per day touched). */
-  events: GuardianOccurrence[];
-  range: { from: ISODate; to: ISODate } | null;
+  /**
+   * Pieces (one per day touched) per fetched range, keyed `from|to` — the
+   * home tab (today) and the calendar tab (its view) read different ranges.
+   */
+  byRange: Record<string, GuardianOccurrence[]>;
   /** Bumped whenever events must be re-read (AppState focus, writes, settings). */
   version: number;
 
@@ -55,8 +57,7 @@ const INITIAL = {
   writeCalendarId: null,
   permission: 'unknown' as const,
   calendars: [],
-  events: [],
-  range: null,
+  byRange: {},
   version: 0,
 };
 
@@ -66,8 +67,10 @@ export function visibleCalendarIds(calendars: readonly DeviceCalendar[], chosen:
   return chosen === null ? all : chosen.filter((id) => all.includes(id));
 }
 
-// Guards against an older fetch landing after a newer one.
-let fetchSeq = 0;
+export const rangeKey = (from: ISODate, to: ISODate): string => `${from as unknown as string}|${to as unknown as string}`;
+
+// Guards against an older fetch (of the same range) landing after a newer one.
+const fetchSeq = new Map<string, number>();
 
 export const useGuardianStore = create<GuardianState>()((set, get) => ({
   ...INITIAL,
@@ -104,7 +107,7 @@ export const useGuardianStore = create<GuardianState>()((set, get) => ({
       await get().refreshCalendars();
     }
     await appSettingsRepo.setBool(db, GUARDIAN_SETTINGS_KEYS.enabled, on);
-    set((s) => ({ enabled: on, events: on ? s.events : [], version: s.version + 1 }));
+    set((s) => ({ enabled: on, byRange: on ? s.byRange : {}, version: s.version + 1 }));
     return true;
   },
 
@@ -130,18 +133,20 @@ export const useGuardianStore = create<GuardianState>()((set, get) => ({
   },
 
   fetchRange: async (from, to) => {
+    const key = rangeKey(from, to);
+    const put = (events: GuardianOccurrence[]): void => set((s) => ({ byRange: { ...s.byRange, [key]: events } }));
     const { enabled, permission, calendars, calendarIds } = get();
     if (!enabled || permission !== 'granted') {
-      set({ events: [], range: { from, to } });
+      put([]);
       return;
     }
-    const seq = ++fetchSeq;
+    const seq = (fetchSeq.get(key) ?? 0) + 1;
+    fetchSeq.set(key, seq);
     try {
       const raw = await deviceCalendar.fetchEvents(visibleCalendarIds(calendars, calendarIds), from, to);
-      if (seq !== fetchSeq) return;
-      set({ events: guardianOccurrences(raw, from, to), range: { from, to } });
+      if (fetchSeq.get(key) === seq) put(guardianOccurrences(raw, from, to));
     } catch {
-      if (seq === fetchSeq) set({ events: [], range: { from, to } });
+      if (fetchSeq.get(key) === seq) put([]);
     }
   },
 

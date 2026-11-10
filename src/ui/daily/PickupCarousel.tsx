@@ -16,12 +16,18 @@ import {
   type NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 
+import type { GuardianOccurrence } from '../../domain/guardian';
+import { guardianClashes } from '../../domain/pickup-conflict';
 import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
+import { TYPE } from '../typography';
+import { fmtRange } from '../utils/date';
 import { PickupCard } from './PickupCard';
 import { computePickupCards } from './pickup-data';
 
@@ -31,6 +37,8 @@ interface Props {
   nowMinutes: number;
   currentDate: ISODate;
   pickupLogIsComplete: (scheduleId: number, occurrenceDateInt: number) => boolean;
+  /** Today's guardian events — a clash with the shown pickup gets one line under the card. */
+  guardianEvents?: readonly GuardianOccurrence[];
 }
 
 export function PickupCarousel({
@@ -39,6 +47,7 @@ export function PickupCarousel({
   nowMinutes,
   currentDate,
   pickupLogIsComplete,
+  guardianEvents = [],
 }: Props): React.ReactElement | null {
   const [activeIdx, setActiveIdx] = useState(0);
   const [viewportW, setViewportW] = useState(0);
@@ -98,6 +107,20 @@ export function PickupCarousel({
           </View>
         ) : null}
       </View>
+      {(() => {
+        // Screen only — never a push (ADR-007 owner decision, ADR-002/003).
+        const card = cards[Math.min(activeIdx, cards.length - 1)];
+        const clash = card === undefined ? undefined : guardianClashes(card.pickupMinutes, guardianEvents)[0];
+        if (clash === undefined) return null;
+        return (
+          <View style={styles.clash} testID="pickup-guardian-clash" accessibilityRole="alert">
+            <Text style={styles.clashIcon}>⚠︎</Text>
+            <Text style={styles.clashText}>
+              보호자 일정 ‘{clash.title}’({fmtRange(clash.startMinutes, clash.endMinutes)})과 픽업 시간이 겹쳐요
+            </Text>
+          </View>
+        );
+      })()}
     </View>
   );
 }
@@ -105,7 +128,18 @@ export function PickupCarousel({
 const styles = StyleSheet.create({
   // Full width of the home content column (the screen supplies the side
   // padding), same as the grouped boxes below it.
-  outer: {},
+  outer: { gap: SPACING.sm },
+  clash: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.box,
+    backgroundColor: TOKENS.surface,
+  },
+  clashIcon: { ...TYPE.subhead, color: TOKENS.danger },
+  clashText: { ...TYPE.subhead, color: TOKENS.ink, flex: 1 },
   viewport: {
     overflow: 'hidden',
     borderRadius: RADIUS.box,

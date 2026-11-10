@@ -37,6 +37,8 @@ export interface PickupCardData {
   what: string;
   etaText: string;
   childColorIndex: ColorIndex;
+  /** Pickup moment = the event's end (minutes from midnight). */
+  pickupMinutes: number;
 }
 
 function fmtTimeShort(minutes: number): string {
@@ -106,5 +108,6 @@ export function computePickupCards(
     what: occ.title,
     etaText: fmtEta(nowMinutes, occ.endMinutes),
     childColorIndex: child.colorIndex,
+    pickupMinutes: occ.endMinutes,
   }));
 }

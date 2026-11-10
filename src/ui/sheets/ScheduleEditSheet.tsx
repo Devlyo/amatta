@@ -27,16 +27,20 @@ import { useChildrenStore } from '../../state/children-store';
 import { useChecklistStore } from '../../state/checklist-store';
 import { useSchedulesStore } from '../../state/schedules-store';
 import { useUiStore } from '../../state/ui-store';
-import { useGuardianStore } from '../../state/guardian-store';
+import { useGuardianStore , visibleCalendarIds } from '../../state/guardian-store';
 import {
   createGuardianEvent,
   deleteGuardianEvent,
   getGuardianEvent,
   resolveWriteCalendar,
   updateGuardianEvent,
-} from '../../calendar/guardian-calendar';
+ fetchEvents } from '../../calendar/guardian-calendar';
 import { getDb } from '../../db/client';
 import { isChecklistItemVisibleOn } from '../../domain/checklist-membership';
+import { guardianOccurrences } from '../../domain/guardian';
+import { expandOccurrences } from '../../domain/occurrences';
+import { guardianClashes, pickupClashes } from '../../domain/pickup-conflict';
+import { fmtRange } from '../utils/date';
 import type {
   ChecklistItem,
   DaysOfWeekMask,
@@ -381,10 +385,48 @@ export function ScheduleEditContent({
     return true;
   }, [form, sheetMode, editSheetState.guardianEventId]);
 
+  // Pickup ↔ guardian clash on that day → ask before saving (screen only,
+  // never a push — ADR-007 owner decision).
+  const confirmPickupClash = useCallback(async (): Promise<boolean> => {
+    const date = (editSheetState.occurrenceDate ?? form.validFrom) as unknown as ISODate;
+    if ((date as unknown as string).length === 0) return true;
+    let message: string | null = null;
+    if (forGuardian) {
+      if (form.allDay) return true;
+      const byId = new Map(children.map((c) => [c.id, c]));
+      const kidsThatDay = expandOccurrences(schedules, exceptions, { from: date, to: date }, byId);
+      const hit = pickupClashes({ startMinutes: form.startMinutes, endMinutes: form.endMinutes }, kidsThatDay)[0];
+      if (hit !== undefined) {
+        const kid = byId.get(hit.childId);
+        message = `${kid?.name ?? ''} ${hit.title} 픽업(${fmt12hrShortSpaced(hit.endMinutes)}) 시간과 겹쳐요.`;
+      }
+    } else if (form.needsPickup && !form.allDay) {
+      const g = useGuardianStore.getState();
+      if (!(g.enabled && g.permission === 'granted')) return true;
+      try {
+        const raw = await fetchEvents(visibleCalendarIds(g.calendars, g.calendarIds), date, date);
+        const hit = guardianClashes(form.endMinutes, guardianOccurrences(raw, date, date))[0];
+        if (hit !== undefined) {
+          message = `픽업 시간(${fmt12hrShortSpaced(form.endMinutes)})이 보호자 일정 ‘${hit.title}’(${fmtRange(hit.startMinutes, hit.endMinutes)})과 겹쳐요.`;
+        }
+      } catch {
+        return true; // can't read the calendar — don't block saving
+      }
+    }
+    if (message === null) return true;
+    return new Promise<boolean>((resolve) => {
+      Alert.alert('픽업 시간과 겹쳐요', `${message} 그래도 저장할까요?`, [
+        { text: '취소', style: 'cancel', onPress: () => resolve(false) },
+        { text: '저장', onPress: () => resolve(true) },
+      ]);
+    });
+  }, [editSheetState.occurrenceDate, form, forGuardian, children, schedules, exceptions]);
+
   const handleSave = useCallback(async () => {
     setSubmitted(true);
     if (!validation.ok) return;
     if (sheetMode === null) return;
+    if (!(await confirmPickupClash())) return;
 
     if (forGuardian && (sheetMode === 'create' || sheetMode === 'editGuardian')) {
       if (await saveGuardian()) {
@@ -543,6 +585,7 @@ export function ScheduleEditContent({
     forGuardian,
     saveGuardian,
     boundDateInt,
+    confirmPickupClash,
   ]);
 
   const handleDeleteAll = useCallback(() => {
