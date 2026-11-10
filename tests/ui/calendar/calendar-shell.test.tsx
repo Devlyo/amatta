@@ -192,7 +192,8 @@ describe('KidFilterBar — up to 6 kids + 보호자', () => {
   test('6 kids + 보호자 (7 pills): avatar only, names kept as labels', () => {
     render(<KidFilterBar kids={many(6)} inactive={[]} onToggle={() => {}} onSolo={() => {}} />);
     expect(screen.queryByText('아이6')).toBeNull();
-    expect(screen.getByLabelText('아이6')).toBeTruthy();
-    expect(screen.getByLabelText('보호자')).toBeTruthy();
+    // The pill (button) keeps the name as its label; the avatar image repeats it.
+    expect(screen.getByRole('button', { name: '아이6' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '보호자' })).toBeTruthy();
   });
 });
