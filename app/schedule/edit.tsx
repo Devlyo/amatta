@@ -23,6 +23,9 @@ export default function ScheduleEditRoute(): React.ReactElement {
     childId?: string;
     date?: string;
     start?: string;
+    guardian?: string;
+    eventId?: string;
+    instance?: string;
   }>();
   const openEditSheet = useUiStore((s) => s.openEditSheet);
   const closeEditSheet = useUiStore((s) => s.closeEditSheet);
@@ -38,11 +41,14 @@ export default function ScheduleEditRoute(): React.ReactElement {
           childId: params.childId !== undefined ? Number(params.childId) : undefined,
           date: params.date as ISODate | undefined,
           startMinutes: params.start !== undefined ? Number(params.start) : undefined,
+          guardian: params.guardian === '1',
         },
+        guardianEventId: params.eventId,
+        guardianInstance: params.instance,
       });
     },
     closeEditSheet,
-    [params.mode, params.scheduleId, params.occurrenceDate, params.childId, params.date, params.start],
+    [params.mode, params.scheduleId, params.occurrenceDate, params.childId, params.date, params.start, params.guardian, params.eventId, params.instance],
   );
 
   const handleClose = useCallback(() => router.back(), [router]);

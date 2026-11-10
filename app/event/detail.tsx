@@ -39,5 +39,6 @@ export default function EventDetailRoute(): React.ReactElement {
 
 const styles = StyleSheet.create({
   // Top padding so the header isn't flush against the modal's top edge.
-  root: { flex: 1, paddingTop: SPACING.xl, backgroundColor: TOKENS.surfaceWarm },
+  // Same as the edit route, so detail ↔ edit read as one screen.
+  root: { flex: 1, paddingTop: SPACING.sm, backgroundColor: TOKENS.groupedBg },
 });

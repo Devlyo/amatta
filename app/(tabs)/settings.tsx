@@ -1,655 +1,225 @@
-// Settings hub — 1:1 port of docs/design/amatta-v1/app-settings.jsx.
-// Rows link to detail sub-screens; notifications row is a placeholder until
-// batch E lands. Children CRUD now lives on /settings/kids.
+// 설정 탭 — same look as the home screen (ADR-007 §10 UI 통일): grouped
+// background, large title, bold section headings over white RADIUS.box
+// groups, iPhone-style rows from the form primitives.
+//
+//   자녀     자녀 관리 (avatars + count) →
+//   알림     시스템 알림 (switch) · 기본 알림 시점 (only while 시스템 알림 is on)
+//   캘린더   캘린더 연동 →
+//   데이터   데이터 관리 → · 모든 데이터 초기화
+//   정보     앱 버전 · 약관 및 개인정보 →
 
-import { useCallback, useMemo } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { MAX_CHILDREN } from '../../src/domain/constants';
+import type { Child } from '../../src/domain/types';
 import { getDb } from '../../src/db/client';
 import { rescheduleAll } from '../../src/notifications/scheduler';
 import { useChildrenStore } from '../../src/state/children-store';
+import { useGuardianStore } from '../../src/state/guardian-store';
 import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
 import { KidAvatar } from '../../src/ui/common/KidAvatar';
-import type { Child } from '../../src/domain/types';
-import { FONT_FAMILIES } from '../../src/ui/fonts';
-import { IconChevronRight } from '../../src/ui/icons';
+import { HomeSection } from '../../src/ui/home/HomeSection';
 import { TOKENS } from '../../src/ui/palette';
 import { RADIUS } from '../../src/ui/radius';
 import { SPACING } from '../../src/ui/spacing';
-import { SwitchPill } from '../../src/ui/settings/SwitchPill';
+import { TYPE } from '../../src/ui/typography';
+import { alertSummary, NOTIFY_OPTIONS } from '../../src/ui/sheets/edit-sheet-form';
+import {
+  FormActionRow,
+  FormOptionList,
+  FormToggleRow,
+  FormValueRow,
+} from '../../src/ui/sheets/form-rows';
 
 const APP_VERSION = '1.0.0';
+/** Space under the content so the floating dock never covers the last row. */
+const DOCK_CLEARANCE = 110;
 
-// Spec § 알림 — three "기본 알림 시점" options.
-const NOTIFY_LEAD_OPTIONS = [10, 30, 60] as const;
+// 기본 알림 시점 — 없음 first (the default), then the form's lead times.
+const LEAD_OPTIONS: readonly { key: number | null; label: string }[] = [
+  { key: null, label: alertSummary(null) },
+  ...NOTIFY_OPTIONS.map((m) => ({ key: m, label: alertSummary(m) })),
+];
 
 export default function SettingsScreen(): React.ReactElement {
   const router = useRouter();
   const children = useChildrenStore((s) => s.children);
+  const sortedChildren = useMemo(() => [...children].sort((a, b) => a.id - b.id), [children]);
 
-  const sortedChildren = useMemo(
-    () => [...children].sort((a, b) => a.id - b.id),
-    [children],
-  );
-
-  // Notification settings share a Zustand slice with the schedule
-  // edit-sheet defaults — picking 30분 전 here makes new schedules
-  // start with 30분 전 highlighted. The slice is persisted to app_settings
-  // (write-through) and hydrated on boot, so toggles survive relaunch.
+  // Notification settings are persisted (write-through) and feed the new-event
+  // form's 시작 전 알림 default.
   const systemNotif = useNotifSettingsStore((s) => s.systemEnabled);
   const setSystemEnabled = useNotifSettingsStore((s) => s.setSystemEnabled);
   const leadTime = useNotifSettingsStore((s) => s.defaultMinutesBefore);
-  const setDefaultMinutesBefore = useNotifSettingsStore(
-    (s) => s.setDefaultMinutesBefore,
+  const setDefaultMinutesBefore = useNotifSettingsStore((s) => s.setDefaultMinutesBefore);
+  const lastScheduleTruncated = useNotifSettingsStore((s) => s.lastScheduleTruncated);
+  const guardianEnabled = useGuardianStore((s) => s.enabled);
+  const [leadOpen, setLeadOpen] = useState(false);
+
+  // Toggling 시스템 알림: persist then reconcile so turning OFF cancels every
+  // pending push immediately and turning ON re-arms.
+  const handleSystemNotifChange = useCallback(
+    (v: boolean): void => {
+      if (!v) setLeadOpen(false);
+      void (async () => {
+        const db = await getDb();
+        await setSystemEnabled(db, v);
+        await rescheduleAll(db);
+      })();
+    },
+    [setSystemEnabled],
   );
-  const lastScheduleTruncated = useNotifSettingsStore(
-    (s) => s.lastScheduleTruncated,
+
+  // 기본 알림 시점: only the default for NEW events' 시작 전 알림; existing
+  // events keep theirs, so no reconcile.
+  const handleLeadTimeChange = useCallback(
+    (n: number | null): void => {
+      setLeadOpen(false);
+      void (async () => {
+        const db = await getDb();
+        await setDefaultMinutesBefore(db, n);
+      })();
+    },
+    [setDefaultMinutesBefore],
   );
-
-  // Toggling 시스템 알림: persist (write-through) then reconcile so turning
-  // OFF cancels every pending push immediately and turning ON re-arms.
-  const handleSystemNotifChange = useCallback((v: boolean): void => {
-    void (async () => {
-      const db = await getDb();
-      await setSystemEnabled(db, v);
-      await rescheduleAll(db);
-    })();
-  }, [setSystemEnabled]);
-
-  // Changing 기본 알림 시점: persist. New schedules pick this up via the
-  // edit-sheet default; existing triggers are unaffected so no reconcile.
-  const handleLeadTimeChange = useCallback((n: number): void => {
-    void (async () => {
-      const db = await getDb();
-      await setDefaultMinutesBefore(db, n);
-    })();
-  }, [setDefaultMinutesBefore]);
-
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.topBar}>
-        {/* Settings is a tab now (ADR-007 dock) — no back button. */}
-        <View style={styles.topBarBack} />
-        <Text style={styles.topBarTitle}>설정</Text>
-        <View style={styles.topBarSide} />
+      <View style={styles.header}>
+        <Text style={styles.title} accessibilityRole="header">
+          설정
+        </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* 자녀 */}
-        <SectionHeader label="자녀" />
-        <Card>
-          <NavRow
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <HomeSection title="자녀">
+          <FormValueRow
             label="자녀 관리"
-            value={
-              <KidStack
-                shown={sortedChildren.slice(0, MAX_CHILDREN)}
-                total={sortedChildren.length}
-              />
-            }
+            value={`${sortedChildren.length}명`}
+            leading={<KidStack shown={sortedChildren.slice(0, MAX_CHILDREN)} />}
             onPress={() => router.push('/settings/kids')}
-            accessibilityLabel="자녀 관리"
+            last
             testID="settings-row-kids"
           />
-        </Card>
+        </HomeSection>
 
-        {/* 알림 — spec § '알림' inline (no detail page). */}
-        <SectionHeader label="알림" />
-        <Card>
-          <ToggleRow
-            label="시스템 알림"
-            sub="이벤트 시작 전에 푸시 받기"
-            value={systemNotif}
-            onChange={handleSystemNotifChange}
-            accessibilityLabel="시스템 알림"
-            testID="settings-row-notif-system"
-          />
-          <Divider />
-          <SegmentedRow
-            label="기본 알림 시점"
-            sub="새 일정에 자동으로 설정돼요"
-            options={NOTIFY_LEAD_OPTIONS}
-            value={leadTime}
-            onChange={handleLeadTimeChange}
-            disabled={!systemNotif}
-            renderOption={(v) => `${v}분 전`}
-            accessibilityLabel="기본 알림 시점"
-            testID="settings-row-notif-lead"
-          />
+        <View style={styles.block}>
+          <HomeSection title="알림">
+            <FormToggleRow
+              label="시스템 알림"
+              value={systemNotif}
+              onChange={handleSystemNotifChange}
+              onColor={TOKENS.primary}
+              last={!systemNotif}
+            />
+            {/* 기본 알림 시점 only matters while 시스템 알림 is on. */}
+            {systemNotif ? (
+              <FormValueRow
+                label="기본 알림 시점"
+                value={alertSummary(leadTime)}
+                onPress={() => setLeadOpen((o) => !o)}
+                expanded={leadOpen}
+                last
+                testID="settings-row-notif-lead"
+              >
+                <FormOptionList<number | null>
+                  options={LEAD_OPTIONS}
+                  selected={leadTime}
+                  labelPrefix="기본 알림 시점: "
+                  onSelect={handleLeadTimeChange}
+                />
+              </FormValueRow>
+            ) : null}
+          </HomeSection>
+          <Text style={styles.footnote}>
+            {systemNotif
+              ? '새 일정의 시작 전 알림이 이 시점으로 정해져요.'
+              : '일정 시작 전 알림을 받으려면 켜 주세요.'}
+          </Text>
           {systemNotif && lastScheduleTruncated ? (
-            <Text style={styles.notifTruncatedCaption} testID="settings-notif-truncated">
+            <Text style={styles.footnote} testID="settings-notif-truncated">
               임박한 60개 알림만 예약됐어요
             </Text>
           ) : null}
-        </Card>
+        </View>
 
-        {/* 데이터 */}
-        <SectionHeader label="데이터" />
-        <Card>
-          <NavRow
+        <HomeSection title="캘린더">
+          <FormValueRow
+            label="캘린더 연동"
+            value={guardianEnabled ? '켜짐' : '꺼짐'}
+            onPress={() => router.push('/settings/calendars')}
+            last
+            testID="settings-row-calendars"
+          />
+        </HomeSection>
+
+        <HomeSection title="데이터">
+          <FormValueRow
             label="데이터 관리"
-            sub="JSON 내보내기 / 가져오기"
+            value="내보내기"
             onPress={() => router.push('/settings/data')}
-            accessibilityLabel="데이터 관리"
             testID="settings-row-data"
           />
-        </Card>
-
-        {/* 모든 데이터 초기화 — spec § '데이터' destructive card.
-            Lives in its own Card right before the 정보 section. */}
-        <View style={styles.destructiveSpacer} />
-        <Card>
-          <DestructiveRow
+          <FormActionRow
             label="모든 데이터 초기화"
-            sub="자녀·일정·할일·설정이 모두 삭제돼요"
+            tone="danger"
             onPress={() => router.push('/settings/reset-confirm')}
-            accessibilityLabel="모든 데이터 초기화"
-            testID="settings-row-reset"
+            last
           />
-        </Card>
+        </HomeSection>
 
-        {/* 정보 */}
-        <SectionHeader label="정보" />
-        <Card>
-          <InfoRow
-            label="앱 버전"
-            value={APP_VERSION}
-          />
-          <Divider />
-          <NavRow
+        <HomeSection title="정보">
+          <FormValueRow label="앱 버전" value={APP_VERSION} />
+          <FormValueRow
             label="약관 및 개인정보"
+            value=""
             onPress={() => router.push('/settings/legal')}
-            accessibilityLabel="약관 및 개인정보"
+            last
             testID="settings-row-legal"
           />
-        </Card>
-
-        {/* Design-system gallery entry point removed (Item 9). The route
-            (app/dev-gallery.tsx) still exists; only the Settings UI link is
-            gone, so the gallery never shows — even in dev. */}
-
-        <View style={styles.bottomSpacer} />
+        </HomeSection>
       </ScrollView>
-
     </SafeAreaView>
   );
 }
 
-// ── Building blocks ───────────────────────────────────────────────────────
-
-function SectionHeader({ label }: { label: string }): React.ReactElement {
+/** Overlapping kid avatars before the count on the 자녀 관리 row. */
+function KidStack({ shown }: { shown: readonly Child[] }): React.ReactElement {
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionHeaderText}>{label}</Text>
-    </View>
-  );
-}
-
-function Card({ children }: { children: React.ReactNode }): React.ReactElement {
-  return <View style={styles.card}>{children}</View>;
-}
-
-function Divider(): React.ReactElement {
-  return <View style={styles.divider} />;
-}
-
-interface NavRowProps {
-  label: string;
-  sub?: string;
-  value?: React.ReactNode;
-  onPress?: () => void;
-  disabled?: boolean;
-  accessibilityLabel: string;
-  testID?: string;
-}
-
-function NavRow({
-  label,
-  sub,
-  value,
-  onPress,
-  disabled,
-  accessibilityLabel,
-  testID,
-}: NavRowProps): React.ReactElement {
-  return (
-    <Pressable
-      onPress={disabled ? undefined : onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled: !!disabled }}
-      testID={testID}
-      style={({ pressed }) => [
-        styles.row,
-        pressed && !disabled ? styles.rowPressed : null,
-        disabled ? styles.rowDisabled : null,
-      ]}
-    >
-      <View style={styles.rowText}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        {sub !== undefined ? (
-          <Text style={styles.rowSub}>{sub}</Text>
-        ) : null}
-      </View>
-      {value !== undefined ? value : null}
-      <IconChevronRight size={16} color={TOKENS.ink30} />
-    </Pressable>
-  );
-}
-
-function ToggleRow({
-  label,
-  sub,
-  value,
-  onChange,
-  accessibilityLabel,
-  testID,
-}: {
-  label: string;
-  sub?: string;
-  value: boolean;
-  onChange: (v: boolean) => void;
-  accessibilityLabel: string;
-  testID?: string;
-}): React.ReactElement {
-  // Spec line 252-258: the whole row is the touch target (tap anywhere
-  // toggles), with the Switch component sitting on the right.
-  return (
-    <Pressable
-      onPress={() => onChange(!value)}
-      accessibilityRole="switch"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ checked: value }}
-      testID={testID}
-      style={({ pressed }) => [
-        styles.row,
-        pressed ? styles.rowPressed : null,
-      ]}
-    >
-      <View style={styles.rowText}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        {sub !== undefined ? <Text style={styles.rowSub}>{sub}</Text> : null}
-      </View>
-      <SwitchPill
-        value={value}
-        onChange={onChange}
-        accessibilityLabel={`${accessibilityLabel} switch`}
-      />
-    </Pressable>
-  );
-}
-
-function SegmentedRow<T>({
-  label,
-  sub,
-  options,
-  value,
-  onChange,
-  disabled,
-  renderOption,
-  accessibilityLabel,
-  testID,
-}: {
-  label: string;
-  sub?: string;
-  options: readonly T[];
-  value: T;
-  onChange: (v: T) => void;
-  disabled?: boolean;
-  renderOption: (v: T) => string;
-  accessibilityLabel: string;
-  testID?: string;
-}): React.ReactElement {
-  // Spec line 285-320: label/sub on top, the segmented track BELOW at
-  // full width. Track is an ink04 pill with 3px inner padding; each
-  // segment flex:1 (equal width). Active segment fills with surface,
-  // gets a 1px hair border + soft shadow; inactive is transparent.
-  return (
-    <View
-      style={[
-        styles.segmentedRow,
-        disabled ? styles.rowDisabled : null,
-      ]}
-      accessibilityLabel={accessibilityLabel}
-      testID={testID}
-    >
-      <View style={styles.rowText}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        {sub !== undefined ? <Text style={styles.rowSub}>{sub}</Text> : null}
-      </View>
-      <View style={styles.segmentedTrack}>
-        {options.map((opt, i) => {
-          const active = opt === value && !disabled;
-          return (
-            <Pressable
-              key={i}
-              onPress={() => {
-                if (disabled) return;
-                onChange(opt);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={renderOption(opt)}
-              accessibilityState={{ selected: active, disabled }}
-              style={[styles.segment, active ? styles.segmentActive : null]}
-            >
-              <Text
-                style={[
-                  styles.segmentLabel,
-                  active ? styles.segmentLabelActive : null,
-                ]}
-              >
-                {renderOption(opt)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
-function DestructiveRow({
-  label,
-  sub,
-  onPress,
-  accessibilityLabel,
-  testID,
-}: {
-  label: string;
-  sub?: string;
-  onPress: () => void;
-  accessibilityLabel: string;
-  testID?: string;
-}): React.ReactElement {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      testID={testID}
-      style={({ pressed }) => [
-        styles.row,
-        pressed ? styles.rowPressed : null,
-      ]}
-    >
-      <View style={styles.rowText}>
-        <Text style={styles.destructiveLabel}>{label}</Text>
-        {sub !== undefined ? <Text style={styles.rowSub}>{sub}</Text> : null}
-      </View>
-      <IconChevronRight size={16} color={TOKENS.danger} />
-    </Pressable>
-  );
-}
-
-function InfoRow({
-  label,
-  value,
-  valueSub,
-}: {
-  label: string;
-  value: string;
-  valueSub?: string;
-}): React.ReactElement {
-  return (
-    <View style={styles.row}>
-      <View style={styles.rowText}>
-        <Text style={styles.rowLabel}>{label}</Text>
-      </View>
-      <View style={styles.infoValueWrap}>
-        <Text style={styles.infoValue}>{value}</Text>
-        {valueSub !== undefined ? (
-          <Text style={styles.infoValueSub}>{valueSub}</Text>
-        ) : null}
-      </View>
-    </View>
-  );
-}
-
-function KidStack({
-  shown,
-  total,
-}: {
-  shown: readonly Child[];
-  total: number;
-}): React.ReactElement {
-  return (
-    <View style={styles.kidStackWrap}>
-      <View style={styles.kidStackRow}>
-        {shown.map((k, i) => (
-          <View
-            key={k.id}
-            style={[
-              styles.kidStackDot,
-              i === 0 ? null : styles.kidStackDotOverlap,
-              { zIndex: shown.length - i },
-            ]}
-          >
-            <KidAvatar child={k} size={20} />
-          </View>
-        ))}
-      </View>
-      <Text style={styles.kidStackCount}>{total}명</Text>
+    <View style={styles.kidStack}>
+      {shown.map((k, i) => (
+        <View key={k.id} style={[styles.kidStackDot, i === 0 ? null : styles.kidStackOverlap, { zIndex: shown.length - i }]}>
+          <KidAvatar child={k} size={20} />
+        </View>
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: TOKENS.surfaceSoft },
-
-  topBar: {
+  // Same chrome as the home screen.
+  safe: { flex: 1, backgroundColor: TOKENS.groupedBg },
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
     paddingTop: SPACING.xs,
-    paddingBottom: SPACING.sm,
-    backgroundColor: TOKENS.surfaceSoft,
+    paddingLeft: 18,
+    paddingRight: SPACING.lg,
+    paddingBottom: SPACING.xs,
   },
-  topBarSide: { flex: 1 },
-  topBarBack: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  topBarTitle: {
-    fontSize: 20,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.ink,
-    letterSpacing: -0.4,
-  },
-
-  // Bottom clearance for the floating dock (tab bar).
-  scrollContent: { paddingHorizontal: 14, paddingBottom: 110 },
-
-  sectionHeader: {
-    paddingHorizontal: 14,
-    paddingTop: 14,
-    paddingBottom: 6,
-  },
-  sectionHeaderText: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.2,
-  },
-
-  card: {
-    backgroundColor: TOKENS.surface,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.xs,
-    marginBottom: SPACING.sm,
-    overflow: 'hidden',
-  },
-
-  divider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TOKENS.ink04,
-    marginHorizontal: 10,
-  },
-
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderRadius: RADIUS.md,
-  },
-  rowPressed: { backgroundColor: TOKENS.ink04 },
-  rowDisabled: { opacity: 0.6 },
-
-  rowText: { flex: 1, minWidth: 0 },
-  rowLabel: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
-    letterSpacing: -0.3,
-    lineHeight: 18,
-  },
-  rowSub: {
-    marginTop: SPACING.xxs,
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.1,
-    lineHeight: 16,
-  },
-
-  // Caption shown under the 알림 card when rescheduleAll truncated to the
-  // ≤60 soonest triggers (iOS 64-pending cap headroom).
-  notifTruncatedCaption: {
-    paddingHorizontal: 10,
-    paddingTop: SPACING.xxs,
-    paddingBottom: SPACING.sm,
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.1,
-    lineHeight: 16,
-  },
-
-  // --- Segmented row — spec line 287-318 -------------------------------
-  // Row card paddings ('8px 10px 10px') so the label sits hugging the
-  // top-left and the track has 10px before the bottom edge.
-  segmentedRow: {
+  title: { ...TYPE.largeTitle, color: TOKENS.ink },
+  content: {
     paddingTop: SPACING.sm,
-    paddingHorizontal: 10,
-    paddingBottom: 10,
-    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: DOCK_CLEARANCE,
+    gap: 18,
   },
-  // Track: ink04 pill below the label, 3px inner padding, 2px between
-  // segments, full-row width.
-  segmentedTrack: {
-    flexDirection: 'row',
-    backgroundColor: TOKENS.ink04,
-    borderRadius: RADIUS.full,
-    padding: 3,
-    gap: SPACING.xxs,
-    marginTop: 10,
-    width: '100%',
-  },
-  // Each segment equal-width. The 1px-transparent border on the idle
-  // state matches the box-sizing of the active state's 1px hair border
-  // so the cell DOESN'T shift size when selection moves — RN's
-  // borderWidth eats 1px off the inner area, so without a same-width
-  // transparent border on idle, every toggle reflowed the row.
-  segment: {
-    flex: 1,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-    borderRadius: RADIUS.full,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  // Active: white pill + 1px hair inset border + soft shadow.
-  segmentActive: {
-    backgroundColor: TOKENS.surface,
-    borderColor: TOKENS.hair,
-    shadowColor: TOKENS.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  segmentLabel: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.2,
-  },
-  // Active text gets the SemiBold weight per spec (fontWeight 600).
-  segmentLabelActive: {
-    color: TOKENS.ink,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-  },
-
-  // --- Destructive row -------------------------------------------------
-  destructiveSpacer: { height: 8 },
-  destructiveLabel: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.danger,
-    letterSpacing: -0.3,
-    lineHeight: 18,
-  },
-
-  infoValueWrap: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 5,
-  },
-  infoValue: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.mono,
-    color: TOKENS.ink,
-    letterSpacing: -0.1,
-  },
-  infoValueSub: {
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.mono,
-    color: TOKENS.inkSub,
-    letterSpacing: 0.2,
-  },
-
-  kidStackWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  kidStackRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  kidStackDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: TOKENS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: TOKENS.surface,
-  },
-  kidStackDotOverlap: { marginLeft: -7 },
-  kidStackCount: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
-    letterSpacing: -0.2,
-  },
-
-  bottomSpacer: { height: 60 },
+  block: { gap: 6 },
+  footnote: { ...TYPE.footnote, color: TOKENS.inkSub, paddingHorizontal: SPACING.xs },
+  kidStack: { flexDirection: 'row', alignItems: 'center' },
+  kidStackDot: { borderRadius: RADIUS.full, borderWidth: 1.5, borderColor: TOKENS.surface },
+  kidStackOverlap: { marginLeft: -6 },
 });

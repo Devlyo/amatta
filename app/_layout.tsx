@@ -22,6 +22,7 @@ import { useTodosStore } from '../src/state/todos-store';
 import { usePickupLogStore } from '../src/state/pickup-log-store';
 import { useChecklistCompletionStore } from '../src/state/checklist-completion-store';
 import { useNotifSettingsStore } from '../src/state/notif-settings-store';
+import { useGuardianStore } from '../src/state/guardian-store';
 import { TOKENS } from '../src/ui/palette';
 
 export { ErrorBoundary } from 'expo-router';
@@ -111,6 +112,7 @@ export default function RootLayout() {
           useTodosStore.getState().load(db),
           usePickupLogStore.getState().load(db),
           useChecklistCompletionStore.getState().load(db),
+          useGuardianStore.getState().load(db),
         ]);
         for (const r of v2Results) {
           if (r.status === 'rejected') {
@@ -243,6 +245,7 @@ export default function RootLayout() {
         <Stack.Screen name="settings/kids" options={{ headerShown: false }} />
         <Stack.Screen name="settings/kid-edit" options={{ headerShown: false }} />
         <Stack.Screen name="settings/data" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/calendars" options={{ headerShown: false }} />
         <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
         {/* Reset-all-data confirm — native formSheet route (app/settings/reset-confirm.tsx). */}
         <Stack.Screen
@@ -281,7 +284,15 @@ export default function RootLayout() {
           options={{
             headerShown: false,
             presentation: 'modal',
-            contentStyle: { backgroundColor: TOKENS.surface },
+            contentStyle: { backgroundColor: TOKENS.groupedBg },
+          }}
+        />
+        <Stack.Screen
+          name="event/guardian"
+          options={{
+            headerShown: false,
+            presentation: 'modal',
+            contentStyle: { backgroundColor: TOKENS.groupedBg },
           }}
         />
         {/* Search — native formSheet route (see app/search/index.tsx). */}

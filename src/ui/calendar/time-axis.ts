@@ -32,6 +32,15 @@ export function newEventStart(pressedMinutes: number): number {
   return Math.min(Math.max(pressedMinutes, 0), 23 * 60);
 }
 
+/**
+ * Start for a new event made from the dock "+": the next full hour after
+ * `nowMinutes` (7:06 → 8:00, 7:00 → 8:00), as iPhone Calendar does; late at
+ * night it stays at 23:00 so a one-hour event still fits the day.
+ */
+export function nextHourStart(nowMinutes: number): number {
+  return newEventStart((Math.floor(nowMinutes / 60) + 1) * 60);
+}
+
 export function axisHeight(hourHeight: number): number {
   return AXIS_TOP_PAD + ((AXIS_END_MIN - AXIS_START_MIN) / 60) * hourHeight;
 }

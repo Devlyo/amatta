@@ -4,7 +4,8 @@ import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { formatUntil, type KidNowNext } from '../../domain/now-next';
-import type { Child } from '../../domain/types';
+import type { Child, ScheduleType } from '../../domain/types';
+import { ItemLine } from './ItemLine';
 import { KidAvatar } from '../common/KidAvatar';
 import { kidFill, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
@@ -17,19 +18,29 @@ interface Props {
   rows: readonly KidNowNext[];
 }
 
-function describe(row: KidNowNext): { title: string; detail: string; sub: string | null } {
+function describe(row: KidNowNext): {
+  title: string;
+  type: ScheduleType | null;
+  detail: string;
+  /** Spoken form of `detail` ("~8:30PM" reads badly aloud). */
+  spoken: string;
+  sub: string | null;
+} {
   const { current, next } = row;
   if (current !== null) {
     return {
       title: current.title,
-      detail: `${fmt12hrShort(current.endMinutes)}까지`,
+      type: current.type,
+      detail: `~${fmt12hrShort(current.endMinutes)}`,
+      spoken: `${fmt12hrShort(current.endMinutes)}까지`,
       sub: next !== null ? `다음 ${fmt12hrShort(next.startMinutes)} ${next.title}` : '이후 일정 없음',
     };
   }
   if (next !== null) {
-    return { title: next.title, detail: fmtRange(next.startMinutes, next.endMinutes), sub: null };
+    const range = fmtRange(next.startMinutes, next.endMinutes);
+    return { title: next.title, type: next.type, detail: range, spoken: range, sub: null };
   }
-  return { title: row.status === 'doneForToday' ? '오늘 일정 끝' : '오늘 일정 없음', detail: '', sub: null };
+  return { title: row.status === 'doneForToday' ? '오늘 일정 끝' : '오늘 일정 없음', type: null, detail: '', spoken: '', sub: null };
 }
 
 function NowNextListImpl({ kids, rows }: Props): React.ReactElement {
@@ -45,14 +56,13 @@ function NowNextListImpl({ kids, rows }: Props): React.ReactElement {
             key={row.childId}
             style={[styles.row, isLast ? null : styles.rowDivider]}
             accessible
-            accessibilityLabel={`${kid.name}, ${d.title} ${d.detail}${d.sub !== null ? `, ${d.sub}` : ''}`}
+            accessibilityLabel={`${kid.name}, ${d.title} ${d.spoken}${d.sub !== null ? `, ${d.sub}` : ''}`}
           >
             <KidAvatar child={kid} size={30} />
             <View style={styles.text}>
-              <Text style={styles.title} numberOfLines={1}>
-                {d.title}
-                {d.detail !== '' ? <Text style={styles.detail}> · {d.detail}</Text> : null}
-              </Text>
+              {/* Whose row it is, right before what they do — the avatar
+                  alone was hard to tell apart. */}
+              <ItemLine name={kid.name} title={d.title} type={d.type} detail={d.detail} />
               {d.sub !== null ? (
                 <Text style={styles.sub} numberOfLines={1}>
                   {d.sub}
@@ -91,11 +101,9 @@ const styles = StyleSheet.create({
   },
   rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: TOKENS.ink12,
+    borderBottomColor: TOKENS.separator,
   },
   text: { flex: 1, minWidth: 0, gap: 2 },
-  title: { ...TYPE.subhead, fontFamily: TYPE.headline.fontFamily, color: TOKENS.ink },
-  detail: { ...TYPE.subhead, color: TOKENS.inkSub },
   sub: { ...TYPE.footnote, color: TOKENS.inkSub },
   chip: {
     height: 22,

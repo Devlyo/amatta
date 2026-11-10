@@ -11,6 +11,7 @@ import Reanimated, { useAnimatedStyle, useSharedValue } from 'react-native-reani
 
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
 import { cascadeStep, clipToDay, layoutCascade } from '../../domain/layout';
+import type { GuardianOccurrence } from '../../domain/guardian';
 import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
@@ -50,6 +51,25 @@ interface Props {
    */
   firstColumn?: number;
   totalColumns?: number;
+  /** Guardian (device calendar) events for the rendered days. */
+  guardianEvents?: readonly GuardianOccurrence[];
+  onPressGuardian?: (ev: GuardianOccurrence) => void;
+}
+
+/** A kid occurrence or a guardian event, in one shape for layout + drawing. */
+interface WeekItem {
+  id: string;
+  person: PersonKey;
+  date: ISODate;
+  start: number;
+  end: number;
+  allDay: boolean;
+  title: string;
+  color: string;
+  deep: string;
+  /** "민준 영어학원" / "보호자 회의" — the accessible name before the time. */
+  name: string;
+  onPress?: () => void;
 }
 
 function WeekViewImpl({
@@ -68,6 +88,8 @@ function WeekViewImpl({
   strip,
   firstColumn = 0,
   totalColumns = firstColumn + days.length,
+  guardianEvents = [],
+  onPressGuardian,
 }: Props): React.ReactElement {
   const [width, setWidth] = useState(0);
   const onLayout = (e: LayoutChangeEvent): void => setWidth(e.nativeEvent.layout.width);
@@ -103,66 +125,99 @@ function WeekViewImpl({
   const everyone = useMemo<PersonKey[]>(() => [...kids.map((k) => k.id), 'guardian'], [kids]);
   const todayColumn = columnOfDate.get(today as unknown as string) ?? null;
 
-  // One person picked alone (long press) → show only theirs, laid out on
-  // their own so blocks narrowed by others' overlaps get their full width.
-  const soloKey = useMemo(() => {
-    const active = everyone.filter((k) => !inactive.includes(k));
-    return active.length === 1 ? active[0] : undefined;
-  }, [everyone, inactive]);
-  const visible = useMemo(
-    () => (soloKey === undefined ? occurrences : occurrences.filter((o) => o.childId === soloKey)),
-    [occurrences, soloKey],
-  );
-
-  const placed = useMemo(() => {
-    const byId = new Map<string, Occurrence>();
-    const inputs = [];
-    for (const occ of visible) {
-      if (occ.allDay) continue; // drawn in the all-day row
-      const column = columnOfDate.get(occ.date as unknown as string);
-      if (column === undefined || !kidById.has(occ.childId)) continue;
-      const range = clipToDay(occ.startMinutes, occ.endMinutes);
-      if (range === null) continue;
-      const id = `${occ.scheduleId}|${occ.date as unknown as string}`;
-      byId.set(id, occ);
-      inputs.push({ id, column, start: range.start, end: range.end });
-    }
-    return layoutCascade(inputs).map((p) => ({ ...p, occ: byId.get(p.id) as Occurrence }));
-  }, [visible, columnOfDate, kidById]);
-
-  const allDayItems = useMemo<AllDayItem[]>(() => {
-    const out: AllDayItem[] = [];
-    for (const occ of visible) {
-      if (!occ.allDay) continue;
-      const abs = columnOfDate.get(occ.date as unknown as string);
+  // People switched off in the filter are hidden — only the ones that are on
+  // are laid out (so blocks narrowed by a hidden person's overlap get their
+  // width back). Everyone off → nothing is filtered.
+  const noneOn = everyone.every((k) => inactive.includes(k));
+  const items = useMemo<WeekItem[]>(() => {
+    const out: WeekItem[] = [];
+    for (const occ of occurrences) {
       const kid = kidById.get(occ.childId);
-      if (abs === undefined || kid === undefined) continue;
-      const column = abs - firstColumn; // AllDayRow indexes the window
+      if (kid === undefined) continue;
       const p = getKidPalette(occ.colorIndex);
-      const emphasis = emphasisOf(inactive, everyone, kid.id);
       out.push({
         id: `${occ.scheduleId}|${occ.date as unknown as string}`,
-        column,
+        person: kid.id,
+        date: occ.date,
+        start: occ.startMinutes,
+        end: occ.endMinutes,
+        allDay: occ.allDay === true,
         title: occ.title,
         color: p.source,
         deep: p.deep,
-        focused: emphasis === 'solo',
-        dimmed: emphasis === 'inactive',
-        accessibilityLabel: `${kid.name} ${occ.title}, ${weekdayKo(occ.date)}요일 하루 종일`,
+        name: `${kid.name} ${occ.title}`,
         onPress: () => onPressOccurrence(occ),
       });
     }
+    for (const g of guardianEvents) {
+      out.push({
+        id: `g:${g.key}`,
+        person: 'guardian',
+        date: g.date,
+        start: g.startMinutes,
+        end: g.endMinutes,
+        allDay: g.allDay,
+        title: g.title,
+        color: TOKENS.guardian,
+        deep: TOKENS.guardianDeep,
+        name: `보호자 ${g.title}`,
+        onPress: onPressGuardian === undefined ? undefined : () => onPressGuardian(g),
+      });
+    }
     return out;
-  }, [visible, columnOfDate, kidById, inactive, everyone, onPressOccurrence, firstColumn]);
+  }, [occurrences, guardianEvents, kidById, onPressOccurrence, onPressGuardian]);
+  const visible = useMemo(
+    () => (noneOn ? items : items.filter((i) => !inactive.includes(i.person))),
+    [items, inactive, noneOn],
+  );
 
-  const timed = occurrences.filter((o) => !o.allDay);
-  const firstStart = timed.length > 0 ? Math.min(...timed.map((o) => o.startMinutes)) : null;
+  const placed = useMemo(() => {
+    const byId = new Map<string, WeekItem>();
+    const inputs = [];
+    for (const item of visible) {
+      if (item.allDay) continue; // drawn in the all-day row
+      const column = columnOfDate.get(item.date as unknown as string);
+      if (column === undefined) continue;
+      const range = clipToDay(item.start, item.end);
+      if (range === null) continue;
+      byId.set(item.id, item);
+      inputs.push({ id: item.id, column, start: range.start, end: range.end });
+    }
+    return layoutCascade(inputs).map((p) => ({ ...p, item: byId.get(p.id) as WeekItem }));
+  }, [visible, columnOfDate]);
+
+  const allDayItems = useMemo<AllDayItem[]>(() => {
+    const out: AllDayItem[] = [];
+    for (const item of visible) {
+      if (!item.allDay) continue;
+      const abs = columnOfDate.get(item.date as unknown as string);
+      if (abs === undefined) continue;
+      const emphasis = emphasisOf(inactive, everyone, item.person);
+      out.push({
+        id: item.id,
+        column: abs - firstColumn, // AllDayRow indexes the window
+        title: item.title,
+        color: item.color,
+        deep: item.deep,
+        focused: emphasis === 'solo',
+        dimmed: emphasis === 'inactive',
+        accessibilityLabel: `${item.name}, ${weekdayKo(item.date)}요일 하루 종일`,
+        onPress: item.onPress ?? (() => {}),
+      });
+    }
+    return out;
+  }, [visible, columnOfDate, inactive, everyone, firstColumn]);
+
+  const timed = visible.filter((i) => !i.allDay);
+  const firstStart = timed.length > 0 ? Math.min(...timed.map((i) => i.start)) : null;
   const openAt = initialScrollY({
     hourHeight: HOUR_HEIGHT,
     nowMinutes: todayColumn !== null ? nowMinutes : null,
     firstStart,
     ongoingStart: ongoingStart(
-      visible.filter((o) => (o.date as unknown as string) === (today as unknown as string)),
+      timed
+        .filter((i) => (i.date as unknown as string) === (today as unknown as string))
+        .map((i) => ({ startMinutes: i.start, endMinutes: i.end })),
       todayColumn !== null ? nowMinutes : null,
     ),
   });
@@ -239,11 +294,8 @@ function WeekViewImpl({
               }
         }
         renderColumns={({ live: liveCols, y }) =>
-          placed.map(({ id, column, start, end, level, depth, occ }) => {
-            const kid = kidById.get(occ.childId);
-            if (kid === undefined) return null;
-            const palette = getKidPalette(occ.colorIndex);
-            const emphasis = emphasisOf(inactive, everyone, kid.id);
+          placed.map(({ id, column, start, end, level, depth, item }) => {
+            const emphasis = emphasisOf(inactive, everyone, item.person);
             const height = Math.max(y(end) - y(start) - 2, MIN_BLOCK_H);
             return (
               <LiveBlockBox
@@ -266,15 +318,15 @@ function WeekViewImpl({
                 width="100%"
                 height={height}
                 level={level}
-                title={occ.title}
-                startMinutes={occ.startMinutes}
-                endMinutes={occ.endMinutes}
-                color={palette.source}
-                deep={palette.deep}
+                title={item.title}
+                startMinutes={item.start}
+                endMinutes={item.end}
+                color={item.color}
+                deep={item.deep}
                 focused={emphasis === 'solo'}
                 dimmed={emphasis === 'inactive'}
-                accessibilityLabel={`${kid.name} ${occ.title}, ${weekdayKo(occ.date)}요일 ${fmtRange(occ.startMinutes, occ.endMinutes)}${level > 0 ? ', 다른 일정과 시간이 겹침' : ''}`}
-                onPress={() => onPressOccurrence(occ)}
+                accessibilityLabel={`${item.name}, ${weekdayKo(item.date)}요일 ${fmtRange(item.start, item.end)}${level > 0 ? ', 다른 일정과 시간이 겹침' : ''}`}
+                onPress={item.onPress}
               />
               </LiveBlockBox>
             );

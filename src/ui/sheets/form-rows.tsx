@@ -3,7 +3,8 @@
 // White groups (RADIUS.box) on the grouped background, 44pt rows with hairline
 // separators inset from the left, value rows with a chevron that expand an
 // inline panel below them, native switches, grey time/date chips (red while
-// being edited), red text actions.
+// being edited), red text actions. One red everywhere: TOKENS.danger (the
+// 이 회차만 삭제 red) — accents, active values, checks, actions.
 
 import { memo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View, type TextInputProps } from 'react-native';
@@ -61,6 +62,30 @@ export const FormInputRow = memo(function FormInputRow({
   );
 });
 
+/** Read-only text in the place of an input row (event detail: 제목 / 장소 / 메모). */
+export function FormTextRow({
+  text,
+  placeholder,
+  emphasis = false,
+  last = false,
+}: {
+  text: string;
+  /** Shown muted when `text` is empty. */
+  placeholder?: string;
+  /** Title style (event detail headline). */
+  emphasis?: boolean;
+  last?: boolean;
+}): React.ReactElement {
+  const empty = text.trim().length === 0;
+  return (
+    <RowFrame last={last}>
+      <Text style={[styles.input, emphasis ? styles.inputEmphasis : null, empty ? styles.inputPlaceholder : null]}>
+        {empty ? (placeholder ?? '') : text}
+      </Text>
+    </RowFrame>
+  );
+}
+
 /**
  * Label on the left, value + chevron on the right. Tapping toggles an inline
  * panel (`expanded` + `children`). `onPress` undefined → read-only row.
@@ -115,12 +140,12 @@ export function FormValueRow({
   );
 }
 
-/** Label + native switch (iOS UISwitch). `onColor` = track colour when on. */
+/** Label + native switch (iOS UISwitch). On = the app's orange everywhere (owner, 2026-11-10). */
 export function FormToggleRow({
   label,
   value,
   onChange,
-  onColor = TOKENS.success,
+  onColor = TOKENS.primary,
   last = false,
 }: {
   label: string;
@@ -132,13 +157,17 @@ export function FormToggleRow({
   return (
     <RowFrame last={last}>
       <Text style={styles.label}>{label}</Text>
-      <Switch
-        value={value}
-        onValueChange={onChange}
-        trackColor={{ true: onColor, false: TOKENS.switchOff }}
-        ios_backgroundColor={TOKENS.switchOff}
-        accessibilityLabel={label}
-      />
+      {/* The native switch can lay out top-aligned under the new architecture —
+          a row-high box keeps it centred on the label. */}
+      <View style={styles.switchBox}>
+        <Switch
+          value={value}
+          onValueChange={onChange}
+          trackColor={{ true: onColor, false: TOKENS.switchOff }}
+          ios_backgroundColor={TOKENS.switchOff}
+          accessibilityLabel={label}
+        />
+      </View>
     </RowFrame>
   );
 }
@@ -220,7 +249,7 @@ export function FormOptionList<T extends string | number | null>({
           >
             {render?.(o.key)}
             <Text style={styles.optionLabel}>{o.label}</Text>
-            {on ? <IconCheck size={18} color={TOKENS.sunday} /> : null}
+            {on ? <IconCheck size={18} color={TOKENS.danger} /> : null}
           </Pressable>
         );
       })}
@@ -273,17 +302,20 @@ const styles = StyleSheet.create({
   separator: {
     marginLeft: INSET,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: TOKENS.ink12,
+    backgroundColor: TOKENS.separator,
   },
   label: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
+  switchBox: { height: ROW_H, justifyContent: 'center' },
   input: { ...TYPE.row, color: TOKENS.ink, flex: 1, paddingVertical: 11 },
+  inputEmphasis: { ...TYPE.headline },
+  inputPlaceholder: { color: TOKENS.ink30 },
   valueWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
   value: { ...TYPE.row, color: TOKENS.inkSub, flexShrink: 1 },
-  valueActive: { color: TOKENS.sunday },
+  valueActive: { color: TOKENS.danger },
   chevronOpen: { transform: [{ rotate: '90deg' }] },
   panel: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TOKENS.ink12,
+    borderTopColor: TOKENS.separator,
     marginLeft: INSET,
   },
   chips: { flexDirection: 'row', gap: 6 },
@@ -295,7 +327,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chipText: { ...TYPE.row, color: TOKENS.ink },
-  chipTextActive: { color: TOKENS.sunday },
+  chipTextActive: { color: TOKENS.danger },
   chipTextDisabled: { color: TOKENS.inkSub },
   option: {
     minHeight: ROW_H,
@@ -304,8 +336,8 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingRight: SPACING.md,
   },
-  optionDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: TOKENS.ink12 },
+  optionDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: TOKENS.separator },
   optionLabel: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
-  action: { ...TYPE.row, color: TOKENS.sunday },
+  action: { ...TYPE.row, color: TOKENS.danger },
   actionDanger: { color: TOKENS.danger },
 });

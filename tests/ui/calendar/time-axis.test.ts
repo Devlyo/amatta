@@ -7,6 +7,7 @@ import {
   minutesAtY,
   minutesToY,
   newEventStart,
+  nextHourStart,
   nowLabel,
 } from '../../../src/ui/calendar/time-axis';
 
@@ -92,5 +93,15 @@ describe('minutesAtY / newEventStart (long press to create)', () => {
     expect(newEventStart(2 * 60)).toBe(2 * 60);
     expect(newEventStart(15 * 60 + 30)).toBe(15 * 60 + 30);
     expect(newEventStart(23 * 60 + 30)).toBe(23 * 60);
+  });
+});
+
+describe('nextHourStart (dock +)', () => {
+  test('next full hour from now; capped at 23:00', () => {
+    expect(nextHourStart(7 * 60 + 6)).toBe(8 * 60);
+    expect(nextHourStart(7 * 60)).toBe(8 * 60);
+    expect(nextHourStart(0)).toBe(60);
+    expect(nextHourStart(22 * 60 + 59)).toBe(23 * 60);
+    expect(nextHourStart(23 * 60 + 30)).toBe(23 * 60);
   });
 });

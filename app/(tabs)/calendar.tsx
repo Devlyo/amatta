@@ -55,6 +55,8 @@ import { DayView } from '../../src/ui/calendar/DayView';
 import { KidFilterBar } from '../../src/ui/calendar/KidFilterBar';
 import { MonthStrip } from '../../src/ui/calendar/MonthStrip';
 import { useNowMinutes } from '../../src/ui/calendar/useNowMinutes';
+import { useGuardianEvents } from '../../src/ui/calendar/useGuardianEvents';
+import type { GuardianOccurrence } from '../../src/domain/guardian';
 import { WeekView } from '../../src/ui/calendar/WeekView';
 import { TOKENS } from '../../src/ui/palette';
 import {
@@ -240,10 +242,17 @@ export default function CalendarScreen(): React.ReactElement {
     () => expandOccurrences(schedules, exceptions, range, childrenById),
     [schedules, exceptions, range, childrenById],
   );
+  // Guardian events (device calendar, ADR-008) for the same range.
+  const guardianEvents = useGuardianEvents(range.from, range.to);
+  const guardianOn = (date: ISODate): readonly GuardianOccurrence[] =>
+    guardianEvents.filter((g) => (g.date as unknown as string) === (date as unknown as string));
   // Day pages: their own day's occurrences; one shared opening offset.
   const occurrencesOn = (date: ISODate): Occurrence[] =>
     occurrences.filter((o) => (o.date as unknown as string) === (date as unknown as string));
-  const todayTimed = occurrencesOn(currentDate).filter((o) => !o.allDay);
+  const todayTimed = [
+    ...occurrencesOn(currentDate).filter((o) => !o.allDay),
+    ...guardianOn(currentDate).filter((g) => !g.allDay),
+  ];
   const dayOpenY =
     dayY?.y ??
     initialScrollY({
@@ -378,19 +387,32 @@ export default function CalendarScreen(): React.ReactElement {
       params: { scheduleId: String(occ.scheduleId), occurrenceDate: occ.date },
     });
   };
+  // Guardian event → the same detail screen as a kid's event (ADR-008).
+  const openGuardian = (g: GuardianOccurrence): void => {
+    router.push({
+      pathname: '/event/guardian',
+      params: {
+        eventId: g.eventId,
+        instance: g.instanceStart.toISOString(),
+        end: g.instanceEnd.toISOString(),
+      },
+    });
+  };
   const openDay = (date: ISODate): void => {
     setCurrentDate(date);
     setCalendarView('day');
   };
   // Long press on an empty slot → new event there (kid column → that kid
-  // pre-selected; guardian column / week view → the form asks for the kid).
+  // pre-selected; guardian column → 보호자 pre-selected (ADR-008); week view →
+  // the form asks).
   const createAt = (date: ISODate, minutes: number, person?: PersonKey): void => {
     const params: Record<string, string> = {
       mode: 'create',
       date: date as unknown as string,
       start: String(minutes),
     };
-    if (person !== undefined && person !== 'guardian') params.childId = String(person);
+    if (person === 'guardian') params.guardian = '1';
+    else if (person !== undefined) params.childId = String(person);
     router.push({ pathname: '/schedule/edit', params });
   };
 
@@ -438,6 +460,8 @@ export default function CalendarScreen(): React.ReactElement {
                       testID={p === dayPage ? 'day-view' : `day-view-${p - dayPage}`}
                       kids={kids}
                       occurrences={occurrencesOn(date)}
+                      guardianEvents={guardianOn(date)}
+                      onPressGuardian={openGuardian}
                       nowMinutes={pageIsToday ? nowMinutes : null}
                       inactive={inactivePeople}
                       openAt={dayOpenY}
@@ -451,6 +475,8 @@ export default function CalendarScreen(): React.ReactElement {
               />
             ) : view === 'week' ? (
               <WeekView
+                guardianEvents={guardianEvents}
+                onPressGuardian={openGuardian}
                 days={windowDays}
                 firstColumn={windowFirstColumn}
                 totalColumns={STRIP_COLUMNS}
@@ -478,6 +504,7 @@ export default function CalendarScreen(): React.ReactElement {
               />
             ) : (
               <MonthStrip
+                guardianEvents={guardianEvents}
                 anchor={currentDate}
                 origin={monthOrigin}
                 pages={MONTH_PAGES}

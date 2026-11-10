@@ -52,6 +52,8 @@ export const TOKENS = {
   primary: '#FF7144',
   primaryDeep: '#D8501F',
   primaryTint: '#FFE2D0',
+  // Home "다음 픽업" clash line (design board "0 홈") — dark orange text.
+  pickupWarn: '#B8431A',
 
   ink: '#1D1D1B',
   inkSub: '#7A756E',
@@ -59,6 +61,9 @@ export const TOKENS = {
   ink50: 'rgba(29,29,27,0.50)',
   ink30: 'rgba(29,29,27,0.30)',
   ink12: 'rgba(29,29,27,0.12)',
+  // Row separators in grouped lists (home, settings, forms) — a touch
+  // darker than ink12 (owner, 2026-11-10).
+  separator: 'rgba(29,29,27,0.2)',
   ink06: 'rgba(29,29,27,0.06)',
   ink04: 'rgba(29,29,27,0.04)',
   hair: '#ECEAE4',

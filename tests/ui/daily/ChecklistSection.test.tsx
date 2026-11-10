@@ -137,6 +137,31 @@ describe('ChecklistSection', () => {
     expect(getByTestId('checklist-item-200')).toBeTruthy();
   });
 
+  test('each kid\u2019s supplies sit under the class they are for (title + time), in class order', () => {
+    const minjun = mkChild(1, '민준', 0);
+    const swim = { ...mkSchedule(10, 1), title: '수영', startMinutes: 16 * 60, endMinutes: 17 * 60 };
+    const english = { ...mkSchedule(12, 1), title: '영어학원', startMinutes: 14 * 60, endMinutes: 15 * 60 + 30 };
+    useChildrenStore.setState({ children: [minjun], isLoaded: true });
+    useSchedulesStore.setState({ schedules: [swim, english], exceptions: [], isLoaded: true });
+    useChecklistStore.setState({
+      itemsByScheduleId: new Map([
+        [10, [mkItem(100, 10, '수영가방')]],
+        [12, [mkItem(300, 12, '단어장')]],
+      ]),
+      isLoaded: true,
+      toggleDone: toggleDoneMock,
+    });
+    const { getByText, getByTestId, getByLabelText } = render(<ChecklistSection />);
+    expect(getByText('영어학원')).toBeTruthy();
+    expect(getByText('2PM')).toBeTruthy();
+    expect(getByText('수영')).toBeTruthy();
+    expect(getByText('4PM')).toBeTruthy();
+    expect(getByLabelText('수영 준비물 수영가방')).toBeTruthy();
+    // 영어학원 (2PM) comes before 수영 (4PM).
+    const order = [getByTestId('checklist-class-12'), getByTestId('checklist-class-10')];
+    expect(order.every(Boolean)).toBe(true);
+  });
+
   test('tap on item invokes toggleDone with the id AND viewed-date int', async () => {
     const minjun = mkChild(1, '민준', 0);
     const sched = mkSchedule(10, minjun.id);
@@ -217,5 +242,37 @@ describe('ChecklistSection', () => {
     const onD1 = render(<ChecklistSection />);
     // Same recurring item, next day → no completion row → unchecked.
     expect(onD1.getByText('0/1')).toBeTruthy();
+  });
+});
+
+describe('ChecklistSection — swipe left to delete', () => {
+  test('이번만 supply deletes straight away; a 매번 one asks first', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { Alert } = require('react-native') as typeof import('react-native');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { waitFor } = require('@testing-library/react-native') as typeof import('@testing-library/react-native');
+    const removeOne = jest.fn().mockResolvedValue(undefined);
+    const minjun = mkChild(1, '민준', 0);
+    useChildrenStore.setState({ children: [minjun], isLoaded: true });
+    useSchedulesStore.setState({ schedules: [mkSchedule(10, 1)], exceptions: [], isLoaded: true });
+    useChecklistStore.setState({
+      itemsByScheduleId: new Map([
+        [10, [{ ...mkItem(100, 10, '수영가방', TODAY_INT), recurring: false }, { ...mkItem(101, 10, '수건'), recurring: true }]],
+      ]),
+      isLoaded: true,
+      toggleDone: toggleDoneMock,
+      removeOne,
+    });
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => {
+      buttons?.find((b) => b.text === '삭제')?.onPress?.();
+    });
+    const { getByTestId } = render(<ChecklistSection />);
+    fireEvent.press(getByTestId('checklist-row-100-delete'));
+    await waitFor(() => expect(removeOne).toHaveBeenCalledWith(expect.anything(), 100));
+    expect(alert).not.toHaveBeenCalled();
+    fireEvent.press(getByTestId('checklist-row-101-delete'));
+    await waitFor(() => expect(removeOne).toHaveBeenCalledWith(expect.anything(), 101));
+    expect(alert.mock.calls[0]?.[0]).toBe('매번 챙기는 준비물이에요');
+    alert.mockRestore();
   });
 });

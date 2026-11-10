@@ -11,9 +11,9 @@ jest.mock('../../../src/db/client', () => ({
 }));
 
 // "수정" now navigates to the edit route (via replace) instead of setting the store.
-const mockReplace = jest.fn();
+const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn(), replace: mockReplace }),
+  useRouter: () => ({ push: mockPush, replace: jest.fn() }),
 }));
 
 // eslint-disable-next-line import/first
@@ -121,7 +121,7 @@ function primeStores(): void {
 
 describe('EventDetailContent', () => {
   beforeEach(() => {
-    mockReplace.mockClear();
+    mockPush.mockClear();
     primeStores();
   });
 
@@ -146,8 +146,22 @@ describe('EventDetailContent', () => {
     expect(queryByText('JLS어학원')).not.toBeNull();
     // Notify label
     expect(queryByText('30분 전')).not.toBeNull();
-    // Pickup badge (uses fmtKoTime on end minutes)
-    expect(queryByText('오후 5:30 픽업')).not.toBeNull();
+    // Pickup = end time, same "5:30 PM" chips as the form
+    expect(queryByText('5:30 PM 픽업')).not.toBeNull();
+  });
+
+  test('reads like the edit form: same rows, values and actions', () => {
+    const { getByLabelText, queryByLabelText } = render(<EventDetailContent onClose={() => {}} />);
+    expect(getByLabelText('자녀: 민준')).toBeTruthy();
+    expect(getByLabelText('종류: 학원')).toBeTruthy();
+    expect(getByLabelText(/^시작: \d{4}\. \d+\. \d+\. 4:00 PM$/)).toBeTruthy();
+    expect(getByLabelText('종료: 5:30 PM')).toBeTruthy();
+    expect(getByLabelText('시작 전 알림: 30분 전')).toBeTruthy();
+    expect(getByLabelText('종료 전 알림: 없음')).toBeTruthy();
+    expect(getByLabelText('이 회차만 수정')).toBeTruthy();
+    expect(getByLabelText('이 회차만 삭제')).toBeTruthy();
+    expect(getByLabelText('전체 삭제')).toBeTruthy();
+    expect(queryByLabelText('이 회차만 취소')).toBeNull();
   });
 
   test('renders the checklist items pulled from the checklist store', () => {
@@ -158,12 +172,13 @@ describe('EventDetailContent', () => {
 
   test('header "수정" replaces this route with the edit route in editAll mode', () => {
     // The per-occurrence vs schedule-wide split lives inside the edit sheet.
-    // "수정" atomically swaps detail → edit via router.replace (no onClose race).
+    // "수정" opens the edit form over the detail via router.push (no onClose race).
     const onClose = jest.fn();
     const { getByLabelText } = render(<EventDetailContent onClose={onClose} />);
     fireEvent.press(getByLabelText('수정'));
     expect(onClose).not.toHaveBeenCalled();
-    expect(mockReplace).toHaveBeenCalledWith(
+    // Opens on top of the detail (back returns here).
+    expect(mockPush).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/schedule/edit',
         params: expect.objectContaining({

@@ -1,13 +1,11 @@
-// Read-only event detail BODY. Presented by the native modal route
-// app/event/detail.tsx (see .omc/plans/ralplan-drawer-route-modal.md). The
-// route shell owns native presentation + the ui-store eventDetail open/close
-// lockstep; this component reads eventDetailState, looks up the Schedule/Child/
-// ChecklistItems, and renders. Dismissal is delegated via the `onClose` prop.
-//
-// Top-right "수정" opens ScheduleEditSheet via openEditSheet('editAll') (still
-// the global Modal until that sheet is migrated too).
+// Event detail — the same iPhone-style grouped list as the new / edit form
+// (ADR-007 §7), read-only, so looking at an event and editing it read alike:
+//   제목 · 장소 → 자녀 · 종류 → 시작 · 종료 · 반복 → 알림 · 픽업 → 준비물 → 메모
+//   → 이 회차만 수정 · 이 회차만 삭제 · 전체 삭제
+// Presented by the native modal route app/event/detail.tsx; the route shell
+// owns the ui-store eventDetail open/close. "수정" swaps to the edit form.
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -17,33 +15,28 @@ import { useSchedulesStore } from '../../state/schedules-store';
 import { useUiStore } from '../../state/ui-store';
 import { getDb } from '../../db/client';
 import { isChecklistItemVisibleOn } from '../../domain/checklist-membership';
-import type {
-  ChecklistItem,
-  Child,
-  Schedule,
-  ScheduleException,
-  ScheduleType,
-} from '../../domain/types';
-import { KidAvatar } from '../common/KidAvatar';
+import type { ChecklistItem, Child, Schedule, ScheduleException } from '../../domain/types';
 import { TypeIcon } from '../common/TypeIcon';
-import { FONT_FAMILIES } from '../fonts';
 import { IconCheck } from '../icons';
-import { TOKENS } from '../palette';
+import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
-import { fmtKoTime, formatKoreanDateLabel, isoToYyyymmdd } from '../utils/date';
-import { TYPE_LABELS_KO } from '../sheets/edit-sheet-form';
-
-// Sunday-first labels for the repeat-day display row. Our mask is
-// Monday-bit-0 — map visual index → bit at render time.
-const DOW_LABELS_SUN_FIRST = ['일', '월', '화', '수', '목', '금', '토'] as const;
-const VISUAL_TO_MASK_BIT: readonly number[] = [6, 0, 1, 2, 3, 4, 5];
-
-const NOTIFY_LABEL_KO = (m: number | null): string => {
-  if (m === null) return '없음';
-  if (m >= 60) return `${Math.round(m / 60)}시간 전`;
-  return `${m}분 전`;
-};
+import { TYPE } from '../typography';
+import { isoToYyyymmdd } from '../utils/date';
+import {
+  alertSummary,
+  fmt12hrShortSpaced,
+  formatKoDateChip,
+  repeatSummary,
+  TYPE_LABELS_KO,
+} from '../sheets/edit-sheet-form';
+import {
+  FormActionRow,
+  FormGroup,
+  FormSectionHeader,
+  FormTextRow,
+  FormValueRow,
+} from '../sheets/form-rows';
 
 export interface EventDetailContentProps {
   onClose: () => void;
@@ -112,13 +105,12 @@ export function EventDetailContent({
     return { startMinutes, endMinutes, title };
   }, [schedule, exception]);
 
-  // Sibling-swap: REPLACE this detail route with the edit route in one atomic
-  // nav action. Calling onClose() and then router.push
-  // races — it can leave a stuck transparent route that eats touches. replace
-  // unmounts detail (→ closeEventDetail via the shell) and shows edit cleanly.
+  // The edit form opens ON TOP of this detail (iPhone Calendar: 편집 comes
+  // out of the event sheet); saving / cancelling goes back here, showing the
+  // updated event. (Never onClose() + push — that raced into a stuck route.)
   const handleEditOccurrence = useCallback(() => {
     if (schedule === undefined || detail.occurrenceDate === undefined) return;
-    router.replace({
+    router.push({
       pathname: '/schedule/edit',
       params: {
         mode: 'editOccurrence',
@@ -130,7 +122,7 @@ export function EventDetailContent({
 
   const handleEditAll = useCallback(() => {
     if (schedule === undefined) return;
-    router.replace({
+    router.push({
       pathname: '/schedule/edit',
       params: {
         mode: 'editAll',
@@ -146,7 +138,7 @@ export function EventDetailContent({
     });
   }, [schedule, detail.occurrenceDate, router]);
 
-  const handleCancelOccurrence = useCallback(() => {
+  const handleDeleteOccurrence = useCallback(() => {
     if (schedule === undefined || detail.occurrenceDate === undefined) return;
     const date = detail.occurrenceDate;
     Alert.alert(
@@ -187,6 +179,13 @@ export function EventDetailContent({
     );
   }, [schedule, removeSchedule, onClose]);
 
+  // Deleted from the edit form on top (전체 삭제 / 이 회차만 삭제) → nothing
+  // left to show here: close the detail too.
+  const gone = detail.mode === 'open' && (schedule === undefined || exception?.kind === 'cancel');
+  useEffect(() => {
+    if (gone) onClose();
+  }, [gone, onClose]);
+
   // The modal must still mount with a body even if the schedule was just
   // deleted (drawer closes the next tick). Render a minimal frame so the
   // sheet lifecycle stays stable.
@@ -194,16 +193,16 @@ export function EventDetailContent({
 
   return (
     <View style={styles.contentRoot}>
-      {/* Top bar — 취소 · 일정 · 수정 */}
+      {/* Nav bar — 닫기 · 일정 · 수정 (same bar as the form) */}
       <View style={styles.headerBar}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="취소"
+          accessibilityLabel="닫기"
           onPress={onClose}
           hitSlop={8}
           style={styles.headerSlotStart}
         >
-          <Text style={styles.cancelLabel}>취소</Text>
+          <Text style={styles.cancelLabel}>닫기</Text>
         </Pressable>
         <Text style={styles.headerTitle}>일정</Text>
         <Pressable
@@ -233,8 +232,7 @@ export function EventDetailContent({
             display={display}
             occurrenceDate={detail.occurrenceDate}
             onEditOccurrence={handleEditOccurrence}
-            onEditAll={handleEditAll}
-            onCancelOccurrence={handleCancelOccurrence}
+            onDeleteOccurrence={handleDeleteOccurrence}
             onDeleteAll={handleDeleteAll}
           />
         </ScrollView>
@@ -244,8 +242,7 @@ export function EventDetailContent({
 }
 
 // -----------------------------------------------------------------------------
-// Inner body — split out so the test-target can mount it directly without the
-// Modal lifecycle (we also export it for the test harness).
+// Body — exported for tests.
 // -----------------------------------------------------------------------------
 
 interface DetailBodyProps {
@@ -255,8 +252,7 @@ interface DetailBodyProps {
   display: { startMinutes: number; endMinutes: number; title: string };
   occurrenceDate: string | undefined;
   onEditOccurrence: () => void;
-  onEditAll: () => void;
-  onCancelOccurrence: () => void;
+  onDeleteOccurrence: () => void;
   onDeleteAll: () => void;
 }
 
@@ -267,408 +263,128 @@ export function DetailBody({
   display,
   occurrenceDate,
   onEditOccurrence,
-  onEditAll,
-  onCancelOccurrence,
+  onDeleteOccurrence,
   onDeleteAll,
 }: DetailBodyProps): React.ReactElement {
-  const kindLabel = TYPE_LABELS_KO[schedule.type as ScheduleType];
-  const notifyLabel = NOTIFY_LABEL_KO(schedule.notifyMinutesBefore);
-  const dateLabel =
+  const palette = getKidPalette(child.colorIndex);
+  const date =
     occurrenceDate !== undefined && occurrenceDate.length > 0
-      ? formatKoreanDateLabel(occurrenceDate as unknown as import('../../domain/types').ISODate)
-      : formatKoreanDateLabel(schedule.validFrom);
-  const hasRepeat = schedule.daysOfWeek !== 0;
-  const place = schedule.location ?? '';
+      ? occurrenceDate
+      : (schedule.validFrom as unknown as string);
+  const allDay = schedule.allDay === true;
+  const oneTime = schedule.validUntil !== null && schedule.validUntil === schedule.validFrom;
+  const location = schedule.location ?? '';
   const memo = schedule.notes ?? '';
 
   return (
     <>
-      <Group>
-        <DRow label="자녀">
-          <View style={styles.kidChip}>
-            <KidAvatar child={child} size={22} />
-            <Text style={styles.kidChipLabel}>{child.name}</Text>
-          </View>
-        </DRow>
-        <DRow label="종류" hairline={false}>
-          <View style={styles.valueInline}>
-            <TypeIcon type={schedule.type} size={12} color={TOKENS.ink} />
-            <Text style={styles.valueText}>{kindLabel}</Text>
-          </View>
-        </DRow>
-      </Group>
+      {/* 제목 · 장소 */}
+      <FormGroup>
+        <FormTextRow text={display.title} emphasis last={location.length === 0} />
+        {location.length > 0 ? <FormTextRow text={location} last /> : null}
+      </FormGroup>
 
-      <Group>
-        <DRow label="제목">
-          <Text style={styles.valueText}>{display.title}</Text>
-        </DRow>
-        <DRow label="위치" hairline={false}>
-          <Text style={[styles.valueText, place.length === 0 ? styles.valueMuted : null]}>
-            {place.length > 0 ? place : '위치 없음'}
-          </Text>
-        </DRow>
-      </Group>
+      {/* 자녀 · 종류 */}
+      <FormGroup>
+        <FormValueRow
+          label="자녀"
+          value={child.name}
+          leading={<View style={[styles.kidDot, { backgroundColor: palette.source, borderColor: palette.deep }]} />}
+        />
+        <FormValueRow
+          label="종류"
+          value={TYPE_LABELS_KO[schedule.type]}
+          leading={<TypeIcon type={schedule.type} size={16} color={TOKENS.inkSub} />}
+          last
+        />
+      </FormGroup>
 
-      <Group>
-        <DRow label="날짜">
-          <Text style={styles.valueText}>{dateLabel}</Text>
-        </DRow>
-        <DRow label="시간">
-          {schedule.allDay === true ? (
-            <Text style={styles.valueText}>하루 종일</Text>
-          ) : (
-            <>
-              <Text style={styles.valueText}>{fmtKoTime(display.startMinutes)}</Text>
-              <Text style={styles.valueDash}>–</Text>
-              <Text style={styles.valueText}>{fmtKoTime(display.endMinutes)}</Text>
-            </>
-          )}
-        </DRow>
-        {hasRepeat ? (
-          <DRow label="반복" align="top" hairline={false}>
-            <View style={styles.dayRow}>
-              {DOW_LABELS_SUN_FIRST.map((label, visualIdx) => {
-                const maskBit = VISUAL_TO_MASK_BIT[visualIdx] ?? 0;
-                const on = (schedule.daysOfWeek & (1 << maskBit)) !== 0;
-                return (
-                  <View
-                    key={label}
-                    style={[styles.dayCircle, on ? styles.dayCircleActive : null]}
-                  >
-                    <Text
-                      style={[
-                        styles.dayCircleLabel,
-                        on ? styles.dayCircleLabelActive : null,
-                      ]}
-                    >
-                      {label}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          </DRow>
-        ) : (
-          <DRow label="반복" hairline={false}>
-            <Text style={[styles.valueText, styles.valueMuted]}>반복 없음</Text>
-          </DRow>
+      {/* 시작 · 종료 · 반복 */}
+      <FormGroup>
+        <FormValueRow
+          label="시작"
+          value={allDay ? `${formatKoDateChip(date)} · 하루 종일` : `${formatKoDateChip(date)} ${fmt12hrShortSpaced(display.startMinutes)}`}
+        />
+        {allDay ? null : <FormValueRow label="종료" value={fmt12hrShortSpaced(display.endMinutes)} />}
+        <FormValueRow label="반복" value={oneTime ? '안 함' : repeatSummary(schedule.daysOfWeek)} last />
+      </FormGroup>
+
+      {/* 알림 · 픽업 */}
+      <FormGroup>
+        <FormValueRow label="시작 전 알림" value={alertSummary(schedule.notifyMinutesBefore)} last={allDay} />
+        {allDay ? null : (
+          <>
+            <FormValueRow label="종료 전 알림" value={alertSummary(schedule.notifyEndMinutesBefore ?? null)} />
+            <FormValueRow
+              label="픽업"
+              value={schedule.needsPickup ? `${fmt12hrShortSpaced(display.endMinutes)} 픽업` : '필요 없음'}
+              leading={schedule.needsPickup ? <View style={styles.pickupDot} /> : null}
+              last
+            />
+          </>
         )}
-      </Group>
+      </FormGroup>
 
-      <Group>
-        <DRow label="알림">
-          <Text style={styles.valueText}>{notifyLabel}</Text>
-        </DRow>
-        <DRow label="픽업" hairline={false}>
-          {schedule.needsPickup ? (
-            <View style={styles.pickupBadge}>
-              <View style={styles.pickupDot} />
-              <Text style={styles.valueText}>
-                {fmtKoTime(display.endMinutes)} 픽업
-              </Text>
-            </View>
-          ) : (
-            <Text style={[styles.valueText, styles.valueMuted]}>필요 없음</Text>
-          )}
-        </DRow>
-      </Group>
-
-      {memo.length > 0 ? (
-        <Group>
-          <DRow label="메모" align="top" hairline={false}>
-            <Text style={[styles.valueText, styles.memoText]}>{memo}</Text>
-          </DRow>
-        </Group>
-      ) : null}
-
+      {/* 준비물 */}
       {checklist.length > 0 ? (
-        <Group>
-          <DRow label="준비물" align="top" hairline={false}>
-            <View style={styles.checklistCol}>
-              {checklist.map((item, i) => (
-                <View
-                  key={item.id}
-                  style={[
-                    styles.checklistRow,
-                    i > 0 ? styles.checklistRowHairline : null,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.checkBox,
-                      item.isDone ? styles.checkBoxDone : null,
-                    ]}
-                  >
-                    {item.isDone ? (
-                      <IconCheck size={10} color={TOKENS.surface} />
-                    ) : null}
+        <View style={styles.block}>
+          <FormSectionHeader label="준비물" />
+          <FormGroup>
+            {checklist.map((item, i) => (
+              <View key={item.id}>
+                <View style={styles.checkRow}>
+                  <View style={[styles.checkBox, item.isDone ? styles.checkBoxDone : null]}>
+                    {item.isDone ? <IconCheck size={10} color={TOKENS.surface} /> : null}
                   </View>
-                  <Text
-                    style={[
-                      styles.valueText,
-                      item.isDone ? styles.checklistDone : null,
-                    ]}
-                  >
-                    {item.label}
-                  </Text>
+                  <Text style={[styles.checkLabel, item.isDone ? styles.checkLabelDone : null]}>{item.label}</Text>
                 </View>
-              ))}
-            </View>
-          </DRow>
-        </Group>
+                {i < checklist.length - 1 ? <View style={styles.separator} /> : null}
+              </View>
+            ))}
+          </FormGroup>
+        </View>
       ) : null}
 
-      {/* Spec: bottom action group is exactly two centered rows.
-          "수정" lives in the top-right; the sheet itself surfaces the
-          editAll vs editOccurrence split once the user lands there. */}
-      <View style={styles.actionGroup}>
-        <ActionRow label="이 회차만 취소" onPress={onCancelOccurrence} hairline />
-        <ActionRow label="일정 삭제" onPress={onDeleteAll} tone="danger" />
-      </View>
+      {/* 메모 */}
+      {memo.length > 0 ? (
+        <FormGroup>
+          <FormTextRow text={memo} last />
+        </FormGroup>
+      ) : null}
+
+      {/* Actions — same wording as the edit form */}
+      <FormGroup>
+        {oneTime ? null : <FormActionRow label="이 회차만 수정" onPress={onEditOccurrence} />}
+        {oneTime ? null : <FormActionRow label="이 회차만 삭제" onPress={onDeleteOccurrence} tone="danger" />}
+        <FormActionRow label={oneTime ? '일정 삭제' : '전체 삭제'} onPress={onDeleteAll} tone="danger" last />
+      </FormGroup>
 
       <View style={styles.tail} />
     </>
   );
 }
 
-// -----------------------------------------------------------------------------
-// Layout primitives (kept local; the sheet variant lives in ScheduleEditSheet)
-// -----------------------------------------------------------------------------
-
-function Group({ children }: { children: React.ReactNode }): React.ReactElement {
-  return <View style={styles.group}>{children}</View>;
-}
-
-interface DRowProps {
-  label: string;
-  children: React.ReactNode;
-  hairline?: boolean;
-  align?: 'center' | 'top';
-}
-
-function DRow({
-  label,
-  children,
-  hairline = true,
-  align = 'center',
-}: DRowProps): React.ReactElement {
-  return (
-    <View
-      style={[
-        styles.row,
-        hairline ? styles.rowHairline : null,
-        align === 'top' ? styles.rowTop : styles.rowCenter,
-      ]}
-    >
-      <Text style={[styles.rowLabel, align === 'top' ? styles.rowLabelTop : null]}>
-        {label}
-      </Text>
-      <View
-        style={[
-          styles.rowContent,
-          align === 'top' ? styles.rowContentTop : styles.rowContentCenter,
-        ]}
-      >
-        {children}
-      </View>
-    </View>
-  );
-}
-
-function ActionRow({
-  label,
-  onPress,
-  tone,
-  hairline = false,
-}: {
-  label: string;
-  onPress: () => void;
-  tone?: 'danger';
-  hairline?: boolean;
-}): React.ReactElement {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={[styles.actionRow, hairline ? styles.actionRowHairline : null]}
-    >
-      <Text
-        style={[
-          styles.actionLabel,
-          tone === 'danger' ? styles.actionLabelDanger : null,
-        ]}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  // De-chromed: the native route owns the scrim/shape/grabber.
-  contentRoot: { flex: 1, backgroundColor: TOKENS.surfaceWarm },
-
+  // Same chrome as ScheduleEditSheet (grouped background, nav bar, gaps).
+  contentRoot: { flex: 1, backgroundColor: TOKENS.groupedBg },
   headerBar: {
+    height: 52,
     flexDirection: 'row',
-    // baseline to match ScheduleEditSheet's header (title shares the 취소/수정
-    // text baseline instead of floating above the smaller action labels).
-    alignItems: 'baseline',
-    paddingHorizontal: 14,
-    paddingTop: SPACING.xs,
-    paddingBottom: SPACING.sm,
-  },
-  headerSlotStart: { flex: 1, alignItems: 'flex-start' },
-  headerSlotEnd: { flex: 1, alignItems: 'flex-end' },
-  headerTitle: {
-    fontSize: 18,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.ink,
-    letterSpacing: -0.4,
-  },
-  cancelLabel: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: TOKENS.ink,
-    letterSpacing: -0.3,
-  },
-  editLabel: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.primary,
-    letterSpacing: -0.3,
-  },
-  editLabelDisabled: { color: TOKENS.ink30 },
-
-  scroll: { flex: 1 },
-  scrollContent: { paddingTop: SPACING.sm, paddingBottom: SPACING.sm },
-
-  group: {
-    backgroundColor: TOKENS.surface,
-    borderRadius: 14,
-    marginHorizontal: 14,
-    marginBottom: SPACING.md,
-    overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: SPACING.md,
+    alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: 10,
-    minHeight: 40,
   },
-  rowHairline: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: TOKENS.ink04,
-  },
-  rowCenter: { alignItems: 'center' },
-  rowTop: { alignItems: 'flex-start' },
-  rowLabel: {
-    width: 56,
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.2,
-  },
-  rowLabelTop: { paddingTop: SPACING.xs },
-  rowContent: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  rowContentCenter: {
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  rowContentTop: {
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-
-  // --- Inline values --------------------------------------------------
-  valueText: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
-    letterSpacing: -0.2,
-  },
-  valueMuted: { color: TOKENS.inkSub },
-  valueDash: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink30,
-  },
-  valueInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  memoText: { width: '100%', textAlign: 'left' },
-
-  // --- Kid chip --------------------------------------------------------
-  kidChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: SPACING.sm,
-    paddingLeft: SPACING.xs,
-    paddingRight: SPACING.sm,
-    backgroundColor: TOKENS.controlIdle,
-    borderRadius: RADIUS.full,
-  },
-  kidChipLabel: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: TOKENS.inkSub,
-    letterSpacing: -0.2,
-  },
-
-  // --- Day circles -----------------------------------------------------
-  dayRow: { flexDirection: 'row', gap: 6 },
-  dayCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: RADIUS.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: TOKENS.controlIdle,
-  },
-  dayCircleActive: { backgroundColor: TOKENS.controlActive },
-  dayCircleLabel: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: TOKENS.ink30,
-    letterSpacing: -0.2,
-  },
-  dayCircleLabelActive: { color: TOKENS.surface },
-
-  // --- Pickup badge ---------------------------------------------------
-  pickupBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  pickupDot: {
-    width: 7,
-    height: 7,
-    borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.primary,
-  },
-
-  // --- Checklist ------------------------------------------------------
-  checklistCol: { width: '100%' },
-  checklistRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 6,
-  },
-  checklistRowHairline: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TOKENS.ink04,
-  },
+  headerSlotStart: { minWidth: 64, paddingVertical: SPACING.sm },
+  headerSlotEnd: { minWidth: 64, paddingVertical: SPACING.sm, alignItems: 'flex-end' },
+  headerTitle: { ...TYPE.headline, flex: 1, textAlign: 'center', color: TOKENS.ink },
+  cancelLabel: { ...TYPE.row, color: TOKENS.danger },
+  editLabel: { ...TYPE.headline, color: TOKENS.danger },
+  editLabelDisabled: { color: TOKENS.ink30 },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, gap: 22 },
+  block: { gap: 6 },
+  kidDot: { width: 12, height: 12, borderRadius: RADIUS.full, borderWidth: 1.5 },
+  pickupDot: { width: 7, height: 7, borderRadius: RADIUS.full, backgroundColor: TOKENS.primary },
+  checkRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 },
   checkBox: {
     width: 18,
     height: 18,
@@ -679,39 +395,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: TOKENS.surface,
   },
-  checkBoxDone: {
-    backgroundColor: TOKENS.controlActive,
-    borderColor: TOKENS.controlActive,
-  },
-  checklistDone: {
-    color: TOKENS.inkSub,
-    textDecorationLine: 'line-through',
-  },
-
-  // --- Action stack ---------------------------------------------------
-  actionGroup: {
-    backgroundColor: TOKENS.surface,
-    borderRadius: 14,
-    marginHorizontal: 14,
-    marginBottom: SPACING.md,
-    overflow: 'hidden',
-  },
-  actionRow: {
-    paddingVertical: 13,
-    paddingHorizontal: SPACING.lg,
-    alignItems: 'center',
-  },
-  actionRowHairline: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: TOKENS.ink04,
-  },
-  actionLabel: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
-    letterSpacing: -0.2,
-  },
-  actionLabelDanger: { color: TOKENS.danger },
-
-  tail: { height: 32 },
+  checkBoxDone: { backgroundColor: TOKENS.controlActive, borderColor: TOKENS.controlActive },
+  checkLabel: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
+  checkLabelDone: { color: TOKENS.inkSub, textDecorationLine: 'line-through' },
+  separator: { marginLeft: 16, height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.separator },
+  tail: { height: SPACING.xxxl },
 });

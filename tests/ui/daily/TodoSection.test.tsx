@@ -127,3 +127,21 @@ describe('TodoSection', () => {
     expect(queryByTestId('todo-add-input')).toBeNull();
   });
 });
+
+describe('TodoSection — swipe left to delete', () => {
+  test('the revealed 삭제 deletes straight away (no extra confirm)', async () => {
+    const removeOne = jest.fn().mockResolvedValue(undefined);
+    useTodosStore.setState({
+      todos: [mkTodo(1, '준비물 사기', new Date(2026, 5, 2, 12, 0).getTime())],
+      isLoaded: true,
+      toggleDone: toggleDoneMock,
+      add: addMock,
+      removeOne,
+    });
+    const { getByTestId } = render(<TodoSection />);
+    fireEvent.press(getByTestId('todo-row-1-delete'));
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { waitFor } = require('@testing-library/react-native') as typeof import('@testing-library/react-native');
+    await waitFor(() => expect(removeOne).toHaveBeenCalledWith(expect.anything(), 1));
+  });
+});

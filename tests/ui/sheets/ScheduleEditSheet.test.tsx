@@ -27,7 +27,12 @@ import { useSchedulesStore } from '../../../src/state/schedules-store';
 import { useUiStore } from '../../../src/state/ui-store';
 
 jest.mock('../../../src/db/client', () => ({
-  getDb: jest.fn().mockResolvedValue({ __mock: true }),
+  // runAsync / getFirstAsync: app_settings writes from the guardian path.
+  getDb: jest.fn().mockResolvedValue({
+    __mock: true,
+    runAsync: async () => undefined,
+    getFirstAsync: async () => null,
+  }),
 }));
 
 // eslint-disable-next-line import/first
@@ -444,5 +449,207 @@ describe('EditSheet — iPhone-style form (ADR-007 §7–8)', () => {
     fireEvent.press(getByTestId('row-type'));
     expect(queryByLabelText('요일 화')).toBeNull();
     expect(queryByLabelText('학원')).toBeTruthy();
+  });
+});
+
+describe('EditSheet — 보호자 (device calendar, ADR-008)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Calendar = require('expo-calendar') as jest.Mocked<typeof import('expo-calendar')>;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { useGuardianStore } = require('../../../src/state/guardian-store') as typeof import('../../../src/state/guardian-store');
+
+  beforeEach(() => {
+    useGuardianStore.getState().resetToDefaults();
+  });
+
+  function openCreate(guardian: boolean) {
+    const mocks = seedStores({ schedule: mkSchedule(), mode: 'create' });
+    useUiStore.setState({
+      editSheetState: { mode: 'create', preFill: { date: iso('2026-11-10'), startMinutes: 15 * 60, guardian } },
+    });
+    return mocks;
+  }
+
+  test('보호자 hides kid-only rows and writes to the device calendar, not SQLite', async () => {
+    const mocks = openCreate(false);
+    Calendar.getCalendarPermissionsAsync.mockResolvedValue({ status: 'granted' } as never);
+    Calendar.getCalendarsAsync.mockResolvedValue([
+      { id: 'home', title: '집', color: 'red', source: { name: 'iCloud' }, allowsModifications: true },
+    ] as never);
+    const onClose = jest.fn();
+    const { getByTestId, getByLabelText, queryByTestId, queryByLabelText, getByText } = render(
+      <ScheduleEditContent onClose={onClose} />,
+    );
+    fireEvent.press(getByTestId('row-kid'));
+    fireEvent.press(getByLabelText('자녀: 보호자'));
+    expect(getByLabelText('자녀: 보호자')).toBeTruthy(); // row value
+    expect(queryByTestId('row-type')).toBeNull();
+    expect(queryByTestId('row-repeat')).toBeNull();
+    expect(queryByTestId('row-alert-end')).toBeNull();
+    expect(queryByLabelText('픽업 필요')).toBeNull();
+    expect(getByText('보호자 일정은 아이폰 캘린더에 저장돼요.')).toBeTruthy();
+
+    fireEvent.changeText(getByLabelText('제목 입력'), '회의');
+    fireEvent.press(getByLabelText('추가'));
+    await waitFor(() => expect(Calendar.createEventAsync).toHaveBeenCalled());
+    const [calendarId, event] = Calendar.createEventAsync.mock.calls[0] ?? [];
+    expect(calendarId).toBe('default'); // nothing chosen → the device default calendar
+    // 기본 알림 시점 defaults to 없음 → no calendar alarm.
+    expect(event).toMatchObject({ title: '회의', allDay: false, alarms: [] });
+    expect((event?.startDate as Date).getHours()).toBe(15);
+    expect(mocks.addSchedule).not.toHaveBeenCalled();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  test('guardian column long press pre-selects 보호자; refused permission → nothing saved', async () => {
+    openCreate(true);
+    Calendar.getCalendarPermissionsAsync.mockResolvedValue({ status: 'undetermined' } as never);
+    Calendar.requestCalendarPermissionsAsync.mockResolvedValue({ status: 'denied' } as never);
+    const onClose = jest.fn();
+    const { getByLabelText } = render(<ScheduleEditContent onClose={onClose} />);
+    expect(getByLabelText('자녀: 보호자')).toBeTruthy();
+    fireEvent.changeText(getByLabelText('제목 입력'), '회의');
+    fireEvent.press(getByLabelText('추가'));
+    await waitFor(() => expect(Calendar.requestCalendarPermissionsAsync).toHaveBeenCalled());
+    expect(Calendar.createEventAsync).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+describe('EditSheet — 이 회차만 수정 keeps the detail\u2019s rows', () => {
+  test('fixed rows are read-only; 매번 supplies shown, this day\u2019s 이번만 editable; new one saved as 이번만', async () => {
+    const day = iso('2026-06-02'); // a Tuesday
+    const mocks = seedStores({
+      schedule: mkSchedule({ location: 'JLS', notes: '현관 앞' }),
+      mode: 'editOccurrence',
+      occurrenceDate: day,
+      items: [
+        mkItem({ id: 1, label: '교재', occurrenceDate: null, recurring: true }),
+        mkItem({ id: 2, label: '실내화', occurrenceDate: 20260602, recurring: false }),
+        mkItem({ id: 3, label: '다른날', occurrenceDate: 20260609, recurring: false }),
+      ],
+    });
+    const applyException = jest.fn().mockResolvedValue(undefined);
+    useSchedulesStore.setState({ applyException } as never);
+    const { getByText, queryByText, getByLabelText, queryByLabelText, getByTestId } = render(
+      <ScheduleEditContent onClose={() => {}} />,
+    );
+    // Same rows as the detail, but fixed ones have no picker.
+    expect(getByText('JLS')).toBeTruthy();
+    expect(getByText('현관 앞')).toBeTruthy();
+    expect(getByLabelText('반복: 매주 화')).toBeTruthy();
+    fireEvent.press(getByTestId('row-repeat'));
+    expect(queryByLabelText('요일 화')).toBeNull(); // no repeat panel
+    // Supplies: 매번 one read-only, this day's 이번만 editable, other day's hidden.
+    expect(getByText('교재')).toBeTruthy();
+    expect(getByLabelText('준비물 1').props.value).toBe('실내화');
+    expect(queryByText('다른날')).toBeNull();
+    fireEvent.press(getByLabelText('준비물 추가'));
+    fireEvent.changeText(getByLabelText('준비물 2'), '물통');
+    fireEvent.press(getByLabelText('저장'));
+    await waitFor(() => expect(mocks.add).toHaveBeenCalled());
+    expect(mocks.add).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ label: '물통', occurrenceDate: 20260602, recurring: false }),
+    );
+    expect(mocks.remove).not.toHaveBeenCalled();
+    expect(applyException).toHaveBeenCalledWith(expect.anything(), 7, day, expect.objectContaining({ kind: 'modify' }));
+  });
+});
+
+describe('EditSheet — editing a 보호자 event (ADR-008)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Calendar = require('expo-calendar') as jest.Mocked<typeof import('expo-calendar')>;
+
+  test('loads the event into the same form and saves it back to the calendar', async () => {
+    seedStores({ schedule: mkSchedule(), mode: 'create' });
+    const instance = new Date(2026, 10, 12, 15, 0).toISOString();
+    useUiStore.setState({ editSheetState: { mode: 'editGuardian', guardianEventId: 'e1', guardianInstance: instance } });
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { useGuardianStore } = require('../../../src/state/guardian-store') as typeof import('../../../src/state/guardian-store');
+    useGuardianStore.setState({ enabled: true, permission: 'granted' });
+    Calendar.getEventAsync.mockResolvedValue({
+      id: 'e1',
+      calendarId: 'home',
+      title: '회의',
+      location: '회사',
+      notes: '',
+      startDate: new Date(2026, 10, 12, 15, 0).toISOString(),
+      endDate: new Date(2026, 10, 12, 16, 0).toISOString(),
+      allDay: false,
+      alarms: [{ relativeOffset: -10 }],
+      recurrenceRule: null,
+    } as never);
+    const onClose = jest.fn();
+    const { findByDisplayValue, getByLabelText, queryByTestId } = render(<ScheduleEditContent onClose={onClose} />);
+    expect(await findByDisplayValue('회의')).toBeTruthy();
+    expect(getByLabelText('자녀: 보호자')).toBeTruthy();
+    expect(getByLabelText('시작 전 알림: 10분 전')).toBeTruthy();
+    expect(queryByTestId('row-type')).toBeNull();
+    expect(getByLabelText('일정 삭제')).toBeTruthy();
+    fireEvent.changeText(getByLabelText('제목 입력'), '회의 (변경)');
+    fireEvent.press(getByLabelText('저장'));
+    await waitFor(() => expect(Calendar.updateEventAsync).toHaveBeenCalled());
+    expect(Calendar.updateEventAsync).toHaveBeenCalledWith('e1', expect.objectContaining({ title: '회의 (변경)' }));
+    expect(Calendar.createEventAsync).not.toHaveBeenCalled();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+});
+
+describe('EditSheet — pickup ↔ 보호자 clash asks before saving', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Alert } = require('react-native') as typeof import('react-native');
+
+  test('a 보호자 event over a kid pickup → "픽업 시간과 겹쳐요"; 취소 saves nothing', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Calendar = require('expo-calendar') as jest.Mocked<typeof import('expo-calendar')>;
+    // 피아노 Tue 17:00–18:00, pickup at 18:00. 2026-06-02 is a Tuesday.
+    seedStores({ schedule: mkSchedule({ title: '피아노', startMinutes: 17 * 60, endMinutes: 18 * 60, needsPickup: true }), mode: 'create' });
+    useUiStore.setState({
+      editSheetState: { mode: 'create', preFill: { date: iso('2026-06-02'), startMinutes: 17 * 60 + 30, guardian: true } },
+    });
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => {
+      buttons?.find((b) => b.text === '취소')?.onPress?.();
+    });
+    const { getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
+    fireEvent.changeText(getByLabelText('제목 입력'), '저녁 약속');
+    fireEvent.press(getByLabelText('추가'));
+    await waitFor(() => expect(alert).toHaveBeenCalled());
+    expect(alert.mock.calls[0]?.[0]).toBe('픽업 시간과 겹쳐요');
+    expect(alert.mock.calls[0]?.[1]).toContain('민준 피아노 픽업(6:00 PM)');
+    expect(Calendar.createEventAsync).not.toHaveBeenCalled();
+    alert.mockRestore();
+  });
+
+  test('a kid event whose pickup lands in a 보호자 event → asked; 저장 goes ahead', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Calendar = require('expo-calendar') as jest.Mocked<typeof import('expo-calendar')>;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { useGuardianStore } = require('../../../src/state/guardian-store') as typeof import('../../../src/state/guardian-store');
+    const mocks = seedStores({ schedule: mkSchedule({ startMinutes: 17 * 60, endMinutes: 18 * 60, needsPickup: true }), mode: 'editAll', occurrenceDate: iso('2026-06-02') });
+    useGuardianStore.setState({
+      enabled: true,
+      permission: 'granted',
+      calendarIds: null,
+      calendars: [{ id: 'home', title: '집', color: 'red', source: '', writable: true }],
+    });
+    Calendar.getEventsAsync.mockResolvedValueOnce([
+      {
+        id: 'g1',
+        calendarId: 'home',
+        title: '저녁 약속',
+        startDate: new Date(2026, 5, 2, 17, 30).toISOString(),
+        endDate: new Date(2026, 5, 2, 20, 0).toISOString(),
+        allDay: false,
+      },
+    ] as never);
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => {
+      buttons?.find((b) => b.text === '저장')?.onPress?.();
+    });
+    const { getByLabelText } = render(<ScheduleEditContent onClose={() => {}} />);
+    fireEvent.press(getByLabelText('저장'));
+    await waitFor(() => expect(mocks.updateSchedule).toHaveBeenCalled());
+    expect(alert.mock.calls[0]?.[1]).toContain('보호자 일정 "저녁 약속"(5:30–8PM)와 겹쳐요');
+    alert.mockRestore();
   });
 });

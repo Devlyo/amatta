@@ -6,7 +6,6 @@ import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-han
 import type { Child, ColorIndex, ISODate, Occurrence, ScheduleType } from '../../../src/domain/types';
 import { MonthStrip } from '../../../src/ui/calendar/MonthStrip';
 import { MonthView } from '../../../src/ui/calendar/MonthView';
-import { BLOCK_DIMMED_OPACITY } from '../../../src/ui/calendar/TimeBlock';
 import { WeekView } from '../../../src/ui/calendar/WeekView';
 import { TIME_GUTTER } from '../../../src/ui/calendar/time-axis';
 import { visibleWeekDays } from '../../../src/ui/calendar/calendar-layout';
@@ -88,9 +87,9 @@ describe('WeekView', () => {
     expect(screen.getByText('3–4PM')).toBeTruthy();
   });
 
-  test('switched-off kids fade', () => {
+  test('switched-off kids are hidden', () => {
     renderWeek(false, { inactive: [1] });
-    expect(style('week-block-1|2026-11-10').opacity).toBe(BLOCK_DIMMED_OPACITY);
+    expect(screen.queryByTestId('week-block-1|2026-11-10')).toBeNull();
     expect(style('week-block-3|2026-11-12').opacity).toBe(1);
   });
 
@@ -173,9 +172,9 @@ describe('MonthView', () => {
     expect(screen.getByText('3PM')).toBeTruthy();
   });
 
-  test('switched-off kids fade', () => {
+  test('switched-off kids are hidden', () => {
     renderMonth(false, [2]);
-    expect(style('month-chip-2026-11-10-3').opacity).toBe(0.2);
+    expect(screen.queryByTestId('month-chip-2026-11-10-3')).toBeNull();
     expect(style('month-chip-2026-11-10-2').opacity).toBe(1);
   });
 });
@@ -311,5 +310,63 @@ describe('MonthStrip — months page sideways natively', () => {
       nativeEvent: { contentOffset: { x: 3 * 350, y: 0 } },
     });
     expect(onPage).toHaveBeenCalledWith(3);
+  });
+});
+
+describe('guardian events (device calendar, ADR-008)', () => {
+  const g = (key: string, date: string, start: number, end: number, title: string, allDay = false) => ({
+    key: `${key}|${date}`,
+    eventId: key,
+    calendarId: 'home',
+    title,
+    date: ISO(date),
+    startMinutes: start,
+    endMinutes: end,
+    allDay,
+    instanceStart: new Date(2026, 10, 10),
+  });
+
+  test('week: grey guardian blocks; tap opens; solo kid hides them', () => {
+    const onPressGuardian = jest.fn();
+    const props = {
+      days: visibleWeekDays(ISO('2026-11-10'), 7),
+      today: ISO('2026-11-10'),
+      kids,
+      occurrences: [occ(3, 2, '2026-11-12', 15 * 60, 16 * 60, '피아노')],
+      nowMinutes: 13 * 60,
+      zoomed: false,
+      scrollKey: 'w',
+      onPressOccurrence: () => {},
+      onPressDay: () => {},
+      guardianEvents: [g('e1', '2026-11-12', 15 * 60, 17 * 60, '회의')],
+      onPressGuardian,
+    };
+    render(<WeekView {...props} inactive={[]} />);
+    fireEvent(screen.getByTestId('week-view'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: TIME_GUTTER + 7 * 50, height: 600 } },
+    });
+    expect(screen.getByLabelText(/^보호자 회의, 목요일 3–5PM/)).toBeTruthy();
+    fireEvent.press(screen.getByTestId('week-block-g:e1|2026-11-12'));
+    expect(onPressGuardian).toHaveBeenCalledWith(expect.objectContaining({ eventId: 'e1' }));
+    screen.unmount();
+    render(<WeekView {...props} inactive={[1, 'guardian']} />);
+    expect(screen.queryByTestId('week-block-g:e1|2026-11-12')).toBeNull();
+  });
+
+  test('month: guardian chips sit with the kids’ chips, all-day first', () => {
+    render(
+      <MonthView
+        anchor={ISO('2026-11-10')}
+        today={ISO('2026-11-10')}
+        kids={kids}
+        occurrences={[occ(2, 1, '2026-11-10', 16 * 60, 17 * 60, '영어학원')]}
+        inactive={[]}
+        zoomed={false}
+        onPressDay={() => {}}
+        guardianEvents={[g('e1', '2026-11-10', 9 * 60, 10 * 60, '회의'), g('e2', '2026-11-10', 0, 1440, '출장', true)]}
+      />,
+    );
+    const titles = screen.getAllByText(/영어학원|회의|출장/).map((n) => n.props.children);
+    expect(titles).toEqual(['출장', '회의', '영어학원']);
   });
 });

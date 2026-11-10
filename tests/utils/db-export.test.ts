@@ -339,6 +339,16 @@ describe('exportDb', () => {
     ]);
   });
 
+  test('guardian calendar choices (device-specific ids) are NOT exported', async () => {
+    real.exec(
+      `INSERT INTO app_settings (key, value) VALUES
+         ('guardian_enabled', '1'), ('guardian_calendar_ids', '["x"]'),
+         ('guardianship', 'keep'), ('default_minutes_before', '30')`,
+    );
+    const result = await exportDb(db as never);
+    expect(result.envelope.appSettings.map((r) => r.key)).toEqual(['default_minutes_before', 'guardianship']);
+  });
+
   test('JSON output is pretty-printed (indent 2)', async () => {
     real.exec(
       `INSERT INTO children (name, color_index, created_at)

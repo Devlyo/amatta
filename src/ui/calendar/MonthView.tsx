@@ -12,6 +12,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Reanimated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
+import type { GuardianOccurrence } from '../../domain/guardian';
 import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { getKidPalette, TOKENS, withAlpha } from '../palette';
 import { RADIUS } from '../radius';
@@ -54,6 +55,18 @@ interface Props {
   /** The weekday names row (a month strip draws one shared row instead). */
   showNames?: boolean;
   testID?: string;
+  /** Guardian (device calendar) events — grey chips. */
+  guardianEvents?: readonly GuardianOccurrence[];
+}
+
+/** One chip: a kid occurrence or a guardian event. */
+interface MonthChip {
+  id: string;
+  person: PersonKey;
+  title: string;
+  color: string;
+  start: number;
+  allDay: boolean;
 }
 
 function MonthViewImpl({
@@ -68,6 +81,7 @@ function MonthViewImpl({
   live,
   showNames = true,
   testID = 'month-view',
+  guardianEvents = [],
 }: Props): React.ReactElement {
   const dates = useMemo(() => monthGridDates(anchor), [anchor]);
   const monthKey = (anchor as unknown as string).slice(0, 7);
@@ -75,17 +89,34 @@ function MonthViewImpl({
   const everyone = useMemo<PersonKey[]>(() => [...kids.map((k) => k.id), 'guardian'], [kids]);
 
   const byDate = useMemo(() => {
-    const m = new Map<string, Occurrence[]>();
-    for (const occ of occurrences) {
-      if (!showsInMonth(occ) || !kidById.has(occ.childId)) continue;
-      const key = occ.date as unknown as string;
+    const m = new Map<string, MonthChip[]>();
+    const add = (date: ISODate, chip: MonthChip): void => {
+      const key = date as unknown as string;
       const list = m.get(key);
-      if (list === undefined) m.set(key, [occ]);
-      else list.push(occ);
+      if (list === undefined) m.set(key, [chip]);
+      else list.push(chip);
+    };
+    // Switched-off people are hidden (everyone off → nothing is filtered).
+    const noneOn = everyone.every((k) => inactive.includes(k));
+    const shown = (p: PersonKey): boolean => noneOn || !inactive.includes(p);
+    for (const occ of occurrences) {
+      if (!showsInMonth(occ) || !kidById.has(occ.childId) || !shown(occ.childId)) continue;
+      add(occ.date, {
+        id: String(occ.scheduleId),
+        person: occ.childId,
+        title: occ.title,
+        color: getKidPalette(occ.colorIndex).source,
+        start: occ.startMinutes,
+        allDay: occ.allDay === true,
+      });
     }
-    for (const list of m.values()) list.sort((a, b) => a.startMinutes - b.startMinutes);
+    for (const g of shown('guardian') ? guardianEvents : []) {
+      add(g.date, { id: `g:${g.eventId}`, person: 'guardian', title: g.title, color: TOKENS.guardian, start: g.startMinutes, allDay: g.allDay });
+    }
+    // All-day first, then by start time.
+    for (const list of m.values()) list.sort((a, b) => (a.allDay === b.allDay ? a.start - b.start : a.allDay ? -1 : 1));
     return m;
-  }, [occurrences, kidById]);
+  }, [occurrences, guardianEvents, kidById, everyone, inactive]);
 
   const rowH = rowHeight ?? (zoomed ? ROW_H_ZOOMED : MONTH_ROW_MIN);
   const twoLine = rowH >= MONTH_ROW_TWO_LINE;
@@ -132,28 +163,27 @@ function MonthViewImpl({
                   <View style={[styles.circle, isToday ? styles.circleToday : null]}>
                     <Text style={[styles.number, { color: numberColor }]}>{day}</Text>
                   </View>
-                  {shown.map((occ) => {
-                    const p = getKidPalette(occ.colorIndex);
-                    const emphasis = emphasisOf(inactive, everyone, occ.childId);
+                  {shown.map((chip) => {
+                    const emphasis = emphasisOf(inactive, everyone, chip.person);
                     return (
                       <View
-                        key={occ.scheduleId}
-                        testID={`month-chip-${key}-${occ.scheduleId}`}
+                        key={chip.id}
+                        testID={`month-chip-${key}-${chip.id}`}
                         style={[
                           styles.chip,
                           {
                             height: chipH,
-                            backgroundColor: withAlpha(p.source, emphasis === 'solo' ? 0.8 : 0.6),
+                            backgroundColor: withAlpha(chip.color, emphasis === 'solo' ? 0.8 : 0.6),
                             opacity: emphasis === 'inactive' ? 0.2 : 1,
                           },
                         ]}
                       >
                         <Text style={styles.chipTitle} numberOfLines={1} ellipsizeMode="tail">
-                          {occ.title}
+                          {chip.title}
                         </Text>
                         {twoLine ? (
                           <Text style={styles.chipTime} numberOfLines={1}>
-                            {occ.allDay ? '하루 종일' : fmt12hrShort(occ.startMinutes)}
+                            {chip.allDay ? '하루 종일' : fmt12hrShort(chip.start)}
                           </Text>
                         ) : null}
                       </View>

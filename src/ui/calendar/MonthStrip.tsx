@@ -9,6 +9,7 @@ import { StyleSheet, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 
 import type { PersonKey } from '../../domain/people-filter';
+import type { GuardianOccurrence } from '../../domain/guardian';
 import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { shiftIsoMonth } from '../utils/date';
 import { monthsBetween } from './calendar-layout';
@@ -34,6 +35,7 @@ interface Props {
   /** The user paged to another month (page index from `origin`). */
   onPage: (page: number) => void;
   onPressDay: (date: ISODate) => void;
+  guardianEvents?: readonly GuardianOccurrence[];
 }
 
 function MonthStripImpl({
@@ -50,6 +52,7 @@ function MonthStripImpl({
   locked,
   onPage,
   onPressDay,
+  guardianEvents,
 }: Props): React.ReactElement {
   const current = monthsBetween(origin, anchor);
   return (
@@ -75,6 +78,7 @@ function MonthStripImpl({
             showNames={false}
             testID={p === current ? 'month-view' : `month-view-${p - current}`}
             onPressDay={onPressDay}
+            guardianEvents={guardianEvents}
           />
         )}
       />

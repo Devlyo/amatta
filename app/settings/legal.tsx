@@ -2,23 +2,15 @@
 // Text content matches docs/design/amatta-v1/app-settings-legal.jsx.
 
 import { useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { IconChevronDown, IconChevronRight } from '../../src/ui/icons';
 import { TOKENS } from '../../src/ui/palette';
 import { RADIUS } from '../../src/ui/radius';
 import { SPACING } from '../../src/ui/spacing';
-
-import { DetailTopBar } from './kids';
+import { TYPE } from '../../src/ui/typography';
+import { SettingsDetailScreen } from '../../src/ui/settings/SettingsChrome';
 
 const EFFECTIVE_DATE = '2026년 6월 30일';
 
@@ -38,7 +30,8 @@ const PRIVACY_SECTIONS: Section[] = [
       '자녀 정보: 이름, 선택한 테마 색상',
       '일정 정보: 제목, 시간, 장소, 카테고리, 픽업 여부',
       '준비물·할일 정보: 제목, 마감 시점, 완료 여부',
-      '앱 설정: 알림 활성화 여부, 기본 알림 시점',
+      '앱 설정: 알림 활성화 여부, 기본 알림 시점, 캘린더 연동 여부와 표시할 캘린더',
+      '기기 캘린더(캘린더 연동을 켠 경우에만): 보호자 일정을 화면에 함께 보여 주기 위해 기기의 캘린더 일정을 읽고, 앱에서 추가한 보호자 일정을 기기 캘린더에 저장합니다. 캘린더 일정은 앱에 따로 저장되지 않으며 외부로 전송되지 않습니다.',
     ],
   },
   {
@@ -82,6 +75,7 @@ const PRIVACY_SECTIONS: Section[] = [
       '특정 항목의 삭제 또는 전체 초기화',
       'JSON 백업(내보내기)을 통한 정보의 보관',
       '알림 동의의 철회(설정 또는 기기 알림 권한)',
+      '캘린더 접근의 철회(설정 > 캘린더 연동 또는 기기 캘린더 권한)',
     ],
   },
   {
@@ -193,15 +187,9 @@ export default function LegalScreen(): React.ReactElement {
   const [openGroup, setOpenGroup] = useState<Group | null>('privacy');
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <DetailTopBar
-        title="약관 및 개인정보"
-        onBack={() => router.back()}
-      />
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <SettingsDetailScreen title="약관 및 개인정보" onBack={() => router.back()}>
         <View style={styles.hero}>
-          <Text style={styles.heroLabel}>EFFECTIVE</Text>
+          <Text style={styles.heroLabel}>시행일</Text>
           <Text style={styles.heroDate}>{EFFECTIVE_DATE}</Text>
           <Text style={styles.heroNote}>
             아마따는 사용자가 안심하고 서비스를 이용하실 수 있도록 본 약관 및 개인정보처리방침을 마련하고 있습니다.
@@ -225,8 +213,7 @@ export default function LegalScreen(): React.ReactElement {
         />
 
         <Text style={styles.footer}>아마따 v1.0.0 · {EFFECTIVE_DATE} 기준</Text>
-      </ScrollView>
-    </SafeAreaView>
+    </SettingsDetailScreen>
   );
 }
 
@@ -291,84 +278,43 @@ function GroupSection({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: TOKENS.surfaceSoft },
-
-  scrollContent: { paddingHorizontal: 14, paddingBottom: SPACING.xxxl },
-
+  // Shared settings style: white RADIUS.box groups, type tokens.
   hero: {
     backgroundColor: TOKENS.surface,
-    borderRadius: 18,
-    paddingHorizontal: 18,
-    paddingVertical: SPACING.xl,
-    marginTop: SPACING.xs,
-    marginBottom: 14,
+    borderRadius: RADIUS.box,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.lg,
+    gap: SPACING.xs,
   },
-  heroLabel: {
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.mono,
-    color: TOKENS.inkSub,
-    letterSpacing: 0.4,
-  },
-  heroDate: {
-    marginTop: SPACING.xs,
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: TOKENS.ink,
-    letterSpacing: -0.2,
-  },
-  heroNote: {
-    marginTop: SPACING.md,
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
-    lineHeight: 21,
-    letterSpacing: -0.2,
-  },
+  heroLabel: { ...TYPE.footnote, color: TOKENS.inkSub },
+  heroDate: { ...TYPE.headline, color: TOKENS.ink },
+  heroNote: { ...TYPE.subhead, color: TOKENS.inkSub, marginTop: SPACING.xs },
 
   group: {
     backgroundColor: TOKENS.surface,
-    borderRadius: RADIUS.lg,
-    marginBottom: SPACING.sm,
+    borderRadius: RADIUS.box,
     overflow: 'hidden',
   },
   groupHeader: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingLeft: 16,
+    paddingRight: SPACING.md,
   },
   groupHeaderPressed: { backgroundColor: TOKENS.ink04 },
-  groupTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.ink,
-    letterSpacing: -0.3,
-  },
+  groupTitle: { ...TYPE.row, flex: 1, color: TOKENS.ink },
   groupBody: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingBottom: SPACING.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TOKENS.ink04,
+    borderTopColor: TOKENS.separator,
     paddingTop: SPACING.md,
   },
 
   sectionSpacer: { marginTop: SPACING.lg },
-  sectionTitle: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.ink,
-    letterSpacing: -0.2,
-    marginBottom: 6,
-  },
-  paragraph: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
-    lineHeight: 21,
-    letterSpacing: -0.2,
-    marginTop: 6,
-  },
+  sectionTitle: { ...TYPE.headline, color: TOKENS.ink, marginBottom: SPACING.xs },
+  paragraph: { ...TYPE.subhead, color: TOKENS.ink, marginTop: 6 },
 
   bulletList: { marginTop: SPACING.sm },
   bulletRow: {
@@ -380,25 +326,11 @@ const styles = StyleSheet.create({
   bulletDot: {
     width: 4,
     height: 4,
-    borderRadius: 2,
-    marginTop: 9,
+    borderRadius: RADIUS.full,
+    marginTop: 8,
     backgroundColor: TOKENS.ink30,
   },
-  bulletText: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
-    lineHeight: 20,
-    letterSpacing: -0.2,
-  },
+  bulletText: { ...TYPE.subhead, flex: 1, color: TOKENS.ink },
 
-  footer: {
-    textAlign: 'center',
-    paddingVertical: SPACING.xl,
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.mono,
-    color: TOKENS.ink30,
-    letterSpacing: 0.3,
-  },
+  footer: { ...TYPE.footnote, textAlign: 'center', color: TOKENS.ink30, paddingVertical: SPACING.md },
 });

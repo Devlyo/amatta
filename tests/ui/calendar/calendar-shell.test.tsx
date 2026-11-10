@@ -8,7 +8,6 @@ import { CalendarTopBar } from '../../../src/ui/calendar/CalendarTopBar';
 import { DateStrip } from '../../../src/ui/calendar/DateStrip';
 import { DayView } from '../../../src/ui/calendar/DayView';
 import { KidFilterBar, PILL_FADED_OPACITY } from '../../../src/ui/calendar/KidFilterBar';
-import { BLOCK_DIMMED_OPACITY } from '../../../src/ui/calendar/TimeBlock';
 import { TIME_GUTTER } from '../../../src/ui/calendar/time-axis';
 
 const ISO = (s: string) => s as unknown as ISODate;
@@ -123,10 +122,10 @@ describe('DayView', () => {
     expect(over.left).toBeGreaterThan(under.left);
   });
 
-  test('switched-off people fade; a solo person is emphasised', () => {
+  test('switched-off people are hidden (no column, no blocks); a solo person is emphasised', () => {
     renderDay([1, 'guardian']); // only 서연 (2) active → solo
     expect(opacityOf('day-block-20')).toBe(1);
-    expect(opacityOf('day-block-10')).toBe(BLOCK_DIMMED_OPACITY);
+    expect(screen.queryByTestId('day-block-10')).toBeNull();
   });
 
   test('long press on an empty slot pops in a 1-hour block, then reports person + hour', () => {

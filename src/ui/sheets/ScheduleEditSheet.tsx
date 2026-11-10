@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Linking,
   Alert,
   Keyboard,
   Platform,
@@ -26,7 +27,20 @@ import { useChildrenStore } from '../../state/children-store';
 import { useChecklistStore } from '../../state/checklist-store';
 import { useSchedulesStore } from '../../state/schedules-store';
 import { useUiStore } from '../../state/ui-store';
+import { useGuardianStore , visibleCalendarIds } from '../../state/guardian-store';
+import {
+  createGuardianEvent,
+  deleteGuardianEvent,
+  getGuardianEvent,
+  resolveWriteCalendar,
+  updateGuardianEvent,
+ fetchEvents } from '../../calendar/guardian-calendar';
 import { getDb } from '../../db/client';
+import { isChecklistItemVisibleOn } from '../../domain/checklist-membership';
+import { guardianOccurrences } from '../../domain/guardian';
+import { expandOccurrences } from '../../domain/occurrences';
+import { guardianClashes, pickupClashes } from '../../domain/pickup-conflict';
+import { fmtRange } from '../utils/date';
 import type {
   ChecklistItem,
   DaysOfWeekMask,
@@ -50,6 +64,8 @@ import {
   TYPE_OPTIONS,
   VISUAL_TO_MASK_BIT,
   alertSummary,
+  fmt12hrShortSpaced,
+  formatKoDateChip,
   defaultFormState,
   formFromOccurrence,
   formFromSchedule,
@@ -59,6 +75,7 @@ import {
   type EditFormState,
 } from './edit-sheet-form';
 import {
+  FormTextRow,
   FormActionRow,
   FormChipsRow,
   FormError,
@@ -135,17 +152,9 @@ function minutesToDate(min: Minutes): Date {
 function dateToMinutes(d: Date): Minutes {
   return (d.getHours() * 60 + d.getMinutes()) as Minutes;
 }
-// "2026. 11. 10." — iPhone Calendar (ko-KR) date chip.
-function formatKoDateChip(iso: string): string {
-  if (iso.length === 0) return '날짜 선택';
-  return `${iso.slice(0, 4)}. ${Number(iso.slice(5, 7))}. ${Number(iso.slice(8, 10))}.`;
-}
-// "3:00 PM" — iPhone Calendar time chip (AM/PM kept, ADR-007).
-function fmt12hrShortSpaced(minutes: number): string {
-  const h = Math.floor(minutes / 60) % 24;
-  const m = minutes % 60;
-  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
-}
+
+/** 보호자 in the 자녀 options (ADR-008) — saved to the device calendar instead. */
+const GUARDIAN_OPTION = -1;
 
 export interface ScheduleEditContentProps {
   onClose: () => void;
@@ -170,7 +179,7 @@ export function ScheduleEditContent({
   );
 
   const mode = editSheetState.mode;
-  const sheetMode: 'create' | 'editAll' | 'editOccurrence' | null =
+  const sheetMode: 'create' | 'editAll' | 'editOccurrence' | 'editGuardian' | null =
     mode === 'closed' ? null : mode;
 
   const existingSchedule: Schedule | undefined = useMemo(() => {
@@ -210,8 +219,15 @@ export function ScheduleEditContent({
   // plain supplies list with no pill (conditional render, not hidden).
   const suppliesRepeatable = form.daysOfWeek !== 0;
   const [submitted, setSubmitted] = useState(false);
+  // 보호자 picked in the 자녀 row (create only): only the fields a calendar
+  // event has are shown, and save writes to the device calendar (ADR-008).
+  const [forGuardian, setForGuardian] = useState(false);
   const [expanded, setExpanded] = useState<Expand>(null);
   const [checklist, setChecklist] = useState<ChecklistDraft[]>([]);
+  // 이 회차만 수정: the 매번 / always items visible on that day are shown but
+  // belong to the whole schedule, so they're read-only here; only this day's
+  // 이번만 items are edited (ADR-006b membership).
+  const [fixedChecklist, setFixedChecklist] = useState<ChecklistItem[]>([]);
   // Snapshot of the checklist as it was when the sheet opened. Used by save
   // to compute INSERT / UPDATE / DELETE diffs against the in-memory edits.
   const originalChecklistRef = useRef<ChecklistItem[]>([]);
@@ -231,7 +247,9 @@ export function ScheduleEditContent({
       );
       originalChecklistRef.current = [];
       setChecklist([]);
+      setForGuardian(editSheetState.preFill?.guardian === true);
     } else if (sheetMode === 'editAll' && existingSchedule !== undefined) {
+      setForGuardian(false);
       setForm(formFromSchedule(existingSchedule));
       const items = checklistItemsByScheduleId.get(existingSchedule.id) ?? [];
       originalChecklistRef.current = items;
@@ -247,11 +265,45 @@ export function ScheduleEditContent({
       sheetMode === 'editOccurrence' &&
       existingSchedule !== undefined
     ) {
+      setForGuardian(false);
       setForm(formFromOccurrence(existingSchedule, existingException));
-      // editOccurrence is single-day; checklists live at the schedule level,
-      // so we skip the section (see render guard below) and stash empty.
+      const dayInt = isoToYyyymmdd(editSheetState.occurrenceDate ?? existingSchedule.validFrom);
+      const visible = (checklistItemsByScheduleId.get(existingSchedule.id) ?? []).filter((it) =>
+        isChecklistItemVisibleOn(it, dayInt),
+      );
+      const onlyThisDay = visible.filter((it) => !it.recurring && it.occurrenceDate === dayInt);
+      originalChecklistRef.current = onlyThisDay;
+      setChecklist(
+        onlyThisDay.map((it) => ({ id: it.id, label: it.label, occurrenceDate: it.occurrenceDate, recurring: false })),
+      );
+      setFixedChecklist(visible.filter((it) => !onlyThisDay.includes(it)));
+    }
+    if (sheetMode !== 'editOccurrence') setFixedChecklist([]);
+    if (sheetMode === 'editGuardian' && editSheetState.guardianEventId !== undefined) {
+      // A 보호자 event lives in the device calendar — read it into the form.
+      setForGuardian(true);
       originalChecklistRef.current = [];
       setChecklist([]);
+      // Only non-recurring events are edited in the app (see guardian-calendar).
+      void getGuardianEvent(editSheetState.guardianEventId)
+        .then((e) => {
+          const d = e.startDate;
+          const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` as unknown as ISODate;
+          const start = d.getHours() * 60 + d.getMinutes();
+          const endsNextMidnight = e.endDate.getDate() !== d.getDate();
+          const end = endsNextMidnight ? 24 * 60 : e.endDate.getHours() * 60 + e.endDate.getMinutes();
+          setForm({
+            ...defaultFormState(null, iso, start),
+            title: e.title,
+            location: e.location,
+            notes: e.notes,
+            allDay: e.allDay,
+            startMinutes: (e.allDay ? 0 : start) as Minutes,
+            endMinutes: (e.allDay ? 24 * 60 : end) as Minutes,
+            notifyMinutesBefore: e.alarmMinutesBefore,
+          });
+        })
+        .catch(() => onClose());
     }
     setSubmitted(false);
     setExpanded(null);
@@ -260,25 +312,130 @@ export function ScheduleEditContent({
     existingSchedule,
     existingException,
     editSheetState.preFill,
+    editSheetState.occurrenceDate,
+    editSheetState.guardianEventId,
+    editSheetState.guardianInstance,
     checklistItemsByScheduleId,
+    onClose,
   ]);
 
   const validation = useMemo(
     () =>
-      validate(form, {
+      // A guardian event has no kid / 종류 — validate the rest.
+      validate(forGuardian ? { ...form, childId: 0, type: 'other' } : form, {
         requireChildId: sheetMode === 'create',
         // 반복(요일)은 더 이상 저장 필수 조건이 아니다. 자녀·종류·제목·날짜·
         // 시간만 채우면 저장 가능. 요일 미선택 시 handleSave가 날짜의 요일로
         // 단일 일정을 만든다 (안 보이는 일정 방지).
         requireDaysOfWeek: false,
       }),
-    [form, sheetMode],
+    [form, sheetMode, forGuardian],
   );
+
+  // 보호자 → write to the device calendar (asks for access the first time).
+  const saveGuardian = useCallback(async (): Promise<boolean> => {
+    const db = await getDb();
+    const store = useGuardianStore.getState();
+    if (!(store.enabled && store.permission === 'granted')) {
+      const ok = await store.setEnabled(db, true);
+      if (!ok && useGuardianStore.getState().permission === 'unavailable') {
+        Alert.alert('업데이트가 필요해요', '지금 설치된 앱에는 캘린더 연동 기능이 없어요. 앱을 최신 버전으로 업데이트해 주세요.');
+        return false;
+      }
+      if (!ok) {
+        Alert.alert('캘린더 접근이 필요해요', '보호자 일정은 아이폰 캘린더에 저장돼요. 설정에서 캘린더 접근을 허용해 주세요.', [
+          { text: '취소', style: 'cancel' },
+          { text: '설정 열기', onPress: () => void Linking.openSettings() },
+        ]);
+        return false;
+      }
+    }
+    const fields = {
+      title: form.title.trim(),
+      location: form.location.trim().length > 0 ? form.location.trim() : null,
+      notes: form.notes.trim().length > 0 ? form.notes.trim() : null,
+      date: form.validFrom as unknown as ISODate,
+      startMinutes: form.startMinutes,
+      endMinutes: form.endMinutes,
+      allDay: form.allDay,
+      alarmMinutesBefore: form.notifyMinutesBefore,
+    };
+    if (sheetMode === 'editGuardian' && editSheetState.guardianEventId !== undefined) {
+      try {
+        await updateGuardianEvent(editSheetState.guardianEventId, fields);
+      } catch {
+        Alert.alert('저장하지 못했어요', '아이폰 캘린더의 일정을 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.');
+        return false;
+      }
+      useGuardianStore.getState().invalidate();
+      return true;
+    }
+    const calendarId = await resolveWriteCalendar(useGuardianStore.getState().writeCalendarId);
+    if (calendarId === null) {
+      Alert.alert('저장할 캘린더가 없어요', '아이폰 캘린더에 쓸 수 있는 캘린더를 만든 뒤 다시 시도해 주세요.');
+      return false;
+    }
+    try {
+      await createGuardianEvent(calendarId, fields);
+    } catch {
+      Alert.alert('저장하지 못했어요', '아이폰 캘린더에 일정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      return false;
+    }
+    useGuardianStore.getState().invalidate();
+    return true;
+  }, [form, sheetMode, editSheetState.guardianEventId]);
+
+  // Pickup ↔ guardian clash on that day → ask before saving (screen only,
+  // never a push — ADR-007 owner decision).
+  const confirmPickupClash = useCallback(async (): Promise<boolean> => {
+    const date = (editSheetState.occurrenceDate ?? form.validFrom) as unknown as ISODate;
+    if ((date as unknown as string).length === 0) return true;
+    let message: string | null = null;
+    if (forGuardian) {
+      if (form.allDay) return true;
+      const byId = new Map(children.map((c) => [c.id, c]));
+      const kidsThatDay = expandOccurrences(schedules, exceptions, { from: date, to: date }, byId);
+      const hit = pickupClashes({ startMinutes: form.startMinutes, endMinutes: form.endMinutes }, kidsThatDay)[0];
+      if (hit !== undefined) {
+        const kid = byId.get(hit.childId);
+        message = `${kid?.name ?? ''} ${hit.title} 픽업(${fmt12hrShortSpaced(hit.endMinutes)}) 시간과 겹쳐요.`;
+      }
+    } else if (form.needsPickup && !form.allDay) {
+      const g = useGuardianStore.getState();
+      if (!(g.enabled && g.permission === 'granted')) return true;
+      try {
+        const raw = await fetchEvents(visibleCalendarIds(g.calendars, g.calendarIds), date, date);
+        const hit = guardianClashes(form.endMinutes, guardianOccurrences(raw, date, date))[0];
+        if (hit !== undefined) {
+          // Same wording as the home pickup card line (design board "0 홈").
+          message = `픽업 시간(${fmt12hrShortSpaced(form.endMinutes)})이 보호자 일정 "${hit.title}"(${fmtRange(hit.startMinutes, hit.endMinutes)})와 겹쳐요.`;
+        }
+      } catch {
+        return true; // can't read the calendar — don't block saving
+      }
+    }
+    if (message === null) return true;
+    return new Promise<boolean>((resolve) => {
+      Alert.alert('픽업 시간과 겹쳐요', `${message} 그래도 저장할까요?`, [
+        { text: '취소', style: 'cancel', onPress: () => resolve(false) },
+        { text: '저장', onPress: () => resolve(true) },
+      ]);
+    });
+  }, [editSheetState.occurrenceDate, form, forGuardian, children, schedules, exceptions]);
 
   const handleSave = useCallback(async () => {
     setSubmitted(true);
     if (!validation.ok) return;
     if (sheetMode === null) return;
+    if (!(await confirmPickupClash())) return;
+
+    if (forGuardian && (sheetMode === 'create' || sheetMode === 'editGuardian')) {
+      if (await saveGuardian()) {
+        Keyboard.dismiss();
+        onClose();
+      }
+      return;
+    }
 
     const db = await getDb();
 
@@ -400,6 +557,14 @@ export function ScheduleEditContent({
               : null,
         },
       );
+      // This day's 이번만 supplies (anchored to the day, never 매번 here).
+      await persistChecklistDiff(
+        db,
+        existingSchedule.id,
+        originalChecklistRef.current,
+        checklist.map((c) => ({ ...c, occurrenceDate: boundDateInt, recurring: false })),
+        { add: checklistAdd, update: checklistUpdate, remove: checklistRemove },
+      );
     }
 
     Keyboard.dismiss();
@@ -418,6 +583,10 @@ export function ScheduleEditContent({
     checklistAdd,
     checklistUpdate,
     checklistRemove,
+    forGuardian,
+    saveGuardian,
+    boundDateInt,
+    confirmPickupClash,
   ]);
 
   const handleDeleteAll = useCallback(() => {
@@ -465,6 +634,30 @@ export function ScheduleEditContent({
     onClose,
   ]);
 
+  const handleDeleteGuardian = (): void => {
+    const id = editSheetState.guardianEventId;
+    if (id === undefined) return;
+    Alert.alert(
+      '일정 삭제',
+      '아이폰 캘린더에서 삭제합니다. 계속할까요?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: () => {
+            void deleteGuardianEvent(id)
+              .then(() => {
+                useGuardianStore.getState().invalidate();
+                onClose();
+              })
+              .catch(() => Alert.alert('삭제하지 못했어요', '잠시 후 다시 시도해 주세요.'));
+          },
+        },
+      ],
+    );
+  };
+
   const handleSwitchToOccurrenceMode = useCallback(() => {
     if (existingSchedule === undefined) return;
     const date =
@@ -476,13 +669,14 @@ export function ScheduleEditContent({
   }, [existingSchedule, editSheetState.occurrenceDate]);
 
   const titleText =
-    sheetMode === 'editAll'
+    sheetMode === 'editAll' || sheetMode === 'editGuardian'
       ? '일정 수정'
       : sheetMode === 'editOccurrence'
         ? '이 회차만 수정'
         : '새 일정';
   const saveLabel = sheetMode === 'create' ? '추가' : '저장';
 
+  const isOccurrence = sheetMode === 'editOccurrence';
   const showError = (key: keyof EditFormState): string | undefined =>
     submitted ? validation.errors[key] : undefined;
 
@@ -543,15 +737,19 @@ export function ScheduleEditContent({
               accessibilityLabel="제목 입력"
               onFocus={() => setExpanded(null)}
             />
-            <FormInputRow
-              last
-              value={form.location}
-              onChangeText={(v: string) => setForm({ ...form, location: v })}
-              placeholder="장소"
-              maxLength={60}
-              accessibilityLabel="위치 입력"
-              onFocus={() => setExpanded(null)}
-            />
+            {isOccurrence ? (
+              <FormTextRow text={form.location} placeholder="장소 없음" last />
+            ) : (
+              <FormInputRow
+                last
+                value={form.location}
+                onChangeText={(v: string) => setForm({ ...form, location: v })}
+                placeholder="장소"
+                maxLength={60}
+                accessibilityLabel="위치 입력"
+                onFocus={() => setExpanded(null)}
+              />
+            )}
           </FormGroup>
           <FormError text={showError('title')} />
         </View>
@@ -561,34 +759,48 @@ export function ScheduleEditContent({
           <FormGroup>
             <FormValueRow
               label="자녀"
-              value={selectedKid?.name ?? '선택'}
+              value={forGuardian ? '보호자' : (selectedKid?.name ?? '선택')}
               leading={
-                kidPalette !== null ? (
+                forGuardian ? (
+                  <View style={[styles.kidDot, { backgroundColor: TOKENS.guardian, borderColor: TOKENS.guardianDeep }]} />
+                ) : kidPalette !== null ? (
                   <View style={[styles.kidDot, { backgroundColor: kidPalette.source, borderColor: kidPalette.deep }]} />
                 ) : null
               }
               onPress={sheetMode === 'create' ? () => toggle('kid') : undefined}
               expanded={expanded === 'kid'}
+              last={forGuardian && expanded !== 'kid'}
               testID="row-kid"
             >
-              <FormOptionList
-                options={children.map((k) => ({ key: k.id, label: k.name }))}
-                selected={form.childId}
+              <FormOptionList<number | null>
+                options={[
+                  ...children.map((k) => ({ key: k.id, label: k.name })),
+                  // 보호자 → the device calendar (ADR-008), new events only.
+                  ...(sheetMode === 'create' ? [{ key: GUARDIAN_OPTION, label: '보호자' }] : []),
+                ]}
+                selected={forGuardian ? GUARDIAN_OPTION : form.childId}
                 labelPrefix="자녀: "
                 onSelect={(id) => {
-                  setForm({ ...form, childId: id });
+                  if (id === GUARDIAN_OPTION) {
+                    setForGuardian(true);
+                  } else {
+                    setForGuardian(false);
+                    setForm({ ...form, childId: id });
+                  }
                   setExpanded(null);
                 }}
                 render={(id) => {
+                  if (id === GUARDIAN_OPTION) return <View style={styles.guardianAvatar} />;
                   const kid = children.find((k) => k.id === id);
                   return kid !== undefined ? <KidAvatar child={kid} size={26} /> : null;
                 }}
               />
             </FormValueRow>
+            {forGuardian ? null : (
             <FormValueRow
               label="종류"
               value={form.type !== null ? TYPE_LABELS_KO[form.type] : '선택'}
-              onPress={() => toggle('type')}
+              onPress={isOccurrence ? undefined : () => toggle('type')}
               expanded={expanded === 'type'}
               last
               testID="row-type"
@@ -603,7 +815,13 @@ export function ScheduleEditContent({
                 render={(t) => (t !== null ? <TypeIcon type={t} size={16} color={TOKENS.inkSub} /> : null)}
               />
             </FormValueRow>
+            )}
           </FormGroup>
+          {forGuardian ? (
+            <Text style={styles.guardianNote}>
+              보호자 일정은 아이폰 캘린더에 저장돼요.
+            </Text>
+          ) : null}
           <FormError text={showError('childId') ?? showError('type')} />
         </View>
 
@@ -618,9 +836,10 @@ export function ScheduleEditContent({
                   setExpanded(null);
                   setForm({ ...form, allDay: v, needsPickup: v ? false : form.needsPickup });
                 }}
+                onColor={TOKENS.primary}
               />
             ) : null}
-            <FormChipsRow label="시작" last={form.allDay && sheetMode === 'editOccurrence'}>
+            <FormChipsRow label="시작" last={form.allDay && forGuardian}>
               <TimeChip
                 text={formatKoDateChip(form.validFrom)}
                 active={expanded === 'date'}
@@ -659,7 +878,7 @@ export function ScheduleEditContent({
               />
             ) : null}
             {form.allDay ? null : (
-              <FormChipsRow label="종료" last={sheetMode === 'editOccurrence' && expanded !== 'end'}>
+              <FormChipsRow label="종료" last={forGuardian && expanded !== 'end'}>
                 <TimeChip
                   text={fmt12hrShortSpaced(form.endMinutes)}
                   active={expanded === 'end'}
@@ -680,11 +899,11 @@ export function ScheduleEditContent({
                 onDone={() => setExpanded(null)}
               />
             ) : null}
-            {sheetMode !== 'editOccurrence' ? (
+            {!forGuardian ? (
               <FormValueRow
                 label="반복"
                 value={repeatSummary(form.daysOfWeek)}
-                onPress={() => toggle('repeat')}
+                onPress={isOccurrence ? undefined : () => toggle('repeat')}
                 expanded={expanded === 'repeat'}
                 last
                 testID="row-repeat"
@@ -719,9 +938,9 @@ export function ScheduleEditContent({
           <FormValueRow
             label="시작 전 알림"
             value={alertSummary(form.notifyMinutesBefore)}
-            onPress={() => toggle('alertStart')}
+            onPress={isOccurrence ? undefined : () => toggle('alertStart')}
             expanded={expanded === 'alertStart'}
-            last={form.allDay && expanded !== 'alertStart'}
+            last={(form.allDay || forGuardian) && expanded !== 'alertStart'}
             testID="row-alert-start"
           >
             <FormOptionList
@@ -733,11 +952,11 @@ export function ScheduleEditContent({
               }}
             />
           </FormValueRow>
-          {form.allDay ? null : (
+          {form.allDay || forGuardian ? null : (
             <FormValueRow
               label="종료 전 알림"
               value={alertSummary(form.notifyEndMinutesBefore)}
-              onPress={() => toggle('alertEnd')}
+              onPress={isOccurrence ? undefined : () => toggle('alertEnd')}
               expanded={expanded === 'alertEnd'}
               testID="row-alert-end"
             >
@@ -751,7 +970,9 @@ export function ScheduleEditContent({
               />
             </FormValueRow>
           )}
-          {form.allDay ? null : (
+          {form.allDay || forGuardian ? null : isOccurrence ? (
+            <FormValueRow label="픽업 필요" value={form.needsPickup ? '예' : '아니요'} last />
+          ) : (
             <FormToggleRow
               label="픽업 필요"
               value={form.needsPickup}
@@ -762,11 +983,25 @@ export function ScheduleEditContent({
           )}
         </FormGroup>
 
-        {/* 준비물 — template-level, so hidden when editing one occurrence (ADR-002). */}
-        {sheetMode !== 'editOccurrence' ? (
+        {/* 준비물 — one occurrence: that day's items; 매번 ones read-only, this
+            day's 이번만 ones editable (ADR-006b). */}
+        {!forGuardian ? (
           <View style={styles.block}>
             <FormSectionHeader label="준비물" />
             <FormGroup>
+              {fixedChecklist.map((item) => (
+                <View key={`fixed-${item.id}`}>
+                  <View style={styles.checklistRow}>
+                    <Text style={[styles.checklistInput, styles.checklistFixed]} numberOfLines={1}>
+                      {item.label}
+                    </Text>
+                    <View style={styles.repeatTag}>
+                      <Text style={styles.repeatTagLabel}>매번</Text>
+                    </View>
+                  </View>
+                  <View style={styles.separator} />
+                </View>
+              ))}
               {checklist.map((item, idx) => (
                 <View key={item.id ?? `new-${idx}`}>
                   <View style={styles.checklistRow}>
@@ -786,7 +1021,11 @@ export function ScheduleEditContent({
                         recurring schedule. Tap flips `recurring`; the anchor is
                         kept (a legacy NULL anchor is re-anchored when switching
                         to 이번만, otherwise "always visible" would win). */}
-                    {suppliesRepeatable ? (
+                    {isOccurrence ? (
+                      <View style={[styles.repeatTag, styles.repeatTagOnce]}>
+                        <Text style={[styles.repeatTagLabel, styles.repeatTagLabelOnce]}>이번만</Text>
+                      </View>
+                    ) : suppliesRepeatable ? (
                       <Pressable
                         onPress={() =>
                           setChecklist((cs) =>
@@ -827,14 +1066,15 @@ export function ScheduleEditContent({
               <FormActionRow
                 label="준비물 추가"
                 last
-                leading={<Ionicons name="add-circle" size={22} color={TOKENS.sunday} />}
+                leading={<Ionicons name="add-circle" size={22} color={TOKENS.danger} />}
                 onPress={() =>
                   setChecklist((cs) => [
                     ...cs,
                     // ADR-006b: new items anchor to boundDateInt (the edit-context
-                    // date) and default to 매번 (recurring). One-time schedules are
-                    // normalised to { null, recurring } on save.
-                    { id: null, label: '', occurrenceDate: boundDateInt, recurring: true },
+                    // date) and default to 매번 (recurring) — 이번만 when editing
+                    // one occurrence. One-time schedules are normalised to
+                    // { null, recurring } on save.
+                    { id: null, label: '', occurrenceDate: boundDateInt, recurring: !isOccurrence },
                   ])
                 }
               />
@@ -843,6 +1083,11 @@ export function ScheduleEditContent({
         ) : null}
 
         {/* 메모 */}
+        {isOccurrence ? (
+          <FormGroup>
+            <FormTextRow text={form.notes} placeholder="메모 없음" last />
+          </FormGroup>
+        ) : (
         <FormGroup>
           <TextInput
             value={form.notes}
@@ -856,6 +1101,10 @@ export function ScheduleEditContent({
             onFocus={() => setExpanded(null)}
           />
         </FormGroup>
+        )}
+        {isOccurrence ? (
+          <Text style={styles.guardianNote}>이 날만 바뀌어요. 제목·시간과 이번만 준비물을 바꿀 수 있어요.</Text>
+        ) : null}
 
         {/* 회차 / 삭제 actions */}
         {sheetMode === 'editAll' && existingSchedule !== undefined ? (
@@ -863,6 +1112,11 @@ export function ScheduleEditContent({
             <FormActionRow label="이 회차만 수정" onPress={handleSwitchToOccurrenceMode} />
             <FormActionRow label="이 회차만 삭제" onPress={handleDeleteOccurrence} tone="danger" />
             <FormActionRow label="전체 삭제" onPress={handleDeleteAll} tone="danger" last />
+          </FormGroup>
+        ) : null}
+        {sheetMode === 'editGuardian' && editSheetState.guardianEventId !== undefined ? (
+          <FormGroup>
+            <FormActionRow label="일정 삭제" onPress={handleDeleteGuardian} tone="danger" last />
           </FormGroup>
         ) : null}
         {sheetMode === 'editOccurrence' && existingSchedule !== undefined ? (
@@ -913,7 +1167,7 @@ function InlinePicker({
         mode={mode}
         display={mode === 'date' ? 'inline' : 'spinner'}
         minuteInterval={5}
-        accentColor={TOKENS.sunday}
+        accentColor={TOKENS.danger}
         textColor={TOKENS.ink}
         themeVariant="light"
         locale="ko-KR"
@@ -1000,6 +1254,15 @@ async function persistChecklistDiff(
 
 
 const styles = StyleSheet.create({
+  guardianAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: RADIUS.full,
+    backgroundColor: TOKENS.guardian,
+    borderWidth: 1.5,
+    borderColor: TOKENS.guardianDeep,
+  },
+  guardianNote: { ...TYPE.footnote, color: TOKENS.inkSub, paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs },
   contentRoot: { flex: 1, backgroundColor: TOKENS.groupedBg },
   headerBar: {
     height: 52,
@@ -1010,8 +1273,8 @@ const styles = StyleSheet.create({
   headerSlotStart: { minWidth: 64, paddingVertical: SPACING.sm },
   headerSlotEnd: { minWidth: 64, paddingVertical: SPACING.sm, alignItems: 'flex-end' },
   headerTitle: { ...TYPE.headline, flex: 1, textAlign: 'center', color: TOKENS.ink },
-  cancelLabel: { ...TYPE.row, color: TOKENS.sunday },
-  saveLabel: { ...TYPE.headline, color: TOKENS.sunday },
+  cancelLabel: { ...TYPE.row, color: TOKENS.danger },
+  saveLabel: { ...TYPE.headline, color: TOKENS.danger },
   saveLabelDisabled: { color: TOKENS.ink30 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, gap: 22 },
@@ -1033,7 +1296,7 @@ const styles = StyleSheet.create({
     paddingRight: SPACING.md,
   },
   checklistInput: { ...TYPE.row, flex: 1, color: TOKENS.ink, paddingVertical: 11 },
-  separator: { marginLeft: SPACING.lg, height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.ink12 },
+  separator: { marginLeft: SPACING.lg, height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.separator },
   repeatTag: {
     height: 24,
     paddingHorizontal: SPACING.sm,
@@ -1043,6 +1306,7 @@ const styles = StyleSheet.create({
   },
   repeatTagOnce: { backgroundColor: TOKENS.ink06 },
   repeatTagLabel: { ...TYPE.footnote, color: TOKENS.primaryDeep },
+  checklistFixed: { color: TOKENS.inkSub },
   repeatTagLabelOnce: { color: TOKENS.inkSub },
   notesInput: {
     ...TYPE.row,

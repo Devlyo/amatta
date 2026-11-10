@@ -189,6 +189,17 @@ describe('computePickupCards', () => {
     expect(cards.map((c) => c.scheduleId)).toEqual([11]);
   });
 
+  test('two kids picked up less than 15 min apart → both cards, soonest first', () => {
+    const occs: Occurrence[] = [
+      makeOccurrence({ scheduleId: 21, childId: 1, date: TODAY_ISO, startMinutes: 14 * 60, endMinutes: 15 * 60 + 10, needsPickup: true }),
+      makeOccurrence({ scheduleId: 22, childId: 1, date: TODAY_ISO, startMinutes: 14 * 60, endMinutes: 15 * 60, needsPickup: true }),
+      makeOccurrence({ scheduleId: 23, childId: 1, date: TODAY_ISO, startMinutes: 14 * 60, endMinutes: 15 * 60 + 15, needsPickup: true }),
+    ];
+    const cards = computePickupCards(occs, NEVER_COMPLETE, kidsById, 9 * 60, TODAY_ISO);
+    // 15:00 and 15:10 clash; 15:15 is a full 15 min after the soonest → not in this batch.
+    expect(cards.map((c) => c.scheduleId)).toEqual([22, 21]);
+  });
+
   test('non-today date → empty (banner only renders for today)', () => {
     const tomorrow = ISO(shiftDate(TODAY_ISO as unknown as string, 1));
     const occs: Occurrence[] = [

@@ -243,3 +243,16 @@ export function alertSummary(minutes: number | null): string {
 export function toggleDayMask(mask: DaysOfWeekMask, dayIdx: number): DaysOfWeekMask {
   return mask ^ (1 << dayIdx);
 }
+
+/** "2026. 11. 10." — iPhone Calendar (ko-KR) date chip. */
+export function formatKoDateChip(iso: string): string {
+  if (iso.length === 0) return '날짜 선택';
+  return `${iso.slice(0, 4)}. ${Number(iso.slice(5, 7))}. ${Number(iso.slice(8, 10))}.`;
+}
+
+/** "3:00 PM" — iPhone Calendar time chip (AM/PM kept, ADR-007). 24:00 reads "12:00 AM". */
+export function fmt12hrShortSpaced(minutes: number): string {
+  const h = Math.floor(minutes / 60) % 24;
+  const m = minutes % 60;
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+}

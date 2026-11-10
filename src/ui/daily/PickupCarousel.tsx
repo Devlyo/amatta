@@ -16,12 +16,19 @@ import {
   type NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 
+import type { GuardianOccurrence } from '../../domain/guardian';
+import { guardianClashes, pickupsClash } from '../../domain/pickup-conflict';
 import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { TOKENS } from '../palette';
+import { IconAlertCircle } from '../icons';
 import { RADIUS } from '../radius';
+import { SPACING } from '../spacing';
+import { TYPE } from '../typography';
+import { fmt12hrShort, fmtRange } from '../utils/date';
 import { PickupCard } from './PickupCard';
 import { computePickupCards } from './pickup-data';
 
@@ -31,6 +38,8 @@ interface Props {
   nowMinutes: number;
   currentDate: ISODate;
   pickupLogIsComplete: (scheduleId: number, occurrenceDateInt: number) => boolean;
+  /** Today's guardian events — a clash with the shown pickup gets one line under the card. */
+  guardianEvents?: readonly GuardianOccurrence[];
 }
 
 export function PickupCarousel({
@@ -39,6 +48,7 @@ export function PickupCarousel({
   nowMinutes,
   currentDate,
   pickupLogIsComplete,
+  guardianEvents = [],
 }: Props): React.ReactElement | null {
   const [activeIdx, setActiveIdx] = useState(0);
   const [viewportW, setViewportW] = useState(0);
@@ -98,6 +108,38 @@ export function PickupCarousel({
           </View>
         ) : null}
       </View>
+      {(() => {
+        // Screen only — never a push (ADR-007 owner decision, ADR-002/003).
+        const card = cards[Math.min(activeIdx, cards.length - 1)];
+        if (card === undefined) return null;
+        // Another kid's pickup around the same time (the other cards).
+        const others = cards.filter((c) => c !== card && pickupsClash(c.pickupMinutes, card.pickupMinutes));
+        const first = others[0];
+        const kidLine =
+          first === undefined
+            ? null
+            : `${first.who} "${first.what}"${others.length > 1 ? ` 외 ${others.length - 1}명` : ''} 픽업(${fmt12hrShort(first.pickupMinutes)})과 겹쳐요`;
+        const clash = guardianClashes(card.pickupMinutes, guardianEvents)[0];
+        const guardianLine =
+          clash === undefined
+            ? null
+            : `보호자 일정 "${clash.title}"(${fmtRange(clash.startMinutes, clash.endMinutes)})와 겹쳐요`;
+        const lines = [
+          { key: 'kids', text: kidLine, testID: 'pickup-kids-clash' },
+          { key: 'guardian', text: guardianLine, testID: 'pickup-guardian-clash' },
+        ].filter((l): l is { key: string; text: string; testID: string } => l.text !== null);
+        if (lines.length === 0) return null;
+        return (
+          <View style={styles.clashes}>
+            {lines.map((l) => (
+              <View key={l.key} style={styles.clash} testID={l.testID} accessibilityRole="alert">
+                <IconAlertCircle size={14} color={TOKENS.pickupWarn} />
+                <Text style={styles.clashText}>{l.text}</Text>
+              </View>
+            ))}
+          </View>
+        );
+      })()}
     </View>
   );
 }
@@ -105,7 +147,16 @@ export function PickupCarousel({
 const styles = StyleSheet.create({
   // Full width of the home content column (the screen supplies the side
   // padding), same as the grouped boxes below it.
-  outer: {},
+  // Design board "0 홈": the line sits 8px under the card, no box.
+  outer: { gap: SPACING.sm },
+  clash: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: SPACING.xs,
+  },
+  clashText: { ...TYPE.footnote, color: TOKENS.pickupWarn, flex: 1 },
+  clashes: { gap: SPACING.xs },
   viewport: {
     overflow: 'hidden',
     borderRadius: RADIUS.box,
