@@ -23,6 +23,7 @@ import { usePickupLogStore } from '../src/state/pickup-log-store';
 import { useChecklistCompletionStore } from '../src/state/checklist-completion-store';
 import { useNotifSettingsStore } from '../src/state/notif-settings-store';
 import { useGuardianStore } from '../src/state/guardian-store';
+import { useDisplayStore } from '../src/state/display-store';
 import { TOKENS } from '../src/ui/palette';
 
 export { ErrorBoundary } from 'expo-router';
@@ -113,6 +114,7 @@ export default function RootLayout() {
           usePickupLogStore.getState().load(db),
           useChecklistCompletionStore.getState().load(db),
           useGuardianStore.getState().load(db),
+          useDisplayStore.getState().load(db),
         ]);
         for (const r of v2Results) {
           if (r.status === 'rejected') {
@@ -246,6 +248,7 @@ export default function RootLayout() {
         <Stack.Screen name="settings/kid-edit" options={{ headerShown: false }} />
         <Stack.Screen name="settings/data" options={{ headerShown: false }} />
         <Stack.Screen name="settings/calendars" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/display" options={{ headerShown: false }} />
         <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
         {/* Reset-all-data confirm — native formSheet route (app/settings/reset-confirm.tsx). */}
         <Stack.Screen

@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 
 import { nextHourStart } from '../calendar/time-axis';
 import { useUiStore } from '../../state/ui-store';
+import { useDisplayStore } from '../../state/display-store';
 import { ELEVATION } from '../elevation';
 import { IconGear, IconHome, IconPlus } from '../icons';
 import { TOKENS } from '../palette';
@@ -34,6 +35,8 @@ const TABS: Record<string, { label: string; render: (color: string) => React.Rea
 
 function FloatingDockImpl({ state, navigation }: BottomTabBarProps): React.ReactElement {
   const router = useRouter();
+  // 설정 > 화면: "+" on the left for left-handed use (ADR-009).
+  const addLeft = useDisplayStore((s) => s.addButtonSide) === 'left';
   const onAdd = (): void => {
     const onCalendar = state.routes[state.index]?.name === 'calendar';
     const date = onCalendar ? useUiStore.getState().currentDate : todayIso();
@@ -43,7 +46,7 @@ function FloatingDockImpl({ state, navigation }: BottomTabBarProps): React.React
     router.push({ pathname: '/schedule/edit', params: { mode: 'create', date, start: String(start) } });
   };
   return (
-    <View pointerEvents="box-none" style={styles.wrap}>
+    <View pointerEvents="box-none" style={[styles.wrap, addLeft ? styles.wrapAddLeft : null]} testID="dock">
       <View style={styles.bar}>
         {state.routes.map((route, index) => {
           const tab = TABS[route.name];
@@ -93,6 +96,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  wrapAddLeft: { flexDirection: 'row-reverse' },
   bar: {
     flex: 1,
     flexDirection: 'row',

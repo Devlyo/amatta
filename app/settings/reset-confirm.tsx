@@ -9,6 +9,7 @@ import { useChildrenStore } from '../../src/state/children-store';
 import { useChecklistStore } from '../../src/state/checklist-store';
 import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
 import { useGuardianStore } from '../../src/state/guardian-store';
+import { useDisplayStore } from '../../src/state/display-store';
 import { usePickupLogStore } from '../../src/state/pickup-log-store';
 import { useChecklistCompletionStore } from '../../src/state/checklist-completion-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
@@ -32,6 +33,7 @@ export default function ResetConfirmRoute(): React.ReactElement {
     // Guardian calendar choices were in app_settings too (the device
     // calendar itself is untouched).
     useGuardianStore.getState().resetToDefaults();
+    useDisplayStore.getState().resetToDefaults();
     await Promise.all([
       useChildrenStore.getState().load(db),
       useSchedulesStore.getState().load(db),

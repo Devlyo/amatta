@@ -19,6 +19,7 @@ import { getDb } from '../../src/db/client';
 import { rescheduleAll } from '../../src/notifications/scheduler';
 import { useChildrenStore } from '../../src/state/children-store';
 import { useGuardianStore } from '../../src/state/guardian-store';
+import { useDisplayStore } from '../../src/state/display-store';
 import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
 import { KidAvatar } from '../../src/ui/common/KidAvatar';
 import { HomeSection } from '../../src/ui/home/HomeSection';
@@ -57,6 +58,7 @@ export default function SettingsScreen(): React.ReactElement {
   const setDefaultMinutesBefore = useNotifSettingsStore((s) => s.setDefaultMinutesBefore);
   const lastScheduleTruncated = useNotifSettingsStore((s) => s.lastScheduleTruncated);
   const guardianEnabled = useGuardianStore((s) => s.enabled);
+  const addSide = useDisplayStore((s) => s.addButtonSide);
   const [leadOpen, setLeadOpen] = useState(false);
 
   // Toggling 시스템 알림: persist then reconcile so turning OFF cancels every
@@ -145,6 +147,16 @@ export default function SettingsScreen(): React.ReactElement {
             </Text>
           ) : null}
         </View>
+
+        <HomeSection title="화면">
+          <FormValueRow
+            label="화면 설정"
+            value={addSide === 'left' ? '+ 버튼 왼쪽' : '+ 버튼 오른쪽'}
+            onPress={() => router.push('/settings/display')}
+            last
+            testID="settings-row-display"
+          />
+        </HomeSection>
 
         <HomeSection title="캘린더">
           <FormValueRow
