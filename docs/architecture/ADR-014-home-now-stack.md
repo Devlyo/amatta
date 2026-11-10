@@ -14,8 +14,10 @@
 4. **준비물·할 일 = 아이폰 목록**(보드 H1): 한 줄에 하나씩, 줄 사이 얇은 선(글자 시작 위치부터).
    - 준비물: 아이 얼굴 · 준비물 이름 · "민준 · 수학 2PM" · 오른쪽 동그라미 체크(완료 = 주황). 일정별 머리줄은 없앰.
    - 할 일: 왼쪽 동그라미 체크 · 제목 · (아이가 정해져 있으면) 아이 이름.
-5. **홈 바탕 = `homeBg` #F7F6F4**(시스템 화면 `groupedBg` #F2F1EF보다 연하게, 오너 2026-11-11). 다크는 그대로.
-6. 새 토큰: `RADIUS.card`, `TYPE.title2`·`largeTitle34`, `surfaceOnFill`·`surfaceOnFillMuted`(색 위의 알약·막대, 두 모드 같음), `homeBg`.
+5. **카드 배경을 연하게**(오너 2026-11-11 "카드 배경"): 지금 카드 = 아이 색 **35%**(다크 60%, `theme.cardFill`). 캘린더 블록(60%/85%)보다 연함. 홈 바탕은 `groupedBg` 그대로.
+6. **픽업 카드**(보드 H1): "다음 픽업 · 40분 남음" + 큰 "3PM 민준 · 수학"(20/700) + 오른쪽 **완료** 알약(누르면 그 회차 픽업 완료 → 카드가 사라짐). 자동차 그림·길 줄은 뺌. 색은 기존 픽업 팔레트, radius 22.
+7. **블러 독**: `expo-blur` BlurView(systemChromeMaterial) + `dockTint` 55%. 모듈이 없는 예전 빌드에서는 흰 알약 그대로(lazy).
+8. 새 토큰: `RADIUS.card`, `TYPE.title2`·`largeTitle34`, `surfaceOnFill`·`surfaceOnFillMuted`(색 위의 알약·막대, 두 모드 같음), `dockTint`; Theme `cardFill`.
 
-## Not now
-- 픽업 카드의 "완료" 버튼, 반투명(블러) 독 — 시안에는 있지만 이번에는 넣지 않음(블러는 새 네이티브 모듈 필요).
+## Consequences
+- `expo-blur` = 새 네이티브 모듈 → 개발 빌드 새로 필요(2026-11-11 빌드).

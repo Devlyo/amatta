@@ -141,7 +141,7 @@ export default function HomeScreen(): React.ReactElement {
 }
 
 const useStyles = makeStyles((th) => ({
-  safe: { flex: 1, backgroundColor: th.t.homeBg },
+  safe: { flex: 1, backgroundColor: th.t.groupedBg },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-end',

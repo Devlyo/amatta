@@ -63,7 +63,7 @@ function NowBlock({ kid, row, nowMinutes }: { kid: Child; row: KidNowNext; nowMi
   const after = live && row.next !== null ? `다음 ${fmt12hrShort(row.next.startMinutes)} ${row.next.title}` : null;
   return (
     <View
-      style={[styles.block, { backgroundColor: withAlpha(p.source, theme.blockFill) }]}
+      style={[styles.block, { backgroundColor: withAlpha(p.source, theme.cardFill) }]}
       accessible
       accessibilityLabel={`${kid.name}, ${occ.title} ${range}, ${status}${after !== null ? `, ${after}` : ''}`}
       testID={`now-block-${kid.id}`}
@@ -155,7 +155,7 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
       {peeks.map((r, i) => {
         const kid = kidOf(r.childId);
         const fill = kid !== undefined && (r.current ?? r.next) !== null
-          ? withAlpha(theme.kid(kid.colorIndex).source, Math.max(0.25, theme.blockFill - (i + 1) * 0.12))
+          ? withAlpha(theme.kid(kid.colorIndex).source, Math.max(0.15, theme.cardFill - (i + 1) * 0.08))
           : theme.t.surface;
         return (
           <View

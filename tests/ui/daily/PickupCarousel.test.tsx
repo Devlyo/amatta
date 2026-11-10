@@ -1,3 +1,5 @@
+jest.mock('../../../src/db/client', () => ({ getDb: jest.fn().mockResolvedValue({}) }));
+
 import { render } from '@testing-library/react-native';
 
 import { PickupCarousel } from '../../../src/ui/daily/PickupCarousel';
@@ -94,8 +96,8 @@ describe('PickupCarousel', () => {
     // The single card title row contains "민준 · 수영".
     expect(getAllByText(/민준 · 수영/).length).toBeGreaterThan(0);
     // Eyebrow renders once for the only card.
-    expect(getAllByText(/Next pickup/).length).toBe(1);
-    // No second card → no extra "Next pickup" eyebrow.
+    expect(getAllByText(/다음 픽업/).length).toBe(1);
+    // No second card → no extra "다음 픽업" eyebrow.
     expect(queryByText(/서연/)).toBeNull();
   });
 
@@ -118,9 +120,31 @@ describe('PickupCarousel', () => {
       />,
     );
     // Three eyebrows = three cards rendered.
-    expect(getAllByText(/Next pickup/).length).toBe(3);
+    expect(getAllByText(/다음 픽업/).length).toBe(3);
     expect(getAllByText(/민준 · 수영/).length).toBe(1);
     expect(getAllByText(/서연 · 미술/).length).toBe(1);
     expect(getAllByText(/도윤 · 발레/).length).toBe(1);
+  });
+});
+
+describe('PickupCard 완료 (ADR-014)', () => {
+  test('완료 marks that occurrence picked up', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { usePickupLogStore } = require('../../../src/state/pickup-log-store') as typeof import('../../../src/state/pickup-log-store');
+    const markComplete = jest.fn().mockResolvedValue(undefined);
+    usePickupLogStore.setState({ markComplete } as never);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { fireEvent, waitFor } = require('@testing-library/react-native') as typeof import('@testing-library/react-native');
+    const { getByTestId } = render(
+      <PickupCarousel
+        occurrences={[makeOccurrence(11, 1, 16 * 60, true, '수영')]}
+        childrenById={kidsById}
+        nowMinutes={9 * 60}
+        currentDate={TODAY}
+        pickupLogIsComplete={NEVER_COMPLETE}
+      />,
+    );
+    fireEvent.press(getByTestId('pickup-done-11'));
+    await waitFor(() => expect(markComplete).toHaveBeenCalledWith(expect.anything(), 11, expect.any(Number)));
   });
 });
