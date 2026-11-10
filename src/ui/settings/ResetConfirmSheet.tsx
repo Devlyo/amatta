@@ -3,11 +3,11 @@
 // owns presentation + the destructive wipe; this is the de-chromed content:
 // 17/700 title, 13/inkSub explanation, danger CTA over an ink04 cancel.
 
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { FONT_FAMILIES } from '../fonts';
-import { TOKENS } from '../palette';
 import { SPACING } from '../spacing';
+import { makeStyles } from '../appearance';
 
 export interface ResetConfirmBodyProps {
   onCancel: () => void;
@@ -18,6 +18,7 @@ export function ResetConfirmBody({
   onCancel,
   onConfirm,
 }: ResetConfirmBodyProps): React.ReactElement {
+  const styles = useStyles();
   return (
     <View style={styles.body}>
       <Text style={styles.title}>모든 데이터를 초기화할까요?</Text>
@@ -52,7 +53,7 @@ export function ResetConfirmBody({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   // De-chromed: the native route sheet owns scrim/shape/grabber.
   body: {
     paddingHorizontal: 18,
@@ -62,14 +63,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontFamily: FONT_FAMILIES.pretendardBold,
-    color: TOKENS.ink,
+    color: th.t.ink,
     letterSpacing: -0.4,
     marginBottom: 6,
   },
   sub: {
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
     letterSpacing: -0.2,
     lineHeight: 20,
     marginBottom: 18,
@@ -79,28 +80,28 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: SPACING.lg,
     borderRadius: 14,
-    backgroundColor: TOKENS.danger,
+    backgroundColor: th.t.danger,
     alignItems: 'center',
   },
   dangerCtaPressed: { opacity: 0.85 },
   dangerCtaLabel: {
     fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.surface,
+    color: th.t.surface,
     letterSpacing: -0.3,
   },
   cancelCta: {
     paddingVertical: 14,
     paddingHorizontal: SPACING.lg,
     borderRadius: 14,
-    backgroundColor: TOKENS.ink04,
+    backgroundColor: th.t.ink04,
     alignItems: 'center',
   },
   cancelCtaPressed: { opacity: 0.85 },
   cancelCtaLabel: {
     fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: TOKENS.ink,
+    color: th.t.ink,
     letterSpacing: -0.3,
   },
-});
+}));

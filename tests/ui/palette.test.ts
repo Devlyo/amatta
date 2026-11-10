@@ -1,4 +1,4 @@
-import { getKidPalette, kidFill, PICKUP_CARD_PALETTE, TOKENS, withAlpha } from '../../src/ui/palette';
+import { getKidPalette, kidFill, LIGHT_TOKENS as TOKENS, PICKUP_CARD_PALETTE, withAlpha } from '../../src/ui/palette';
 import type { ColorIndex } from '../../src/domain/types';
 
 describe('getKidPalette', () => {

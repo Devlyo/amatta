@@ -21,8 +21,8 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { Animated, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
-import { ELEVATION } from '../elevation';
-import { TOKENS, withAlpha } from '../palette';
+import { elevationFor } from '../elevation';
+import { withAlpha } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
 import {
@@ -35,6 +35,7 @@ import {
   TIME_GUTTER,
 } from './time-axis';
 import { TimeBlock } from './TimeBlock';
+import { makeStyles, useTheme } from '../appearance';
 
 /**
  * Column width during a live pinch. Normally everything is laid out by React
@@ -151,6 +152,8 @@ function TimeGridImpl({
   draftColorOf,
   testID,
 }: TimeGridProps): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   const scrollRef = useRef<ScrollView>(null);
   const [width, setWidth] = useState(0);
   const viewportW = Math.max(0, width - TIME_GUTTER);
@@ -399,7 +402,7 @@ function TimeGridImpl({
                     startMinutes={draft.start}
                     endMinutes={draft.start + DRAFT_LENGTH_MIN}
                     focused
-                    {...(draftColorOf?.(draft.column) ?? { color: TOKENS.primary, deep: TOKENS.primaryDeep })}
+                    {...(draftColorOf?.(draft.column) ?? { color: theme.t.primary, deep: theme.t.primaryDeep })}
                     accessibilityLabel="새 일정"
                   />
                 </Animated.View>
@@ -465,7 +468,7 @@ function LiveColumn({
 const NOW_PILL_H = 19;
 const NOW_DOT = 11;
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   hourRow: {
     position: 'absolute',
     left: 0,
@@ -479,11 +482,11 @@ const styles = StyleSheet.create({
     top: -7,
     width: TIME_GUTTER - 6,
     textAlign: 'right',
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
   },
   hourMeridiem: {
     ...TYPE.axisMeridiem,
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
   },
   hourLine: {
     position: 'absolute',
@@ -491,23 +494,23 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: TOKENS.hair,
+    backgroundColor: th.t.hair,
   },
   columnRule: {
     position: 'absolute',
     top: 0,
     width: StyleSheet.hairlineWidth,
-    backgroundColor: TOKENS.hair,
+    backgroundColor: th.t.hair,
   },
   todayColumn: {
     position: 'absolute',
     top: 0,
-    backgroundColor: withAlpha(TOKENS.primary, 0.06),
+    backgroundColor: withAlpha(th.t.primary, 0.06),
   },
   draft: {
     position: 'absolute',
     zIndex: 40,
-    ...ELEVATION.dock,
+    ...elevationFor(th).dock,
   },
   columns: {
     position: 'absolute',
@@ -527,25 +530,25 @@ const styles = StyleSheet.create({
     width: TIME_GUTTER - 6,
     height: NOW_PILL_H,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.primary,
+    backgroundColor: th.t.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   nowPillLabel: {
     ...TYPE.mono,
-    color: TOKENS.surface,
+    color: th.t.surface,
   },
   nowDot: {
     width: NOW_DOT,
     height: NOW_DOT,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.primary,
+    backgroundColor: th.t.primary,
     marginLeft: 1,
     marginRight: -NOW_DOT / 2,
   },
   nowLine: {
     flex: 1,
     height: 2,
-    backgroundColor: TOKENS.primary,
+    backgroundColor: th.t.primary,
   },
-});
+}));

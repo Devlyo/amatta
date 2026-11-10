@@ -9,11 +9,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { IconCheck } from '../icons';
 import { SwipeToDelete } from '../common/SwipeToDelete';
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
 import { isDueOnDate } from '../utils/date';
+import { makeStyles, useTheme } from '../appearance';
 
 // Build a local-time epoch-ms anchor for the given calendar date at 12:00,
 // so the resulting `dueAt` falls cleanly inside that day regardless of the
@@ -27,6 +27,7 @@ function isoToNoonEpoch(iso: ISODate): number {
 }
 
 function SectionHeader({ label, done, total }: { label: string; done: number; total: number }) {
+  const styles = useStyles();
   return (
     <View style={styles.header}>
       <Text style={styles.headerLabel}>{label}</Text>
@@ -43,6 +44,8 @@ interface TodoSectionProps {
 }
 
 function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   const todos = useTodosStore((s) => s.todos);
   const storeDate = useUiStore((s) => s.currentDate);
   const currentDate = date ?? storeDate;
@@ -132,11 +135,11 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
                     styles.checkbox,
                     isDone ? styles.itemRowDone : null,
                     isDone
-                      ? { backgroundColor: TOKENS.primary, borderColor: TOKENS.primary }
+                      ? { backgroundColor: theme.t.primary, borderColor: theme.t.primary }
                       : styles.checkboxIdle,
                   ]}
                 >
-                  {isDone ? <IconCheck size={12} color={TOKENS.surface} /> : null}
+                  {isDone ? <IconCheck size={12} color={theme.t.surface} /> : null}
                 </View>
                 <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null, isDone ? styles.itemRowDone : null]}>
                   {todo.title}
@@ -154,7 +157,7 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
           testID="todo-add-row"
         >
           {/* Same as the form's 준비물 추가: red add-circle + red label. */}
-          <Ionicons name="add-circle" size={22} color={TOKENS.danger} />
+          <Ionicons name="add-circle" size={22} color={theme.t.danger} />
           {adding ? (
             <TextInput
               ref={inputRef}
@@ -167,7 +170,7 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
                 void commitDraft();
               }}
               placeholder="할일"
-              placeholderTextColor={TOKENS.inkSub}
+              placeholderTextColor={theme.t.inkSub}
               returnKeyType="done"
               style={styles.addInput}
               testID="todo-add-input"
@@ -190,7 +193,7 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
 
 export const TodoSection = memo(TodoSectionImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   // Matches HomeSection (home screen headings): headline + muted count,
   // 6px above the box. These sections now live only on the home screen.
   header: {
@@ -200,17 +203,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xs,
     paddingBottom: 6,
   },
-  headerLabel: { ...TYPE.headline, color: TOKENS.ink },
-  headerCount: { ...TYPE.subhead, color: TOKENS.inkSub },
+  headerLabel: { ...TYPE.headline, color: th.t.ink },
+  headerCount: { ...TYPE.subhead, color: th.t.inkSub },
   card: {
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
     borderRadius: RADIUS.box,
     padding: 6,
   },
   // Inset to the label: card padding 6 + row padding 10 + checkbox 22 + gap 10.
   itemSeparator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: TOKENS.separator,
+    backgroundColor: th.t.separator,
     marginLeft: 42,
     marginRight: 10,
   },
@@ -221,7 +224,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 10,
     // Opaque, so the red 삭제 behind it shows only while swiping.
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
   },
   itemRowDone: {
     opacity: 0.5,
@@ -235,15 +238,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxIdle: {
-    backgroundColor: TOKENS.surface,
-    borderColor: TOKENS.ink30,
+    backgroundColor: th.t.surface,
+    borderColor: th.t.ink30,
   },
   itemLabel: {
     flex: 1,
     fontFamily: FONT_FAMILIES.pretendard,
     fontSize: 16,
     fontWeight: '400',
-    color: TOKENS.ink,
+    color: th.t.ink,
     letterSpacing: -0.2,
   },
   itemLabelDone: {
@@ -259,17 +262,17 @@ const styles = StyleSheet.create({
   },
   addRowDivider: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TOKENS.separator,
+    borderTopColor: th.t.separator,
     marginTop: SPACING.xxs,
   },
-  addLabel: { ...TYPE.row, flex: 1, color: TOKENS.danger },
+  addLabel: { ...TYPE.row, flex: 1, color: th.t.danger },
   addInput: {
     flex: 1,
     fontFamily: FONT_FAMILIES.pretendard,
     fontSize: 16,
     fontWeight: '400',
-    color: TOKENS.ink,
+    color: th.t.ink,
     letterSpacing: -0.2,
     paddingVertical: 0,
   },
-});
+}));

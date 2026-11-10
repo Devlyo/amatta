@@ -4,13 +4,13 @@
 // grey detail. The title truncates; name, icon and detail never do.
 
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import type { ScheduleType } from '../../domain/types';
 import { TypeIcon } from '../common/TypeIcon';
-import { TOKENS } from '../palette';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
+import { makeStyles, useTheme } from '../appearance';
 
 interface Props {
   /** Kid name in front (omit when the row is already under the kid). */
@@ -22,12 +22,14 @@ interface Props {
 }
 
 function ItemLineImpl({ name, title, type, detail }: Props): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.line}>
       {name !== undefined ? <Text style={styles.strong}>{name}</Text> : null}
       {type !== null ? (
         <View style={styles.icon}>
-          <TypeIcon type={type} size={13} color={TOKENS.inkSub} />
+          <TypeIcon type={type} size={13} color={theme.t.inkSub} />
         </View>
       ) : null}
       <Text style={[styles.strong, styles.title]} numberOfLines={1}>
@@ -40,12 +42,12 @@ function ItemLineImpl({ name, title, type, detail }: Props): React.ReactElement 
 
 export const ItemLine = memo(ItemLineImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   // Every piece centred on one 20px line box (the smaller detail too).
   line: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, minWidth: 0, minHeight: 20 },
-  strong: { ...TYPE.subhead, fontFamily: TYPE.headline.fontFamily, color: TOKENS.ink },
+  strong: { ...TYPE.subhead, fontFamily: TYPE.headline.fontFamily, color: th.t.ink },
   title: { flexShrink: 1 },
   // Pulls the icon a little closer to its title than the other gaps.
   icon: { marginRight: -SPACING.xs, height: 20, justifyContent: 'center' },
-  detail: { ...TYPE.footnote, lineHeight: 20, color: TOKENS.inkSub },
-});
+  detail: { ...TYPE.footnote, lineHeight: 20, color: th.t.inkSub },
+}));

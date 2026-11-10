@@ -29,19 +29,19 @@
 - 블록 채움 알파: `TimeBlock`/`AllDayRow`/`MonthView` 칩의 0.6/0.8 → `t.blockFill`/`t.blockFillFocused`(라이트 0.6/0.8, 다크 0.85/0.95). 블록 글씨는 양쪽 `#1D1D1B`(새 토큰 `onKidFill`).
 
 ## 4. 단계 (v2 — 각 단계 = 커밋, 단계 끝마다 tsc·jest·라이트 화면 무변화 확인)
-0. **기반 + 다크로 볼 수 있게**
+0. **기반 + 다크로 볼 수 있게** — ✅ 2026-11-10 (dev 미리보기 = 설정 > 화면 > 개발용, dev-gallery는 앱에서 링크가 없어 대신)
    - 전체 팔레트 확정(§3-1: 45개 토큰 전부 라이트/다크 쌍) + 테마 고정 토큰(`onLight #1D1D1B`, `onDark #FFFFFF`).
    - `LIGHT_THEME`/`DARK_THEME` 두 고정 객체, context 기본값 = 라이트(기존 테스트 그대로 통과).
    - `makeStyles(fn)`: 파일 로드 때 라이트·다크 StyleSheet를 **둘 다 한 번** 만들고 훅은 고르기만(컴포넌트별 useMemo 금지 — TimeBlock 수백 개).
    - `userInterfaceStyle:"automatic"` + `expo-system-ui`(창 바탕 `setBackgroundColorAsync`) + **새 빌드**, 런타임 라이트 고정은 유지, `__DEV__` 전용 모드 전환(dev-gallery).
    - ESLint: `TOKENS` 직접 import = **경고**(남은 개수 추적), 색 리터럴 금지에 `rgba(` 추가.
    - 테스트: 쌍 완전성, 대비(반투명 채움은 **바탕에 섞은 뒤** 4.5:1/3:1 검사), makeStyles 캐시.
-1. 공용 프리미티브(form-rows, HomeSection, SettingsChrome, TimeBlock, TimeGrid, AllDayRow, KidFilterBar, FloatingDock, SwipeToDelete, ItemLine, PagingStrip) + **아이콘 기본 색**(icons.tsx `color = TOKENS.ink` 기본값 → 테마) + `ELEVATION`을 테마 함수로.
-2. 캘린더 화면 + 픽업 카드(`PickupCard`의 `onBg === TOKENS.surface` 비교 → `onLight/onDark` 고정 토큰) + `PICKUP_CARD_PALETTE`, `WeekView` 등 색을 굽는 `useMemo`에 `t` 의존성.
-3. 홈 / 설정 / 설정 안쪽 / 온보딩(`BLOB_CITRUS`) / 검색 / 날짜 선택(`CalendarDrawer` `WEEKEND_COLOR_SAT`) / 상세·폼(DateTimePicker `themeVariant="light"`·`textColor` 하드코딩 제거).
+1. ✅ 2026-11-10 공용 프리미티브(form-rows, HomeSection, SettingsChrome, TimeBlock, TimeGrid, AllDayRow, KidFilterBar, FloatingDock, SwipeToDelete, ItemLine, PagingStrip) + **아이콘 기본 색**(icons.tsx `color = TOKENS.ink` 기본값 → 테마) + `ELEVATION`을 테마 함수로.
+2. ✅ 2026-11-10 캘린더 화면 + 픽업 카드(`PickupCard`의 `onBg === TOKENS.surface` 비교 → `onLight/onDark` 고정 토큰) + `PICKUP_CARD_PALETTE`, `WeekView` 등 색을 굽는 `useMemo`에 `t` 의존성.
+3. ✅ 2026-11-10 홈 / 설정 / 설정 안쪽 / 온보딩(`BLOB_CITRUS`) / 검색 / 날짜 선택(`CalendarDrawer` `WEEKEND_COLOR_SAT`) / 상세·폼(DateTimePicker `themeVariant="light"`·`textColor` 하드코딩 제거).
    + React Navigation `ThemeProvider`(커스텀 Default/DarkTheme)로 탭·스택·헤더 바탕.
-4. `TOKENS` 별칭 제거, ESLint 경고 → **에러**.
-5. 설정 > 화면 모드(시스템/라이트/다크) 노출. 저장값은 **부팅 중 `setBootState('ready')` 전에** 적용(스플래시가 가림). 초기화·JSON 가져오기 시 다시 적용. 실기기 확인(아래 §6).
+4. ✅ 2026-11-10 `TOKENS` 별칭 제거, ESLint 경고 → **에러**.
+5. ✅ 2026-11-10 설정 > 화면 모드(시스템/라이트/다크) 노출. 저장값은 **부팅 중 `setBootState('ready')` 전에** 적용(스플래시가 가림). 초기화·JSON 가져오기 시 다시 적용. 실기기 확인(아래 §6).
 
 ## 5. 위험
 | 위험 | 대응 |

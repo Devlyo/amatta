@@ -7,11 +7,12 @@ import { formatUntil, type KidNowNext } from '../../domain/now-next';
 import type { Child, ScheduleType } from '../../domain/types';
 import { ItemLine } from './ItemLine';
 import { KidAvatar } from '../common/KidAvatar';
-import { kidFill, TOKENS } from '../palette';
+import { withAlpha } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
 import { fmt12hrShort, fmtRange } from '../utils/date';
+import { makeStyles, useTheme } from '../appearance';
 
 interface Props {
   kids: readonly Child[];
@@ -44,6 +45,8 @@ function describe(row: KidNowNext): {
 }
 
 function NowNextListImpl({ kids, rows }: Props): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <View>
       {rows.map((row, i) => {
@@ -70,7 +73,7 @@ function NowNextListImpl({ kids, rows }: Props): React.ReactElement {
               ) : null}
             </View>
             {row.status === 'inProgress' ? (
-              <View style={[styles.chip, { backgroundColor: kidFill(kid.colorIndex, 0.6) }]}>
+              <View style={[styles.chip, { backgroundColor: withAlpha(theme.kid(kid.colorIndex).source, theme.blockFill) }]}>
                 <Text style={styles.chipLabel}>진행 중</Text>
               </View>
             ) : row.status === 'upcoming' && row.minutesUntilNext !== null ? (
@@ -89,7 +92,7 @@ function NowNextListImpl({ kids, rows }: Props): React.ReactElement {
 
 export const NowNextList = memo(NowNextListImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   row: {
     minHeight: 54,
     flexDirection: 'row',
@@ -101,10 +104,10 @@ const styles = StyleSheet.create({
   },
   rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: TOKENS.separator,
+    borderBottomColor: th.t.separator,
   },
   text: { flex: 1, minWidth: 0, gap: 2 },
-  sub: { ...TYPE.footnote, color: TOKENS.inkSub },
+  sub: { ...TYPE.footnote, color: th.t.inkSub },
   chip: {
     height: 22,
     paddingHorizontal: SPACING.sm,
@@ -112,7 +115,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chipMuted: { backgroundColor: TOKENS.ink06 },
-  chipLabel: { ...TYPE.caption, color: TOKENS.ink },
-  chipLabelMuted: { color: TOKENS.ink70 },
-});
+  chipMuted: { backgroundColor: th.t.ink06 },
+  // 진행 중 sits on the kid fill → dark text in both schemes (ADR-009).
+  chipLabel: { ...TYPE.caption, color: th.t.onLight },
+  chipLabelMuted: { color: th.t.ink70 },
+}));

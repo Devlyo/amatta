@@ -1,8 +1,8 @@
 import { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 
 import type { ColorIndex } from '../../domain/types';
-import { getKidPalette, TOKENS } from '../palette';
+import { makeStyles, useTheme } from '../appearance';
 
 interface Props {
   colorIndex: ColorIndex;
@@ -15,7 +15,9 @@ interface Props {
 }
 
 function ColorDotImpl({ colorIndex, size = 12, ring = false }: Props): React.ReactElement {
-  const palette = getKidPalette(colorIndex);
+  const theme = useTheme();
+  const styles = useStyles();
+  const palette = theme.kid(colorIndex);
 
   if (!ring) {
     return (
@@ -51,7 +53,7 @@ function ColorDotImpl({ colorIndex, size = 12, ring = false }: Props): React.Rea
             width: inner + 2,
             height: inner + 2,
             borderRadius: (inner + 2) / 2,
-            backgroundColor: TOKENS.surface,
+            backgroundColor: theme.t.surface,
           },
         ]}
       >
@@ -73,8 +75,8 @@ function ColorDotImpl({ colorIndex, size = 12, ring = false }: Props): React.Rea
 
 export const ColorDot = memo(ColorDotImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   dot: {},
   outer: { alignItems: 'center', justifyContent: 'center' },
   gap: { alignItems: 'center', justifyContent: 'center' },
-});
+}));

@@ -1,13 +1,13 @@
 import { Pressable, View, type ViewStyle } from 'react-native';
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { Text } from './Text';
+import { useTheme } from '../appearance';
 
 // Design-system Pill / Chip — status tags and filter chips.
 // NOTE: README §7 does not table pills; sizing here is derived from the token +
 // type scale and may be tuned. `solid` = filled tone, `outline` = bordered.
-// Filter-chip pattern: <Pill variant={selected ? 'solid' : 'outline'} tone={TOKENS.primary} />
+// Filter-chip pattern: <Pill variant={selected ? 'solid' : 'outline'} tone={t.primary} />
 export type PillVariant = 'solid' | 'outline';
 export type PillSize = 'sm' | 'md';
 
@@ -32,10 +32,12 @@ export function Pill({
   label,
   variant = 'solid',
   size = 'sm',
-  tone = TOKENS.ink,
+  tone: toneProp,
   onPress,
   style,
 }: PillProps): React.ReactElement {
+  const theme = useTheme();
+  const tone = toneProp ?? theme.t.ink;
   const p = PAD[size];
   const isSolid = variant === 'solid';
   const base: ViewStyle = {
@@ -48,7 +50,7 @@ export function Pill({
     borderColor: tone,
   };
   const content = (
-    <Text variant="caption" color={isSolid ? TOKENS.surface : tone}>
+    <Text variant="caption" color={isSolid ? theme.t.surface : tone}>
       {label}
     </Text>
   );

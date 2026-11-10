@@ -1,6 +1,6 @@
 # ADR-009 — 다크 모드
 
-- **Status**: Proposed — Architect/Critic 승인(수정 조건부), 계획 v2 (2026-11-10) — 오너 "다크모드 추가 가능?" → 시안 확인 후 진행 결정. 계획: `.omc/plans/ralplan-dark-mode.md`
+- **Status**: **Accepted / 구현 완료** (2026-11-10) — 계획 v2의 0–5단계 완료 — 오너 "다크모드 추가 가능?" → 시안 확인 후 진행 결정. 계획: `.omc/plans/ralplan-dark-mode.md`
 - **Amends**: ADR-004 (앱 라이트모드 런타임 고정 `Appearance.setColorScheme('light')`, `app.json userInterfaceStyle: "light"`)
 - **Source**: 디자인 캔버스(비공개) https://claude.ai/artifact/7378YLCUUr4pMf7SgDfybx — 보드 `0-D 홈 — 다크`, `3-D 일간 — 다크`, `6-D 새 일정 — 다크` (2026-11-10, 바탕 밝기 3회 조정 후 확정)
 
@@ -29,6 +29,11 @@
 | guardian / guardianDeep | `#E4E2DD` / `#8E8A83` | `#5A5751` / `#A8A49D` |
 | 아이 deep (예: 핑크·라벤더·시트러스) | `#D957D9` `#8E6BE8` `#A8AD12` | `#F08BF0` `#B39CFF` `#D3D84A` |
 | 그림자 | 옅음 | 진하게(0.45) |
+
+## 오너 결정 (2026-11-10)
+- **기본값 = 시스템**(폰 설정을 따름).
+- **설정 > 화면** 메뉴를 따로 둔다. 항목: **화면 모드**(시스템/라이트/다크 — 전 화면 전환 후 노출) · **새 일정 + 버튼 위치**(오른쪽/왼쪽 — 왼손잡이용, 바로 적용). + 위치는 `app_settings.dock_add_side`, JSON 내보내기 포함, 초기화 시 오른쪽.
+- **나머지 팔레트** = 시안 보드 `D 다크 모드 색 목록` 그대로(아래 표 보충). 모든 글씨 색 다크 박스 위 4.5:1 이상, 보호자 블록(다크)은 밝은 글씨.
 
 ## Consequences
 - `app.json` `userInterfaceStyle: "automatic"` → **새 네이티브 빌드 필요**.

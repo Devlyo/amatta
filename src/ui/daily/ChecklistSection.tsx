@@ -17,12 +17,12 @@ import { SwipeToDelete } from '../common/SwipeToDelete';
 import { ItemLine } from '../home/ItemLine';
 import { FONT_FAMILIES } from '../fonts';
 import { IconCheck } from '../icons';
-import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
 import { fmt12hrShort } from '../utils/date';
 import { isoToYyyymmdd } from './pickup-data';
+import { makeStyles, useTheme } from '../appearance';
 
 /** One class (today's occurrence) and its supplies. */
 interface ClassGroup {
@@ -64,6 +64,7 @@ function buildGroups(
 }
 
 function SectionHeader({ label, done, total }: { label: string; done: number; total: number }) {
+  const styles = useStyles();
   return (
     <View style={styles.header}>
       <Text style={styles.headerLabel}>{label}</Text>
@@ -80,6 +81,8 @@ interface ChecklistSectionProps {
 }
 
 function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   const children = useChildrenStore((s) => s.children);
   const schedules = useSchedulesStore((s) => s.schedules);
   const exceptions = useSchedulesStore((s) => s.exceptions);
@@ -154,7 +157,7 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
           <Text style={styles.emptyText}>오늘 챙길 준비물이 없어요</Text>
         ) : (
           groups.flatMap((group) => group.classes.map((c) => ({ kid: group.kid, ...c }))).map(({ kid, occ, items }, idx) => {
-          const palette = getKidPalette(kid.colorIndex);
+          const palette = theme.kid(kid.colorIndex);
           const remaining = items.filter((i) => !isComplete(i.id)).length;
           return (
             <Fragment key={occ.scheduleId}>
@@ -207,7 +210,7 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
                               : styles.checkboxIdle,
                           ]}
                         >
-                          {isDone ? <IconCheck size={12} color={TOKENS.surface} /> : null}
+                          {isDone ? <IconCheck size={12} color={theme.t.surface} /> : null}
                         </View>
                         <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null, isDone ? styles.itemRowDone : null]}>
                           {item.label}
@@ -228,7 +231,7 @@ function ChecklistSectionImpl({ date }: ChecklistSectionProps = {}): React.React
 
 export const ChecklistSection = memo(ChecklistSectionImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   // Matches HomeSection (home screen headings): headline + muted count,
   // 6px above the box. These sections now live only on the home screen.
   header: {
@@ -238,23 +241,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xs,
     paddingBottom: 6,
   },
-  headerLabel: { ...TYPE.headline, color: TOKENS.ink },
-  headerCount: { ...TYPE.subhead, color: TOKENS.inkSub },
+  headerLabel: { ...TYPE.headline, color: th.t.ink },
+  headerCount: { ...TYPE.subhead, color: th.t.inkSub },
   card: {
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
     borderRadius: RADIUS.box,
     padding: 6,
   },
   emptyText: {
     fontFamily: FONT_FAMILIES.pretendard,
     fontSize: 14,
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
     textAlign: 'center',
     paddingVertical: SPACING.xl,
   },
   divider: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TOKENS.separator,
+    borderTopColor: th.t.separator,
     marginVertical: SPACING.xs,
     marginHorizontal: SPACING.sm,
   },
@@ -272,7 +275,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILIES.pretendard,
     fontSize: 12,
     fontWeight: '400',
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
   },
   itemRow: {
     flexDirection: 'row',
@@ -281,12 +284,12 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 10,
     // Opaque, so the red 삭제 behind it shows only while swiping.
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
   },
   // Inset to the label: card padding 6 + row padding 10 + checkbox 22 + gap 10.
   itemSeparator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: TOKENS.separator,
+    backgroundColor: th.t.separator,
     marginLeft: 42,
     marginRight: 10,
   },
@@ -302,19 +305,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxIdle: {
-    backgroundColor: TOKENS.surface,
-    borderColor: TOKENS.ink30,
+    backgroundColor: th.t.surface,
+    borderColor: th.t.ink30,
   },
   itemLabel: {
     flex: 1,
     fontFamily: FONT_FAMILIES.pretendard,
     fontSize: 16,
     fontWeight: '400',
-    color: TOKENS.ink,
+    color: th.t.ink,
     letterSpacing: -0.2,
   },
   itemLabelDone: {
     textDecorationLine: 'line-through',
   },
   kidLine: { flex: 1, minWidth: 0 },
-});
+}));

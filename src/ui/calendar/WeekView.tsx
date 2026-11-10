@@ -13,7 +13,6 @@ import { emphasisOf, type PersonKey } from '../../domain/people-filter';
 import { cascadeStep, clipToDay, layoutCascade } from '../../domain/layout';
 import type { GuardianOccurrence } from '../../domain/guardian';
 import type { Child, ISODate, Occurrence } from '../../domain/types';
-import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
 import { fmtRange, weekdayKo } from '../utils/date';
@@ -21,6 +20,7 @@ import { AllDayRow, type AllDayItem } from './AllDayRow';
 import { TimeBlock } from './TimeBlock';
 import { TimeGrid, type LiveColumns, type TimeGridStrip } from './TimeGrid';
 import { initialScrollY, ongoingStart, TIME_GUTTER } from './time-axis';
+import { makeStyles, useTheme } from '../appearance';
 
 const HOUR_HEIGHT = 44;
 const INDENT = 15;
@@ -91,6 +91,8 @@ function WeekViewImpl({
   guardianEvents = [],
   onPressGuardian,
 }: Props): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   const [width, setWidth] = useState(0);
   const onLayout = (e: LayoutChangeEvent): void => setWidth(e.nativeEvent.layout.width);
   const viewportW = Math.max(0, width - TIME_GUTTER);
@@ -134,7 +136,7 @@ function WeekViewImpl({
     for (const occ of occurrences) {
       const kid = kidById.get(occ.childId);
       if (kid === undefined) continue;
-      const p = getKidPalette(occ.colorIndex);
+      const p = theme.kid(occ.colorIndex);
       out.push({
         id: `${occ.scheduleId}|${occ.date as unknown as string}`,
         person: kid.id,
@@ -158,14 +160,14 @@ function WeekViewImpl({
         end: g.endMinutes,
         allDay: g.allDay,
         title: g.title,
-        color: TOKENS.guardian,
-        deep: TOKENS.guardianDeep,
+        color: theme.t.guardian,
+        deep: theme.t.guardianDeep,
         name: `보호자 ${g.title}`,
         onPress: onPressGuardian === undefined ? undefined : () => onPressGuardian(g),
       });
     }
     return out;
-  }, [occurrences, guardianEvents, kidById, onPressOccurrence, onPressGuardian]);
+  }, [occurrences, guardianEvents, kidById, onPressOccurrence, onPressGuardian, theme]);
   const visible = useMemo(
     () => (noneOn ? items : items.filter((i) => !inactive.includes(i.person))),
     [items, inactive, noneOn],
@@ -236,7 +238,7 @@ function WeekViewImpl({
               const wd = weekdayKo(date);
               const isToday = key === (today as unknown as string);
               const nameColor =
-                wd === '일' ? TOKENS.sunday : wd === '토' ? TOKENS.saturday : TOKENS.inkSub;
+                wd === '일' ? theme.t.sunday : wd === '토' ? theme.t.saturday : theme.t.inkSub;
               return (
                 <LiveCell key={key} live={live}>
                 <Pressable
@@ -251,7 +253,7 @@ function WeekViewImpl({
                     <Text
                       style={[
                         styles.headerNumber,
-                        { color: isToday ? TOKENS.surface : TOKENS.ink },
+                        { color: isToday ? theme.t.surface : theme.t.ink },
                       ]}
                     >
                       {Number(key.slice(8, 10))}
@@ -322,6 +324,7 @@ function WeekViewImpl({
                 startMinutes={item.start}
                 endMinutes={item.end}
                 color={item.color}
+                guardian={item.person === 'guardian'}
                 deep={item.deep}
                 focused={emphasis === 'solo'}
                 dimmed={emphasis === 'inactive'}
@@ -403,14 +406,14 @@ function LiveBlockBox({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   root: { flex: 1 },
   header: {
     height: 54,
     flexDirection: 'row',
     paddingLeft: TIME_GUTTER,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: TOKENS.hair,
+    borderBottomColor: th.t.hair,
   },
   headerViewport: { flex: 1, overflow: 'hidden' },
   headerStrip: { flexDirection: 'row', height: '100%' },
@@ -423,6 +426,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerCircleToday: { backgroundColor: TOKENS.primary },
+  headerCircleToday: { backgroundColor: th.t.primary },
   headerNumber: { ...TYPE.subhead, fontFamily: TYPE.mono.fontFamily },
-});
+}));

@@ -7,7 +7,7 @@ import { memo } from 'react';
 
 import type { ScheduleType } from '../../domain/types';
 import { KIND_ICON } from '../icons';
-import { TOKENS } from '../palette';
+import { useTheme } from '../appearance';
 
 interface Props {
   type: ScheduleType;
@@ -15,7 +15,9 @@ interface Props {
   color?: string;
 }
 
-function TypeIconImpl({ type, size = 12, color = TOKENS.ink }: Props): React.ReactElement {
+function TypeIconImpl({ type, size = 12, color: colorProp }: Props): React.ReactElement {
+  const theme = useTheme();
+  const color = colorProp ?? theme.t.ink;
   const Cmp = KIND_ICON[type];
   return <Cmp size={size} color={color} />;
 }

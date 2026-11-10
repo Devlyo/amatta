@@ -16,3 +16,6 @@ jest.mock('expo-calendar', () => ({
   updateEventAsync: jest.fn(async () => 'updated'),
   deleteEventAsync: jest.fn(async () => undefined),
 }));
+
+// expo-system-ui (ADR-009): root window background — no-op in tests.
+jest.mock('expo-system-ui', () => ({ setBackgroundColorAsync: jest.fn(async () => undefined) }));

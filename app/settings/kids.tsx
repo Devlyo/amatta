@@ -17,15 +17,18 @@ import { useChildrenStore } from '../../src/state/children-store';
 import { KidAvatar } from '../../src/ui/common/KidAvatar';
 import { HomeSection } from '../../src/ui/home/HomeSection';
 import { IconChevronRight } from '../../src/ui/icons';
-import { TOKENS } from '../../src/ui/palette';
 import { SPACING } from '../../src/ui/spacing';
 import { TYPE } from '../../src/ui/typography';
-import { SettingsDetailScreen, settingsStyles } from '../../src/ui/settings/SettingsChrome';
+import { SettingsDetailScreen, useSettingsStyles } from '../../src/ui/settings/SettingsChrome';
+import { makeStyles, useTheme } from '../../src/ui/appearance';
 
 // Kept for older imports; the shared bar lives in src/ui/settings.
 export { DetailTopBar } from '../../src/ui/settings/SettingsChrome';
 
 export default function KidsScreen(): React.ReactElement {
+  const ss = useSettingsStyles();
+  const theme = useTheme();
+  const styles = useStyles();
   const router = useRouter();
   const children = useChildrenStore((s) => s.children);
   const [capMessageVisible, setCapMessageVisible] = useState(false);
@@ -53,7 +56,7 @@ export default function KidsScreen(): React.ReactElement {
       rightLabel={atCap ? undefined : '추가'}
       onRight={handleAddPress}
     >
-      <View style={settingsStyles.block}>
+      <View style={ss.block}>
         <HomeSection title="자녀" count={`${sortedChildren.length}/${MAX_CHILDREN}`}>
           {sortedChildren.length === 0 ? (
             <View style={styles.row}>
@@ -78,16 +81,16 @@ export default function KidsScreen(): React.ReactElement {
             testID="add-child-button"
             style={styles.row}
           >
-            <Ionicons name="add-circle" size={22} color={atCap ? TOKENS.ink30 : TOKENS.danger} />
+            <Ionicons name="add-circle" size={22} color={atCap ? theme.t.ink30 : theme.t.danger} />
             <Text style={[styles.addLabel, atCap ? styles.addLabelDisabled : null]}>자녀 추가</Text>
           </Pressable>
         </HomeSection>
         {atCap && capMessageVisible ? (
-          <Text style={[settingsStyles.footnote, styles.capMessage]} testID="cap-message">
+          <Text style={[ss.footnote, styles.capMessage]} testID="cap-message">
             최대 {MAX_CHILDREN}명까지 등록할 수 있습니다.
           </Text>
         ) : (
-          <Text style={settingsStyles.footnote}>
+          <Text style={ss.footnote}>
             {atCap ? `최대 ${MAX_CHILDREN}명까지 등록할 수 있어요.` : '아이를 눌러 이름과 아바타를 바꿀 수 있어요.'}
           </Text>
         )}
@@ -97,6 +100,8 @@ export default function KidsScreen(): React.ReactElement {
 }
 
 function KidRow({ child, onEdit }: { child: Child; onEdit: () => void }): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <Pressable
       onPress={onEdit}
@@ -106,12 +111,12 @@ function KidRow({ child, onEdit }: { child: Child; onEdit: () => void }): React.
     >
       <KidAvatar child={child} size={30} />
       <Text style={styles.name}>{child.name}</Text>
-      <IconChevronRight size={14} color={TOKENS.ink30} />
+      <IconChevronRight size={14} color={theme.t.ink30} />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   // Form-row metrics (44pt+, 16 inset) so it reads like the other lists.
   row: {
     minHeight: 52,
@@ -121,11 +126,11 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: SPACING.md,
   },
-  rowPressed: { backgroundColor: TOKENS.ink04 },
-  separator: { marginLeft: 16, height: StyleSheet.hairlineWidth, backgroundColor: TOKENS.separator },
-  name: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
-  empty: { ...TYPE.row, color: TOKENS.inkSub, flex: 1 },
-  addLabel: { ...TYPE.row, color: TOKENS.danger, flex: 1 },
-  addLabelDisabled: { color: TOKENS.ink30 },
-  capMessage: { color: TOKENS.danger },
-});
+  rowPressed: { backgroundColor: th.t.ink04 },
+  separator: { marginLeft: 16, height: StyleSheet.hairlineWidth, backgroundColor: th.t.separator },
+  name: { ...TYPE.row, color: th.t.ink, flex: 1 },
+  empty: { ...TYPE.row, color: th.t.inkSub, flex: 1 },
+  addLabel: { ...TYPE.row, color: th.t.danger, flex: 1 },
+  addLabelDisabled: { color: th.t.ink30 },
+  capMessage: { color: th.t.danger },
+}));

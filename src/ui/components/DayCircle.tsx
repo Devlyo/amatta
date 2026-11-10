@@ -1,7 +1,7 @@
 import { Pressable, type ViewStyle } from 'react-native';
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { Text } from './Text';
+import { useTheme } from '../appearance';
 
 // Circular day toggle (반복 요일 picker). Source of truth: ScheduleEditSheet
 // `DayCircle` (md = 28). Idle controlIdle / active controlActive.
@@ -24,6 +24,7 @@ export function DayCircle({
   onPress,
   style,
 }: DayCircleProps): React.ReactElement {
+  const theme = useTheme();
   const d = DIAMETER[size];
   const base: ViewStyle = {
     width: d,
@@ -31,7 +32,7 @@ export function DayCircle({
     borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: active ? TOKENS.controlActive : TOKENS.controlIdle,
+    backgroundColor: active ? theme.t.controlActive : theme.t.controlIdle,
   };
   return (
     <Pressable
@@ -41,7 +42,7 @@ export function DayCircle({
       accessibilityState={{ selected: active }}
       style={[base, style]}
     >
-      <Text variant="caption" color={active ? TOKENS.surface : TOKENS.inkSub}>
+      <Text variant="caption" color={active ? theme.t.surface : theme.t.inkSub}>
         {label}
       </Text>
     </Pressable>

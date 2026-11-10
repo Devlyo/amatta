@@ -16,7 +16,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import type { ScheduleType } from '../domain/types';
-import { TOKENS } from './palette';
+import { useTheme } from './appearance';
 
 export interface IconProps {
   size?: number;
@@ -33,8 +33,10 @@ export type IconComponent = ComponentType<IconProps>;
 function makeAmattaIcon(pathD: string, defaultSize: number): IconComponent {
   return memo(function AmattaIcon({
     size = defaultSize,
-    color = TOKENS.ink,
+    color: colorProp,
   }: IconProps) {
+    const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
     return (
       <Svg width={size} height={size} viewBox="0 0 24 24">
         <Path d={pathD} fill={color} />
@@ -59,47 +61,80 @@ const PATH = {
 
 // ── Brand / navigation icons (no amatta asset → @expo/vector-icons) ───────────
 
-export const IconSearch = memo(function IconSearch({ size = 18, color = TOKENS.ink }: IconProps) {
+export const IconSearch = memo(function IconSearch({ size = 18, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return <Ionicons name="search" size={size} color={color} />;
 });
 
-export const IconChevronLeft = memo(function IconChevronLeft({ size = 18, color = TOKENS.ink }: IconProps) {
+export const IconChevronLeft = memo(function IconChevronLeft({ size = 18, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return <Ionicons name="chevron-back" size={size} color={color} />;
 });
 
-export const IconChevronRight = memo(function IconChevronRight({ size = 18, color = TOKENS.ink }: IconProps) {
+export const IconChevronRight = memo(function IconChevronRight({ size = 18, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return <Ionicons name="chevron-forward" size={size} color={color} />;
 });
 
-export const IconChevronDown = memo(function IconChevronDown({ size = 16, color = TOKENS.ink }: IconProps) {
+export const IconChevronDown = memo(function IconChevronDown({ size = 16, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return <Ionicons name="chevron-down" size={size} color={color} />;
 });
 
-export const IconPlus = memo(function IconPlus({ size = 24, color = TOKENS.ink }: IconProps) {
+export const IconPlus = memo(function IconPlus({ size = 24, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return <Ionicons name="add" size={size} color={color} />;
 });
 
-export const IconCheck = memo(function IconCheck({ size = 16, color = TOKENS.ink }: IconProps) {
+export const IconCheck = memo(function IconCheck({ size = 16, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return <Ionicons name="checkmark" size={size} color={color} />;
 });
 
-export const IconXMark = memo(function IconXMark({ size = 16, color = TOKENS.ink }: IconProps) {
+export const IconXMark = memo(function IconXMark({ size = 16, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return <Ionicons name="close" size={size} color={color} />;
 });
 
-export const IconTrash = memo(function IconTrash({ size = 18, color = TOKENS.ink }: IconProps) {
+export const IconTrash = memo(function IconTrash({ size = 18, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return <Ionicons name="trash-outline" size={size} color={color} />;
 });
 
-export const IconClock = memo(function IconClock({ size = 12, color = TOKENS.ink }: IconProps) {
+export const IconClock = memo(function IconClock({ size = 12, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return <Ionicons name="time-outline" size={size} color={color} />;
 });
 
-export const IconRepeat = memo(function IconRepeat({ size = 13, color = TOKENS.ink }: IconProps) {
+export const IconRepeat = memo(function IconRepeat({ size = 13, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return <Ionicons name="repeat" size={size} color={color} />;
 });
 
-export const IconPerson = memo(function IconPerson({ size = 16, color = TOKENS.ink }: IconProps) {
+export const IconPerson = memo(function IconPerson({ size = 16, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return <Ionicons name="person" size={size} color={color} />;
 });
 
@@ -125,7 +160,10 @@ function ViewGlyph({ size, color, children }: IconProps & { children: React.Reac
 }
 
 /** Circle with "!" — the pickup ↔ guardian clash line (design board "0 홈"). */
-export const IconAlertCircle = memo(function IconAlertCircle({ size = 14, color = TOKENS.ink }: IconProps) {
+export const IconAlertCircle = memo(function IconAlertCircle({ size = 14, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
       <Circle cx={12} cy={12} r={9} />
@@ -134,7 +172,10 @@ export const IconAlertCircle = memo(function IconAlertCircle({ size = 14, color 
   );
 });
 
-export const IconViewDay = memo(function IconViewDay({ size = 20, color = TOKENS.ink }: IconProps) {
+export const IconViewDay = memo(function IconViewDay({ size = 20, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return (
     <ViewGlyph size={size} color={color}>
       <Rect x={3} y={5} width={18} height={14} rx={2} />
@@ -142,7 +183,10 @@ export const IconViewDay = memo(function IconViewDay({ size = 20, color = TOKENS
   );
 });
 
-export const IconViewWeek = memo(function IconViewWeek({ size = 20, color = TOKENS.ink }: IconProps) {
+export const IconViewWeek = memo(function IconViewWeek({ size = 20, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return (
     <ViewGlyph size={size} color={color}>
       <Rect x={3} y={5} width={18} height={14} rx={2} />
@@ -151,7 +195,10 @@ export const IconViewWeek = memo(function IconViewWeek({ size = 20, color = TOKE
   );
 });
 
-export const IconViewMonth = memo(function IconViewMonth({ size = 20, color = TOKENS.ink }: IconProps) {
+export const IconViewMonth = memo(function IconViewMonth({ size = 20, color: colorProp }: IconProps) {
+  // ADR-009: default colour follows the theme.
+  const theme = useTheme(); // always called (hook rules)
+  const color = colorProp ?? theme.t.ink;
   return (
     <ViewGlyph size={size} color={color}>
       <Rect x={3} y={5} width={18} height={14} rx={2} />

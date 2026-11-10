@@ -5,13 +5,13 @@
 // title, optional red right action.
 
 import { type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { IconChevronLeft } from '../icons';
-import { TOKENS } from '../palette';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
+import { makeStyles, useTheme } from '../appearance';
 
 export function DetailTopBar({
   title,
@@ -29,6 +29,8 @@ export function DetailTopBar({
   rightDisabled?: boolean;
   onRight?: () => void;
 }): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.topBar}>
       <Pressable
@@ -39,7 +41,7 @@ export function DetailTopBar({
         style={styles.side}
       >
         <View style={styles.back}>
-          <IconChevronLeft size={22} color={TOKENS.danger} />
+          <IconChevronLeft size={22} color={theme.t.danger} />
           <Text style={styles.backLabel} numberOfLines={1}>
             {backLabel}
           </Text>
@@ -86,6 +88,8 @@ export function SettingsDetailScreen({
   children: ReactNode;
   keyboardShouldPersistTaps?: 'handled';
 }): React.ReactElement {
+  const styles = useStyles();
+  const ss = useSettingsStyles();
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <DetailTopBar
@@ -96,7 +100,7 @@ export function SettingsDetailScreen({
         onRight={onRight}
       />
       <ScrollView
-        contentContainerStyle={settingsStyles.content}
+        contentContainerStyle={ss.content}
         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
         automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}
@@ -107,8 +111,8 @@ export function SettingsDetailScreen({
   );
 }
 
-/** Shared bits for the screens' own content. */
-export const settingsStyles = StyleSheet.create({
+/** Shared bits for the screens' own content (theme-aware). */
+export const useSettingsStyles = makeStyles((th) => ({
   content: {
     paddingTop: SPACING.sm,
     paddingHorizontal: SPACING.lg,
@@ -117,11 +121,11 @@ export const settingsStyles = StyleSheet.create({
   },
   /** A section plus the footnote under it. */
   block: { gap: 6 },
-  footnote: { ...TYPE.footnote, color: TOKENS.inkSub, paddingHorizontal: SPACING.xs },
-});
+  footnote: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.xs },
+}));
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: TOKENS.groupedBg },
+const useStyles = makeStyles((th) => ({
+  safe: { flex: 1, backgroundColor: th.t.groupedBg },
   topBar: {
     height: 52,
     flexDirection: 'row',
@@ -131,8 +135,8 @@ const styles = StyleSheet.create({
   side: { flex: 1, paddingVertical: SPACING.sm },
   sideEnd: { alignItems: 'flex-end', paddingRight: SPACING.sm },
   back: { flexDirection: 'row', alignItems: 'center' },
-  backLabel: { ...TYPE.row, color: TOKENS.danger },
-  title: { ...TYPE.headline, color: TOKENS.ink, textAlign: 'center', flexShrink: 1 },
-  rightLabel: { ...TYPE.headline, color: TOKENS.danger },
-  rightDisabled: { color: TOKENS.ink30 },
-});
+  backLabel: { ...TYPE.row, color: th.t.danger },
+  title: { ...TYPE.headline, color: th.t.ink, textAlign: 'center', flexShrink: 1 },
+  rightLabel: { ...TYPE.headline, color: th.t.danger },
+  rightDisabled: { color: th.t.ink30 },
+}));

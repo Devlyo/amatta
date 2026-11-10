@@ -14,7 +14,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { useChildrenStore } from '../../state/children-store';
 import { useChecklistStore } from '../../state/checklist-store';
@@ -29,10 +29,10 @@ import type {
 import { ColorDot } from '../common/ColorDot';
 import { FONT_FAMILIES } from '../fonts';
 import { IconCheck, IconSearch, IconXMark, KIND_ICON } from '../icons';
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { todayIso } from '../utils/date';
+import { makeStyles, useTheme } from '../appearance';
 
 type Result =
   | { kind: 'schedule'; key: string; schedule: Schedule; child: Child | undefined }
@@ -55,6 +55,8 @@ export interface SearchContentProps {
 }
 
 export function SearchContent({ onClose }: SearchContentProps): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   const router = useRouter();
 
   const children = useChildrenStore((s) => s.children);
@@ -176,12 +178,12 @@ export function SearchContent({ onClose }: SearchContentProps): React.ReactEleme
           {/* Search input */}
           <View style={styles.inputWrap}>
             <View style={styles.inputBox}>
-              <IconSearch size={16} color={TOKENS.inkSub} />
+              <IconSearch size={16} color={theme.t.inkSub} />
               <TextInput
                 value={query}
                 onChangeText={setQuery}
                 placeholder="일정·장소·자녀 검색"
-                placeholderTextColor={TOKENS.inkSub}
+                placeholderTextColor={theme.t.inkSub}
                 style={styles.input}
                 autoCorrect={false}
                 autoCapitalize="none"
@@ -196,7 +198,7 @@ export function SearchContent({ onClose }: SearchContentProps): React.ReactEleme
                   hitSlop={6}
                   style={styles.clearBtn}
                 >
-                  <IconXMark size={14} color={TOKENS.inkSub} />
+                  <IconXMark size={14} color={theme.t.inkSub} />
                 </Pressable>
               ) : null}
             </View>
@@ -247,6 +249,8 @@ function ResultRow({
   onSelectTodo,
   onSelectChecklist,
 }: ResultRowProps): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   if (result.kind === 'schedule') {
     const KindIcon = KIND_ICON[result.schedule.type];
     return (
@@ -258,7 +262,7 @@ function ResultRow({
         testID={`search-result-schedule-${result.schedule.id}`}
       >
         <View style={styles.iconWrap}>
-          <KindIcon size={14} color={TOKENS.ink} />
+          <KindIcon size={14} color={theme.t.ink} />
         </View>
         <View style={styles.rowBody}>
           <Text style={styles.rowTitle} numberOfLines={1}>
@@ -296,7 +300,7 @@ function ResultRow({
         testID={`search-result-todo-${result.todo.id}`}
       >
         <View style={styles.iconWrap}>
-          <IconCheck size={14} color={TOKENS.ink} />
+          <IconCheck size={14} color={theme.t.ink} />
         </View>
         <View style={styles.rowBody}>
           <Text style={styles.rowTitle} numberOfLines={1}>
@@ -331,7 +335,7 @@ function ResultRow({
       testID={`search-result-checklist-${result.item.id}`}
     >
       <View style={styles.iconWrap}>
-        <IconCheck size={14} color={TOKENS.ink} />
+        <IconCheck size={14} color={theme.t.ink} />
       </View>
       <View style={styles.rowBody}>
         <Text style={styles.rowTitle} numberOfLines={1}>
@@ -359,9 +363,9 @@ function ResultRow({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   // De-chromed: the native route sheet owns scrim/shape/grabber.
-  contentRoot: { flex: 1, backgroundColor: TOKENS.surface },
+  contentRoot: { flex: 1, backgroundColor: th.t.surface },
   sheetScroll: { flex: 1 },
   sheetContent: {
     paddingHorizontal: SPACING.lg,
@@ -377,7 +381,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    backgroundColor: TOKENS.ink04,
+    backgroundColor: th.t.ink04,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
@@ -386,7 +390,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
+    color: th.t.ink,
     letterSpacing: -0.2,
     padding: 0,
   },
@@ -403,21 +407,21 @@ const styles = StyleSheet.create({
   placeholder: {
     fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
     textAlign: 'center',
     paddingVertical: SPACING.xxl,
   },
   resultsCount: {
     fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
     paddingHorizontal: SPACING.xs,
     paddingVertical: SPACING.sm,
   },
   noResults: {
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
     textAlign: 'center',
     paddingVertical: SPACING.xl,
   },
@@ -446,7 +450,7 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.ink,
+    color: th.t.ink,
     letterSpacing: -0.2,
   },
   rowCaption: {
@@ -458,7 +462,7 @@ const styles = StyleSheet.create({
   rowCaptionText: {
     fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
     flexShrink: 1,
   },
-});
+}));

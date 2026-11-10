@@ -1,9 +1,9 @@
-import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
-import { TOKENS } from '../palette';
+import { Pressable, View, type ViewStyle } from 'react-native';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { FONT_FAMILIES } from '../fonts';
 import { Text } from './Text';
+import { makeStyles, useTheme } from '../appearance';
 
 // iOS-style segmented control. Source of truth: settings.tsx `SegmentedRow`
 // track ("기본 알림 시점"). Track = ink04 pill; active segment = white pill +
@@ -29,6 +29,8 @@ export function Segmented<T>({
   disabled = false,
   style,
 }: SegmentedProps<T>): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <View style={[styles.track, style]}>
       {options.map((opt, i) => {
@@ -46,7 +48,7 @@ export function Segmented<T>({
           >
             <Text
               variant="body"
-              color={active ? TOKENS.ink : TOKENS.inkSub}
+              color={active ? theme.t.ink : theme.t.inkSub}
               style={active ? styles.labelActive : undefined}
             >
               {renderLabel(opt)}
@@ -58,10 +60,10 @@ export function Segmented<T>({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   track: {
     flexDirection: 'row',
-    backgroundColor: TOKENS.ink04,
+    backgroundColor: th.t.ink04,
     borderRadius: RADIUS.full,
     padding: 3,
     gap: 2,
@@ -79,13 +81,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   segmentActive: {
-    backgroundColor: TOKENS.surface,
-    borderColor: TOKENS.hair,
-    shadowColor: TOKENS.shadow,
+    backgroundColor: th.t.surface,
+    borderColor: th.t.hair,
+    shadowColor: th.t.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 2,
     elevation: 1,
   },
   labelActive: { fontFamily: FONT_FAMILIES.pretendardSemiBold },
-});
+}));

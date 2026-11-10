@@ -4,18 +4,18 @@
 // column in the guardian grey.
 
 import { memo, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { cascadeStep, clipToDay, layoutCascade } from '../../domain/layout';
 import type { GuardianOccurrence } from '../../domain/guardian';
 import type { Child, Occurrence } from '../../domain/types';
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
-import { getKidPalette, TOKENS } from '../palette';
 import { fmtRange } from '../utils/date';
 import { AllDayRow, type AllDayItem } from './AllDayRow';
 import { TimeBlock } from './TimeBlock';
 import { TimeGrid } from './TimeGrid';
 import { DEFAULT_HOUR_HEIGHT, initialScrollY, ongoingStart } from './time-axis';
+import { makeStyles, useTheme } from '../appearance';
 
 /** Horizontal step for each cascade level. */
 const INDENT = 22;
@@ -63,6 +63,8 @@ function DayViewImpl({
   guardianEvents = [],
   onPressGuardian,
 }: Props): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   // People switched off in the filter are hidden (no column, no blocks) —
   // only the people that are on share the width. Everyone off → every
   // column stays, empty.
@@ -115,7 +117,7 @@ function DayViewImpl({
       const column = columnOfKid.get(occ.childId);
       const kid = column === undefined ? undefined : kids[column];
       if (column === undefined || kid === undefined) continue;
-      const p = getKidPalette(occ.colorIndex);
+      const p = theme.kid(occ.colorIndex);
       const emphasis = emphasisOf(inactive, everyone, kid.id);
       out.push({
         id: `${occ.scheduleId}`,
@@ -136,8 +138,8 @@ function DayViewImpl({
         id: `g:${g.key}`,
         column: guardianColumn,
         title: g.title,
-        color: TOKENS.guardian,
-        deep: TOKENS.guardianDeep,
+        color: theme.t.guardian,
+        deep: theme.t.guardianDeep,
         focused: gEmphasis === 'solo',
         dimmed: gEmphasis === 'inactive',
         accessibilityLabel: `보호자 ${g.title}, 하루 종일`,
@@ -145,7 +147,7 @@ function DayViewImpl({
       });
     }
     return out;
-  }, [occurrences, columnOfKid, kids, inactive, everyone, onPressOccurrence, guardianEventsShown, guardianColumn, onPressGuardian]);
+  }, [occurrences, columnOfKid, kids, inactive, everyone, onPressOccurrence, guardianEventsShown, guardianColumn, onPressGuardian, theme]);
 
   const timed = [...occurrences.filter((o) => !o.allDay), ...guardianEventsShown.filter((g) => !g.allDay)];
   const firstStart = timed.length > 0 ? Math.min(...timed.map((o) => o.startMinutes)) : null;
@@ -175,8 +177,8 @@ function DayViewImpl({
         }
         draftColorOf={(column) => {
           const kid = kids[column];
-          if (kid === undefined) return { color: TOKENS.guardian, deep: TOKENS.guardianDeep };
-          const p = getKidPalette(kid.colorIndex);
+          if (kid === undefined) return { color: theme.t.guardian, deep: theme.t.guardianDeep };
+          const p = theme.kid(kid.colorIndex);
           return { color: p.source, deep: p.deep };
         }}
         renderColumns={({ columnWidth, y }) =>
@@ -201,8 +203,9 @@ function DayViewImpl({
                   title={g.title}
                   startMinutes={g.startMinutes}
                   endMinutes={g.endMinutes}
-                  color={TOKENS.guardian}
-                  deep={TOKENS.guardianDeep}
+                  color={theme.t.guardian}
+                  guardian
+                  deep={theme.t.guardianDeep}
                   focused={emphasis === 'solo'}
                   dimmed={emphasis === 'inactive'}
                   compact={compact}
@@ -215,7 +218,7 @@ function DayViewImpl({
             const occ = item.occ;
             const kid = kids[column];
             if (kid === undefined) return null;
-            const palette = getKidPalette(occ.colorIndex);
+            const palette = theme.kid(occ.colorIndex);
             const emphasis = emphasisOf(inactive, everyone, kid.id);
             return (
               <TimeBlock
@@ -249,6 +252,6 @@ function DayViewImpl({
 
 export const DayView = memo(DayViewImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   root: { flex: 1 },
-});
+}));

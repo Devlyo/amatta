@@ -3,7 +3,7 @@
 // §7 components, §8 radius) + 4px spacing grid.
 //
 // New code should import tokens from here (relative, matching existing style):
-//   import { TOKENS, TYPE, SPACING, RADIUS, ELEVATION } from '../theme';
+//   import { TYPE, SPACING, RADIUS } from '../theme';   (colours: useTheme / makeStyles from './appearance')
 // (tsconfig `@/*` → `./*`, so `@/src/ui/theme` also resolves if you prefer.)
 //
 // Do NOT hand-write color hexes, font sizes, radii, or padding numbers in
@@ -12,7 +12,8 @@
 
 // Color + kid palette (src/ui/palette.ts)
 export {
-  TOKENS,
+  LIGHT_TOKENS,
+  DARK_TOKENS,
   getKidPalette,
   kidFill,
   withAlpha,

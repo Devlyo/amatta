@@ -7,16 +7,17 @@
 // their blocks to 20% (see domain/people-filter).
 
 import { memo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import type { Child } from '../../domain/types';
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
 import { KidAvatar } from '../common/KidAvatar';
 import { IconPerson } from '../icons';
-import { getKidPalette, TOKENS, withAlpha } from '../palette';
+import { withAlpha } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
+import { makeStyles, useTheme } from '../appearance';
 
 export const PILL_FADED_OPACITY = 0.45;
 
@@ -59,6 +60,7 @@ function Pill({
   testID: string;
   children: React.ReactNode;
 }): React.ReactElement {
+  const styles = useStyles();
   return (
     <Pressable
       onPress={onPress}
@@ -86,6 +88,8 @@ function Pill({
 }
 
 function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   const everyone: PersonKey[] = [...kids.map((k) => k.id), 'guardian'];
   const faded = (key: PersonKey): boolean => emphasisOf(inactive, everyone, key) === 'inactive';
   // Up to 6 people (5 kids + 보호자) must fit one row on a 375pt phone.
@@ -95,7 +99,7 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.Re
   return (
     <View style={styles.row}>
       {kids.map((kid) => {
-        const p = getKidPalette(kid.colorIndex);
+        const p = theme.kid(kid.colorIndex); // dark deep tones in dark (ADR-009)
         return (
           <Pill
             key={kid.id}
@@ -116,8 +120,8 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.Re
       })}
       <Pill
         label="보호자"
-        border={TOKENS.guardianDeep}
-        fill={withAlpha(TOKENS.guardian, 0.4)}
+        border={theme.t.guardianDeep}
+        fill={withAlpha(theme.t.guardian, 0.4)}
         faded={faded('guardian')}
         selected={!faded('guardian')}
         onPress={() => onToggle('guardian')}
@@ -127,7 +131,7 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.Re
         testID="kid-filter-guardian"
       >
         <View style={[styles.guardianAvatar, { width: avatar, height: avatar }]}>
-          <IconPerson size={avatarOnly ? 15 : compact ? 12 : 14} color={TOKENS.ink} />
+          <IconPerson size={avatarOnly ? 15 : compact ? 12 : 14} color={theme.t.ink} />
         </View>
       </Pill>
     </View>
@@ -136,7 +140,7 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo }: Props): React.Re
 
 export const KidFilterBar = memo(KidFilterBarImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   row: {
     flexDirection: 'row',
     gap: SPACING.xs,
@@ -156,14 +160,14 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   pillCompact: { gap: 3, paddingHorizontal: 4 },
-  name: { ...TYPE.footnote, fontFamily: TYPE.caption.fontFamily, color: TOKENS.ink, flexShrink: 1 },
-  nameCompact: { ...TYPE.caption2, color: TOKENS.ink, flexShrink: 1, letterSpacing: -0.4 },
+  name: { ...TYPE.footnote, fontFamily: TYPE.caption.fontFamily, color: th.t.ink, flexShrink: 1 },
+  nameCompact: { ...TYPE.caption2, color: th.t.ink, flexShrink: 1, letterSpacing: -0.4 },
   guardianAvatar: {
     width: 22,
     height: 22,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.guardian,
+    backgroundColor: th.t.guardian,
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

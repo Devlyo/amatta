@@ -47,3 +47,6 @@ ui-store가 구동했다. 이를 "갤러리처럼" 네이티브 시트 느낌(�
   `react-native-gesture-handler`/`react-native-reanimated`는 그리드 제스처 등에서 계속 사용.
 
 상세 구현/실패 우회 기록: 메모리 `project_drawer-route-modal.md` + `.omc/plans/ralplan-drawer-route-modal.md`.
+
+
+> **2026-11-10 개정 (ADR-009)**: "앱 라이트모드 런타임 고정"은 ADR-009 다크 모드로 대체됨 — 화면 모드(시스템/라이트/다크)는 `Appearance.setColorScheme`로 앱 전체에 적용, 네이티브 시트·모달 규칙은 그대로.

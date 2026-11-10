@@ -15,7 +15,7 @@
 // the dock's "+".
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { View, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -58,7 +58,6 @@ import { useNowMinutes } from '../../src/ui/calendar/useNowMinutes';
 import { useGuardianEvents } from '../../src/ui/calendar/useGuardianEvents';
 import type { GuardianOccurrence } from '../../src/domain/guardian';
 import { WeekView } from '../../src/ui/calendar/WeekView';
-import { TOKENS } from '../../src/ui/palette';
 import {
   daysBetweenIso,
   shiftIsoDate,
@@ -67,6 +66,7 @@ import {
   weekdayKo,
   weekStartIso,
 } from '../../src/ui/utils/date';
+import { makeStyles } from '../../src/ui/appearance';
 
 const ENABLED_VIEWS: readonly CalendarView[] = ['day', 'week', 'month'];
 /** Day strip: days either side of the start (native paging). */
@@ -96,6 +96,7 @@ function md(date: ISODate): { m: number; d: number } {
 }
 
 export default function CalendarScreen(): React.ReactElement {
+  const styles = useStyles();
   const router = useRouter();
   const children = useChildrenStore((s) => s.children);
   const schedules = useSchedulesStore((s) => s.schedules);
@@ -527,10 +528,10 @@ export default function CalendarScreen(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: TOKENS.surface },
+const useStyles = makeStyles((th) => ({
+  safe: { flex: 1, backgroundColor: th.t.surface },
   // The viewport clips the stretched / sliding stage.
   body: { flex: 1, overflow: 'hidden' },
   // Left/top origin so the pinch stretch (translate + scale) pivots on the fingers.
   stage: { flex: 1, transformOrigin: 'left top' },
-});
+}));

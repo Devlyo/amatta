@@ -11,16 +11,15 @@
 // + TimeGrid's `y`), so this component never computes layout.
 
 import { memo } from 'react';
-import { Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
+import { Pressable, Text, View, type DimensionValue } from 'react-native';
 
 import { IconClock } from '../icons';
-import { TOKENS, withAlpha } from '../palette';
+import { withAlpha } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
 import { fmtRange } from '../utils/date';
+import { makeStyles, useTheme } from '../appearance';
 
-export const BLOCK_FILL_ALPHA = 0.6;
-export const BLOCK_FOCUSED_FILL_ALPHA = 0.8;
 export const BLOCK_DIMMED_OPACITY = 0.2;
 
 export interface TimeBlockProps {
@@ -34,6 +33,8 @@ export interface TimeBlockProps {
   title: string;
   startMinutes: number;
   endMinutes: number;
+  /** Guardian block — in dark its grey fill needs light text (ADR-009 contrast). */
+  guardian?: boolean;
   /** Owner colour (kid palette `source` or the guardian token). */
   color: string;
   /** Owner deep tone for the side bar. */
@@ -67,11 +68,17 @@ function TimeBlockImpl({
   compact = false,
   showTime = !compact,
   needsPickup = false,
+  guardian = false,
   accessibilityLabel,
   onPress,
   testID,
 }: TimeBlockProps): React.ReactElement {
-  const fill = withAlpha(color, focused ? BLOCK_FOCUSED_FILL_ALPHA : BLOCK_FILL_ALPHA);
+  const theme = useTheme();
+  const styles = useStyles();
+  // ADR-009: stronger fills in dark (pastels at 60% go muddy); text on the fill
+  // is scheme-independent — dark on kid colours, light on the dark guardian grey.
+  const fill = withAlpha(color, focused ? theme.blockFillFocused : theme.blockFill);
+  const onFill = guardian ? theme.onGuardianBlock : theme.t.onLight;
   return (
     <Pressable
       onPress={onPress}
@@ -95,7 +102,7 @@ function TimeBlockImpl({
       <View style={[styles.bar, { backgroundColor: deep }]} />
       <View style={styles.titleRow}>
         <Text
-          style={[compact ? styles.titleCompact : styles.title]}
+          style={[compact ? styles.titleCompact : styles.title, { color: onFill }]}
           numberOfLines={1}
           ellipsizeMode="tail"
         >
@@ -108,8 +115,11 @@ function TimeBlockImpl({
       </View>
       {showTime ? (
         <View style={styles.timeRow}>
-          {compact ? null : <IconClock size={11} color={TOKENS.ink} />}
-          <Text style={compact ? styles.timeCompact : styles.time} numberOfLines={1}>
+          {compact ? null : <IconClock size={11} color={onFill} />}
+          <Text
+            style={[compact ? styles.timeCompact : styles.time, { color: compact ? withAlpha(onFill, 0.7) : onFill }]}
+            numberOfLines={1}
+          >
             {fmtRange(startMinutes, endMinutes)}
           </Text>
         </View>
@@ -123,12 +133,12 @@ export const TimeBlock = memo(TimeBlockImpl);
 const BAR_W = 1.5;
 const RING_W = 1.5;
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   block: {
     position: 'absolute',
     borderRadius: RADIUS.xs,
     borderWidth: RING_W,
-    borderColor: TOKENS.surface,
+    borderColor: th.t.surface,
     paddingTop: 4,
     paddingRight: 4,
     paddingBottom: 3,
@@ -158,20 +168,20 @@ const styles = StyleSheet.create({
   title: {
     ...TYPE.blockTitle,
     flexShrink: 1,
-    color: TOKENS.ink,
+    color: th.t.ink,
   },
   titleCompact: {
     ...TYPE.caption2,
     flexShrink: 1,
-    color: TOKENS.ink,
+    color: th.t.ink,
   },
   pickupDot: {
     width: 8,
     height: 8,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.primary,
+    backgroundColor: th.t.primary,
     borderWidth: RING_W,
-    borderColor: TOKENS.surface,
+    borderColor: th.t.surface,
   },
   pickupDotCompact: { width: 7, height: 7, borderWidth: 1 },
   timeRow: {
@@ -181,10 +191,10 @@ const styles = StyleSheet.create({
   },
   time: {
     ...TYPE.caption,
-    color: TOKENS.ink,
+    color: th.t.ink,
   },
   timeCompact: {
     ...TYPE.caption2,
-    color: TOKENS.ink70,
+    color: th.t.ink70,
   },
-});
+}));

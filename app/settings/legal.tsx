@@ -6,11 +6,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { IconChevronDown, IconChevronRight } from '../../src/ui/icons';
-import { TOKENS } from '../../src/ui/palette';
 import { RADIUS } from '../../src/ui/radius';
 import { SPACING } from '../../src/ui/spacing';
 import { TYPE } from '../../src/ui/typography';
 import { SettingsDetailScreen } from '../../src/ui/settings/SettingsChrome';
+import { makeStyles, useTheme } from '../../src/ui/appearance';
 
 const EFFECTIVE_DATE = '2026년 6월 30일';
 
@@ -183,6 +183,7 @@ const TERMS_SECTIONS: Section[] = [
 type Group = 'privacy' | 'terms';
 
 export default function LegalScreen(): React.ReactElement {
+  const styles = useStyles();
   const router = useRouter();
   const [openGroup, setOpenGroup] = useState<Group | null>('privacy');
 
@@ -230,6 +231,8 @@ function GroupSection({
   sections: Section[];
   testID: string;
 }): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.group} testID={testID}>
       <Pressable
@@ -244,9 +247,9 @@ function GroupSection({
       >
         <Text style={styles.groupTitle}>{title}</Text>
         {open ? (
-          <IconChevronDown size={18} color={TOKENS.inkSub} />
+          <IconChevronDown size={18} color={theme.t.inkSub} />
         ) : (
-          <IconChevronRight size={18} color={TOKENS.inkSub} />
+          <IconChevronRight size={18} color={theme.t.inkSub} />
         )}
       </Pressable>
       {open ? (
@@ -277,21 +280,21 @@ function GroupSection({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   // Shared settings style: white RADIUS.box groups, type tokens.
   hero: {
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
     borderRadius: RADIUS.box,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.lg,
     gap: SPACING.xs,
   },
-  heroLabel: { ...TYPE.footnote, color: TOKENS.inkSub },
-  heroDate: { ...TYPE.headline, color: TOKENS.ink },
-  heroNote: { ...TYPE.subhead, color: TOKENS.inkSub, marginTop: SPACING.xs },
+  heroLabel: { ...TYPE.footnote, color: th.t.inkSub },
+  heroDate: { ...TYPE.headline, color: th.t.ink },
+  heroNote: { ...TYPE.subhead, color: th.t.inkSub, marginTop: SPACING.xs },
 
   group: {
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
     borderRadius: RADIUS.box,
     overflow: 'hidden',
   },
@@ -302,19 +305,19 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: SPACING.md,
   },
-  groupHeaderPressed: { backgroundColor: TOKENS.ink04 },
-  groupTitle: { ...TYPE.row, flex: 1, color: TOKENS.ink },
+  groupHeaderPressed: { backgroundColor: th.t.ink04 },
+  groupTitle: { ...TYPE.row, flex: 1, color: th.t.ink },
   groupBody: {
     paddingHorizontal: 16,
     paddingBottom: SPACING.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TOKENS.separator,
+    borderTopColor: th.t.separator,
     paddingTop: SPACING.md,
   },
 
   sectionSpacer: { marginTop: SPACING.lg },
-  sectionTitle: { ...TYPE.headline, color: TOKENS.ink, marginBottom: SPACING.xs },
-  paragraph: { ...TYPE.subhead, color: TOKENS.ink, marginTop: 6 },
+  sectionTitle: { ...TYPE.headline, color: th.t.ink, marginBottom: SPACING.xs },
+  paragraph: { ...TYPE.subhead, color: th.t.ink, marginTop: 6 },
 
   bulletList: { marginTop: SPACING.sm },
   bulletRow: {
@@ -328,9 +331,9 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: RADIUS.full,
     marginTop: 8,
-    backgroundColor: TOKENS.ink30,
+    backgroundColor: th.t.ink30,
   },
-  bulletText: { ...TYPE.subhead, flex: 1, color: TOKENS.ink },
+  bulletText: { ...TYPE.subhead, flex: 1, color: th.t.ink },
 
-  footer: { ...TYPE.footnote, textAlign: 'center', color: TOKENS.ink30, paddingVertical: SPACING.md },
-});
+  footer: { ...TYPE.footnote, textAlign: 'center', color: th.t.ink30, paddingVertical: SPACING.md },
+}));

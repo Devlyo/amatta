@@ -23,7 +23,6 @@ import {
   Image,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -42,9 +41,10 @@ import { useChildrenStore } from '../../src/state/children-store';
 import { AVATAR_IMAGE_BY_KEY } from '../../src/ui/assets';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { IconCheck, IconChevronLeft } from '../../src/ui/icons';
-import { TOKENS } from '../../src/ui/palette';
+import { withAlpha } from '../../src/ui/palette';
 import { RADIUS } from '../../src/ui/radius';
 import { SPACING } from '../../src/ui/spacing';
+import { makeStyles, useTheme } from '../../src/ui/appearance';
 
 const NAME_MAX = 10; // spec: maxLength 10
 const STEP_LABELS = ['첫째', '둘째', '셋째', '넷째'] as const;
@@ -62,6 +62,8 @@ function nextAvailableAvatar(taken: readonly AvatarKey[]): AvatarKey {
 }
 
 export default function OnbAddKidScreen(): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   const router = useRouter();
   const addChild = useChildrenStore((s) => s.add);
 
@@ -149,7 +151,7 @@ export default function OnbAddKidScreen(): React.ReactElement {
           hitSlop={8}
           style={styles.topBarBack}
         >
-          <IconChevronLeft size={22} color={TOKENS.ink} />
+          <IconChevronLeft size={22} color={theme.t.ink} />
         </Pressable>
         <Text style={styles.stepIndicator}>
           {stepNum} <Text style={styles.stepDivider}>/</Text>{' '}
@@ -215,7 +217,7 @@ export default function OnbAddKidScreen(): React.ReactElement {
             value={name}
             onChangeText={setName}
             placeholder="자녀 이름"
-            placeholderTextColor={TOKENS.inkSub}
+            placeholderTextColor={theme.t.inkSub}
             maxLength={NAME_MAX}
             style={styles.nameInput}
             accessibilityLabel="자녀 이름"
@@ -254,7 +256,7 @@ export default function OnbAddKidScreen(): React.ReactElement {
                   />
                   {active ? (
                     <View style={styles.checkChip}>
-                      <IconCheck size={10} color={TOKENS.surface} />
+                      <IconCheck size={10} color={theme.t.surface} />
                     </View>
                   ) : null}
                 </Pressable>
@@ -307,8 +309,8 @@ export default function OnbAddKidScreen(): React.ReactElement {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: TOKENS.surface },
+const useStyles = makeStyles((th) => ({
+  safe: { flex: 1, backgroundColor: th.t.surface },
   flex: { flex: 1 },
 
   // ─── Top bar ─────────────────────────────────────────────
@@ -329,10 +331,10 @@ const styles = StyleSheet.create({
   stepIndicator: {
     fontSize: 14,
     fontFamily: FONT_FAMILIES.mono,
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
     letterSpacing: 0,
   },
-  stepDivider: { color: TOKENS.ink30 },
+  stepDivider: { color: th.t.ink30 },
 
   scroll: { paddingHorizontal: 22, paddingBottom: SPACING.xxl },
 
@@ -340,7 +342,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontFamily: FONT_FAMILIES.pretendardBold,
-    color: TOKENS.ink,
+    color: th.t.ink,
     letterSpacing: -0.5,
     lineHeight: 29, // ≈ 1.3 of 22
     marginTop: 6,
@@ -349,7 +351,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
     letterSpacing: -0.2,
     lineHeight: 20,
   },
@@ -365,7 +367,7 @@ const styles = StyleSheet.create({
   chipsLabel: {
     fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
     letterSpacing: 0.2,
     marginRight: SPACING.xxs,
   },
@@ -377,13 +379,13 @@ const styles = StyleSheet.create({
     paddingRight: 10,
     paddingVertical: SPACING.xs,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.ink04,
+    backgroundColor: th.t.ink04,
   },
   chipAvatarWrap: {
     width: 22,
     height: 22,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -392,7 +394,7 @@ const styles = StyleSheet.create({
   chipName: {
     fontSize: 12,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.ink,
+    color: th.t.ink,
     letterSpacing: -0.2,
   },
 
@@ -406,7 +408,7 @@ const styles = StyleSheet.create({
     width: 132,
     height: 132,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.ink04,
+    backgroundColor: th.t.ink04,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -419,18 +421,18 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.sm,
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.inkSub,
+    color: th.t.inkSub,
     letterSpacing: -0.2,
   },
   nameInput: {
     width: '100%',
-    backgroundColor: TOKENS.ink04,
+    backgroundColor: th.t.ink04,
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: SPACING.lg,
     fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: TOKENS.ink,
+    color: th.t.ink,
     letterSpacing: -0.3,
   },
 
@@ -450,11 +452,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarSwatchIdle: { backgroundColor: TOKENS.ink04 },
+  avatarSwatchIdle: { backgroundColor: th.t.ink04 },
   avatarSwatchActive: {
-    backgroundColor: TOKENS.ink12,
+    backgroundColor: th.t.ink12,
     borderWidth: 2,
-    borderColor: TOKENS.ink,
+    borderColor: th.t.ink,
   },
   avatarSwatchDisabled: { opacity: 0.35 },
   swatchImage: { width: 48, height: 48 },
@@ -465,7 +467,7 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.ink,
+    backgroundColor: th.t.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -482,16 +484,16 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: SPACING.lg,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.ink,
+    backgroundColor: th.t.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryCtaPressed: { opacity: 0.85 },
-  primaryCtaDisabled: { backgroundColor: 'rgba(29,29,27,0.18)' },
+  primaryCtaDisabled: { backgroundColor: withAlpha(th.t.ink, 0.18) },
   primaryCtaLabel: {
     fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.surface,
+    color: th.t.surface,
     letterSpacing: -0.3,
   },
   ghostCta: {
@@ -499,7 +501,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: SPACING.lg,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.ink04,
+    backgroundColor: th.t.ink04,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -507,8 +509,8 @@ const styles = StyleSheet.create({
   ghostCtaLabel: {
     fontSize: 16,
     fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: TOKENS.ink,
+    color: th.t.ink,
     letterSpacing: -0.3,
   },
-  ghostCtaLabelDisabled: { color: TOKENS.ink30 },
-});
+  ghostCtaLabelDisabled: { color: th.t.ink30 },
+}));

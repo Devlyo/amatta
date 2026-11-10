@@ -9,7 +9,7 @@
 // for redundancy / clarity, and the two MUST always agree.
 //
 // face-happy is excluded per docs/design/README.md §10 Q7 (its orange
-// hue would collide with TOKENS.primary brand color).
+// hue would collide with the primary brand color).
 
 import type { ColorIndex } from './types';
 

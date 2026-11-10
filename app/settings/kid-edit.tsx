@@ -10,7 +10,7 @@
 // slot too. The picker dispatches both fields together.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { getDb } from '../../src/db/client';
@@ -26,15 +26,18 @@ import { useChildrenStore } from '../../src/state/children-store';
 import { HomeSection } from '../../src/ui/home/HomeSection';
 import { IconCheck } from '../../src/ui/icons';
 import { FormActionRow, FormGroup, FormInputRow } from '../../src/ui/sheets/form-rows';
-import { SettingsDetailScreen, settingsStyles } from '../../src/ui/settings/SettingsChrome';
+import { SettingsDetailScreen, useSettingsStyles } from '../../src/ui/settings/SettingsChrome';
 import { AVATAR_IMAGE_BY_KEY } from '../../src/ui/assets';
-import { TOKENS } from '../../src/ui/palette';
 import { RADIUS } from '../../src/ui/radius';
 import { SPACING } from '../../src/ui/spacing';
+import { makeStyles, useTheme } from '../../src/ui/appearance';
 
 const NAME_MAX = 10; // app-settings-kids.jsx:231 maxLength={10}
 
 export default function KidEditScreen(): React.ReactElement {
+  const ss = useSettingsStyles();
+  const theme = useTheme();
+  const styles = useStyles();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
   const idParam = params.id;
@@ -183,7 +186,7 @@ export default function KidEditScreen(): React.ReactElement {
                 <Image source={AVATAR_IMAGE_BY_KEY[k]} style={styles.swatchImage} resizeMode="contain" />
                 {active ? (
                   <View style={styles.colorCheckChip}>
-                    <IconCheck size={11} color={TOKENS.surface} />
+                    <IconCheck size={11} color={theme.t.surface} />
                   </View>
                 ) : null}
               </Pressable>
@@ -194,24 +197,24 @@ export default function KidEditScreen(): React.ReactElement {
 
       {/* 삭제 — edit mode only. */}
       {!isNew && existing !== undefined ? (
-        <View style={settingsStyles.block}>
+        <View style={ss.block}>
           <FormGroup>
             <FormActionRow label={`${existing.name} 삭제`} tone="danger" onPress={handleDelete} last />
           </FormGroup>
-          <Text style={settingsStyles.footnote}>이 자녀의 일정과 준비물도 모두 삭제돼요.</Text>
+          <Text style={ss.footnote}>이 자녀의 일정과 준비물도 모두 삭제돼요.</Text>
         </View>
       ) : null}
     </SettingsDetailScreen>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   heroWrap: { alignItems: 'center', paddingTop: SPACING.sm },
   heroRing: {
     width: 128,
     height: 128,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -231,8 +234,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
   },
-  colorSwatchIdle: { borderColor: 'transparent', backgroundColor: TOKENS.groupedBg },
-  colorSwatchActive: { borderColor: TOKENS.ink, backgroundColor: TOKENS.groupedBg },
+  colorSwatchIdle: { borderColor: 'transparent', backgroundColor: th.t.groupedBg },
+  colorSwatchActive: { borderColor: th.t.ink, backgroundColor: th.t.groupedBg },
   colorSwatchDisabled: { opacity: 0.3 },
   swatchImage: { width: 56, height: 56 },
   colorCheckChip: {
@@ -242,8 +245,8 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: RADIUS.full,
-    backgroundColor: TOKENS.ink,
+    backgroundColor: th.t.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

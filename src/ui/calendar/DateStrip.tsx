@@ -8,10 +8,10 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ISODate } from '../../domain/types';
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
 import { weekDatesIso } from '../utils/date';
+import { makeStyles, useTheme } from '../appearance';
 
 const NAMES = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
@@ -22,6 +22,8 @@ interface Props {
 }
 
 function DateStripImpl({ selected, today, onSelect }: Props): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   const dates = weekDatesIso(selected);
   return (
     <View style={styles.row}>
@@ -30,9 +32,9 @@ function DateStripImpl({ selected, today, onSelect }: Props): React.ReactElement
         const isToday = key === (today as unknown as string);
         const isSelected = key === (selected as unknown as string);
         const day = Number(key.slice(8, 10));
-        const nameColor = i === 0 ? TOKENS.sunday : i === 6 ? TOKENS.saturday : TOKENS.inkSub;
+        const nameColor = i === 0 ? theme.t.sunday : i === 6 ? theme.t.saturday : theme.t.inkSub;
         const circle = isToday ? styles.circleToday : isSelected ? styles.circleSelected : null;
-        const numberColor = isToday || isSelected ? TOKENS.surface : TOKENS.ink;
+        const numberColor = isToday || isSelected ? theme.t.surface : theme.t.ink;
         return (
           <Pressable
             key={key}
@@ -56,13 +58,13 @@ function DateStripImpl({ selected, today, onSelect }: Props): React.ReactElement
 
 export const DateStrip = memo(DateStripImpl);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   row: {
     flexDirection: 'row',
     paddingHorizontal: 8,
     height: 54,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: TOKENS.hair,
+    borderBottomColor: th.t.hair,
   },
   cell: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
   name: { ...TYPE.caption },
@@ -73,7 +75,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  circleToday: { backgroundColor: TOKENS.primary },
-  circleSelected: { backgroundColor: TOKENS.controlActive },
+  circleToday: { backgroundColor: th.t.primary },
+  circleSelected: { backgroundColor: th.t.controlActive },
   number: { ...TYPE.subhead, fontFamily: TYPE.mono.fontFamily },
-});
+}));

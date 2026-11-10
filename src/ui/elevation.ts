@@ -1,5 +1,5 @@
 import type { ViewStyle } from 'react-native';
-import { TOKENS } from './palette';
+import { LIGHT_TOKENS } from './palette';
 
 // Elevation / shadow tokens.
 // Policy: cards use a `hair` border for containment, NOT a drop shadow
@@ -23,7 +23,7 @@ export const ELEVATION = {
 
   // Floating pill bar (FloatingDock — the tab bar): 0 10px 26px rgba(0,0,0,0.10).
   dock: {
-    shadowColor: TOKENS.shadow,
+    shadowColor: LIGHT_TOKENS.shadow, // black in both schemes
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 26,
@@ -32,3 +32,14 @@ export const ELEVATION = {
 } as const satisfies Record<string, ViewStyle>;
 
 export type ElevationKey = keyof typeof ELEVATION;
+
+/**
+ * ADR-009: elevation for a theme — dark needs heavier shadows to read at all.
+ * Use inside makeStyles: `...elevationFor(th).dock`.
+ */
+export function elevationFor(th: { shadowOpacity: number }): typeof ELEVATION {
+  return {
+    ...ELEVATION,
+    dock: { ...ELEVATION.dock, shadowOpacity: Math.min(1, ELEVATION.dock.shadowOpacity * th.shadowOpacity) },
+  } as typeof ELEVATION;
+}

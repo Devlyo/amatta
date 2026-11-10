@@ -8,7 +8,7 @@
 // the row again.
 
 import { memo, useRef, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, type LayoutChangeEvent } from 'react-native';
+import { Pressable, Text, type LayoutChangeEvent } from 'react-native';
 import ReanimatedSwipeable, {
   type SwipeableMethods,
 } from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -21,9 +21,9 @@ import Reanimated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
+import { makeStyles } from '../appearance';
 
 /** Width of the revealed 삭제 button. */
 const ACTION_W = 80;
@@ -111,6 +111,7 @@ function DeleteAction({
   accessibilityLabel: string;
   testID?: string;
 }): React.ReactElement {
+  const styles = useStyles();
   useAnimatedReaction(
     () => rowW.value > 0 && -translation.value > rowW.value * FULL_SWIPE,
     (isFull) => {
@@ -136,15 +137,15 @@ function DeleteAction({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   action: { paddingLeft: GAP, justifyContent: 'center' },
   actionPress: {
     flex: 1,
     borderRadius: RADIUS.md,
-    backgroundColor: TOKENS.danger,
+    backgroundColor: th.t.danger,
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
   // The label stays at the pill's right end while the pill grows.
-  actionLabel: { ...TYPE.subhead, fontFamily: TYPE.headline.fontFamily, color: TOKENS.surface, width: ACTION_W, textAlign: 'center' },
-});
+  actionLabel: { ...TYPE.subhead, fontFamily: TYPE.headline.fontFamily, color: th.t.surface, width: ACTION_W, textAlign: 'center' },
+}));

@@ -3,7 +3,7 @@
 // 1:1 port of the handoff assets docs/design/handoffs/pickup-banner/{car-sedan,
 // car-round}.svg (both viewBox 130×78), rendered at 68×40. The handoff swaps
 // fill values per card, so body/window/wheel/hub/shine come in as props (each a
-// design token from TOKENS — see PICKUP_CARD_PALETTE). `shape` picks the sedan
+// design token from the palette — see PICKUP_CARD_PALETTE). `shape` picks the sedan
 // or round silhouette.
 //
 // ⚠️ react-native-svg does NOT load in the Expo Go SDK 54 binary (RNSVG Fabric

@@ -14,7 +14,7 @@
 // and bucketed by ISODate for O(1) lookup in the cell renderer.
 
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { useChildrenStore } from '../../state/children-store';
 import { useSchedulesStore } from '../../state/schedules-store';
@@ -27,16 +27,15 @@ import {
 import type { Child, ISODate, Occurrence } from '../../domain/types';
 import { FONT_FAMILIES } from '../fonts';
 import { IconChevronLeft, IconChevronRight } from '../icons';
-import { getKidPalette, TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { todayIso } from '../utils/date';
+import { makeStyles, useTheme } from '../appearance';
 
-// Weekend tints. Sunday uses TOKENS.danger (the codebase's defined red,
+// Weekend tints. Sunday uses the danger token (the codebase's defined red,
 // `#FF4444`) so the calendar/dow header doesn't ship a one-off magenta.
 // Saturday's blue stays as a local literal until a `saturday`/blue token
 // exists in src/ui/palette.ts.
-const WEEKEND_COLOR_SAT = TOKENS.saturday;
 
 const DOW_LABELS = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
@@ -81,6 +80,8 @@ export interface CalendarBodyProps {
 }
 
 export function CalendarBody({ onClose }: CalendarBodyProps): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   const currentDate = useUiStore((s) => s.currentDate);
   const setCurrentDate = useUiStore((s) => s.setCurrentDate);
 
@@ -169,7 +170,7 @@ export function CalendarBody({ onClose }: CalendarBodyProps): React.ReactElement
             hitSlop={8}
             style={styles.navBtn}
           >
-            <IconChevronLeft size={18} color={TOKENS.inkSub} />
+            <IconChevronLeft size={18} color={theme.t.inkSub} />
           </Pressable>
           <Text style={styles.monthLabel}>
             {year}년 {month}월
@@ -181,7 +182,7 @@ export function CalendarBody({ onClose }: CalendarBodyProps): React.ReactElement
             hitSlop={8}
             style={styles.navBtn}
           >
-            <IconChevronRight size={18} color={TOKENS.inkSub} />
+            <IconChevronRight size={18} color={theme.t.inkSub} />
           </Pressable>
         </View>
 
@@ -190,10 +191,10 @@ export function CalendarBody({ onClose }: CalendarBodyProps): React.ReactElement
           {DOW_LABELS.map((d, i) => {
             const tint =
               i === 0
-                ? TOKENS.danger
+                ? theme.t.danger
                 : i === 6
-                  ? WEEKEND_COLOR_SAT
-                  : TOKENS.inkSub;
+                  ? theme.t.saturday
+                  : theme.t.inkSub;
             return (
               <View key={d} style={styles.dowCell}>
                 <Text style={[styles.dowText, { color: tint }]}>{d}</Text>
@@ -264,7 +265,7 @@ export function CalendarBody({ onClose }: CalendarBodyProps): React.ReactElement
                     {kidIdsForDate.slice(0, 4).map((kidId) => {
                       const kid = childrenById.get(kidId);
                       if (kid === undefined) return null;
-                      const pal = getKidPalette(kid.colorIndex);
+                      const pal = theme.kid(kid.colorIndex);
                       return (
                         <View
                           key={kidId}
@@ -282,12 +283,12 @@ export function CalendarBody({ onClose }: CalendarBodyProps): React.ReactElement
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   // De-chromed: the native formSheet route owns the scrim, sheet shape/position,
   // and grabber. This is just the content surface.
   sheetBody: {
     flex: 1,
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.sm,
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
   monthLabel: {
     fontSize: 18,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: TOKENS.ink,
+    color: th.t.ink,
     letterSpacing: -0.3,
   },
 
@@ -346,20 +347,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pillToday: {
-    backgroundColor: TOKENS.primary,
+    backgroundColor: th.t.primary,
   },
   pillSelected: {
-    backgroundColor: TOKENS.ink06,
+    backgroundColor: th.t.ink06,
     borderWidth: 1.5,
-    borderColor: TOKENS.primary,
+    borderColor: th.t.primary,
   },
   pillText: {
     fontSize: 14,
     fontFamily: FONT_FAMILIES.pretendard,
-    color: TOKENS.ink,
+    color: th.t.ink,
   },
   pillTextToday: {
-    color: TOKENS.surface,
+    color: th.t.surface,
     fontFamily: FONT_FAMILIES.pretendardSemiBold,
   },
   pillTextSelected: {
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
     // Sunday + 한국 공휴일 — both adopt the DOW header's Sunday tint
     // so weekend-vs-holiday distinction stays implicit (calendars
     // conventionally treat them the same visually).
-    color: TOKENS.danger,
+    color: th.t.danger,
   },
 
   dotRow: {
@@ -384,4 +385,4 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: RADIUS.full,
   },
-});
+}));

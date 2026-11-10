@@ -10,7 +10,7 @@
 // they open the Calendar app on that day instead.
 
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import {
@@ -22,12 +22,12 @@ import {
   type GuardianEventDetail,
 } from '../../calendar/guardian-calendar';
 import { useGuardianStore } from '../../state/guardian-store';
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
 import { alertSummary, fmt12hrShortSpaced, formatKoDateChip } from '../sheets/edit-sheet-form';
 import { FormActionRow, FormGroup, FormTextRow, FormValueRow } from '../sheets/form-rows';
+import { makeStyles } from '../appearance';
 
 function isoOf(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -50,6 +50,7 @@ export function GuardianEventDetailContent({
   instanceEnd,
   onClose,
 }: GuardianEventDetailProps): React.ReactElement {
+  const styles = useStyles();
   const router = useRouter();
   const calendars = useGuardianStore((s) => s.calendars);
   const [event, setEvent] = useState<GuardianEventDetail | null>(null);
@@ -203,16 +204,16 @@ export function GuardianEventDetailContent({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   // Same chrome as EventDetailDrawer / ScheduleEditSheet.
-  contentRoot: { flex: 1, backgroundColor: TOKENS.groupedBg },
+  contentRoot: { flex: 1, backgroundColor: th.t.groupedBg },
   headerBar: { height: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg },
   headerSlotStart: { minWidth: 64, paddingVertical: SPACING.sm },
   headerSlotEnd: { minWidth: 64, paddingVertical: SPACING.sm, alignItems: 'flex-end' },
-  headerTitle: { ...TYPE.headline, flex: 1, textAlign: 'center', color: TOKENS.ink },
-  cancelLabel: { ...TYPE.row, color: TOKENS.danger },
-  editLabel: { ...TYPE.headline, color: TOKENS.danger },
-  editLabelDisabled: { color: TOKENS.ink30 },
+  headerTitle: { ...TYPE.headline, flex: 1, textAlign: 'center', color: th.t.ink },
+  cancelLabel: { ...TYPE.row, color: th.t.danger },
+  editLabel: { ...TYPE.headline, color: th.t.danger },
+  editLabelDisabled: { color: th.t.ink30 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, gap: 22 },
   guardianDot: {
@@ -220,10 +221,10 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: RADIUS.full,
     borderWidth: 1.5,
-    backgroundColor: TOKENS.guardian,
-    borderColor: TOKENS.guardianDeep,
+    backgroundColor: th.t.guardian,
+    borderColor: th.t.guardianDeep,
   },
   calDot: { width: 12, height: 12, borderRadius: RADIUS.full },
-  note: { ...TYPE.footnote, color: TOKENS.inkSub, paddingHorizontal: SPACING.lg, marginTop: -14 },
+  note: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.lg, marginTop: -14 },
   tail: { height: SPACING.xxxl },
-});
+}));

@@ -3,36 +3,40 @@
 // White groups (RADIUS.box) on the grouped background, 44pt rows with hairline
 // separators inset from the left, value rows with a chevron that expand an
 // inline panel below them, native switches, grey time/date chips (red while
-// being edited), red text actions. One red everywhere: TOKENS.danger (the
+// being edited), red text actions. One red everywhere: the danger token (the
 // 이 회차만 삭제 red) — accents, active values, checks, actions.
 
 import { memo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View, type TextInputProps } from 'react-native';
 
 import { IconCheck, IconChevronRight } from '../icons';
-import { TOKENS } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
+import { makeStyles, useTheme } from '../appearance';
 
 const ROW_H = 44;
 const INSET = 16;
 
 export function FormGroup({ children }: { children: ReactNode }): React.ReactElement {
+  const styles = useStyles();
   return <View style={styles.group}>{children}</View>;
 }
 
 export function FormSectionHeader({ label }: { label: string }): React.ReactElement {
+  const styles = useStyles();
   return <Text style={styles.sectionHeader}>{label}</Text>;
 }
 
 export function FormError({ text }: { text: string | undefined }): React.ReactElement | null {
+  const styles = useStyles();
   if (text === undefined) return null;
   return <Text style={styles.error}>{text}</Text>;
 }
 
 /** Hairline between rows, inset like iOS grouped lists. */
 function Separator(): React.ReactElement {
+  const styles = useStyles();
   return <View style={styles.separator} />;
 }
 
@@ -42,6 +46,7 @@ interface RowFrameProps {
 }
 
 function RowFrame({ last = false, children }: RowFrameProps): React.ReactElement {
+  const styles = useStyles();
   return (
     <View>
       <View style={styles.row}>{children}</View>
@@ -55,9 +60,11 @@ export const FormInputRow = memo(function FormInputRow({
   last,
   ...input
 }: TextInputProps & { last?: boolean }): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <RowFrame last={last}>
-      <TextInput placeholderTextColor={TOKENS.ink30} style={styles.input} {...input} />
+      <TextInput placeholderTextColor={theme.t.ink30} style={styles.input} {...input} />
     </RowFrame>
   );
 });
@@ -76,6 +83,7 @@ export function FormTextRow({
   emphasis?: boolean;
   last?: boolean;
 }): React.ReactElement {
+  const styles = useStyles();
   const empty = text.trim().length === 0;
   return (
     <RowFrame last={last}>
@@ -110,6 +118,8 @@ export function FormValueRow({
   children?: ReactNode;
   testID?: string;
 }): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <View>
       <Pressable
@@ -129,7 +139,7 @@ export function FormValueRow({
           </Text>
           {onPress !== undefined ? (
             <View style={expanded ? styles.chevronOpen : null}>
-              <IconChevronRight size={14} color={TOKENS.ink30} />
+              <IconChevronRight size={14} color={theme.t.ink30} />
             </View>
           ) : null}
         </View>
@@ -145,7 +155,7 @@ export function FormToggleRow({
   label,
   value,
   onChange,
-  onColor = TOKENS.primary,
+  onColor,
   last = false,
 }: {
   label: string;
@@ -154,6 +164,8 @@ export function FormToggleRow({
   onColor?: string;
   last?: boolean;
 }): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <RowFrame last={last}>
       <Text style={styles.label}>{label}</Text>
@@ -163,8 +175,8 @@ export function FormToggleRow({
         <Switch
           value={value}
           onValueChange={onChange}
-          trackColor={{ true: onColor, false: TOKENS.switchOff }}
-          ios_backgroundColor={TOKENS.switchOff}
+          trackColor={{ true: onColor ?? theme.t.primary, false: theme.t.switchOff }}
+          ios_backgroundColor={theme.t.switchOff}
           accessibilityLabel={label}
         />
       </View>
@@ -182,6 +194,7 @@ export function FormChipsRow({
   last?: boolean;
   children: ReactNode;
 }): React.ReactElement {
+  const styles = useStyles();
   return (
     <RowFrame last={last}>
       <Text style={styles.label}>{label}</Text>
@@ -203,6 +216,7 @@ export function TimeChip({
   accessibilityLabel: string;
   disabled?: boolean;
 }): React.ReactElement {
+  const styles = useStyles();
   return (
     <Pressable
       onPress={onPress}
@@ -234,6 +248,8 @@ export function FormOptionList<T extends string | number | null>({
   /** Prepended to each option's accessibility label (e.g. "자녀: "). */
   labelPrefix?: string;
 }): React.ReactElement {
+  const theme = useTheme();
+  const styles = useStyles();
   return (
     <View>
       {options.map((o, i) => {
@@ -249,7 +265,7 @@ export function FormOptionList<T extends string | number | null>({
           >
             {render?.(o.key)}
             <Text style={styles.optionLabel}>{o.label}</Text>
-            {on ? <IconCheck size={18} color={TOKENS.danger} /> : null}
+            {on ? <IconCheck size={18} color={theme.t.danger} /> : null}
           </Pressable>
         );
       })}
@@ -271,6 +287,7 @@ export function FormActionRow({
   tone?: 'accent' | 'danger';
   last?: boolean;
 }): React.ReactElement {
+  const styles = useStyles();
   return (
     <View>
       <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={styles.row}>
@@ -282,15 +299,15 @@ export function FormActionRow({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((th) => ({
   group: {
-    backgroundColor: TOKENS.surface,
+    backgroundColor: th.t.surface,
     borderRadius: RADIUS.box,
     overflow: 'hidden',
   },
   // Header / error sit in a small stack with their group (the caller's gap).
-  sectionHeader: { ...TYPE.footnote, color: TOKENS.inkSub, paddingHorizontal: INSET },
-  error: { ...TYPE.footnote, color: TOKENS.danger, paddingHorizontal: INSET },
+  sectionHeader: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: INSET },
+  error: { ...TYPE.footnote, color: th.t.danger, paddingHorizontal: INSET },
   row: {
     minHeight: ROW_H,
     flexDirection: 'row',
@@ -302,20 +319,20 @@ const styles = StyleSheet.create({
   separator: {
     marginLeft: INSET,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: TOKENS.separator,
+    backgroundColor: th.t.separator,
   },
-  label: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
+  label: { ...TYPE.row, color: th.t.ink, flex: 1 },
   switchBox: { height: ROW_H, justifyContent: 'center' },
-  input: { ...TYPE.row, color: TOKENS.ink, flex: 1, paddingVertical: 11 },
+  input: { ...TYPE.row, color: th.t.ink, flex: 1, paddingVertical: 11 },
   inputEmphasis: { ...TYPE.headline },
-  inputPlaceholder: { color: TOKENS.ink30 },
+  inputPlaceholder: { color: th.t.ink30 },
   valueWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
-  value: { ...TYPE.row, color: TOKENS.inkSub, flexShrink: 1 },
-  valueActive: { color: TOKENS.danger },
+  value: { ...TYPE.row, color: th.t.inkSub, flexShrink: 1 },
+  valueActive: { color: th.t.danger },
   chevronOpen: { transform: [{ rotate: '90deg' }] },
   panel: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TOKENS.separator,
+    borderTopColor: th.t.separator,
     marginLeft: INSET,
   },
   chips: { flexDirection: 'row', gap: 6 },
@@ -323,12 +340,12 @@ const styles = StyleSheet.create({
     height: 34,
     paddingHorizontal: 11,
     borderRadius: RADIUS.sm,
-    backgroundColor: TOKENS.ink06,
+    backgroundColor: th.t.ink06,
     justifyContent: 'center',
   },
-  chipText: { ...TYPE.row, color: TOKENS.ink },
-  chipTextActive: { color: TOKENS.danger },
-  chipTextDisabled: { color: TOKENS.inkSub },
+  chipText: { ...TYPE.row, color: th.t.ink },
+  chipTextActive: { color: th.t.danger },
+  chipTextDisabled: { color: th.t.inkSub },
   option: {
     minHeight: ROW_H,
     flexDirection: 'row',
@@ -336,8 +353,8 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingRight: SPACING.md,
   },
-  optionDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: TOKENS.separator },
-  optionLabel: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
-  action: { ...TYPE.row, color: TOKENS.danger },
-  actionDanger: { color: TOKENS.danger },
-});
+  optionDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: th.t.separator },
+  optionLabel: { ...TYPE.row, color: th.t.ink, flex: 1 },
+  action: { ...TYPE.row, color: th.t.danger },
+  actionDanger: { color: th.t.danger },
+}));
