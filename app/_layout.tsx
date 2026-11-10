@@ -223,17 +223,6 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="child/[id]" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="multi"
-          options={{
-            headerShown: false,
-            // Day↔Week is conceptually a tab toggle, not a navigation push,
-            // so suppress the slide-in/out and the fade. Push and pop both
-            // resolve to instant cuts.
-            animation: 'none',
-          }}
-        />
         {/* New/Edit schedule — FULL modal (dev-gallery style), per user. */}
         <Stack.Screen
           name="schedule/edit"
@@ -302,18 +291,6 @@ export default function RootLayout() {
             headerShown: false,
             presentation: 'formSheet',
             sheetAllowedDetents: [0.5, 0.92],
-            sheetGrabberVisible: true,
-            sheetCornerRadius: 20,
-            contentStyle: { backgroundColor: TOKENS.surface },
-          }}
-        />
-        {/* 자녀 선택 — native formSheet route (see app/kid-switch.tsx). */}
-        <Stack.Screen
-          name="kid-switch"
-          options={{
-            headerShown: false,
-            presentation: 'formSheet',
-            sheetAllowedDetents: 'fitToContents',
             sheetGrabberVisible: true,
             sheetCornerRadius: 20,
             contentStyle: { backgroundColor: TOKENS.surface },

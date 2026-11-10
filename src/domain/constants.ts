@@ -18,7 +18,7 @@ export const SLOT_MIN = 30;
 export const GRID_START_HOUR = 6;
 // Internal: 25 = 1 AM next day. Hour-label rendering wraps via `hour % 24`
 // so the gutter reads 12 (midnight) and 1 (AM) after 23. Extends the
-// daily grid past midnight so the BottomDock-occluded bottom area still
+// daily grid past midnight so the dock-occluded bottom area still
 // has reachable upcoming hours.
 export const GRID_END_HOUR = 25;
 export const GRID_SLOTS = (GRID_END_HOUR - GRID_START_HOUR) * 2;

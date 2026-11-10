@@ -1,0 +1,107 @@
+// Day view — ADR-007 §4: one column per kid plus the guardian column on the
+// shared TimeGrid. Overlaps inside a column stack via layoutCascade.
+// Guardian (iPhone Calendar) events arrive in Phase 5; the column is already
+// laid out so the grid does not reflow when they do.
+
+import { memo, useMemo } from 'react';
+
+import { layoutCascade, clipToDay } from '../../domain/layout';
+import type { Child, Occurrence } from '../../domain/types';
+import type { FocusKey } from '../../state/ui-store';
+import { getKidPalette } from '../palette';
+import { fmtRange } from '../utils/date';
+import { TimeBlock } from './TimeBlock';
+import { TimeGrid } from './TimeGrid';
+import { DEFAULT_HOUR_HEIGHT, initialScrollY } from './time-axis';
+
+/** Horizontal step for each cascade level. */
+const INDENT = 22;
+/** Shortest block that still shows its title. */
+const MIN_BLOCK_H = 20;
+/** Floating dock clearance below 24:00. */
+const DOCK_CLEARANCE = 96;
+
+interface Props {
+  kids: readonly Child[];
+  occurrences: readonly Occurrence[];
+  /** Minutes-from-midnight when the shown day is today, else null. */
+  nowMinutes: number | null;
+  focusKey: FocusKey | null;
+  /** Changes when the shown day changes — re-applies the opening scroll. */
+  scrollKey: string;
+  onPressOccurrence: (occ: Occurrence) => void;
+}
+
+function DayViewImpl({
+  kids,
+  occurrences,
+  nowMinutes,
+  focusKey,
+  scrollKey,
+  onPressOccurrence,
+}: Props): React.ReactElement {
+  const columnOfKid = useMemo(() => new Map(kids.map((k, i) => [k.id, i])), [kids]);
+  const columns = kids.length + 1; // + guardian
+
+  const placed = useMemo(() => {
+    const byId = new Map<string, Occurrence>();
+    const inputs = [];
+    for (const occ of occurrences) {
+      const column = columnOfKid.get(occ.childId);
+      if (column === undefined) continue;
+      const range = clipToDay(occ.startMinutes, occ.endMinutes);
+      if (range === null) continue;
+      const id = `${occ.scheduleId}`;
+      byId.set(id, occ);
+      inputs.push({ id, column, start: range.start, end: range.end });
+    }
+    return layoutCascade(inputs).map((p) => ({ ...p, occ: byId.get(p.id) as Occurrence }));
+  }, [occurrences, columnOfKid]);
+
+  const firstStart = occurrences.length > 0 ? Math.min(...occurrences.map((o) => o.startMinutes)) : null;
+  const openAt = initialScrollY({ hourHeight: DEFAULT_HOUR_HEIGHT, nowMinutes, firstStart });
+
+  return (
+    <TimeGrid
+      testID="day-view"
+      columns={columns}
+      hourHeight={DEFAULT_HOUR_HEIGHT}
+      nowMinutes={nowMinutes}
+      initialScrollY={openAt}
+      scrollKey={scrollKey}
+      bottomInset={DOCK_CLEARANCE}
+      renderColumns={({ columnWidth, y }) =>
+        placed.map(({ id, column, start, end, level, occ }) => {
+          const kid = kids[column];
+          if (kid === undefined) return null;
+          const palette = getKidPalette(occ.colorIndex);
+          const top = y(start) + 1;
+          const indent = Math.min(level * INDENT, columnWidth / 2);
+          return (
+            <TimeBlock
+              key={id}
+              testID={`day-block-${id}`}
+              top={top}
+              left={column * columnWidth + 2 + indent}
+              width={columnWidth - 4 - indent}
+              height={Math.max(y(end) - y(start) - 2, MIN_BLOCK_H)}
+              level={level}
+              title={occ.title}
+              startMinutes={occ.startMinutes}
+              endMinutes={occ.endMinutes}
+              color={palette.source}
+              deep={palette.deep}
+              focused={focusKey === kid.id}
+              dimmed={focusKey !== null && focusKey !== kid.id}
+              needsPickup={occ.needsPickup}
+              accessibilityLabel={`${kid.name} ${occ.title}, ${fmtRange(occ.startMinutes, occ.endMinutes)}${level > 0 ? ', 다른 일정과 시간이 겹침' : ''}`}
+              onPress={() => onPressOccurrence(occ)}
+            />
+          );
+        })
+      }
+    />
+  );
+}
+
+export const DayView = memo(DayViewImpl);

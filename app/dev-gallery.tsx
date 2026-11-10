@@ -12,7 +12,6 @@ import {
   Button,
   Card,
   Input,
-  Fab,
   Pill,
   Badge,
   SelectChip,
@@ -248,13 +247,6 @@ export default function DevGallery(): React.ReactElement {
             <Badge dot tone={TOKENS.warningDot} />
             <Badge dot tone={TOKENS.success} />
           </Row>
-        </Section>
-
-        {/* ---- FAB ---- */}
-        <Section title="FAB (ink, not orange)">
-          <Fab onPress={() => {}}>
-            <IconPlus size={24} color={TOKENS.surface} />
-          </Fab>
         </Section>
 
         {/* ════ 새 일정 폼 컴포넌트 ════ */}

@@ -30,16 +30,21 @@ export interface EventDetailState {
 // local day and breaks isToday() comparisons. The canonical helper in
 // src/ui/utils/date.ts uses local-time getters and is the only source of
 // truth for "today" across the app.
+// ADR-007 §1–2: calendar view and kid focus mode.
+export type CalendarView = 'day' | 'week' | 'month';
+/** A kid id, or the guardian (iPhone Calendar) column. */
+export type FocusKey = number | 'guardian';
+
 interface UiState {
   currentDate: ISODate;
   setCurrentDate: (date: ISODate) => void;
-  selectedChildId: number | null;
-  setSelectedChildId: (id: number | null) => void;
 
-  // Return channel for the kid-switch route: the route writes the picked kid
-  // here, the host /child/[id] screen consumes it (router.setParams) + clears.
-  pendingKidId: number | null;
-  setPendingKidId: (id: number | null) => void;
+  calendarView: CalendarView;
+  setCalendarView: (view: CalendarView) => void;
+  /** Focused kid/guardian — others are faded. null = no focus. */
+  focusKey: FocusKey | null;
+  /** Tap a filter pill: focus it, or clear when it is already focused. */
+  toggleFocus: (key: FocusKey) => void;
 
   editSheetState: EditSheetState;
   openEditSheet: (
@@ -53,30 +58,16 @@ interface UiState {
   openEventDetail: (input: { scheduleId: number; occurrenceDate: ISODate }) => void;
   closeEventDetail: () => void;
 
-  // Batch D — calendar + search drawers (worker-drawers)
-  calendarDrawerOpen: boolean;
-  openCalendar: () => void;
-  closeCalendar: () => void;
-  searchDrawerOpen: boolean;
-  openSearch: () => void;
-  closeSearch: () => void;
-
-  // 자녀 주간 화면의 kid-switch drawer
-  // (docs/design/amatta-v1/app-weekly-drawers.jsx KidDrawer).
-  kidSwitchDrawerOpen: boolean;
-  openKidSwitch: () => void;
-  closeKidSwitch: () => void;
 }
 
 export const useUiStore = create<UiState>()((set) => ({
   currentDate: todayIso(),
   setCurrentDate: (date) => set({ currentDate: date }),
 
-  selectedChildId: null,
-  setSelectedChildId: (id) => set({ selectedChildId: id }),
-
-  pendingKidId: null,
-  setPendingKidId: (id) => set({ pendingKidId: id }),
+  calendarView: 'day',
+  setCalendarView: (view) => set({ calendarView: view }),
+  focusKey: null,
+  toggleFocus: (key) => set((s) => ({ focusKey: s.focusKey === key ? null : key })),
 
   editSheetState: { mode: 'closed' },
 
@@ -97,14 +88,4 @@ export const useUiStore = create<UiState>()((set) => ({
     set({ eventDetailState: { mode: 'open', scheduleId, occurrenceDate } }),
   closeEventDetail: () => set({ eventDetailState: { mode: 'closed' } }),
 
-  calendarDrawerOpen: false,
-  openCalendar: () => set({ calendarDrawerOpen: true }),
-  closeCalendar: () => set({ calendarDrawerOpen: false }),
-  searchDrawerOpen: false,
-  openSearch: () => set({ searchDrawerOpen: true }),
-  closeSearch: () => set({ searchDrawerOpen: false }),
-
-  kidSwitchDrawerOpen: false,
-  openKidSwitch: () => set({ kidSwitchDrawerOpen: true }),
-  closeKidSwitch: () => set({ kidSwitchDrawerOpen: false }),
 }));

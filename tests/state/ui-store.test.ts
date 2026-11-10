@@ -9,7 +9,8 @@ describe('useUiStore', () => {
     // Reset store to defaults before each test
     useUiStore.setState({
       currentDate: new Date().toISOString().slice(0, 10) as ISODate,
-      selectedChildId: null,
+      calendarView: 'day',
+      focusKey: null,
       editSheetState: { mode: 'closed' },
     });
   });
@@ -21,8 +22,9 @@ describe('useUiStore', () => {
     expect(state.currentDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  test('selectedChildId defaults to null', () => {
-    expect(useUiStore.getState().selectedChildId).toBeNull();
+  test('calendar opens on the day view with no focus', () => {
+    expect(useUiStore.getState().calendarView).toBe('day');
+    expect(useUiStore.getState().focusKey).toBeNull();
   });
 
   test('editSheetState defaults to { mode: "closed" }', () => {
@@ -34,15 +36,19 @@ describe('useUiStore', () => {
     expect(useUiStore.getState().currentDate).toBe('2026-07-04');
   });
 
-  test('setSelectedChildId() updates selectedChildId', () => {
-    useUiStore.getState().setSelectedChildId(42);
-    expect(useUiStore.getState().selectedChildId).toBe(42);
+  test('toggleFocus focuses a kid, switches to another, and clears on re-tap', () => {
+    const { toggleFocus } = useUiStore.getState();
+    toggleFocus(42);
+    expect(useUiStore.getState().focusKey).toBe(42);
+    toggleFocus('guardian');
+    expect(useUiStore.getState().focusKey).toBe('guardian');
+    toggleFocus('guardian');
+    expect(useUiStore.getState().focusKey).toBeNull();
   });
 
-  test('setSelectedChildId(null) clears selectedChildId', () => {
-    useUiStore.getState().setSelectedChildId(42);
-    useUiStore.getState().setSelectedChildId(null);
-    expect(useUiStore.getState().selectedChildId).toBeNull();
+  test('setCalendarView switches the view', () => {
+    useUiStore.getState().setCalendarView('month');
+    expect(useUiStore.getState().calendarView).toBe('month');
   });
 
   test('openEditSheet("create") transitions to create mode', () => {

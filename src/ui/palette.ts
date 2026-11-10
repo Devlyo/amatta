@@ -82,7 +82,7 @@ export const TOKENS = {
   warningDot: '#FFB000',
 
   // Control surfaces — from the shipping new-schedule form (ScheduleEditSheet)
-  // + BottomDock. These near-neutral grays were inline literals; promoted to
+  // + the old BottomDock. These near-neutral grays were inline literals; promoted to
   // tokens so selectable chips / toggles / day-circles share one source.
   // NOTE: `controlActive` (#2A2A29) is a hair lighter than `ink` (#1D1D1B) —
   // the app uses BOTH as "near-black". Flagged for possible unification.

@@ -93,7 +93,6 @@ describe('SearchDrawer', () => {
         isLoaded: true,
       });
       useUiStore.setState({
-        searchDrawerOpen: true,
         currentDate: ISO('2026-05-05'),
         eventDetailState: { mode: 'closed' },
       });
@@ -103,7 +102,6 @@ describe('SearchDrawer', () => {
   afterEach(() => {
     act(() => {
       useUiStore.setState({
-        searchDrawerOpen: false,
         eventDetailState: { mode: 'closed' },
       });
     });
