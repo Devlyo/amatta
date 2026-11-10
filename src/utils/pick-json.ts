@@ -19,7 +19,7 @@ export type PickJsonResult =
   | { kind: 'unreadable' };
 
 /** A backup is a few hundred KB at most; anything bigger is not ours. */
-export const MAX_BACKUP_BYTES = 10 * 1024 * 1024;
+export const MAX_BACKUP_BYTES = 5 * 1024 * 1024;
 
 let picker: DocumentPickerModule | null | undefined;
 function loadPicker(): DocumentPickerModule | null {
@@ -50,6 +50,12 @@ export async function pickJsonFile(): Promise<PickJsonResult> {
   try {
     const file = new FileSystem.File(asset.uri);
     const text = await file.text();
+    try {
+      file.delete(); // the picker's cache copy — not needed once read
+    } catch {
+      /* ignore */
+    }
+    if (text.length > MAX_BACKUP_BYTES) return { kind: 'unreadable' };
     return { kind: 'picked', text, name: asset.name };
   } catch {
     return { kind: 'unreadable' };
