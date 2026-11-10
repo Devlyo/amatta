@@ -7,8 +7,8 @@
 // the row counts are predictable in the log (and a future test can
 // inspect them).
 //
-// Wired from app/(tabs)/settings.tsx "모든 데이터 초기화" → ResetConfirmSheet
-// 초기화하기 button.
+// Wired from app/(tabs)/settings.tsx "모든 데이터 초기화" → native alert
+// 초기화하기 → resetAllData (src/state/reset-all.ts).
 
 import type { SQLiteDatabase } from 'expo-sqlite';
 
