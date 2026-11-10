@@ -21,8 +21,8 @@ function fakeDb() {
 }
 
 const calendars = [
-  { id: 'home', title: '집', color: '#f00', source: { name: 'iCloud' }, allowsModifications: true },
-  { id: 'work', title: '회사', color: '#00f', source: { name: 'Gmail' }, allowsModifications: false },
+  { id: 'home', title: '집', color: 'red', source: { name: 'iCloud' }, allowsModifications: true },
+  { id: 'work', title: '회사', color: 'blue', source: { name: 'Gmail' }, allowsModifications: false },
 ];
 
 beforeEach(() => {

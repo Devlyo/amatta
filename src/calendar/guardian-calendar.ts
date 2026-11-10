@@ -8,6 +8,7 @@ import * as Calendar from 'expo-calendar';
 import { Platform } from 'react-native';
 
 import { dateAt, type GuardianRawEvent } from '../domain/guardian';
+import { ALL_DAY_ALERT_BASE_MINUTES } from '../notifications/scheduler';
 import type { ISODate } from '../domain/types';
 
 export type CalendarPermission = 'granted' | 'denied' | 'undetermined';
@@ -102,7 +103,11 @@ export async function createGuardianEvent(calendarId: string, e: NewGuardianEven
     startDate: dateAt(e.date, e.allDay ? 0 : e.startMinutes),
     endDate: dateAt(e.date, e.allDay ? 24 * 60 : e.endMinutes),
     allDay: e.allDay,
-    alarms: e.alarmMinutesBefore === null ? [] : [{ relativeOffset: -e.alarmMinutesBefore }],
+    // All-day: the alarm counts back from 08:00 that day, like kid events.
+    alarms:
+      e.alarmMinutesBefore === null
+        ? []
+        : [{ relativeOffset: e.allDay ? ALL_DAY_ALERT_BASE_MINUTES - e.alarmMinutesBefore : -e.alarmMinutesBefore }],
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
 }

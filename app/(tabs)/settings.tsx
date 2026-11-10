@@ -18,6 +18,7 @@ import { getDb } from '../../src/db/client';
 import { rescheduleAll } from '../../src/notifications/scheduler';
 import { useChildrenStore } from '../../src/state/children-store';
 import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
+import { useGuardianStore } from '../../src/state/guardian-store';
 import { KidAvatar } from '../../src/ui/common/KidAvatar';
 import type { Child } from '../../src/domain/types';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
@@ -46,6 +47,7 @@ export default function SettingsScreen(): React.ReactElement {
   // start with 30분 전 highlighted. The slice is persisted to app_settings
   // (write-through) and hydrated on boot, so toggles survive relaunch.
   const systemNotif = useNotifSettingsStore((s) => s.systemEnabled);
+  const guardianEnabled = useGuardianStore((s) => s.enabled);
   const setSystemEnabled = useNotifSettingsStore((s) => s.setSystemEnabled);
   const leadTime = useNotifSettingsStore((s) => s.defaultMinutesBefore);
   const setDefaultMinutesBefore = useNotifSettingsStore(
@@ -133,6 +135,17 @@ export default function SettingsScreen(): React.ReactElement {
         </Card>
 
         {/* 데이터 */}
+        <SectionHeader label="캘린더" />
+        <Card>
+          <NavRow
+            label="캘린더 연동"
+            sub={guardianEnabled ? '보호자 일정 보는 중' : '아이폰 캘린더의 보호자 일정'}
+            onPress={() => router.push('/settings/calendars')}
+            accessibilityLabel="캘린더 연동"
+            testID="settings-row-calendars"
+          />
+        </Card>
+
         <SectionHeader label="데이터" />
         <Card>
           <NavRow

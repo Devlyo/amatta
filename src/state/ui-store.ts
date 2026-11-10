@@ -12,6 +12,8 @@ export interface EditSheetPreFill {
   date?: ISODate;
   /** Start time (minutes from midnight) — set when created from a grid long press. */
   startMinutes?: number;
+  /** 보호자 pre-selected (guardian column long press, ADR-008). */
+  guardian?: boolean;
 }
 
 export interface EditSheetState {

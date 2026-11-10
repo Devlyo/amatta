@@ -245,6 +245,7 @@ export default function RootLayout() {
         <Stack.Screen name="settings/kids" options={{ headerShown: false }} />
         <Stack.Screen name="settings/kid-edit" options={{ headerShown: false }} />
         <Stack.Screen name="settings/data" options={{ headerShown: false }} />
+        <Stack.Screen name="settings/calendars" options={{ headerShown: false }} />
         <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
         {/* Reset-all-data confirm — native formSheet route (app/settings/reset-confirm.tsx). */}
         <Stack.Screen
