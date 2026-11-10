@@ -123,12 +123,13 @@ describe('ChecklistSection', () => {
     // Completion is per-occurrence now (v6): mark item 101 done for TODAY.
     seedCompletion([[101, TODAY_INT]]);
 
-    const { getByText, getByTestId } = render(<ChecklistSection />);
+    const { getByText, getAllByText, getByTestId } = render(<ChecklistSection />);
 
     // header: 1 done out of 3 total (only item 101 has a completion row for D)
     expect(getByText('1/3')).toBeTruthy();
-    expect(getByText('민준')).toBeTruthy();
-    expect(getByText('서연')).toBeTruthy();
+    // Board H1 (ADR-014): each row's subtitle says whose class it is for.
+    expect(getAllByText(/^민준 · /).length).toBe(2);
+    expect(getAllByText(/^서연 · /).length).toBe(1);
     expect(getByText('수영가방')).toBeTruthy();
     expect(getByText('수건')).toBeTruthy();
     expect(getByText('미술도구')).toBeTruthy();
@@ -152,10 +153,8 @@ describe('ChecklistSection', () => {
       toggleDone: toggleDoneMock,
     });
     const { getByText, getByTestId, getByLabelText } = render(<ChecklistSection />);
-    expect(getByText('영어학원')).toBeTruthy();
-    expect(getByText('2PM')).toBeTruthy();
-    expect(getByText('수영')).toBeTruthy();
-    expect(getByText('4PM')).toBeTruthy();
+    expect(getByText('민준 · 영어학원 2PM')).toBeTruthy();
+    expect(getByText('민준 · 수영 4PM')).toBeTruthy();
     expect(getByLabelText('수영 준비물 수영가방')).toBeTruthy();
     // 영어학원 (2PM) comes before 수영 (4PM).
     const order = [getByTestId('checklist-class-12'), getByTestId('checklist-class-10')];

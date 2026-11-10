@@ -2,9 +2,9 @@ import { memo, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useTodosStore, useUiStore } from '../../state';
+import { useChildrenStore } from '../../state/children-store';
 import { getDb } from '../../db/client';
 import type { ISODate, Todo } from '../../domain/types';
-import { FONT_FAMILIES } from '../fonts';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { IconCheck } from '../icons';
@@ -60,6 +60,9 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
         return a.id - b.id;
       });
   }, [todos, currentDate]);
+
+  const children = useChildrenStore((st) => st.children);
+  const kidName = (id: number): string | null => children.find((k) => k.id === id)?.name ?? null;
 
   const total = sorted.length;
   const done = sorted.filter((t) => t.isDone).length;
@@ -141,9 +144,17 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
                 >
                   {isDone ? <IconCheck size={12} color={theme.t.surface} /> : null}
                 </View>
-                <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null, isDone ? styles.itemRowDone : null]}>
-                  {todo.title}
-                </Text>
+                <View style={[styles.itemText, isDone ? styles.itemRowDone : null]}>
+                  <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null]} numberOfLines={2}>
+                    {todo.title}
+                  </Text>
+                  {/* Board H1: whose todo, when it has a kid. */}
+                  {todo.childId !== null && kidName(todo.childId) !== null ? (
+                    <Text style={styles.itemSub} numberOfLines={1}>
+                      {kidName(todo.childId)}
+                    </Text>
+                  ) : null}
+                </View>
               </Pressable>
             </SwipeToDelete>
           );
@@ -157,7 +168,7 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
           testID="todo-add-row"
         >
           {/* Same as the form's 준비물 추가: red add-circle + red label. */}
-          <Ionicons name="add-circle" size={22} color={theme.t.danger} />
+          <Ionicons name="add-circle" size={26} color={theme.t.danger} />
           {adding ? (
             <TextInput
               ref={inputRef}
@@ -208,21 +219,22 @@ const useStyles = makeStyles((th) => ({
   card: {
     backgroundColor: th.t.surface,
     borderRadius: RADIUS.card,
-    padding: 6,
+    overflow: 'hidden',
   },
   // Inset to the label: card padding 6 + row padding 10 + checkbox 22 + gap 10.
+  // iOS list line, inset to the text: row padding 16 + check 26 + gap 12.
   itemSeparator: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: th.t.separator,
-    marginLeft: 42,
-    marginRight: 10,
+    marginLeft: 54,
   },
   itemRow: {
+    minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
+    gap: SPACING.md,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
     // Opaque, so the red 삭제 behind it shows only while swiping.
     backgroundColor: th.t.surface,
   },
@@ -230,8 +242,8 @@ const useStyles = makeStyles((th) => ({
     opacity: 0.5,
   },
   checkbox: {
-    width: 22,
-    height: 22,
+    width: 26,
+    height: 26,
     borderRadius: RADIUS.full,
     borderWidth: 1.5,
     alignItems: 'center',
@@ -241,38 +253,24 @@ const useStyles = makeStyles((th) => ({
     backgroundColor: th.t.surface,
     borderColor: th.t.ink30,
   },
-  itemLabel: {
-    flex: 1,
-    fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 16,
-    fontWeight: '400',
-    color: th.t.ink,
-    letterSpacing: -0.2,
-  },
+  itemText: { flex: 1, minWidth: 0, gap: 1 },
+  itemLabel: { ...TYPE.row, color: th.t.ink },
+  itemSub: { ...TYPE.footnote, color: th.t.inkSub },
   itemLabelDone: {
     textDecorationLine: 'line-through',
   },
   // The form's FormActionRow look (준비물 추가): 44pt row, hairline above.
   addRow: {
-    minHeight: 44,
+    minHeight: 50,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 10,
+    gap: SPACING.md,
+    paddingHorizontal: SPACING.lg,
   },
   addRowDivider: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: th.t.separator,
-    marginTop: SPACING.xxs,
   },
   addLabel: { ...TYPE.row, flex: 1, color: th.t.danger },
-  addInput: {
-    flex: 1,
-    fontFamily: FONT_FAMILIES.pretendard,
-    fontSize: 16,
-    fontWeight: '400',
-    color: th.t.ink,
-    letterSpacing: -0.2,
-    paddingVertical: 0,
-  },
+  addInput: { ...TYPE.row, flex: 1, color: th.t.ink, paddingVertical: 0 },
 }));

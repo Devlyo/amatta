@@ -100,6 +100,8 @@ const LIGHT = {
   // ADR-007 §7-1: shared background for system screens (settings, detail,
   // pickers, new-event form) under white grouped boxes (RADIUS.box).
   groupedBg: '#F2F1EF',
+  // ADR-014: the home screen sits on a lighter wash than system screens.
+  homeBg: '#F7F6F4',
   // ADR-007: Sunday text + the red "+" (new event) and form actions. Distinct
   // from `danger` (#FF4444), which stays for destructive actions.
   sunday: '#D93636',
@@ -191,6 +193,7 @@ export const DARK_TOKENS: Readonly<Record<TokenName, string>> = {
   surfaceWarm: '#2B2926',
   surfaceSoft: '#1A1917',
   groupedBg: '#1A1917',
+  homeBg: '#1A1917',
   sunday: '#FF6B5E',
   guardian: '#5A5751',
   guardianDeep: '#A8A49D',
