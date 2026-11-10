@@ -46,6 +46,9 @@ describe('WeekView', () => {
     occ(1, 1, '2026-11-10', 9 * 60, 14 * 60 + 30, '학교', 'school'),
     occ(2, 2, '2026-11-10', 9 * 60, 13 * 60, '학교', 'school'),
     occ(3, 2, '2026-11-12', 15 * 60, 16 * 60, '피아노'),
+    occ(4, 1, '2026-11-10', 16 * 60, 17 * 60, '영어'),
+    occ(5, 2, '2026-11-10', 16 * 60 + 30, 17 * 60 + 30, '미술'),
+    occ(6, 2, '2026-11-10', 10 * 60, 11 * 60, '현장학습'),
   ];
 
   function renderWeek(zoomed: boolean, extra: Partial<React.ComponentProps<typeof WeekView>> = {}) {
@@ -70,12 +73,26 @@ describe('WeekView', () => {
     });
   }
 
-  test('fixed schedules are regular blocks; same-day overlaps stack', () => {
+  test('school = one bar per kid (column ÷ kids), icon only; other events keep their place', () => {
     renderWeek(false);
-    const a = style('week-slot-1|2026-11-10');
-    const b = style('week-slot-2|2026-11-10');
-    expect(b.left).toBeGreaterThan(a.left);
-    expect(b.zIndex).toBeGreaterThan(a.zIndex);
+    // No block / title for 학교 — a lane per kid, side by side in the Tue column.
+    expect(screen.queryByTestId('week-block-1|2026-11-10')).toBeNull();
+    expect(screen.queryByText('학교')).toBeNull();
+    const a = style('week-school-1|2026-11-10');
+    const b = style('week-school-2|2026-11-10');
+    const lane = (50 - 2 - 1) / 2;
+    expect(a.width).toBeCloseTo(lane);
+    expect(b.width).toBeCloseTo(lane);
+    expect(a.left).toBeCloseTo(2 * 50 + 1);
+    expect(b.left).toBeCloseTo(2 * 50 + 1 + lane + 1);
+    // An event during school hours is not pushed aside by the bars.
+    expect(style('week-slot-6|2026-11-10').width).toBe(50 - 2);
+    expect(style('week-slot-6|2026-11-10').zIndex).toBeGreaterThan(a.zIndex);
+    // Other events still stack among themselves.
+    const e = style('week-slot-4|2026-11-10');
+    const m = style('week-slot-5|2026-11-10');
+    expect(m.left).toBeGreaterThan(e.left);
+    expect(m.zIndex).toBeGreaterThan(e.zIndex);
     expect(screen.getByTestId('week-block-3|2026-11-12')).toBeTruthy();
     expect(screen.queryByText('3–4PM')).toBeNull(); // compact: titles only
   });
@@ -95,12 +112,15 @@ describe('WeekView', () => {
 
   test('one person picked alone → only their blocks, back to full width', () => {
     renderWeek(false);
-    const narrowed = style('week-slot-2|2026-11-10').width; // overlaps 민준's 학교
+    const narrowed = style('week-slot-5|2026-11-10').width; // overlaps 민준's 영어
     screen.unmount();
     renderWeek(false, { inactive: [1, 'guardian'] }); // 서연 alone
-    expect(screen.queryByTestId('week-block-1|2026-11-10')).toBeNull();
-    expect(style('week-slot-2|2026-11-10').width).toBeGreaterThan(narrowed);
-    expect(style('week-slot-2|2026-11-10').width).toBe(50 - 2);
+    expect(screen.queryByTestId('week-block-4|2026-11-10')).toBeNull();
+    expect(style('week-slot-5|2026-11-10').width).toBeGreaterThan(narrowed);
+    expect(style('week-slot-5|2026-11-10').width).toBe(50 - 2);
+    // 서연's school bar takes the whole column when she is the only kid shown.
+    expect(screen.queryByTestId('week-school-1|2026-11-10')).toBeNull();
+    expect(style('week-school-2|2026-11-10').width).toBeCloseTo(50 - 2);
   });
 
   test('tap a day header → that day; long press a slot → that date + hour', () => {
@@ -189,7 +209,7 @@ describe('WeekView — many people (6) in a narrow day column', () => {
       createdAt: ISO('2026-01-01'),
     }));
     const occ6 = [1, 2, 3, 4, 5].map((id) =>
-      occ(id, id, '2026-11-10', 9 * 60, (13 + id / 10) * 60, `학교${id}`, 'school'),
+      occ(id, id, '2026-11-10', 9 * 60, (13 + id / 10) * 60, `학원${id}`),
     );
     render(
       <WeekView
