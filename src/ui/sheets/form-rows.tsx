@@ -157,13 +157,17 @@ export function FormToggleRow({
   return (
     <RowFrame last={last}>
       <Text style={styles.label}>{label}</Text>
-      <Switch
-        value={value}
-        onValueChange={onChange}
-        trackColor={{ true: onColor, false: TOKENS.switchOff }}
-        ios_backgroundColor={TOKENS.switchOff}
-        accessibilityLabel={label}
-      />
+      {/* The native switch can lay out top-aligned under the new architecture —
+          a row-high box keeps it centred on the label. */}
+      <View style={styles.switchBox}>
+        <Switch
+          value={value}
+          onValueChange={onChange}
+          trackColor={{ true: onColor, false: TOKENS.switchOff }}
+          ios_backgroundColor={TOKENS.switchOff}
+          accessibilityLabel={label}
+        />
+      </View>
     </RowFrame>
   );
 }
@@ -301,6 +305,7 @@ const styles = StyleSheet.create({
     backgroundColor: TOKENS.ink12,
   },
   label: { ...TYPE.row, color: TOKENS.ink, flex: 1 },
+  switchBox: { height: ROW_H, justifyContent: 'center' },
   input: { ...TYPE.row, color: TOKENS.ink, flex: 1, paddingVertical: 11 },
   inputEmphasis: { ...TYPE.headline },
   inputPlaceholder: { color: TOKENS.ink30 },

@@ -555,3 +555,42 @@ describe('EditSheet — 이 회차만 수정 keeps the detail\u2019s rows', () =
     expect(applyException).toHaveBeenCalledWith(expect.anything(), 7, day, expect.objectContaining({ kind: 'modify' }));
   });
 });
+
+describe('EditSheet — editing a 보호자 event (ADR-008)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Calendar = require('expo-calendar') as jest.Mocked<typeof import('expo-calendar')>;
+
+  test('loads the event into the same form and saves it back to the calendar', async () => {
+    seedStores({ schedule: mkSchedule(), mode: 'create' });
+    const instance = new Date(2026, 10, 12, 15, 0).toISOString();
+    useUiStore.setState({ editSheetState: { mode: 'editGuardian', guardianEventId: 'e1', guardianInstance: instance } });
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { useGuardianStore } = require('../../../src/state/guardian-store') as typeof import('../../../src/state/guardian-store');
+    useGuardianStore.setState({ enabled: true, permission: 'granted' });
+    Calendar.getEventAsync.mockResolvedValue({
+      id: 'e1',
+      calendarId: 'home',
+      title: '회의',
+      location: '회사',
+      notes: '',
+      startDate: new Date(2026, 10, 12, 15, 0).toISOString(),
+      endDate: new Date(2026, 10, 12, 16, 0).toISOString(),
+      allDay: false,
+      alarms: [{ relativeOffset: -10 }],
+      recurrenceRule: null,
+    } as never);
+    const onClose = jest.fn();
+    const { findByDisplayValue, getByLabelText, queryByTestId } = render(<ScheduleEditContent onClose={onClose} />);
+    expect(await findByDisplayValue('회의')).toBeTruthy();
+    expect(getByLabelText('자녀: 보호자')).toBeTruthy();
+    expect(getByLabelText('시작 전 알림: 10분 전')).toBeTruthy();
+    expect(queryByTestId('row-type')).toBeNull();
+    expect(getByLabelText('일정 삭제')).toBeTruthy();
+    fireEvent.changeText(getByLabelText('제목 입력'), '회의 (변경)');
+    fireEvent.press(getByLabelText('저장'));
+    await waitFor(() => expect(Calendar.updateEventAsync).toHaveBeenCalled());
+    expect(Calendar.updateEventAsync).toHaveBeenCalledWith('e1', expect.objectContaining({ title: '회의 (변경)' }), undefined);
+    expect(Calendar.createEventAsync).not.toHaveBeenCalled();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+});

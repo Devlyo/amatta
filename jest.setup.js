@@ -12,4 +12,7 @@ jest.mock('expo-calendar', () => ({
   getEventsAsync: jest.fn(async () => []),
   createEventAsync: jest.fn(async () => 'new-event'),
   openEventInCalendarAsync: jest.fn(async () => ({ action: 'done' })),
+  getEventAsync: jest.fn(async () => null),
+  updateEventAsync: jest.fn(async () => 'updated'),
+  deleteEventAsync: jest.fn(async () => undefined),
 }));

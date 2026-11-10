@@ -5,7 +5,8 @@ import type { WeekSpan } from '../ui/calendar/calendar-layout';
 import type { ISODate } from '../domain/types';
 import { todayIso } from '../ui/utils/date';
 
-export type EditSheetMode = 'closed' | 'create' | 'editAll' | 'editOccurrence';
+/** editGuardian = a device-calendar (보호자) event, ADR-008. */
+export type EditSheetMode = 'closed' | 'create' | 'editAll' | 'editOccurrence' | 'editGuardian';
 
 export interface EditSheetPreFill {
   childId?: number;
@@ -21,6 +22,9 @@ export interface EditSheetState {
   scheduleId?: number;
   occurrenceDate?: ISODate;
   preFill?: EditSheetPreFill;
+  /** editGuardian: the device-calendar event and the instance's start (ISO). */
+  guardianEventId?: string;
+  guardianInstance?: string;
 }
 
 // Batch D additive slice — surfaces a read-only event detail drawer
@@ -63,7 +67,13 @@ interface UiState {
   editSheetState: EditSheetState;
   openEditSheet: (
     mode: Exclude<EditSheetMode, 'closed'>,
-    options?: { scheduleId?: number; occurrenceDate?: ISODate; preFill?: EditSheetPreFill },
+    options?: {
+      scheduleId?: number;
+      occurrenceDate?: ISODate;
+      preFill?: EditSheetPreFill;
+      guardianEventId?: string;
+      guardianInstance?: string;
+    },
   ) => void;
   closeEditSheet: () => void;
 
@@ -98,6 +108,8 @@ export const useUiStore = create<UiState>()((set) => ({
         scheduleId: options?.scheduleId,
         occurrenceDate: options?.occurrenceDate,
         preFill: options?.preFill,
+        guardianEventId: options?.guardianEventId,
+        guardianInstance: options?.guardianInstance,
       },
     }),
 

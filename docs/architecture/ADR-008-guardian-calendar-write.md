@@ -12,7 +12,7 @@
    - 저장 캘린더 = 설정에서 고른 "새 일정을 저장할 캘린더"(기본 = 기기 기본 캘린더). 쓰기 불가 캘린더는 고를 수 없다.
    - 반복 보호자 일정은 이번 범위 밖(1회성만). 반복이 필요하면 아이폰 캘린더에서.
 3. **알림**: 보호자 일정의 "시작 전 알림"은 **캘린더 이벤트의 알람**으로 저장한다(아이폰 캘린더가 울림). 앱의 알림 스케줄러에는 넣지 않는다 → ADR-002 "새 푸시 surface 금지"와 60개 한도에 영향 없음.
-4. **보기/수정**: 보호자 일정을 누르면 **iOS 기본 일정 화면**(`openEventInCalendarAsync`, 수정 허용)으로 연다. 닫으면 다시 읽는다. (ADR-007 OQ3 해소)
+4. **보기/수정 (2026-11-10 개정)**: 보호자 일정을 누르면 아이 일정과 **같은 앱 상세 화면**(`/event/guardian`: 자녀=보호자, 캘린더, 시작·종료·반복·알림·메모)이 열린다. "수정" = 같은 새 일정 화면(`editGuardian` 모드, 기기 캘린더에 `updateEventAsync`). 삭제 = 일정 삭제 / 반복이면 이 회차만·이후 모두. 반복 보호자 일정의 수정은 그 회차만(`futureEvents:false`). 읽기 전용 캘린더·여러 날 일정은 앱에서 수정 불가 → "아이폰 캘린더에서 열기"(`openEventInCalendarAsync`). (ADR-007 OQ3 해소)
 5. **권한**: iOS 17+ 전체 접근 `NSCalendarsFullAccessUsageDescription` + iOS 15–16용 `NSCalendarsUsageDescription`. 미리 알림 권한은 **요청하지 않는다** — 다만 expo-calendar가 시작 시 미리 알림 권한 상태도 확인하며 설명 문구가 없으면 오류를 내므로(`MissingCalendarPListValueException`, 2026-11-10 실기기 확인) `NSReminders*UsageDescription` 문구는 넣어 둔다. Android `READ/WRITE_CALENDAR`. 권한 요청 시점 = 설정에서 연동을 켤 때 또는 보호자 일정을 처음 저장할 때.
 6. **설정 저장**: `app_settings`의 `guardian_enabled`, `guardian_calendar_ids`(JSON, 없으면 = 일정 캘린더 전부), `guardian_write_calendar_id`. 기기마다 다른 값이라 **JSON 내보내기에서 제외**, 초기화 시 함께 삭제. 사라진 캘린더 ID는 무시.
 7. **사람 6명 레이아웃**: 보호자 2(후속)를 위해 보호자 데이터는 "사람 키" 단위로 다룬다. 지금은 보호자 1(`'guardian'`).

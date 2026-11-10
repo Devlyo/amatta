@@ -284,7 +284,15 @@ export default function RootLayout() {
           options={{
             headerShown: false,
             presentation: 'modal',
-            contentStyle: { backgroundColor: TOKENS.surface },
+            contentStyle: { backgroundColor: TOKENS.groupedBg },
+          }}
+        />
+        <Stack.Screen
+          name="event/guardian"
+          options={{
+            headerShown: false,
+            presentation: 'modal',
+            contentStyle: { backgroundColor: TOKENS.groupedBg },
           }}
         />
         {/* Search — native formSheet route (see app/search/index.tsx). */}

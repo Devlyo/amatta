@@ -56,9 +56,7 @@ import { KidFilterBar } from '../../src/ui/calendar/KidFilterBar';
 import { MonthStrip } from '../../src/ui/calendar/MonthStrip';
 import { useNowMinutes } from '../../src/ui/calendar/useNowMinutes';
 import { useGuardianEvents } from '../../src/ui/calendar/useGuardianEvents';
-import { openGuardianEvent } from '../../src/calendar/guardian-calendar';
 import type { GuardianOccurrence } from '../../src/domain/guardian';
-import { useGuardianStore } from '../../src/state/guardian-store';
 import { WeekView } from '../../src/ui/calendar/WeekView';
 import { TOKENS } from '../../src/ui/palette';
 import {
@@ -389,11 +387,12 @@ export default function CalendarScreen(): React.ReactElement {
       params: { scheduleId: String(occ.scheduleId), occurrenceDate: occ.date },
     });
   };
-  // Guardian event → the system event screen (view / edit), then re-read.
+  // Guardian event → the same detail screen as a kid's event (ADR-008).
   const openGuardian = (g: GuardianOccurrence): void => {
-    void openGuardianEvent(g.eventId, g.instanceStart)
-      .catch(() => undefined)
-      .finally(() => useGuardianStore.getState().invalidate());
+    router.push({
+      pathname: '/event/guardian',
+      params: { eventId: g.eventId, instance: g.instanceStart.toISOString() },
+    });
   };
   const openDay = (date: ISODate): void => {
     setCurrentDate(date);

@@ -124,9 +124,9 @@ export interface NewGuardianEvent {
   alarmMinutesBefore: number | null;
 }
 
-/** Write a guardian event to the device calendar; resolves with its id. */
-export async function createGuardianEvent(calendarId: string, e: NewGuardianEvent): Promise<string> {
-  return need().createEventAsync(calendarId, {
+/** Event fields for a write (create / update). */
+function eventFields(e: NewGuardianEvent) {
+  return {
     title: e.title,
     location: e.location ?? undefined,
     notes: e.notes ?? undefined,
@@ -139,7 +139,86 @@ export async function createGuardianEvent(calendarId: string, e: NewGuardianEven
         ? []
         : [{ relativeOffset: e.allDay ? ALL_DAY_ALERT_BASE_MINUTES - e.alarmMinutesBefore : -e.alarmMinutesBefore }],
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  });
+  };
+}
+
+/** Write a guardian event to the device calendar; resolves with its id. */
+export async function createGuardianEvent(calendarId: string, e: NewGuardianEvent): Promise<string> {
+  return need().createEventAsync(calendarId, eventFields(e));
+}
+
+/** One guardian event as the detail / edit screens need it. */
+export interface GuardianEventDetail {
+  id: string;
+  calendarId: string;
+  title: string;
+  location: string;
+  notes: string;
+  startDate: Date;
+  endDate: Date;
+  allDay: boolean;
+  /** Minutes before the start of its first alarm (all-day: before 08:00), or null. */
+  alarmMinutesBefore: number | null;
+  recurring: boolean;
+  /** Starts and ends on the same day (all-day: one day) — the app's form can edit it. */
+  singleDay: boolean;
+}
+
+function sameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+/** Read one event (the instance starting at `instanceStart` for a recurring one). */
+export async function getGuardianEvent(eventId: string, instanceStart: Date): Promise<GuardianEventDetail> {
+  const e = await need().getEventAsync(eventId, { instanceStartDate: instanceStart });
+  const start = new Date(e.startDate);
+  const end = new Date(e.endDate);
+  const allDay = e.allDay === true;
+  const offset = e.alarms?.[0]?.relativeOffset;
+  const alarm =
+    typeof offset !== 'number' ? null : allDay ? Math.max(0, ALL_DAY_ALERT_BASE_MINUTES - offset) : Math.max(0, -offset);
+  // All-day ends at the next midnight (or 23:59:59 of the same day).
+  const lastMoment = new Date(end.getTime() - 1);
+  return {
+    id: e.id,
+    calendarId: e.calendarId,
+    title: e.title ?? '',
+    location: e.location ?? '',
+    notes: e.notes ?? '',
+    startDate: start,
+    endDate: end,
+    allDay,
+    alarmMinutesBefore: alarm,
+    recurring: e.recurrenceRule !== null && e.recurrenceRule !== undefined,
+    singleDay: allDay ? sameDay(start, lastMoment) : sameDay(start, lastMoment),
+  };
+}
+
+/** Update an event; a recurring one only for the instance at `instanceStart`. */
+export async function updateGuardianEvent(
+  eventId: string,
+  instanceStart: Date,
+  recurring: boolean,
+  e: NewGuardianEvent,
+): Promise<void> {
+  await need().updateEventAsync(
+    eventId,
+    eventFields(e),
+    recurring ? { instanceStartDate: instanceStart, futureEvents: false } : undefined,
+  );
+}
+
+/** Delete an event; a recurring one: this instance, or this and all later ones. */
+export async function deleteGuardianEvent(
+  eventId: string,
+  instanceStart: Date,
+  recurring: boolean,
+  andFuture = false,
+): Promise<void> {
+  await need().deleteEventAsync(
+    eventId,
+    recurring ? { instanceStartDate: instanceStart, futureEvents: andFuture } : undefined,
+  );
 }
 
 /** Show one event (one instance of a recurring one) in the system screen; editing allowed. */
