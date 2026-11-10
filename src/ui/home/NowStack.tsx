@@ -3,7 +3,7 @@
 // deep side bar). Collapsed: the most pressing block on top, the next ones
 // peeking out underneath like an iOS notification stack; tap to fan out.
 
-import { memo, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Reanimated, {
   Easing,
@@ -118,10 +118,35 @@ function formatLeft(minutes: number): string {
   return r === 0 ? `${h}시간 남음` : `${h}시간 ${r}분 남음`;
 }
 
-const GAP = SPACING.sm;
-const FOLD_H = 36;
+const GAP = 6;
+const FOLD_H = 32;
 const DURATION = 340;
 const EST_H = 92;
+
+/**
+ * Where card `index` sits at progress p (0 = folded, 1 = open). Pure, so it
+ * runs as a worklet and is unit-tested.
+ *   open:   listed, GAP apart.
+ *   folded: card 0 on top; cards 1–2 scaled 95% / 90% with their bottom edge
+ *           PEEK_STEP·depth below the top card; the rest faded out.
+ */
+export function cardGeometry(hs: readonly number[], index: number, p: number): { y: number; scale: number; opacity: number } {
+  'worklet';
+  const h0 = hs[0] ?? EST_H;
+  const h = hs[index] ?? EST_H;
+  let openY = 0;
+  for (let i = 0; i < index; i++) openY += (hs[i] ?? EST_H) + GAP;
+  const depth = Math.min(index, MAX_PEEK);
+  const foldScale = 1 - depth * 0.05;
+  // Scale is about the centre, so the scaled bottom sits at y + h·(1+s)/2.
+  const foldY = index === 0 ? 0 : h0 + depth * PEEK_STEP - (h * (1 + foldScale)) / 2;
+  const foldOpacity = index === 0 ? 1 : index <= MAX_PEEK ? 1 - depth * 0.15 : 0;
+  return {
+    y: foldY + (openY - foldY) * p,
+    scale: foldScale + (1 - foldScale) * p,
+    opacity: foldOpacity + (1 - foldOpacity) * p,
+  };
+}
 
 /** One card's resting place: folded (stacked under the top card) vs open (listed). */
 function StackCard({
@@ -130,6 +155,7 @@ function StackCard({
   heights,
   onHeight,
   hidden,
+  base,
   children,
 }: {
   index: number;
@@ -138,27 +164,15 @@ function StackCard({
   onHeight: (index: number, h: number) => void;
   /** Folded and not one of the peeking cards — fully faded. */
   hidden: boolean;
+  /** Opaque base so a card behind never shows through the translucent fill. */
+  base: { backgroundColor: string; borderRadius: number };
   children: React.ReactNode;
 }): React.ReactElement {
   const style = useAnimatedStyle(() => {
-    const hs = heights.value;
-    const h0 = hs[0] ?? EST_H;
-    const h = hs[index] ?? EST_H;
-    let openY = 0;
-    for (let i = 0; i < index; i++) openY += (hs[i] ?? EST_H) + GAP;
-    // Folded: the bottom of card i peeks PEEK_STEP·i below the top card.
-    const depth = Math.min(index, MAX_PEEK);
-    const foldScale = 1 - depth * 0.05;
-    // Scale is about the centre, so the scaled bottom sits at y + h·(1+s)/2.
-    const foldY = index === 0 ? 0 : h0 + depth * PEEK_STEP - (h * (1 + foldScale)) / 2;
-    const p = progress.value;
-    const foldOpacity = index === 0 ? 1 : index <= MAX_PEEK ? 1 - depth * 0.15 : 0;
+    const g = cardGeometry(heights.value, index, progress.value);
     return {
-      transform: [
-        { translateY: interpolate(p, [0, 1], [foldY, openY]) },
-        { scale: interpolate(p, [0, 1], [foldScale, 1]) },
-      ],
-      opacity: interpolate(p, [0, 1], [foldOpacity, 1]),
+      transform: [{ translateY: g.y }, { scale: g.scale }],
+      opacity: g.opacity,
       zIndex: index === 0 ? 10 : 10 - index,
     };
   });
@@ -168,8 +182,9 @@ function StackCard({
   }));
   return (
     <Reanimated.View
-      style={[stackStyles.card, style]}
+      style={[stackStyles.card, base, style]}
       onLayout={(e) => onHeight(index, e.nativeEvent.layout.height)}
+      testID={`now-card-${index}`}
       importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}
       accessibilityElementsHidden={hidden}
     >
@@ -190,11 +205,14 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
     setOpen(next);
     progress.value = withTiming(next ? 1 : 0, { duration: DURATION, easing: Easing.out(Easing.cubic) });
   };
+  // Measured card heights live in a JS ref (several onLayout calls land in the
+  // same tick; reading the shared value back on JS could be stale and leave a
+  // card at the estimate → too-wide gaps). The worklets read the copy.
+  const measured = useRef<number[]>([]);
   const onHeight = (index: number, h: number): void => {
-    const hs = [...heights.value];
-    if (hs[index] === h) return;
-    hs[index] = h;
-    heights.value = hs;
+    if (measured.current[index] === h) return;
+    measured.current[index] = h;
+    heights.value = [...measured.current];
   };
   const n = ordered.length;
   const box = useAnimatedStyle(() => {
@@ -227,6 +245,7 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
             heights={heights}
             onHeight={onHeight}
             hidden={!open && i > 0}
+            base={styles.cardBase}
           >
             <NowBlock kid={kid} row={r} nowMinutes={nowMinutes} />
           </StackCard>
@@ -289,6 +308,7 @@ const useStyles = makeStyles((th) => ({
   track: { height: 4, borderRadius: RADIUS.full, backgroundColor: th.t.surfaceOnFillMuted, overflow: 'hidden' },
   fill: { height: 4, borderRadius: RADIUS.full },
   after: { ...TYPE.footnote, color: withAlpha(th.t.onLight, 0.75) },
+  cardBase: { backgroundColor: th.t.surface, borderRadius: RADIUS.card },
   fold: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.md },
   foldLabel: { ...TYPE.subhead, color: th.t.primaryDeep },
 }));

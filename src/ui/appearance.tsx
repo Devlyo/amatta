@@ -42,7 +42,7 @@ export const LIGHT_THEME: Theme = {
   kid: (ci) => getKidPaletteFor(ci, 'light'),
   blockFill: 0.6,
   blockFillFocused: 0.8,
-  cardFill: 0.35,
+  cardFill: 0.45,
   onGuardianBlock: LIGHT_TOKENS.onLight,
   shadowOpacity: 1,
 };
@@ -53,7 +53,7 @@ export const DARK_THEME: Theme = {
   kid: (ci) => getKidPaletteFor(ci, 'dark'),
   blockFill: 0.85,
   blockFillFocused: 0.95,
-  cardFill: 0.6,
+  cardFill: 0.7,
   onGuardianBlock: DARK_TOKENS.onDark,
   shadowOpacity: 3,
 };
