@@ -161,5 +161,5 @@ function makeFilename(now: Date): string {
   const d = String(now.getDate()).padStart(2, '0');
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
-  return `schedulapp-export-${y}${m}${d}-${hh}${mm}.json`;
+  return `wemoa-export-${y}${m}${d}-${hh}${mm}.json`;
 }

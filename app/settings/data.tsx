@@ -1,7 +1,7 @@
 // 데이터 — JSON export, in the shared settings style (ADR-007 §10). JSON
 // import is a disabled "v1.1 출시 예정" row.
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
@@ -19,15 +19,6 @@ import { SettingsDetailScreen, useSettingsStyles } from '../../src/ui/settings/S
 import { exportDb } from '../../src/utils/db-export';
 import { makeStyles } from '../../src/ui/appearance';
 
-function pad2(n: number): string {
-  return String(n).padStart(2, '0');
-}
-
-function todayFilename(): string {
-  const d = new Date();
-  return `schedulapp-${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}.json`;
-}
-
 export default function DataScreen(): React.ReactElement {
   const ss = useSettingsStyles();
   const styles = useStyles();
@@ -42,8 +33,6 @@ export default function DataScreen(): React.ReactElement {
     for (const items of s.itemsByScheduleId.values()) n += items.length;
     return n;
   });
-
-  const filename = useMemo(todayFilename, []);
 
   const handleExport = async (): Promise<void> => {
     if (exporting) return;
@@ -90,7 +79,6 @@ export default function DataScreen(): React.ReactElement {
           <FormValueRow label="준비물" value={`${checklistCount}건`} />
           <FormValueRow label="할일" value={`${todoCount}건`} last />
         </HomeSection>
-        <Text style={ss.footnote}>{filename} 파일로 저장돼요. 백업용으로 보관할 수 있어요.</Text>
       </View>
 
       <FormGroup>

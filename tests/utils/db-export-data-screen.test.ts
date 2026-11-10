@@ -181,7 +181,7 @@ describe('data.tsx backup-promise consistency', () => {
 
   test('export copy is export-only (restore placeholder must say v1.1)', () => {
     // Guard the UX promise in data.tsx:
-    //   "내보낸 JSON 파일은 백업용으로 보관할 수 있어요. 가져오기(복원)는 v1.1에서 지원돼요."
+    //   "백업한 파일에서 복원하는 기능은 v1.1에서 지원돼요."
     // and the import badge:
     //   "v1.1 출시 예정"
     //
@@ -192,9 +192,8 @@ describe('data.tsx backup-promise consistency', () => {
       resolve(__dirname, '../../app/settings/data.tsx'),
       'utf8',
     );
-    // The note below the export button must mention backup-only + v1.1.
-    expect(src).toContain('백업용');
-    expect(src).toContain('v1.1');
+    // The note below the export button must say restore comes in v1.1.
+    expect(src).toContain('v1.1에서 지원돼요');
     // The import row must carry the "coming in v1.1" badge.
     expect(src).toContain('v1.1 출시 예정');
     // There must NOT be an active import handler wired up — the import section

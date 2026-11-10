@@ -504,13 +504,13 @@ const useStyles = makeStyles((th) => ({
     right: 0,
     top: 0,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: th.t.hair,
+    backgroundColor: th.t.gridLine,
   },
   columnRule: {
     position: 'absolute',
     top: 0,
     width: StyleSheet.hairlineWidth,
-    backgroundColor: th.t.hair,
+    backgroundColor: th.t.gridLine,
   },
   todayColumn: {
     position: 'absolute',

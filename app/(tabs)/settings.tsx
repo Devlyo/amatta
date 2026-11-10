@@ -140,11 +140,9 @@ export default function SettingsScreen(): React.ReactElement {
               </FormValueRow>
             ) : null}
           </HomeSection>
-          <Text style={styles.footnote}>
-            {systemNotif
-              ? '새 일정의 시작 전 알림이 이 시점으로 정해져요.'
-              : '일정 시작 전 알림을 받으려면 켜 주세요.'}
-          </Text>
+          {systemNotif ? null : (
+            <Text style={styles.footnote}>일정 시작 전 알림을 받으려면 켜 주세요.</Text>
+          )}
           {systemNotif && lastScheduleTruncated ? (
             <Text style={styles.footnote} testID="settings-notif-truncated">
               임박한 60개 알림만 예약됐어요
