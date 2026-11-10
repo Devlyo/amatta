@@ -1,6 +1,6 @@
 # 데이터 가져오기 (v1.1) — 실행 계획
 
-ADR-012 (Accepted — 0–2단계 구현 완료, 2026-11-10). Architect/Critic 리뷰 반영 내용은 ADR-012 *Review* 절. 보드 I1–I4. 결정: 전부 바꾸기 / 설정 + 온보딩.
+ADR-012 (Accepted — 0–3단계 완료, 기기 확인 통과, 2026-11-10). Architect/Critic 리뷰 반영 내용은 ADR-012 *Review* 절. 보드 I1–I4. 결정: 전부 바꾸기 / 설정 + 온보딩.
 
 ## 0단계 — 네이티브 모듈 (빌드 1회)
 - `npx expo install expo-document-picker`

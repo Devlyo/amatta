@@ -1,6 +1,6 @@
 # ADR-012 — 데이터 가져오기 (v1.1): 백업 파일로 전부 바꾸기
 
-- **Status**: **Accepted / 0–2단계 구현** (2026-11-10, 기기 확인 대기) — Architect·Critic 리뷰 반영(아래 *Review*). — 오너 "이제 데이터 가져오기 기능 v1.1 기능 넣자" → 방식 "전부 바꾸기", 입구 "설정 + 온보딩"
+- **Status**: **Accepted / 구현 완료** (2026-11-10) — 0–3단계 완료, 기기 확인(내보내기 → 백업 파일로 시작하기) 통과, main 머지 `cc69ef4`. Architect·Critic 리뷰 반영(아래 *Review*). — 오너 "이제 데이터 가져오기 기능 v1.1 기능 넣자" → 방식 "전부 바꾸기", 입구 "설정 + 온보딩"
 - **Source**: 디자인 캔버스(비공개) https://claude.ai/artifact/7378YLCUUr4pMf7SgDfybx — 보드 `I1`–`I4`. 계획: `.omc/plans/ralplan-data-import.md`
 
 ## Context
@@ -27,7 +27,7 @@
 - **v3가 실제 주 입력**(v1.0.0이 schemaVersion 3을 냈음): v3에는 `appSettings`가 없고(→ `[]`), 준비물 소속 정보가 없고(→ NULL 앵커 + 매번, 파일의 `recurring:false`는 mapper 기본값이라 무시), 일정 v8 필드가 없다(→ allDay false, 종료 전 알림 NULL). v1–2는 `tooOld`, 아이 0명은 `empty`로 거절.
 - **배타 트랜잭션은 별도 연결** → `foreign_keys`가 꺼져 있고 BEGIN 안에서 켤 수 없다. 그래서 파일 안의 참조를 미리 검증하고, 지우기는 명시적으로 자식부터, COMMIT 전에 `PRAGMA foreign_key_check`.
 - `is_done/done_at`: **todos는 실제 데이터라 복원**. checklist_items의 FROZEN 값도 그대로 되써서 왕복이 정확히 같다(완료 기준은 여전히 `checklist_completion`).
-- 아이 규칙: 모르는 아바타·중복 아바타·5명 이상은 거절, 색은 아바타에서 다시 계산.
+- 아이 규칙: 5명 이상은 거절, 색은 아바타에서 다시 계산. **아바타 중복은 허용**(마이그레이션 003이 기존 아이 모두에게 `face-wink`를 줬고 앱도 그 상태로 동작함 — 처음엔 거절했다가 기기 확인에서 개발용 예시 데이터 백업이 막혀 수정, `9656137`). 모르는 아바타는 색에 짝지어진 아바타로 바꾼다.
 - `app_settings`: 이 기기의 `guardian_*`만 남기고 지운 뒤 파일 값을 넣는다(파일 안의 `guardian_*`는 무시).
 - **안전 사본**: 설정에서 가져올 때는 바꾸기 전 데이터를 `wemoa-before-restore.json`(앱 문서 폴더, 최신 1개)로 먼저 저장한다. 이 저장이 실패하면 가져오지 않는다.
 - 다시 읽기 순서: 알림 설정 → 화면 설정 → 데이터 6개 → 보호자 invalidate → UI(필터·시트) 초기화 → `rescheduleAll`.
