@@ -10,8 +10,13 @@ import { shiftIsoDate, weekDatesIso, weekStartIso } from '../utils/date';
 export const WEEK_SPAN_MAX = 7;
 export const WEEK_SPAN_MIN = 2;
 export type WeekSpan = number;
-/** At or under this many days the blocks have room for their time range. */
-export const WEEK_SPAN_SHOW_TIME = 4.5;
+/** Opening zoom (2026-11-10): 3 days and a sliver of the 4th, which hints
+ *  that the strip scrolls. Pinches are remembered while the app runs. */
+export const WEEK_SPAN_DEFAULT = 3.2;
+/** More days than this → every event is a lane bar + type icon (no titles). */
+export const WEEK_SPAN_BARS_FROM = 4;
+/** Blocks (≤ 4 days) always have room for their time range. */
+export const WEEK_SPAN_SHOW_TIME = WEEK_SPAN_BARS_FROM;
 
 export function clampWeekSpan(span: number): number {
   'worklet';

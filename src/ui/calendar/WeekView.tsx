@@ -1,13 +1,14 @@
 // Week view — ADR-007 §4 (design boards "2 주간" / "2-2 주간 확대").
 //
 // Day header (요일 + date, today = orange circle) over the shared TimeGrid with
-// one column per day. Events are blocks; overlaps within a day stack via
-// layoutCascade. Pinch-zoomed it shows 4 days and each block gains its time range.
-//
-// School (type 'school', board "2-3 주간 — 학교 막대"): not a block but a thin
-// bar per kid — the day column split evenly by the kids shown, kid colour +
-// side bar + a black school icon, no title. Bars sit under the blocks and take
-// no part in the cascade, so the other events keep their place and width.
+// one column per day. Two drawing modes by how many days fit (boards "2-5" /
+// "2-6", 2026-11-10):
+//   · ≤ 4 days (default 3.2): every event is a block with title + time range;
+//     overlaps within a day stack via layoutCascade.
+//   · > 4 days (5–7): every event is a bar in its person's lane — the day
+//     column split evenly by the people shown (kids, then 보호자 when on),
+//     owner colour + side bar + a black type icon, no title. A person's own
+//     overlapping events stack in their lane, the later one on top.
 
 import { memo, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
@@ -16,13 +17,14 @@ import Reanimated, { useAnimatedStyle, useSharedValue } from 'react-native-reani
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
 import { cascadeStep, clipToDay, layoutCascade } from '../../domain/layout';
 import type { GuardianOccurrence } from '../../domain/guardian';
-import type { Child, ISODate, Occurrence } from '../../domain/types';
-import { IconSchool } from '../icons';
+import type { Child, ISODate, Occurrence, ScheduleType } from '../../domain/types';
+import { IconPerson, KIND_ICON } from '../icons';
 import { withAlpha } from '../palette';
 import { RADIUS } from '../radius';
 import { TYPE } from '../typography';
 import { fmtRange, weekdayKo } from '../utils/date';
 import { AllDayRow, type AllDayItem } from './AllDayRow';
+import { WEEK_SPAN_BARS_FROM } from './calendar-layout';
 import { BLOCK_DIMMED_OPACITY, TimeBlock } from './TimeBlock';
 import { TimeGrid, type LiveColumns, type TimeGridStrip } from './TimeGrid';
 import { initialScrollY, ongoingStart, TIME_GUTTER } from './time-axis';
@@ -78,8 +80,8 @@ interface WeekItem {
   deep: string;
   /** "민준 영어학원" / "보호자 회의" — the accessible name before the time. */
   name: string;
-  /** School → drawn as the kid's bar, outside the cascade. */
-  school: boolean;
+  /** Schedule type (icon in bar mode); 'guardian' for device-calendar events. */
+  kind: ScheduleType | 'guardian';
   onPress?: () => void;
 }
 
@@ -143,6 +145,8 @@ function WeekViewImpl({
   // are laid out (so blocks narrowed by a hidden person's overlap get their
   // width back). Everyone off → nothing is filtered.
   const noneOn = everyone.every((k) => inactive.includes(k));
+  // More than 4 days on screen → bars + icons; otherwise titled blocks.
+  const bars = span > WEEK_SPAN_BARS_FROM;
   const items = useMemo<WeekItem[]>(() => {
     const out: WeekItem[] = [];
     for (const occ of occurrences) {
@@ -160,7 +164,7 @@ function WeekViewImpl({
         color: p.source,
         deep: p.deep,
         name: `${kid.name} ${occ.title}`,
-        school: occ.type === 'school',
+        kind: occ.type,
         onPress: () => onPressOccurrence(occ),
       });
     }
@@ -176,7 +180,7 @@ function WeekViewImpl({
         color: theme.t.guardian,
         deep: theme.t.guardianDeep,
         name: `보호자 ${g.title}`,
-        school: false,
+        kind: 'guardian',
         onPress: onPressGuardian === undefined ? undefined : () => onPressGuardian(g),
       });
     }
@@ -192,7 +196,7 @@ function WeekViewImpl({
     const inputs = [];
     for (const item of visible) {
       if (item.allDay) continue; // drawn in the all-day row
-      if (item.school) continue; // drawn as a bar, outside the cascade
+      if (bars) continue; // bar mode: drawn in the person's lane instead
       const column = columnOfDate.get(item.date as unknown as string);
       if (column === undefined) continue;
       const range = clipToDay(item.start, item.end);
@@ -201,26 +205,33 @@ function WeekViewImpl({
       inputs.push({ id: item.id, column, start: range.start, end: range.end });
     }
     return layoutCascade(inputs).map((p) => ({ ...p, item: byId.get(p.id) as WeekItem }));
-  }, [visible, columnOfDate]);
+  }, [visible, columnOfDate, bars]);
 
-  // School bars: one lane per kid shown (filter order = kid order).
+  // Bar mode: one lane per person shown (kids in order, then 보호자).
   const lanes = useMemo(() => {
-    const shown = noneOn ? kids : kids.filter((k) => !inactive.includes(k.id));
-    return new Map<PersonKey, number>(shown.map((k, i) => [k.id, i]));
-  }, [kids, inactive, noneOn]);
-  const schoolBars = useMemo(() => {
-    const out: { item: WeekItem; column: number; lane: number; start: number; end: number }[] = [];
-    for (const item of visible) {
-      if (!item.school || item.allDay) continue;
+    const shown: PersonKey[] = everyone.filter((k) => noneOn || !inactive.includes(k));
+    return new Map<PersonKey, number>(shown.map((k, i) => [k, i]));
+  }, [everyone, inactive, noneOn]);
+  const laneBars = useMemo(() => {
+    if (!bars) return [];
+    const out: { item: WeekItem; column: number; lane: number; start: number; end: number; stacked: boolean }[] = [];
+    const sorted = visible
+      .filter((i) => !i.allDay)
+      .sort((a, b) => a.start - b.start || b.end - a.end);
+    for (const item of sorted) {
       const column = columnOfDate.get(item.date as unknown as string);
       const lane = lanes.get(item.person);
       if (column === undefined || lane === undefined) continue;
       const range = clipToDay(item.start, item.end);
       if (range === null) continue;
-      out.push({ item, column, lane, start: range.start, end: range.end });
+      // Same person, same day, overlapping an earlier bar → drawn on top of it.
+      const stacked = out.some(
+        (o) => o.column === column && o.lane === lane && o.start < range.end && range.start < o.end,
+      );
+      out.push({ item, column, lane, start: range.start, end: range.end, stacked });
     }
     return out;
-  }, [visible, columnOfDate, lanes]);
+  }, [bars, visible, columnOfDate, lanes]);
 
   const allDayItems = useMemo<AllDayItem[]>(() => {
     const out: AllDayItem[] = [];
@@ -330,26 +341,29 @@ function WeekViewImpl({
               }
         }
         renderColumns={({ live: liveCols, y }) => [
-          ...schoolBars.map(({ item, column, lane, start, end }) => {
+          ...laneBars.map(({ item, column, lane, start, end, stacked }) => {
             const emphasis = emphasisOf(inactive, everyone, item.person);
             const height = Math.max(y(end) - y(start) - 2, MIN_BLOCK_H);
+            const Icon = item.kind === 'guardian' ? IconPerson : KIND_ICON[item.kind];
             return (
               <LiveLaneBox
-                key={`school-${item.id}`}
-                testID={`week-school-${item.id}`}
+                key={`bar-${item.id}`}
+                testID={`week-bar-${item.id}`}
                 live={liveCols}
                 column={column}
                 lane={lane}
                 lanes={lanes.size}
                 top={y(start) + 1}
                 height={height}
+                zIndex={stacked ? 2 : 1}
               >
                 <Pressable
                   onPress={item.onPress}
                   accessibilityRole="button"
                   accessibilityLabel={`${item.name}, ${weekdayKo(item.date)}요일 ${fmtRange(item.start, item.end)}`}
                   style={[
-                    styles.schoolBar,
+                    styles.laneBar,
+                    stacked ? styles.laneBarStacked : null,
                     {
                       backgroundColor: withAlpha(
                         item.color,
@@ -359,8 +373,8 @@ function WeekViewImpl({
                     },
                   ]}
                 >
-                  <View style={[styles.schoolSide, { backgroundColor: item.deep }]} />
-                  <IconSchool size={zoomed ? 12 : 9} color={theme.t.onLight} />
+                  <View style={[styles.laneSide, { backgroundColor: item.deep }]} />
+                  <Icon size={9} color={theme.t.onLight} />
                 </Pressable>
               </LiveLaneBox>
             );
@@ -420,10 +434,10 @@ function LiveCell({ live, children }: { live: LiveColumns; children: React.React
   return <Reanimated.View style={[{ width: columnWidth }, sized]}>{children}</Reanimated.View>;
 }
 
-/** Gap between two kids' school bars in one day column. */
+/** Gap between two people's bars in one day column. */
 const LANE_GAP = 1;
 
-/** A school bar's lane in its day column (column width ÷ kids shown), pinch-live. */
+/** A bar's lane in its day column (column width ÷ people shown), pinch-live. */
 function LiveLaneBox({
   live,
   column,
@@ -431,6 +445,7 @@ function LiveLaneBox({
   lanes,
   top,
   height,
+  zIndex,
   testID,
   children,
 }: {
@@ -440,6 +455,7 @@ function LiveLaneBox({
   lanes: number;
   top: number;
   height: number;
+  zIndex: number;
   testID?: string;
   children: React.ReactNode;
 }): React.ReactElement {
@@ -456,7 +472,7 @@ function LiveLaneBox({
   return (
     <Reanimated.View
       testID={testID}
-      style={[{ position: 'absolute', top, height, zIndex: 0, ...laneOf(columnWidth) }, sized]}
+      style={[{ position: 'absolute', top, height, zIndex, ...laneOf(columnWidth) }, sized]}
     >
       {children}
     </Reanimated.View>
@@ -540,15 +556,17 @@ const useStyles = makeStyles((th) => ({
   },
   headerCircleToday: { backgroundColor: th.t.primary },
   headerNumber: { ...TYPE.subhead, fontFamily: TYPE.mono.fontFamily },
-  // School bar — TimeBlock's fill + side bar, no outline, icon instead of a title.
-  schoolBar: {
+  // Bar mode — TimeBlock's fill + side bar, no outline, icon instead of a title.
+  laneBar: {
     flex: 1,
     borderRadius: RADIUS.xs,
     alignItems: 'center',
     paddingTop: 4,
     overflow: 'hidden',
   },
-  schoolSide: {
+  // A person's own overlapping bar: white ring so it reads as on top.
+  laneBarStacked: { borderWidth: 1.5, borderColor: th.t.surface },
+  laneSide: {
     position: 'absolute',
     left: 1.5,
     top: 1.5,
