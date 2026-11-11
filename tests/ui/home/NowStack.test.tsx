@@ -45,7 +45,7 @@ describe('NowStack', () => {
     render(<NowStack kids={kids} rows={rows} nowMinutes={NOW} />);
     expect(screen.getByTestId('now-stack')).toBeTruthy();
     // 민준 is in progress → always listed.
-    expect(screen.getByText('진행 중 · 40분 남음')).toBeTruthy();
+    expect(screen.getByText('진행 중')).toBeTruthy();
     expect(screen.getByText('다음 4:30PM 수영')).toBeTruthy();
     // 서연 tops the stack; 도윤 is folded behind (hidden from a11y).
     expect(screen.getByLabelText(/^서연, 피아노/)).toBeTruthy();

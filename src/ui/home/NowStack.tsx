@@ -67,8 +67,8 @@ function NowBlock({ kid, row, nowMinutes }: { kid: Child; row: KidNowNext; nowMi
   const live = row.current !== null;
   const span = Math.max(1, occ.endMinutes - occ.startMinutes);
   const progress = live ? Math.min(1, Math.max(0, (nowMinutes - occ.startMinutes) / span)) : 0;
-  const left = occ.endMinutes - nowMinutes;
-  const status = live ? `진행 중 · ${formatLeft(left)}` : row.minutesUntilNext !== null ? formatUntil(row.minutesUntilNext) : '';
+  // Owner 2026-11-11: just "진행 중" — the progress bar shows how far along.
+  const status = live ? '진행 중' : row.minutesUntilNext !== null ? formatUntil(row.minutesUntilNext) : '';
   const range = fmtRange(occ.startMinutes, occ.endMinutes);
   const after = live && row.next !== null ? `다음 ${fmt12hrShort(row.next.startMinutes)} ${row.next.title}` : null;
   return (
@@ -113,13 +113,6 @@ function NowBlock({ kid, row, nowMinutes }: { kid: Child; row: KidNowNext; nowMi
   );
 }
 
-function formatLeft(minutes: number): string {
-  const m = Math.max(0, Math.round(minutes));
-  if (m < 60) return `${m}분 남음`;
-  const h = Math.floor(m / 60);
-  const r = m % 60;
-  return r === 0 ? `${h}시간 남음` : `${h}시간 ${r}분 남음`;
-}
 
 const GAP = 6;
 const FOLD_H = 32;
