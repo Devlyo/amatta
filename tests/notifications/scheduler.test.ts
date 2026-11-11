@@ -515,6 +515,7 @@ describe('end alerts + all-day (v8)', () => {
       .map((n) => ({
         at: (n.trigger as { date: Date }).date.getTime(),
         body: (n.content as { body: string }).body,
+        title: (n.content as { title: string }).title,
       }))
       .filter((n) => n.at < todayAt(24))
       .sort((a, b) => a.at - b.at);
@@ -528,7 +529,7 @@ describe('end alerts + all-day (v8)', () => {
     const today = firesToday();
     expect(today.map((n) => n.at)).toEqual([todayAt(14, 30), todayAt(15, 50)]);
     expect(today[0]?.body).toContain('악보');
-    expect(today[1]?.body).toContain('끝나요');
+    expect(today[1]?.title).toContain('끝나요');
     expect(today[1]?.body).not.toContain('악보');
   });
 
@@ -553,7 +554,7 @@ describe('end alerts + all-day (v8)', () => {
     await rescheduleAll(fakeDb, { now });
     const today = firesToday();
     expect(today.map((n) => n.at)).toEqual([todayAt(7, 30)]);
-    expect(today[0]?.body).toContain('하루 종일');
+    expect(today[0]?.title).toContain('하루 종일');
   });
 
   test('end alerts count toward the 60 cap (soonest first)', async () => {
