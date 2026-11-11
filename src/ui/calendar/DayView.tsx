@@ -3,7 +3,7 @@
 // Guardian events come from the device calendar (ADR-008) and fill the last
 // column in the guardian grey.
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { cascadeStep, clipToDay, layoutCascade } from '../../domain/layout';
@@ -14,6 +14,7 @@ import { fanOutByMember } from '../../domain/occurrences';
 import { fmtRange } from '../utils/date';
 import { MemberFaces } from '../common/MemberFaces';
 import { AllDayRow, type AllDayItem } from './AllDayRow';
+import { DraggableBlock } from './DraggableBlock';
 import { TimeBlock } from './TimeBlock';
 import { TimeGrid } from './TimeGrid';
 import { DEFAULT_HOUR_HEIGHT, initialScrollY, ongoingStart } from './time-axis';
@@ -47,6 +48,8 @@ interface Props {
   /** This day's guardian (device calendar) events. */
   guardianEvents?: readonly GuardianOccurrence[];
   onPressGuardian?: (ev: GuardianOccurrence) => void;
+  /** ADR-015: a block dragged to a new start (minutes delta). Resolve true when it moved. */
+  onMoveOccurrence?: (occ: Occurrence, deltaMinutes: number) => Promise<boolean>;
 }
 
 type Placed =
@@ -74,9 +77,12 @@ function DayViewImpl({
   guardianEvents = [],
   guardian = true,
   onPressGuardian,
+  onMoveOccurrence,
 }: Props): React.ReactElement {
   const theme = useTheme();
   const styles = useStyles();
+  // ADR-015: the block being dragged shows its new range live.
+  const [preview, setPreview] = useState<{ id: string; d: number } | null>(null);
   // People switched off in the filter are hidden (no column, no blocks) —
   // only the people that are on share the width. Everyone off → every
   // column stays, empty.
@@ -235,21 +241,43 @@ function DayViewImpl({
             const height = Math.max(y(end) - y(start) - 2, MIN_BLOCK_H);
             const compact = columns >= 5; // 5+ columns → week-style compact blocks
             const showTime = columns < 5 || columnWidth >= 64; // time only if it fits
+            const drag = (occ: Occurrence, block: React.ReactElement): React.ReactElement => (
+              <DraggableBlock
+                key={id}
+                enabled={onMoveOccurrence !== undefined}
+                startMinutes={occ.startMinutes}
+                endMinutes={occ.endMinutes}
+                pxPerMin={DEFAULT_HOUR_HEIGHT / 60}
+                placeKey={`${occ.date as unknown as string}|${occ.startMinutes}|${occ.endMinutes}`}
+                onPreview={(d) => setPreview(d === null ? null : { id, d })}
+                onDrop={(d) => (onMoveOccurrence === undefined ? Promise.resolve(false) : onMoveOccurrence(occ, d))}
+                testID={`${testID === 'day-view' ? 'day-block' : `${testID}-block`}-${id}`}
+                slotTestID={`${testID === 'day-view' ? 'day-slot' : `${testID}-slot`}-${id}`}
+                style={{ position: 'absolute', top, left: column * columnWidth + 2 + indent, width: columnWidth - 4 - indent, height, zIndex: level + 1 }}
+              >
+                {block}
+              </DraggableBlock>
+            );
+            const shown = (occ: Occurrence): { s: number; e: number } => {
+              const d = preview !== null && preview.id === id ? preview.d : 0;
+              return { s: occ.startMinutes + d, e: occ.endMinutes + d };
+            };
             if (item.kind === 'shared') {
               const occ = item.occ;
               const emphasis = emphasisOf(inactive, everyone, 'guardian');
-              return (
+              const t = shown(occ);
+              return drag(
+                occ,
                 <TimeBlock
-                  key={id}
                   testID={`${testID === 'day-view' ? 'day-block' : `${testID}-block`}-${id}`}
-                  top={top}
-                  left={column * columnWidth + 2 + indent}
+                  top={0}
+                  left={0}
                   width={columnWidth - 4 - indent}
                   height={height}
                   level={level}
                   title={occ.title}
-                  startMinutes={occ.startMinutes}
-                  endMinutes={occ.endMinutes}
+                  startMinutes={t.s}
+                  endMinutes={t.e}
                   color={theme.t.guardian}
                   guardian
                   deep={theme.t.guardianDeep}
@@ -261,7 +289,8 @@ function DayViewImpl({
                   footer={facesOf(occ)}
                   accessibilityLabel={`보호자 ${occ.title}, ${fmtRange(occ.startMinutes, occ.endMinutes)}`}
                   onPress={() => onPressOccurrence(occ)}
-                />
+                  holdToDrag={onMoveOccurrence !== undefined}
+                />,
               );
             }
             if (item.kind === 'guardian') {
@@ -296,18 +325,19 @@ function DayViewImpl({
             if (kid === undefined) return null;
             const palette = theme.kid(occ.colorIndex);
             const emphasis = emphasisOf(inactive, everyone, kid.id);
-            return (
+            const t = shown(occ);
+            return drag(
+              occ,
               <TimeBlock
-                key={id}
                 testID={`${testID === 'day-view' ? 'day-block' : `${testID}-block`}-${id}`}
-                top={top}
-                left={column * columnWidth + 2 + indent}
+                top={0}
+                left={0}
                 width={columnWidth - 4 - indent}
                 height={height}
                 level={level}
                 title={occ.title}
-                startMinutes={occ.startMinutes}
-                endMinutes={occ.endMinutes}
+                startMinutes={t.s}
+                endMinutes={t.e}
                 color={palette.source}
                 deep={palette.bar}
                 focused={emphasis === 'solo'}
@@ -318,7 +348,8 @@ function DayViewImpl({
                 footer={facesOf(occ)}
                 accessibilityLabel={`${kid.name} ${occ.title}, ${fmtRange(occ.startMinutes, occ.endMinutes)}${level > 0 ? ', 다른 일정과 시간이 겹침' : ''}`}
                 onPress={() => onPressOccurrence(occ)}
-              />
+                holdToDrag={onMoveOccurrence !== undefined}
+              />,
             );
           })
         }

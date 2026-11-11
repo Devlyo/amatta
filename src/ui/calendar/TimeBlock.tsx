@@ -51,6 +51,9 @@ export interface TimeBlockProps {
   footer?: React.ReactNode;
   accessibilityLabel: string;
   onPress?: () => void;
+  /** Draggable blocks: a hold lifts the block for dragging, so it must not
+   *  also count as a tap (ADR-015). */
+  holdToDrag?: boolean;
   testID?: string;
 }
 
@@ -74,6 +77,7 @@ function TimeBlockImpl({
   footer,
   accessibilityLabel,
   onPress,
+  holdToDrag = false,
   testID,
 }: TimeBlockProps): React.ReactElement {
   const theme = useTheme();
@@ -85,6 +89,8 @@ function TimeBlockImpl({
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={holdToDrag ? () => {} : undefined}
+      delayLongPress={holdToDrag ? 300 : undefined}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       testID={testID}

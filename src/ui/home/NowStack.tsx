@@ -178,6 +178,16 @@ export function cardGeometry(
   };
 }
 
+/** Measured heights (by kid) laid out in the current card order. */
+export function heightsInOrder(byKid: ReadonlyMap<number, number>, order: readonly number[]): number[] {
+  const hs: number[] = [];
+  order.forEach((id, i) => {
+    const h = byKid.get(id);
+    if (h !== undefined) hs[i] = h;
+  });
+  return hs;
+}
+
 /** Folded height of the whole stack (listed live cards + the stack). */
 export function foldedHeight(hs: readonly number[], n: number, live: number): number {
   'worklet';
@@ -204,7 +214,7 @@ function StackCard({
   live: number;
   progress: SharedValue<number>;
   heights: SharedValue<number[]>;
-  onHeight: (index: number, h: number) => void;
+  onHeight: (h: number) => void;
   /** Folded and not one of the peeking cards — fully faded. */
   hidden: boolean;
   /** Opaque base so a card behind never shows through the translucent fill. */
@@ -241,7 +251,7 @@ function StackCard({
       accessibilityElementsHidden={hidden}
     >
       <Reanimated.View style={[stackStyles.clip, base, clip]}>
-        <Reanimated.View style={content} onLayout={(e) => onHeight(index, e.nativeEvent.layout.height)} testID={`now-card-body-${index}`}>
+        <Reanimated.View style={content} onLayout={(e) => onHeight(e.nativeEvent.layout.height)} testID={`now-card-body-${index}`}>
           {children}
         </Reanimated.View>
         {/* Lighter by one step per level while folded (no extra fade). */}
@@ -267,13 +277,26 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
   // Measured card heights live in a JS ref (several onLayout calls land in the
   // same tick; reading the shared value back on JS could be stale and leave a
   // card at the estimate → too-wide gaps). The worklets read the copy.
-  const measured = useRef<number[]>([]);
-  const onHeight = (index: number, h: number): void => {
-    if (measured.current[index] === h) return;
-    measured.current[index] = h;
-    heights.value = [...measured.current];
+  // Keyed by kid, not position: the order changes as schedules start and end,
+  // and a card that only moved doesn't re-measure (its size didn't change) —
+  // a by-index height then belonged to another kid's card (clipped / too tall).
+  const measured = useRef(new Map<number, number>());
+  const push = (order: readonly KidNowNext[]): void => {
+    heights.value = heightsInOrder(measured.current, order.map((r) => r.childId));
+  };
+  const orderRef = useRef<readonly KidNowNext[]>([]);
+  const onHeight = (childId: number, h: number): void => {
+    if (measured.current.get(childId) === h) return;
+    measured.current.set(childId, h);
+    push(orderRef.current);
   };
   const n = ordered.length;
+  orderRef.current = ordered;
+  const orderKey = ordered.map((r) => r.childId).join(',');
+  useEffect(() => {
+    push(orderRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderKey]);
   // In-progress kids are always listed; only the rest stack (owner, 2026-11-11).
   const liveCount = ordered.filter((r) => r.status === 'inProgress').length;
   // In-progress cards stay listed above a stack of the rest — when the rest is
@@ -330,7 +353,7 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
             index={i}
             progress={progress}
             heights={heights}
-            onHeight={onHeight}
+            onHeight={(h) => onHeight(r.childId, h)}
             hidden={foldable && !open && i > live}
             base={{ backgroundColor: baseColor(r), borderRadius: RADIUS.card }}
             lift={styles.cardLift}

@@ -7,7 +7,7 @@
 // and an axis mapper, so day/week wrappers only decide *what* goes in which
 // column — never how the axis is drawn.
 
-import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Reanimated, {
   runOnJS,
@@ -43,6 +43,13 @@ import { makeStyles, useTheme } from '../appearance';
  * instead (UI thread, every frame). Worklets read the fields as locals —
  * destructure first, never call through the object.
  */
+/** Lets a dragged block freeze the grid's scrolling (ADR-015). */
+export interface TimeGridDrag {
+  begin: () => void;
+  end: () => void;
+}
+export const TimeGridDragContext = createContext<TimeGridDrag | null>(null);
+
 export interface LiveColumns {
   span: SharedValue<number>;
   sizing: SharedValue<boolean>;
@@ -253,7 +260,23 @@ function TimeGridImpl({
     const w = sizingSV.value && spanSV.value > 0 ? viewportW / spanSV.value : columnWidth;
     return { width: columns * w };
   });
-  const stripProps = useAnimatedProps(() => ({ scrollEnabled: scrollable && !locked.value }));
+  // A block being dragged (DraggableBlock) freezes both scroll directions.
+  const dragLock = useSharedValue(false);
+  const [dragging, setDragging] = useState(false);
+  const drag = useMemo<TimeGridDrag>(
+    () => ({
+      begin: () => {
+        dragLock.value = true;
+        setDragging(true);
+      },
+      end: () => {
+        dragLock.value = false;
+        setDragging(false);
+      },
+    }),
+    [dragLock],
+  );
+  const stripProps = useAnimatedProps(() => ({ scrollEnabled: scrollable && !locked.value && !dragLock.value }));
   const height = axisHeight(hourHeight);
   const y = useMemo(() => (m: number) => minutesToY(m, hourHeight), [hourHeight]);
 
@@ -303,9 +326,11 @@ function TimeGridImpl({
     .onStart((e) => startDraft(e.x, e.y));
 
   return (
+    <TimeGridDragContext.Provider value={drag}>
     <ScrollView
       ref={scrollRef}
       testID={testID}
+      scrollEnabled={!dragging}
       onLayout={onLayout}
       contentOffset={{ x: 0, y: openY }}
       directionalLockEnabled
@@ -436,6 +461,7 @@ function TimeGridImpl({
         </View>
       ) : null}
     </ScrollView>
+    </TimeGridDragContext.Provider>
   );
 }
 

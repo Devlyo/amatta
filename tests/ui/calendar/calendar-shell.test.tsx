@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { State } from 'react-native-gesture-handler';
 import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 import { StyleSheet } from 'react-native';
@@ -155,8 +155,8 @@ describe('DayView', () => {
     renderDay([]);
     expect(screen.getByText('영어학원')).toBeTruthy();
     expect(screen.getByText('피아노')).toBeTruthy();
-    const under = StyleSheet.flatten(screen.getByTestId('day-block-10').props.style) as { zIndex: number; left: number };
-    const over = StyleSheet.flatten(screen.getByTestId('day-block-11').props.style) as { zIndex: number; left: number };
+    const under = StyleSheet.flatten(screen.getByTestId('day-slot-10').props.style) as { zIndex: number; left: number };
+    const over = StyleSheet.flatten(screen.getByTestId('day-slot-11').props.style) as { zIndex: number; left: number };
     expect(over.zIndex).toBeGreaterThan(under.zIndex);
     expect(over.left).toBeGreaterThan(under.left);
   });
@@ -233,5 +233,31 @@ describe('KidFilterBar — up to 6 kids + 보호자', () => {
     // The pill (button) keeps the name as its label; the avatar image repeats it.
     expect(screen.getByRole('button', { name: '아이6' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '보호자' })).toBeTruthy();
+  });
+});
+
+describe('DayView — hold and drag a block (ADR-015)', () => {
+  test('dragging 1 hour down (snapped to 15 min) reports the move', async () => {
+    const onMove = jest.fn().mockResolvedValue(true);
+    render(
+      <DayView
+        kids={kids}
+        occurrences={[occ(10, 1, 16 * 60, 17 * 60, '영어학원')]}
+        nowMinutes={null}
+        inactive={[]}
+        scrollKey="2026-11-10"
+        onPressOccurrence={() => {}}
+        onMoveOccurrence={onMove}
+      />,
+    );
+    fireEvent(screen.getByTestId('day-view'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: TIME_GUTTER + 3 * 100, height: 600 } },
+    });
+    fireGestureHandler(getByGestureTestId('day-block-10-drag'), [
+      { state: State.BEGAN, translationY: 0, translationX: 0 },
+      { state: State.ACTIVE, translationY: 30, translationX: 0 },
+      { state: State.END, translationY: 46 + 4, translationX: 0 },
+    ]);
+    await waitFor(() => expect(onMove).toHaveBeenCalledWith(expect.objectContaining({ scheduleId: 10 }), 60));
   });
 });

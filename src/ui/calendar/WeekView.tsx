@@ -26,6 +26,7 @@ import { fmtRange, weekdayKo } from '../utils/date';
 import { MemberFaces } from '../common/MemberFaces';
 import { AllDayRow, type AllDayItem } from './AllDayRow';
 import { WEEK_SPAN_BARS_FROM } from './calendar-layout';
+import { DraggableBlock } from './DraggableBlock';
 import { BLOCK_DIMMED_OPACITY, TimeBlock } from './TimeBlock';
 import { TimeGrid, type LiveColumns, type TimeGridStrip } from './TimeGrid';
 import { initialScrollY, ongoingStart, TIME_GUTTER } from './time-axis';
@@ -66,6 +67,8 @@ interface Props {
   /** Guardian (device calendar) events for the rendered days. */
   guardianEvents?: readonly GuardianOccurrence[];
   onPressGuardian?: (ev: GuardianOccurrence) => void;
+  /** ADR-015: a block dragged to a new start / day. Resolve true when it moved. */
+  onMoveOccurrence?: (occ: Occurrence, deltaMinutes: number, deltaDays: number) => Promise<boolean>;
 }
 
 /** A kid occurrence or a guardian event, in one shape for layout + drawing. */
@@ -85,6 +88,8 @@ interface WeekItem {
   kind: ScheduleType | 'guardian';
   /** ADR-013 block mode: stacked faces of a shared schedule. */
   faces?: React.ReactNode;
+  /** The WeMoa occurrence behind it (absent for device-calendar events) — draggable (ADR-015). */
+  occ?: Occurrence;
   onPress?: () => void;
 }
 
@@ -107,10 +112,13 @@ function WeekViewImpl({
   guardianEvents = [],
   guardian = true,
   onPressGuardian,
+  onMoveOccurrence,
 }: Props): React.ReactElement {
   const theme = useTheme();
   const styles = useStyles();
   const [width, setWidth] = useState(0);
+  // ADR-015: the block being dragged shows its new range live.
+  const [preview, setPreview] = useState<{ id: string; d: number } | null>(null);
   const onLayout = (e: LayoutChangeEvent): void => setWidth(e.nativeEvent.layout.width);
   const viewportW = Math.max(0, width - TIME_GUTTER);
   // Column width that follows a live pinch; shared by header, all-day row and grid.
@@ -186,6 +194,7 @@ function WeekViewImpl({
               />
             ) : undefined,
           onPress: () => onPressOccurrence(occ),
+          occ,
         });
       }
     }
@@ -415,6 +424,24 @@ function WeekViewImpl({
                 top={y(start) + 1}
                 height={height}
               >
+              <DraggableBlock
+                enabled={onMoveOccurrence !== undefined && item.occ !== undefined && !item.allDay}
+                startMinutes={item.start}
+                endMinutes={item.end}
+                pxPerMin={HOUR_HEIGHT / 60}
+                columnWidth={liveCols.columnWidth}
+                minColumnDelta={firstColumn - column}
+                maxColumnDelta={firstColumn + days.length - 1 - column}
+                placeKey={`${item.date as unknown as string}|${item.start}|${item.end}`}
+                onPreview={(d) => setPreview(d === null ? null : { id, d })}
+                onDrop={(d, dc) =>
+                  onMoveOccurrence === undefined || item.occ === undefined
+                    ? Promise.resolve(false)
+                    : onMoveOccurrence(item.occ, d, dc)
+                }
+                testID={`week-block-${id}`}
+                style={{ flex: 1 }}
+              >
               <TimeBlock
                 testID={`week-block-${id}`}
                 compact
@@ -425,8 +452,8 @@ function WeekViewImpl({
                 height={height}
                 level={level}
                 title={item.title}
-                startMinutes={item.start}
-                endMinutes={item.end}
+                startMinutes={item.start + (preview?.id === id ? preview.d : 0)}
+                endMinutes={item.end + (preview?.id === id ? preview.d : 0)}
                 color={item.color}
                 guardian={item.person === 'guardian'}
                 deep={item.deep}
@@ -435,7 +462,9 @@ function WeekViewImpl({
                 footer={item.faces}
                 accessibilityLabel={`${item.name}, ${weekdayKo(item.date)}요일 ${fmtRange(item.start, item.end)}${level > 0 ? ', 다른 일정과 시간이 겹침' : ''}`}
                 onPress={item.onPress}
+                holdToDrag={onMoveOccurrence !== undefined && item.occ !== undefined}
               />
+              </DraggableBlock>
               </LiveBlockBox>
             );
           }),
