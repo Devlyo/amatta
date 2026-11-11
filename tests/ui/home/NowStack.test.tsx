@@ -124,3 +124,16 @@ describe('cardGeometry', () => {
     expect(g.y + (g.height * (1 + g.scale)) / 2).toBeCloseTo(62 + 11);
   });
 });
+
+describe('nowCardColor (board H5 D1.5)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { nowCardColor } = require('../../../src/ui/home/NowStack') as typeof import('../../../src/ui/home/NowStack');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { mixHex } = require('../../../src/ui/palette') as typeof import('../../../src/ui/palette');
+  test('light: solid, 18% toward deep; dark: 70% kid colour over the surface', () => {
+    const p = { source: '#C0F0AA', deep: '#5E9E40' };
+    expect(nowCardColor({ scheme: 'light', t: { surface: '#FFFFFF' } }, p)).toBe(mixHex('#C0F0AA', '#5E9E40', 0.18));
+    expect(nowCardColor({ scheme: 'dark', t: { surface: '#272523' } }, p)).toBe(mixHex('#272523', '#C0F0AA', 0.7));
+    expect(mixHex('#000000', '#FFFFFF', 0.5)).toBe('#808080');
+  });
+});

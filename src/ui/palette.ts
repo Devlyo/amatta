@@ -63,6 +63,18 @@ export function getKidPalette(colorIndex: ColorIndex): KidPalette {
  * opacity, for time blocks (0.6), focused-kid blocks (0.8) and filter pills
  * (0.25). Alpha is always applied to `source`, never composited onto `bg`.
  */
+/** Opaque blend a→b by t (0..1) of two `#RRGGBB` colours. */
+export function mixHex(a: string, b: string, t: number): string {
+  const pa = Number.parseInt(a.slice(1), 16);
+  const pb = Number.parseInt(b.slice(1), 16);
+  const ch = (shift: number): string => {
+    const x = (pa >> shift) & 255;
+    const y = (pb >> shift) & 255;
+    return Math.round(x + (y - x) * t).toString(16).padStart(2, '0');
+  };
+  return `#${ch(16)}${ch(8)}${ch(0)}`.toUpperCase();
+}
+
 export function withAlpha(hex: string, alpha: number): string {
   const n = Number.parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;

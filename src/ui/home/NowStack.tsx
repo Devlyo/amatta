@@ -19,7 +19,7 @@ import type { Child } from '../../domain/types';
 import { KidAvatar } from '../common/KidAvatar';
 import { elevationFor } from '../elevation';
 import { IconClock } from '../icons';
-import { withAlpha } from '../palette';
+import { mixHex, withAlpha } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
@@ -47,6 +47,12 @@ export function orderForStack(rows: readonly KidNowNext[]): KidNowNext[] {
   return [...rows].sort((a, b) => rank(a) - rank(b) || key(a) - key(b) || a.childId - b.childId);
 }
 
+/** Board H5 "D1.5": solid kid colour, 18% toward deep (light); dark = 70% over the surface. */
+export function nowCardColor(theme: { scheme: 'light' | 'dark'; t: { surface: string } }, p: { source: string; deep: string }): string {
+  return theme.scheme === 'dark' ? mixHex(theme.t.surface, p.source, 0.7) : mixHex(p.source, p.deep, NOW_CARD_DEEPEN);
+}
+const NOW_CARD_DEEPEN = 0.18;
+
 function NowBlock({ kid, row, nowMinutes }: { kid: Child; row: KidNowNext; nowMinutes: number }): React.ReactElement {
   const theme = useTheme();
   const styles = useStyles();
@@ -73,18 +79,17 @@ function NowBlock({ kid, row, nowMinutes }: { kid: Child; row: KidNowNext; nowMi
   const after = live && row.next !== null ? `다음 ${fmt12hrShort(row.next.startMinutes)} ${row.next.title}` : null;
   return (
     <View
-      // Board H4-A (2026-11-11): white card, kid colour only as accents — light
-      // pastels at 45% sank into the grey page.
-      style={[styles.block, styles.blockWhite]}
+      // Board H5 "D1.5" (2026-11-11): no side bar; the whole card in a solid kid
+      // colour 18% toward its deep tone (light pastels at 45% sank into the page).
+      style={[styles.block, { backgroundColor: nowCardColor(theme, p) }]}
       accessible
       accessibilityLabel={`${kid.name}, ${occ.title} ${range}, ${status}${after !== null ? `, ${after}` : ''}`}
       testID={`now-block-${kid.id}`}
     >
-      <View style={[styles.bar, { backgroundColor: p.deep }]} />
       <View style={styles.top}>
         <KidAvatar child={kid} size={34} />
         <View style={styles.text}>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text style={styles.nameOnCard} numberOfLines={1}>
             {kid.name}
           </Text>
           <Text style={styles.title} numberOfLines={1}>
@@ -93,16 +98,16 @@ function NowBlock({ kid, row, nowMinutes }: { kid: Child; row: KidNowNext; nowMi
         </View>
         <View style={styles.right}>
           <View style={styles.timeRow}>
-            <IconClock size={12} color={theme.t.ink} />
+            <IconClock size={12} color={theme.t.onLight} />
             <Text style={styles.time}>{range}</Text>
           </View>
-          <View style={[styles.pill, live ? { backgroundColor: withAlpha(p.source, theme.cardFill) } : styles.pillMuted]}>
+          <View style={[styles.pill, live ? styles.pillLive : styles.pillMuted]}>
             <Text style={[styles.pillLabel, live ? null : styles.pillLabelMuted]}>{status}</Text>
           </View>
         </View>
       </View>
       {live ? (
-        <View style={[styles.track, { backgroundColor: withAlpha(p.source, 0.3) }]}>
+        <View style={styles.track}>
           <View style={[styles.fill, { width: `${Math.round(progress * 100)}%`, backgroundColor: p.deep }]} />
         </View>
       ) : null}
@@ -353,23 +358,24 @@ const useStyles = makeStyles((th) => ({
     overflow: 'hidden',
   },
   blockEmpty: { backgroundColor: th.t.surface, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  blockWhite: { backgroundColor: th.t.surface },
-  bar: { position: 'absolute', left: 7, top: SPACING.md, bottom: SPACING.md, width: 4, borderRadius: 2 },
+
   top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   text: { flex: 1, minWidth: 0, gap: 1 },
   name: { ...TYPE.footnote, color: th.t.inkSub },
-  title: { ...TYPE.headline, color: th.t.ink },
+  nameOnCard: { ...TYPE.footnote, color: withAlpha(th.t.onLight, 0.62) },
+  title: { ...TYPE.headline, color: th.t.onLight },
   empty: { ...TYPE.subhead, color: th.t.inkSub },
   right: { alignItems: 'flex-end', gap: 5 },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  time: { ...TYPE.footnote, color: th.t.ink },
+  time: { ...TYPE.footnote, color: th.t.onLight },
   pill: { height: 22, paddingHorizontal: 9, borderRadius: RADIUS.full, justifyContent: 'center' },
-  pillMuted: { backgroundColor: th.t.ink06 },
+  pillLive: { backgroundColor: th.t.surfaceOnFill },
+  pillMuted: { backgroundColor: th.t.surfaceOnFillMuted },
   pillLabel: { ...TYPE.caption, color: th.t.onLight },
-  pillLabelMuted: { color: th.t.inkSub },
-  track: { height: 4, borderRadius: RADIUS.full, overflow: 'hidden' },
+  pillLabelMuted: { color: withAlpha(th.t.onLight, 0.7) },
+  track: { height: 4, borderRadius: RADIUS.full, backgroundColor: th.t.surfaceOnFillMuted, overflow: 'hidden' },
   fill: { height: 4, borderRadius: RADIUS.full },
-  after: { ...TYPE.footnote, color: th.t.inkSub },
+  after: { ...TYPE.footnote, color: withAlpha(th.t.onLight, 0.62) },
   cardBase: { backgroundColor: th.t.surface, borderRadius: RADIUS.card },
   cardLift: { ...elevationFor(th).stack },
   fold: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.md },
