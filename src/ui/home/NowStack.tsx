@@ -14,8 +14,6 @@ import Reanimated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import Ionicons from '@expo/vector-icons/Ionicons';
-
 import { formatUntil, type KidNowNext } from '../../domain/now-next';
 import type { Child } from '../../domain/types';
 import { KidAvatar } from '../common/KidAvatar';
@@ -117,7 +115,7 @@ function NowBlock({ kid, row, nowMinutes }: { kid: Child; row: KidNowNext; nowMi
 
 
 const GAP = 6;
-const FOLD_H = 46;
+const FOLD_H = 32;
 const DURATION = 340;
 const EST_H = 92;
 
@@ -242,7 +240,6 @@ function StackCard({
 
 function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | null {
   const styles = useStyles();
-  const theme = useTheme();
   const [open, setOpen] = useState(false);
   const progress = useSharedValue(0);
   const heights = useSharedValue<number[]>([]);
@@ -324,8 +321,7 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
       ) : null}
       {foldable ? (
         <Reanimated.View style={[stackStyles.foldRow, foldBtn]} pointerEvents={open ? 'auto' : 'none'}>
-          <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel="접기" hitSlop={8} style={styles.fold} testID="now-stack-fold">
-            <Ionicons name="chevron-up" size={14} color={theme.t.ink70} />
+          <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel="접기" hitSlop={8} style={styles.fold}>
             <Text style={styles.foldLabel}>접기</Text>
           </Pressable>
         </Reanimated.View>
@@ -340,7 +336,7 @@ const stackStyles = StyleSheet.create({
   clip: { flex: 1, overflow: 'hidden' },
   wash: { ...StyleSheet.absoluteFillObject },
   cover: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20 },
-  foldRow: { position: 'absolute', left: 0, right: 0, bottom: 0, height: FOLD_H, alignItems: 'center', justifyContent: 'flex-end', zIndex: 30 },
+  foldRow: { position: 'absolute', left: 0, right: 0, bottom: 0, height: FOLD_H, alignItems: 'center', justifyContent: 'center' },
 });
 
 export const NowStack = memo(NowStackImpl);
@@ -375,15 +371,6 @@ const useStyles = makeStyles((th) => ({
   after: { ...TYPE.footnote, color: withAlpha(th.t.onLight, 0.75) },
   cardBase: { backgroundColor: th.t.surface, borderRadius: RADIUS.card },
   cardLift: { ...elevationFor(th).stack },
-  // iOS "간략히 보기"-style capsule.
-  fold: {
-    height: 34,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 14,
-    borderRadius: RADIUS.full,
-    backgroundColor: th.t.ink06,
-  },
-  foldLabel: { ...TYPE.subhead, fontFamily: TYPE.headline.fontFamily, color: th.t.ink70 },
+  fold: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.md },
+  foldLabel: { ...TYPE.subhead, color: th.t.primaryDeep },
 }));
