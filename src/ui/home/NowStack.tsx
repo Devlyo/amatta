@@ -162,8 +162,8 @@ export function cardGeometry(
     height: foldH + (h - foldH) * p,
     wash: foldWash * (1 - p),
     radius: foldRadius + (RADIUS.card - foldRadius) * p,
-    // Soft shadow under the stack's top card while folded.
-    lift: j === 0 ? 1 - p : 0,
+    // Soft all-round shadow behind every stacked card while folded.
+    lift: j <= MAX_PEEK ? 1 - p : 0,
   };
 }
 

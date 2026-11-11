@@ -98,6 +98,9 @@ describe('cardGeometry', () => {
     expect(cardGeometry(hs, 1, 0).opacity).toBeCloseTo(0.94);
     expect(cardGeometry(hs, 2, 0).opacity).toBeCloseTo(0.88);
     expect(cardGeometry(hs, 0, 0).lift).toBe(1);
+    expect(cardGeometry(hs, 2, 0).lift).toBe(1);
+    expect(cardGeometry(hs, 3, 0).lift).toBe(0);
+    expect(cardGeometry(hs, 1, 1).lift).toBe(0);
     expect(cardGeometry(hs, 1, 0).radius).toBeLessThan(22);
     expect(cardGeometry(hs, 1, 0).scale).toBeCloseTo(0.95);
     expect(cardGeometry(hs, 2, 0).scale).toBeCloseTo(0.9);

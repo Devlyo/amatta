@@ -32,11 +32,12 @@ export const ELEVATION = {
 
   // ADR-014: the card on top of the home 지금 stack — a soft lift so the cards
   // peeking underneath read as separate layers (iOS notification stack).
+  // Owner 2026-11-11: a light shadow all around each stacked card (no offset).
   stack: {
     shadowColor: LIGHT_TOKENS.shadow,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.12,
-    shadowRadius: 6,
+    shadowRadius: 8,
     elevation: 3,
   },
 } as const satisfies Record<string, ViewStyle>;
