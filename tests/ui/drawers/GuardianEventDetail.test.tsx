@@ -46,7 +46,7 @@ test('same rows as a kid event: 보호자, calendar, times, alert, memo; 수정 
   const { findByLabelText, getByLabelText, getByText } = render(
     <GuardianEventDetailContent eventId="e1" instance={instance} instanceEnd={instanceEnd} onClose={() => {}} />,
   );
-  expect(await findByLabelText('자녀: 보호자')).toBeTruthy();
+  expect(await findByLabelText('참여: 보호자')).toBeTruthy();
   expect(getByLabelText('캘린더: 집')).toBeTruthy();
   expect(getByLabelText('시작: 2026. 11. 12. 3:00 PM')).toBeTruthy();
   expect(getByLabelText('종료: 4:30 PM')).toBeTruthy();
@@ -85,7 +85,7 @@ test('reads by id only (no instance date — the native lookup by instance is br
   const { findByLabelText } = render(
     <GuardianEventDetailContent eventId="e1" instance={instance} instanceEnd={instanceEnd} onClose={() => {}} />,
   );
-  await findByLabelText('자녀: 보호자');
+  await findByLabelText('참여: 보호자');
   expect(mocked.getEventAsync).toHaveBeenCalledWith('e1');
 });
 

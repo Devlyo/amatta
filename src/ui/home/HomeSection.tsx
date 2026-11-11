@@ -7,7 +7,8 @@ import { Pressable, Text, View } from 'react-native';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
 import { TYPE } from '../typography';
-import { makeStyles } from '../appearance';
+import { IconChevronRight } from '../icons';
+import { makeStyles, useTheme } from '../appearance';
 
 interface Props {
   title: string;
@@ -31,6 +32,7 @@ function HomeSectionImpl({
   testID,
 }: Props): React.ReactElement {
   const styles = useStyles();
+  const theme = useTheme();
   return (
     <View style={styles.section} testID={testID}>
       <View style={styles.header}>
@@ -39,8 +41,9 @@ function HomeSectionImpl({
           {count !== undefined ? <Text style={styles.count}> {count}</Text> : null}
         </Text>
         {actionLabel !== undefined ? (
-          <Pressable onPress={onPressAction} accessibilityRole="button" hitSlop={8}>
+          <Pressable onPress={onPressAction} accessibilityRole="button" accessibilityLabel={actionLabel} hitSlop={8} style={styles.actionRow}>
             <Text style={styles.action}>{actionLabel}</Text>
+            <IconChevronRight size={14} color={theme.t.primaryDeep} />
           </Pressable>
         ) : null}
       </View>
@@ -52,19 +55,21 @@ function HomeSectionImpl({
 export const HomeSection = memo(HomeSectionImpl);
 
 const useStyles = makeStyles((th) => ({
-  section: { gap: 6 },
+  section: { gap: SPACING.sm },
   header: {
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.xs,
   },
-  title: { ...TYPE.headline, color: th.t.ink },
-  count: { ...TYPE.subhead, color: th.t.inkSub },
-  action: { ...TYPE.subhead, color: th.t.sunday },
+  // ADR-014: iOS-style big section headings + an orange "캘린더 ›" link.
+  title: { ...TYPE.title2, color: th.t.ink },
+  count: { ...TYPE.footnote, color: th.t.inkSub },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  action: { ...TYPE.subhead, color: th.t.primaryDeep },
   box: {
     backgroundColor: th.t.surface,
-    borderRadius: RADIUS.box,
+    borderRadius: RADIUS.card,
     overflow: 'hidden',
   },
 }));

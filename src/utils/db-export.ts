@@ -45,7 +45,8 @@ import {
 // (i.e. NULL anchor / recurring) rather than trusting those fields.
 // A future importer keys off this to detect the format.
 // Bumped 4 → 5 when schedules gained `allDay` + `notifyEndMinutesBefore` (v8).
-export const EXPORT_SCHEMA_VERSION = 5 as const;
+// Bumped 5 → 6 when schedules gained `memberIds` + `withGuardian` (v9, ADR-013).
+export const EXPORT_SCHEMA_VERSION = 6 as const;
 
 /** Raw `app_settings` row (key/value TEXT) — e.g. persisted notif settings. */
 export interface ExportedAppSetting {
@@ -90,9 +91,18 @@ export async function exportDb(
     `SELECT id, child_id, title, type, location, notes,
             days_of_week, start_minutes, end_minutes,
             valid_from, valid_until, notify_minutes_before, needs_pickup,
-            all_day, notify_end_minutes_before
+            all_day, notify_end_minutes_before, with_guardian
      FROM schedules ORDER BY id ASC`,
   );
+  const memberRows = await db.getAllAsync<{ schedule_id: number; child_id: number }>(
+    'SELECT schedule_id, child_id FROM schedule_children ORDER BY schedule_id ASC, child_id ASC',
+  );
+  const membersBySchedule = new Map<number, number[]>();
+  for (const r of memberRows) {
+    const list = membersBySchedule.get(r.schedule_id);
+    if (list) list.push(r.child_id);
+    else membersBySchedule.set(r.schedule_id, [r.child_id]);
+  }
   const exceptionsRows = await db.getAllAsync<ScheduleExceptionRow>(
     `SELECT id, schedule_id, date, kind,
             override_start_minutes, override_end_minutes, override_title
@@ -138,7 +148,7 @@ export async function exportDb(
     exportedAt: now.toISOString(),
     schemaVersion: EXPORT_SCHEMA_VERSION,
     children: childrenRows.map(rowToChild),
-    schedules: schedulesRows.map(rowToSchedule),
+    schedules: schedulesRows.map((r) => rowToSchedule(r, membersBySchedule.get(r.id) ?? [])),
     exceptions: exceptionsRows.map(rowToScheduleException),
     notificationSettings: notifRows.map(rowToNotificationSetting),
     checklistItems: checklistRows.map(rowToChecklistItem),

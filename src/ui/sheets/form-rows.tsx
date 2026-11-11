@@ -240,32 +240,43 @@ export function FormOptionList<T extends string | number | null>({
   onSelect,
   render,
   labelPrefix = '',
+  isSelected,
 }: {
   options: readonly { key: T; label: string }[];
   selected: T;
   onSelect: (key: T) => void;
   render?: (key: T) => ReactNode;
-  /** Prepended to each option's accessibility label (e.g. "자녀: "). */
+  /** Prepended to each option's accessibility label (e.g. "참여: "). */
   labelPrefix?: string;
+  /** Multi-select (ADR-013 자녀): round check boxes; `selected` is ignored. */
+  isSelected?: (key: T) => boolean;
 }): React.ReactElement {
   const theme = useTheme();
   const styles = useStyles();
+  const multi = isSelected !== undefined;
   return (
     <View>
       {options.map((o, i) => {
-        const on = o.key === selected;
+        const on = multi ? isSelected(o.key) : o.key === selected;
         return (
           <Pressable
             key={String(o.key)}
             onPress={() => onSelect(o.key)}
-            accessibilityRole="button"
+            accessibilityRole={multi ? 'checkbox' : 'button'}
             accessibilityLabel={`${labelPrefix}${o.label}`}
-            accessibilityState={{ selected: on }}
+            accessibilityState={multi ? { checked: on } : { selected: on }}
+            testID={multi ? `option-${String(o.key)}` : undefined}
             style={[styles.option, i > 0 ? styles.optionDivider : null]}
           >
             {render?.(o.key)}
             <Text style={styles.optionLabel}>{o.label}</Text>
-            {on ? <IconCheck size={18} color={theme.t.danger} /> : null}
+            {multi ? (
+              <View style={[styles.checkCircle, on ? styles.checkCircleOn : null]}>
+                {on ? <IconCheck size={13} color={theme.t.surface} /> : null}
+              </View>
+            ) : on ? (
+              <IconCheck size={18} color={theme.t.danger} />
+            ) : null}
           </Pressable>
         );
       })}
@@ -355,6 +366,16 @@ const useStyles = makeStyles((th) => ({
   },
   optionDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: th.t.separator },
   optionLabel: { ...TYPE.row, color: th.t.ink, flex: 1 },
+  checkCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: RADIUS.full,
+    borderWidth: 1.5,
+    borderColor: th.t.ink30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkCircleOn: { backgroundColor: th.t.primary, borderColor: th.t.primary },
   action: { ...TYPE.row, color: th.t.danger },
   actionDanger: { color: th.t.danger },
 }));

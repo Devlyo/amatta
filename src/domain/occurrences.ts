@@ -91,8 +91,12 @@ export function expandOccurrences(
         continue;
       }
 
-      const child = childrenById.get(sch.childId);
-      if (child === undefined) continue;
+      // ADR-013: one occurrence per schedule+date; members that no longer
+      // exist are dropped (main kid first, so `child` is the first survivor).
+      const memberIds = (sch.memberIds ?? [sch.childId]).filter((id) => childrenById.has(id));
+      const mainId = memberIds[0];
+      const child = mainId === undefined ? undefined : childrenById.get(mainId);
+      if (mainId === undefined || child === undefined) continue;
 
       const exKey = `${sch.id}|${date as unknown as string}`;
       const ex = exceptionIndex.get(exKey);
@@ -112,7 +116,9 @@ export function expandOccurrences(
 
       out.push({
         scheduleId: sch.id,
-        childId: sch.childId,
+        childId: mainId,
+        memberIds,
+        withGuardian: sch.withGuardian === true,
         date,
         startMinutes,
         endMinutes,
@@ -129,8 +135,44 @@ export function expandOccurrences(
     const dc = compareIsoDate(a.date, b.date);
     if (dc !== 0) return dc;
     if (a.startMinutes !== b.startMinutes) return a.startMinutes - b.startMinutes;
-    return a.scheduleId - b.scheduleId;
+    if (a.scheduleId !== b.scheduleId) return a.scheduleId - b.scheduleId;
+    return a.childId - b.childId;
   });
 
   return out;
+}
+
+/**
+ * ADR-013 view A: one copy per kid member, for the per-person grids (일·주·월)
+ * and the home "지금/다음" rows. Everything else (pickup, checklist, search,
+ * notifications) keeps one occurrence per schedule+date.
+ */
+export function fanOutByMember(occurrences: readonly Occurrence[], childrenById: Map<number, Child>): Occurrence[] {
+  const out: Occurrence[] = [];
+  for (const o of occurrences) {
+    const ids = o.memberIds ?? [o.childId];
+    if (ids.length <= 1) {
+      out.push(o);
+      continue;
+    }
+    for (const id of ids) {
+      const kid = childrenById.get(id);
+      if (kid === undefined) continue;
+      out.push({ ...o, childId: id, colorIndex: kid.colorIndex });
+    }
+  }
+  return out;
+}
+
+/** Stable key for one drawn copy (schedule · date · person). */
+export function occurrenceKey(o: Pick<Occurrence, 'scheduleId' | 'date' | 'childId'>): string {
+  return `${o.scheduleId}|${o.date as unknown as string}|${o.childId}`;
+}
+
+/** "민준·서연" for 2, "민준 외 2명" for 3+ (ADR-013). */
+export function memberNames(ids: readonly number[], childrenById: Map<number, Child>, withGuardian = false): string {
+  const names = ids.map((id) => childrenById.get(id)?.name).filter((n): n is string => n !== undefined);
+  if (withGuardian) names.push('보호자');
+  if (names.length <= 2) return names.join('·');
+  return `${names[0]} 외 ${names.length - 1}명`;
 }

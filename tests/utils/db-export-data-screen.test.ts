@@ -109,9 +109,9 @@ describe('data.tsx backup-promise consistency', () => {
     if (existsSync(dbPath)) rmSync(dbPath, { force: true });
   });
 
-  test('schema version is 5 (schedules allDay + notifyEndMinutesBefore added in v5)', () => {
+  test('schema version is 6 (schedules memberIds + withGuardian added in v6)', () => {
     // Hard assertion so a version bump without updating data.tsx copy is caught.
-    expect(EXPORT_SCHEMA_VERSION).toBe(5);
+    expect(EXPORT_SCHEMA_VERSION).toBe(6);
   });
 
   test('every category data.tsx displays is present in the export envelope', async () => {

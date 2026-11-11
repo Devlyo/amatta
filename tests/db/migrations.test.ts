@@ -96,14 +96,23 @@ function userVersion(db: DatabaseSync): number {
 }
 
 /** Latest schema version (bump when a migration is added). */
-const LATEST = 8;
+const LATEST = 9;
 
 /**
  * Undo v8 (schedules.all_day + notify_end_minutes_before). Tests that peel a
  * fully-migrated DB back to an older version must remove v8 first, because the
  * forward run re-applies it and SQLite `ADD COLUMN` is not idempotent.
  */
+function peelV9(db: DatabaseSync): void {
+  db.exec('DROP TRIGGER IF EXISTS trg_schedules_main_member_insert');
+  db.exec('DROP TRIGGER IF EXISTS trg_schedules_main_member_update');
+  db.exec('DROP TABLE IF EXISTS schedule_children');
+  db.exec('ALTER TABLE schedules DROP COLUMN with_guardian');
+}
+
+/** Undo v9 then v8 (see peelV9). */
 function peelV8(db: DatabaseSync): void {
+  peelV9(db);
   db.exec('ALTER TABLE schedules DROP COLUMN all_day');
   db.exec('ALTER TABLE schedules DROP COLUMN notify_end_minutes_before');
 }
@@ -216,8 +225,9 @@ describe('runMigrations', () => {
       { logTxModeTo: (m) => modes.push(m) },
     );
 
-    // Happy path now applies v1..v8 — one log per migration.
+    // Happy path now applies v1..v9 — one log per migration.
     expect(modes).toEqual([
+      'explicit-begin',
       'explicit-begin',
       'explicit-begin',
       'explicit-begin',
@@ -255,6 +265,7 @@ describe('runMigrations', () => {
 
     expect(modes).toEqual([
       'fallback-with-transaction',
+      'explicit-begin',
       'explicit-begin',
       'explicit-begin',
       'explicit-begin',
@@ -1030,7 +1041,7 @@ describe('runMigrations', () => {
   test('Test U: v8 fresh DB → schedules has all_day (NOT NULL DEFAULT 0) and notify_end_minutes_before', async () => {
     const { real } = makeDb();
     await runMigrations(wrap(real) as unknown as Parameters<typeof runMigrations>[0]);
-    expect(userVersion(real)).toBe(8);
+    expect(userVersion(real)).toBe(LATEST);
     expect(columnNames(real, 'schedules')).toEqual(
       expect.arrayContaining(['all_day', 'notify_end_minutes_before']),
     );
@@ -1047,7 +1058,7 @@ describe('runMigrations', () => {
              (1, '영어', 'academy', 21, 960, 1050, '2026-05-01', NULL, 0)`);
 
     await runMigrations(wrap(real) as unknown as Parameters<typeof runMigrations>[0]);
-    expect(userVersion(real)).toBe(8);
+    expect(userVersion(real)).toBe(LATEST);
     const rows = real
       .prepare('SELECT title, all_day, notify_end_minutes_before, notify_minutes_before, needs_pickup FROM schedules ORDER BY id')
       .all() as { title: string; all_day: number; notify_end_minutes_before: number | null; notify_minutes_before: number | null; needs_pickup: number }[];
@@ -1071,6 +1082,66 @@ describe('runMigrations', () => {
 
     expect(userVersion(real)).toBe(7);
     expect(columnNames(real, 'schedules')).not.toContain('all_day');
+    real.close();
+  });
+
+  // ── v9 (ADR-013 shared schedules) ──
+  async function bringToV8(real: DatabaseSync): Promise<void> {
+    await runMigrations(wrap(real) as unknown as Parameters<typeof runMigrations>[0]);
+    peelV9(real);
+    real.exec('PRAGMA user_version = 8');
+  }
+
+  test('Test X: v8 DB with rows → v9 backfills one member per schedule, skips orphans, with_guardian = 0', async () => {
+    const { real } = makeDb();
+    await bringToV8(real);
+    real.exec(`INSERT INTO children (name, color_index, created_at) VALUES ('민준', 0, '2026-05-01'), ('서연', 1, '2026-05-01')`);
+    real.exec(`INSERT INTO schedules (child_id, title, type, days_of_week, start_minutes, end_minutes, valid_from)
+      VALUES (1, '학교', 'school', 31, 540, 870, '2026-05-01'), (2, '피아노', 'academy', 4, 900, 960, '2026-05-01')`);
+    // A stray orphan (FKs off) must not wedge the migration.
+    real.exec('PRAGMA foreign_keys = OFF');
+    real.exec(`INSERT INTO schedules (child_id, title, type, days_of_week, start_minutes, end_minutes, valid_from)
+      VALUES (99, '고아', 'other', 1, 0, 60, '2026-05-01')`);
+
+    await runMigrations(wrap(real) as unknown as Parameters<typeof runMigrations>[0]);
+    expect(userVersion(real)).toBe(9);
+    const members = real.prepare('SELECT schedule_id, child_id FROM schedule_children ORDER BY schedule_id').all();
+    expect(members).toEqual([
+      { schedule_id: 1, child_id: 1 },
+      { schedule_id: 2, child_id: 2 },
+    ]);
+    const flags = real.prepare('SELECT with_guardian FROM schedules ORDER BY id').all() as { with_guardian: number }[];
+    expect(flags.every((f) => f.with_guardian === 0)).toBe(true);
+    real.close();
+  });
+
+  test('Test Y: v9 triggers keep the main kid a member on INSERT and child_id UPDATE', async () => {
+    const { real } = makeDb();
+    await runMigrations(wrap(real) as unknown as Parameters<typeof runMigrations>[0]);
+    real.exec(`INSERT INTO children (name, color_index, created_at) VALUES ('민준', 0, '2026-05-01'), ('서연', 1, '2026-05-01')`);
+    real.exec(`INSERT INTO schedules (child_id, title, type, days_of_week, start_minutes, end_minutes, valid_from)
+      VALUES (1, '가족 모임', 'other', 64, 1110, 1230, '2026-05-01')`);
+    expect(real.prepare('SELECT child_id FROM schedule_children').all()).toEqual([{ child_id: 1 }]);
+    real.exec('UPDATE schedules SET child_id = 2 WHERE id = 1');
+    expect(real.prepare('SELECT child_id FROM schedule_children ORDER BY child_id').all()).toEqual([{ child_id: 1 }, { child_id: 2 }]);
+    // Deleting the schedule cascades its member rows.
+    real.exec('DELETE FROM schedules WHERE id = 1');
+    expect(real.prepare('SELECT COUNT(*) AS n FROM schedule_children').get()).toEqual({ n: 0 });
+    real.close();
+  });
+
+  test('Test Z: atomicity — v9 last-statement failure leaves user_version=8 and no schedule_children', async () => {
+    const { real } = makeDb();
+    await bringToV8(real);
+    // Pre-create the column v9's ALTER adds, so its last statement fails.
+    real.exec('ALTER TABLE schedules ADD COLUMN with_guardian INTEGER NOT NULL DEFAULT 0');
+
+    await expect(
+      runMigrations(wrap(real) as unknown as Parameters<typeof runMigrations>[0]),
+    ).rejects.toThrow();
+
+    expect(userVersion(real)).toBe(8);
+    expect(tableNames(real)).not.toContain('schedule_children');
     real.close();
   });
 });

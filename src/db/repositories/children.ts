@@ -89,6 +89,33 @@ export async function update(
   return updated;
 }
 
+/**
+ * ADR-013: a schedule the kid shares with others survives — the next member
+ * (lowest id) becomes its main kid first, then the kid is deleted (CASCADE
+ * removes their membership rows and the schedules only they were on).
+ */
 export async function remove(db: SQLiteDatabase, id: number): Promise<void> {
-  await db.runAsync('DELETE FROM children WHERE id = ?', [id]);
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `UPDATE schedules SET child_id = (
+         SELECT MIN(sc.child_id) FROM schedule_children sc
+         WHERE sc.schedule_id = schedules.id AND sc.child_id <> ?
+       )
+       WHERE child_id = ?
+         AND EXISTS (SELECT 1 FROM schedule_children sc WHERE sc.schedule_id = schedules.id AND sc.child_id <> ?)`,
+      [id, id, id],
+    );
+    await db.runAsync('DELETE FROM children WHERE id = ?', [id]);
+  });
+}
+
+/** How many schedules go away with the kid (the ones nobody else is on). */
+export async function countSchedulesOnlyFor(db: SQLiteDatabase, id: number): Promise<number> {
+  const row = await db.getFirstAsync<{ n: number }>(
+    `SELECT COUNT(*) AS n FROM schedules s
+     WHERE s.child_id = ?
+       AND NOT EXISTS (SELECT 1 FROM schedule_children sc WHERE sc.schedule_id = s.id AND sc.child_id <> ?)`,
+    [id, id],
+  );
+  return row?.n ?? 0;
 }

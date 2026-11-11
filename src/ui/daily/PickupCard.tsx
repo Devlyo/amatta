@@ -1,4 +1,5 @@
-// PickupCard — one Sunset-Orange or French-Lavender pickup card. Spec §2.3.
+// PickupCard — one pickup card (board H1, ADR-014): eyebrow · "3PM 민준 · 수학" · 완료.
+// Colours still come from PICKUP_CARD_PALETTE (card N → slot N % 4). Was Spec §2.3.
 //
 // 1:1 port of docs/design/amatta-v1/app-daily-b.jsx:375–453. The prototype
 // branches on `bg` to pick a text color via the luminance formula on lines
@@ -11,13 +12,17 @@
 // with no JS-thread cost.
 
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, Text, View } from 'react-native';
+
+import { getDb } from '../../db/client';
+import { usePickupLogStore } from '../../state/pickup-log-store';
 
 import { FONT_FAMILIES } from '../fonts';
 import { PICKUP_CARD_PALETTE, withAlpha, type PickupCardPalette } from '../palette';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
-import { CartoonCar } from './CartoonCar';
+import { TYPE } from '../typography';
+import { fmt12hrShort } from '../utils/date';
 import type { PickupCardData } from './pickup-data';
 import { makeStyles, useTheme } from '../appearance';
 
@@ -44,7 +49,6 @@ export function PickupCard({ data, index }: Props): React.ReactElement {
   const lightText = !isLightFill(bg);
   const onBg = lightText ? theme.t.onDark : theme.t.onLight;
   const onBgSub = withAlpha(onBg, lightText ? 0.85 : 0.6);
-  const roadLineColor = lightText ? withAlpha(theme.t.onDark, 0.18) : withAlpha(theme.t.shadow, 0.1);
 
   const pulseScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(1)).current;
@@ -85,52 +89,38 @@ export function PickupCard({ data, index }: Props): React.ReactElement {
     return () => seq.stop();
   }, [pulseScale, pulseOpacity]);
 
-  return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: bg,
-          shadowColor: bg,
-        },
-      ]}
-    >
-      <View style={[styles.roadLine, { backgroundColor: roadLineColor }]} />
+  const onDone = async (): Promise<void> => {
+    const db = await getDb();
+    await usePickupLogStore.getState().markComplete(db, data.scheduleId, data.occurrenceDateInt);
+  };
 
+  // Board H1 (ADR-014): eyebrow + big "3PM 민준 · 수학" + a 완료 pill.
+  return (
+    <View style={[styles.card, { backgroundColor: bg, shadowColor: bg }]}>
       <View style={styles.textBlock}>
         <View style={styles.eyebrowRow}>
           <Animated.View
             style={[
               styles.eyebrowDot,
-              {
-                backgroundColor: onBg,
-                transform: [{ scale: pulseScale }],
-                opacity: pulseOpacity,
-              },
+              { backgroundColor: onBg, transform: [{ scale: pulseScale }], opacity: pulseOpacity },
             ]}
           />
-          <Text style={[styles.eyebrow, { color: onBgSub }]}>
-            Next pickup · {data.etaText}
-          </Text>
+          <Text style={[styles.eyebrow, { color: onBgSub }]}>다음 픽업 · {data.etaText}</Text>
         </View>
-        <Text
-          style={[styles.title, { color: onBg }]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          <Text style={styles.titleTime}>{data.timeShort} </Text>
-          {data.who} · {data.what}
+        <Text style={[styles.title, { color: onBg }]} numberOfLines={1} ellipsizeMode="tail">
+          {fmt12hrShort(data.pickupMinutes)} {data.who} · {data.what}
         </Text>
       </View>
-
-      <CartoonCar
-        shape={slot.shape}
-        body={slot.carBody}
-        window={slot.carWindow}
-        wheel={theme.t.carWheel}
-        hub={slot.carBody}
-        shine={theme.t.carShine}
-      />
+      <Pressable
+        onPress={() => void onDone()}
+        accessibilityRole="button"
+        accessibilityLabel={`${data.who} ${data.what} 픽업 완료`}
+        hitSlop={6}
+        style={[styles.done, { backgroundColor: withAlpha(onBg, 0.22) }]}
+        testID={`pickup-done-${data.scheduleId}`}
+      >
+        <Text style={[styles.doneLabel, { color: onBg }]}>완료</Text>
+      </Pressable>
     </View>
   );
 }
@@ -149,58 +139,25 @@ function isLightFill(hex: string): boolean {
   return lum > 0.65; // light fill → dark text
 }
 
-const useStyles = makeStyles((th) => ({
+const useStyles = makeStyles(() => ({
   card: {
-    position: 'relative',
-    overflow: 'hidden',
-    borderRadius: RADIUS.box,
-    paddingTop: 6,
-    paddingHorizontal: 14,
-    paddingBottom: 10,
+    borderRadius: RADIUS.card,
+    paddingVertical: 14,
+    paddingHorizontal: SPACING.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
-    minHeight: 44,
+    gap: SPACING.md,
+    minHeight: 72,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
     elevation: 6,
   },
-  roadLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 6,
-    height: 2,
-  },
-  textBlock: {
-    flex: 1,
-    minWidth: 0,
-  },
-  eyebrowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  eyebrowDot: {
-    width: 6,
-    height: 6,
-    borderRadius: RADIUS.full,
-  },
-  eyebrow: {
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.mono,
-    letterSpacing: 0.2,
-  },
-  title: {
-    marginTop: SPACING.sm, // 8px between "Next pickup" and the kid / event line
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    fontSize: 16,
-    letterSpacing: -0.4,
-    lineHeight: 17,
-  },
-  titleTime: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-  },
+  textBlock: { flex: 1, minWidth: 0, gap: 2 },
+  eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  eyebrowDot: { width: 6, height: 6, borderRadius: RADIUS.full },
+  eyebrow: { ...TYPE.footnote, fontFamily: FONT_FAMILIES.pretendardSemiBold },
+  title: { ...TYPE.title2, fontSize: 20, lineHeight: 26, letterSpacing: -0.4 },
+  done: { height: 34, paddingHorizontal: 14, borderRadius: RADIUS.full, alignItems: 'center', justifyContent: 'center' },
+  doneLabel: { ...TYPE.subhead, fontFamily: FONT_FAMILIES.pretendardSemiBold },
 }));

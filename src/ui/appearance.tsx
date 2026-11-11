@@ -28,6 +28,8 @@ export interface Theme {
   /** Time-block fill alpha (normal / focused kid). Dark fills stronger: pastels at 60% go muddy on dark. */
   blockFill: number;
   blockFillFocused: number;
+  /** Home 지금 card fill alpha (ADR-014) — lighter than a calendar block. */
+  cardFill: number;
   /** Text on a guardian block (dark guardian grey needs light text — contrast). */
   onGuardianBlock: string;
   /** Shadow opacity multiplier — shadows need more weight on dark. */
@@ -38,8 +40,10 @@ export const LIGHT_THEME: Theme = {
   scheme: 'light',
   t: LIGHT_TOKENS,
   kid: (ci) => getKidPaletteFor(ci, 'light'),
-  blockFill: 0.6,
-  blockFillFocused: 0.8,
+  // 2026-11-11: blocks and the home 지금 cards share one fill (45%).
+  blockFill: 0.45,
+  blockFillFocused: 0.65,
+  cardFill: 0.45,
   onGuardianBlock: LIGHT_TOKENS.onLight,
   shadowOpacity: 1,
 };
@@ -48,8 +52,9 @@ export const DARK_THEME: Theme = {
   scheme: 'dark',
   t: DARK_TOKENS,
   kid: (ci) => getKidPaletteFor(ci, 'dark'),
-  blockFill: 0.85,
-  blockFillFocused: 0.95,
+  blockFill: 0.7,
+  blockFillFocused: 0.85,
+  cardFill: 0.7,
   onGuardianBlock: DARK_TOKENS.onDark,
   shadowOpacity: 3,
 };

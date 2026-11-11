@@ -19,6 +19,7 @@ const TABLES_LEAF_FIRST = [
   'schedule_exceptions',
   'todos',
   'notification_settings',
+  'schedule_children',
   'schedules',
   'children',
   // app_settings has no FK relationships; clearing it makes reset a true

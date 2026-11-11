@@ -210,6 +210,8 @@ describe('formFromSchedule', () => {
     const form = formFromSchedule(sample);
     expect(form).toEqual({
       childId: 3,
+      memberIds: [3],
+      withGuardian: false,
       title: '영어학원',
       type: 'academy',
       daysOfWeek: 21,

@@ -107,12 +107,18 @@ function MonthViewImpl({
     const noneOn = everyone.every((k) => inactive.includes(k));
     const shown = (p: PersonKey): boolean => noneOn || !inactive.includes(p);
     for (const occ of occurrences) {
-      if (!showsInMonth(occ) || !kidById.has(occ.childId) || !shown(occ.childId)) continue;
+      if (!showsInMonth(occ)) continue;
+      // ADR-013: one chip per schedule, in the first shown member's colour.
+      const people: PersonKey[] = [...(occ.memberIds ?? [occ.childId])];
+      if (occ.withGuardian === true && guardian) people.push('guardian');
+      const person = people.find((p) => (p === 'guardian' || kidById.has(p)) && shown(p));
+      if (person === undefined) continue;
+      const kid = person === 'guardian' ? undefined : kidById.get(person);
       add(occ.date, {
         id: String(occ.scheduleId),
-        person: occ.childId,
+        person,
         title: occ.title,
-        color: theme.kid(occ.colorIndex).source,
+        color: kid !== undefined ? theme.kid(kid.colorIndex).source : theme.t.guardian,
         start: occ.startMinutes,
         allDay: occ.allDay === true,
       });
@@ -123,7 +129,7 @@ function MonthViewImpl({
     // All-day first, then by start time.
     for (const list of m.values()) list.sort((a, b) => (a.allDay === b.allDay ? a.start - b.start : a.allDay ? -1 : 1));
     return m;
-  }, [occurrences, guardianEvents, kidById, everyone, inactive, theme]);
+  }, [occurrences, guardianEvents, kidById, everyone, inactive, theme, guardian]);
 
   const rowH = rowHeight ?? (zoomed ? ROW_H_ZOOMED : MONTH_ROW_MIN);
   const twoLine = rowH >= MONTH_ROW_TWO_LINE;

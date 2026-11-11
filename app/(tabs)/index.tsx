@@ -16,7 +16,7 @@ import { Redirect, useRouter } from 'expo-router';
 
 import { MAX_CHILDREN } from '../../src/domain/constants';
 import { nowAndNextByKid } from '../../src/domain/now-next';
-import { expandOccurrences } from '../../src/domain/occurrences';
+import { expandOccurrences, fanOutByMember } from '../../src/domain/occurrences';
 import type { Child } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
 import { usePickupLogStore } from '../../src/state/pickup-log-store';
@@ -28,7 +28,8 @@ import { ChecklistSection } from '../../src/ui/daily/ChecklistSection';
 import { PickupCarousel } from '../../src/ui/daily/PickupCarousel';
 import { TodoSection } from '../../src/ui/daily/TodoSection';
 import { HomeSection } from '../../src/ui/home/HomeSection';
-import { NowNextList } from '../../src/ui/home/NowNextList';
+import { NowStack } from '../../src/ui/home/NowStack';
+import { MemberFaces } from '../../src/ui/common/MemberFaces';
 import { SPACING } from '../../src/ui/spacing';
 import { TYPE } from '../../src/ui/typography';
 import { todayIso, weekdayKo } from '../../src/ui/utils/date';
@@ -65,8 +66,9 @@ export default function HomeScreen(): React.ReactElement {
   );
 
   const nowNext = useMemo(
-    () => nowAndNextByKid(occurrences, kids.map((k) => k.id), nowMinutes),
-    [occurrences, kids, nowMinutes],
+    // ADR-013: a shared schedule shows in every member's row.
+    () => nowAndNextByKid(fanOutByMember(occurrences, childrenById), kids.map((k) => k.id), nowMinutes),
+    [occurrences, kids, nowMinutes, childrenById],
   );
 
   // Today's guardian events — only to flag a pickup they clash with.
@@ -101,6 +103,8 @@ export default function HomeScreen(): React.ReactElement {
             오늘
           </Text>
         </View>
+        {/* ADR-014: everyone at a glance, like an iOS large-title trailing item. */}
+        <MemberFaces kids={kids} size={30} />
       </View>
 
       <ScrollView
@@ -119,8 +123,14 @@ export default function HomeScreen(): React.ReactElement {
           guardianEvents={guardianToday}
         />
 
-        <HomeSection title="지금" actionLabel="캘린더" onPressAction={handleOpenCalendar}>
-          <NowNextList kids={kids} rows={nowNext} />
+        <HomeSection
+          title="지금"
+          count={`${nowNext.filter((r) => r.status === 'inProgress' || r.status === 'upcoming').length}명`}
+          actionLabel="캘린더"
+          onPressAction={handleOpenCalendar}
+          boxed={false}
+        >
+          <NowStack kids={kids} rows={nowNext} nowMinutes={nowMinutes} />
         </HomeSection>
 
         <ChecklistSection date={today} />
@@ -134,19 +144,19 @@ const useStyles = makeStyles((th) => ({
   safe: { flex: 1, backgroundColor: th.t.groupedBg },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     paddingTop: SPACING.xs,
-    paddingLeft: 18,
-    paddingRight: SPACING.lg,
+    paddingLeft: 20,
+    paddingRight: 20,
     paddingBottom: SPACING.xs,
   },
   headerText: { flex: 1, gap: 1 },
-  caption: { ...TYPE.footnote, color: th.t.inkSub },
-  title: { ...TYPE.largeTitle, color: th.t.ink },
+  caption: { ...TYPE.footnote, fontFamily: TYPE.headline.fontFamily, color: th.t.inkSub },
+  title: { ...TYPE.largeTitle34, color: th.t.ink },
   content: {
     paddingTop: SPACING.sm,
     paddingHorizontal: SPACING.lg,
     paddingBottom: DOCK_CLEARANCE,
-    gap: 18,
+    gap: 26,
   },
 }));

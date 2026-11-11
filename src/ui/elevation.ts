@@ -29,6 +29,17 @@ export const ELEVATION = {
     shadowRadius: 26,
     elevation: 8,
   },
+
+  // ADR-014: the card on top of the home 지금 stack — a soft lift so the cards
+  // peeking underneath read as separate layers (iOS notification stack).
+  // Owner 2026-11-11: a light shadow all around each stacked card (no offset).
+  stack: {
+    shadowColor: LIGHT_TOKENS.shadow,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+  },
 } as const satisfies Record<string, ViewStyle>;
 
 export type ElevationKey = keyof typeof ELEVATION;
@@ -41,5 +52,6 @@ export function elevationFor(th: { shadowOpacity: number }): typeof ELEVATION {
   return {
     ...ELEVATION,
     dock: { ...ELEVATION.dock, shadowOpacity: Math.min(1, ELEVATION.dock.shadowOpacity * th.shadowOpacity) },
+    stack: { ...ELEVATION.stack, shadowOpacity: Math.min(1, ELEVATION.stack.shadowOpacity * th.shadowOpacity) },
   } as typeof ELEVATION;
 }

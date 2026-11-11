@@ -160,7 +160,7 @@ const useStyles = makeStyles((th) => ({
   clashes: { gap: SPACING.xs },
   viewport: {
     overflow: 'hidden',
-    borderRadius: RADIUS.box,
+    borderRadius: RADIUS.card,
     position: 'relative',
   },
   slide: {

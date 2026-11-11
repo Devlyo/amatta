@@ -10,7 +10,9 @@ import { cascadeStep, clipToDay, layoutCascade } from '../../domain/layout';
 import type { GuardianOccurrence } from '../../domain/guardian';
 import type { Child, Occurrence } from '../../domain/types';
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
+import { fanOutByMember } from '../../domain/occurrences';
 import { fmtRange } from '../utils/date';
+import { MemberFaces } from '../common/MemberFaces';
 import { AllDayRow, type AllDayItem } from './AllDayRow';
 import { TimeBlock } from './TimeBlock';
 import { TimeGrid } from './TimeGrid';
@@ -49,7 +51,14 @@ interface Props {
 
 type Placed =
   | { kind: 'kid'; occ: Occurrence }
-  | { kind: 'guardian'; g: GuardianOccurrence };
+  | { kind: 'guardian'; g: GuardianOccurrence }
+  /** ADR-013: a WeMoa schedule the guardian joins, in the guardian column. */
+  | { kind: 'shared'; occ: Occurrence };
+
+/** Draw id: plain scheduleId for a one-kid schedule, else per person. */
+export function copyId(occ: Occurrence, person: number | 'g'): string {
+  return occ.memberIds !== undefined && (occ.memberIds.length > 1 || occ.withGuardian) ? `${occ.scheduleId}-${person}` : `${occ.scheduleId}`;
+}
 
 function DayViewImpl({
   kids: allKids,
@@ -89,18 +98,39 @@ function DayViewImpl({
   );
 
   const guardianColumn = kids.length;
+  const kidsById = useMemo(() => new Map(allKids.map((k) => [k.id, k])), [allKids]);
+  // ADR-013 view A: a copy in every member's column.
+  const copies = useMemo(() => fanOutByMember(occurrences, kidsById), [occurrences, kidsById]);
+  const sharedForGuardian = useMemo(
+    () => (showGuardian && !noneOn ? occurrences.filter((o) => o.withGuardian === true) : []),
+    [occurrences, showGuardian, noneOn],
+  );
+  const facesOf = (occ: Occurrence): React.ReactNode => {
+    const ids = occ.memberIds ?? [occ.childId];
+    if (ids.length + (occ.withGuardian ? 1 : 0) < 2) return null;
+    const members = ids.map((id) => kidsById.get(id)).filter((k): k is Child => k !== undefined);
+    return <MemberFaces kids={members} withGuardian={occ.withGuardian === true} size={16} />;
+  };
   const placed = useMemo(() => {
     const byId = new Map<string, Placed>();
     const inputs = [];
-    for (const occ of occurrences) {
+    for (const occ of copies) {
       if (occ.allDay) continue; // drawn in the all-day row
       const column = columnOfKid.get(occ.childId);
       if (column === undefined) continue;
       const range = clipToDay(occ.startMinutes, occ.endMinutes);
       if (range === null) continue;
-      const id = `${occ.scheduleId}`;
+      const id = copyId(occ, occ.childId);
       byId.set(id, { kind: 'kid', occ });
       inputs.push({ id, column, start: range.start, end: range.end });
+    }
+    for (const occ of sharedForGuardian) {
+      if (occ.allDay) continue;
+      const range = clipToDay(occ.startMinutes, occ.endMinutes);
+      if (range === null) continue;
+      const id = copyId(occ, 'g');
+      byId.set(id, { kind: 'shared', occ });
+      inputs.push({ id, column: guardianColumn, start: range.start, end: range.end });
     }
     for (const g of guardianEventsShown) {
       if (g.allDay) continue;
@@ -111,11 +141,11 @@ function DayViewImpl({
       inputs.push({ id, column: guardianColumn, start: range.start, end: range.end });
     }
     return layoutCascade(inputs).map((p) => ({ ...p, item: byId.get(p.id) as Placed }));
-  }, [occurrences, columnOfKid, guardianEventsShown, guardianColumn]);
+  }, [copies, sharedForGuardian, columnOfKid, guardianEventsShown, guardianColumn]);
 
   const allDayItems = useMemo<AllDayItem[]>(() => {
     const out: AllDayItem[] = [];
-    for (const occ of occurrences) {
+    for (const occ of copies) {
       if (!occ.allDay) continue;
       const column = columnOfKid.get(occ.childId);
       const kid = column === undefined ? undefined : kids[column];
@@ -123,11 +153,11 @@ function DayViewImpl({
       const p = theme.kid(occ.colorIndex);
       const emphasis = emphasisOf(inactive, everyone, kid.id);
       out.push({
-        id: `${occ.scheduleId}`,
+        id: copyId(occ, occ.childId),
         column,
         title: occ.title,
         color: p.source,
-        deep: p.deep,
+        deep: p.bar,
         focused: emphasis === 'solo',
         dimmed: emphasis === 'inactive',
         accessibilityLabel: `${kid.name} ${occ.title}, 하루 종일`,
@@ -135,6 +165,20 @@ function DayViewImpl({
       });
     }
     const gEmphasis = emphasisOf(inactive, everyone, 'guardian');
+    for (const occ of sharedForGuardian) {
+      if (!occ.allDay) continue;
+      out.push({
+        id: copyId(occ, 'g'),
+        column: guardianColumn,
+        title: occ.title,
+        color: theme.t.guardian,
+        deep: theme.t.guardianDeep,
+        focused: gEmphasis === 'solo',
+        dimmed: gEmphasis === 'inactive',
+        accessibilityLabel: `보호자 ${occ.title}, 하루 종일`,
+        onPress: () => onPressOccurrence(occ),
+      });
+    }
     for (const g of guardianEventsShown) {
       if (!g.allDay) continue;
       out.push({
@@ -150,7 +194,7 @@ function DayViewImpl({
       });
     }
     return out;
-  }, [occurrences, columnOfKid, kids, inactive, everyone, onPressOccurrence, guardianEventsShown, guardianColumn, onPressGuardian, theme]);
+  }, [copies, sharedForGuardian, columnOfKid, kids, inactive, everyone, onPressOccurrence, guardianEventsShown, guardianColumn, onPressGuardian, theme]);
 
   const timed = [...occurrences.filter((o) => !o.allDay), ...guardianEventsShown.filter((g) => !g.allDay)];
   const firstStart = timed.length > 0 ? Math.min(...timed.map((o) => o.startMinutes)) : null;
@@ -182,7 +226,7 @@ function DayViewImpl({
           const kid = kids[column];
           if (kid === undefined) return { color: theme.t.guardian, deep: theme.t.guardianDeep };
           const p = theme.kid(kid.colorIndex);
-          return { color: p.source, deep: p.deep };
+          return { color: p.source, deep: p.bar };
         }}
         renderColumns={({ columnWidth, y }) =>
           placed.map(({ id, column, start, end, level, depth, item }) => {
@@ -191,6 +235,35 @@ function DayViewImpl({
             const height = Math.max(y(end) - y(start) - 2, MIN_BLOCK_H);
             const compact = columns >= 5; // 5+ columns → week-style compact blocks
             const showTime = columns < 5 || columnWidth >= 64; // time only if it fits
+            if (item.kind === 'shared') {
+              const occ = item.occ;
+              const emphasis = emphasisOf(inactive, everyone, 'guardian');
+              return (
+                <TimeBlock
+                  key={id}
+                  testID={`${testID === 'day-view' ? 'day-block' : `${testID}-block`}-${id}`}
+                  top={top}
+                  left={column * columnWidth + 2 + indent}
+                  width={columnWidth - 4 - indent}
+                  height={height}
+                  level={level}
+                  title={occ.title}
+                  startMinutes={occ.startMinutes}
+                  endMinutes={occ.endMinutes}
+                  color={theme.t.guardian}
+                  guardian
+                  deep={theme.t.guardianDeep}
+                  focused={emphasis === 'solo'}
+                  dimmed={emphasis === 'inactive'}
+                  needsPickup={occ.needsPickup}
+                  compact={compact}
+                  showTime={showTime}
+                  footer={facesOf(occ)}
+                  accessibilityLabel={`보호자 ${occ.title}, ${fmtRange(occ.startMinutes, occ.endMinutes)}`}
+                  onPress={() => onPressOccurrence(occ)}
+                />
+              );
+            }
             if (item.kind === 'guardian') {
               const g = item.g;
               const emphasis = emphasisOf(inactive, everyone, 'guardian');
@@ -236,12 +309,13 @@ function DayViewImpl({
                 startMinutes={occ.startMinutes}
                 endMinutes={occ.endMinutes}
                 color={palette.source}
-                deep={palette.deep}
+                deep={palette.bar}
                 focused={emphasis === 'solo'}
                 dimmed={emphasis === 'inactive'}
                 needsPickup={occ.needsPickup}
                 compact={compact}
                 showTime={showTime}
+                footer={facesOf(occ)}
                 accessibilityLabel={`${kid.name} ${occ.title}, ${fmtRange(occ.startMinutes, occ.endMinutes)}${level > 0 ? ', 다른 일정과 시간이 겹침' : ''}`}
                 onPress={() => onPressOccurrence(occ)}
               />

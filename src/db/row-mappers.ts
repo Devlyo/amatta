@@ -41,6 +41,7 @@ export interface ScheduleRow {
   needs_pickup: number;
   all_day: number;
   notify_end_minutes_before: number | null;
+  with_guardian?: number;
 }
 
 export interface ScheduleExceptionRow {
@@ -76,10 +77,18 @@ export function rowToChild(r: ChildRow): Child {
   };
 }
 
-export function rowToSchedule(r: ScheduleRow): Schedule {
+/** ADR-013 member order: main kid first, then the others by id. */
+export function orderMembers(mainId: number, ids: readonly number[]): number[] {
+  const rest = [...new Set(ids)].filter((id) => id !== mainId).sort((a, b) => a - b);
+  return [mainId, ...rest];
+}
+
+export function rowToSchedule(r: ScheduleRow, memberIds: readonly number[] = []): Schedule {
   return {
     id: r.id,
     childId: r.child_id,
+    memberIds: orderMembers(r.child_id, memberIds),
+    withGuardian: r.with_guardian === 1,
     title: r.title,
     type: r.type as ScheduleType,
     location: r.location,

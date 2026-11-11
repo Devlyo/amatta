@@ -19,6 +19,7 @@ import { useChildrenStore } from '../../src/state/children-store';
 import { useGuardianStore } from '../../src/state/guardian-store';
 import { useNotifSettingsStore } from '../../src/state/notif-settings-store';
 import { AVATAR_IMAGE_BY_KEY } from '../../src/ui/assets';
+import { AVATAR_CIRCLE_ALPHA } from '../../src/ui/common/KidAvatar';
 import { FONT_FAMILIES } from '../../src/ui/fonts';
 import { withAlpha } from '../../src/ui/palette';
 import { RADIUS } from '../../src/ui/radius';
@@ -103,7 +104,7 @@ export default function OnbFinishScreen(): React.ReactElement {
               <View
                 style={[
                   styles.kidRing,
-                  { backgroundColor: withAlpha(theme.kid(k.colorIndex).source, 0.38) },
+                  { backgroundColor: withAlpha(theme.kid(k.colorIndex).source, AVATAR_CIRCLE_ALPHA) },
                 ]}
               >
                 <Image source={AVATAR_IMAGE_BY_KEY[k.avatar]} style={styles.kidImage} resizeMode="contain" />

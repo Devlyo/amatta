@@ -97,10 +97,9 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo, guardian = true }:
   // Up to 6 people (5 kids + 보호자) must fit one row on a 375pt phone.
   const compact = everyone.length >= COMPACT_FROM;
   const avatarOnly = everyone.length >= AVATAR_ONLY_FROM;
-  // The 3D faces leave room around the head in their square, so kids get a
-  // larger box than the solid 보호자 circle to look the same size.
-  const avatar = avatarOnly ? 28 : compact ? 22 : 26;
+  // Kids and 보호자 are both circles now (board AV1-B) → same size.
   const guardianDot = avatarOnly ? 24 : compact ? 18 : 22;
+  const avatar = guardianDot;
   return (
     <View style={styles.row}>
       {kids.map((kid) => {

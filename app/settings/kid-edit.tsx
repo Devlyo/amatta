@@ -23,6 +23,7 @@ import {
 } from '../../src/domain/avatar';
 import type { Child } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
+import { useSchedulesStore } from '../../src/state/schedules-store';
 import { HomeSection } from '../../src/ui/home/HomeSection';
 import { IconCheck } from '../../src/ui/icons';
 import { FormActionRow, FormGroup, FormInputRow } from '../../src/ui/sheets/form-rows';
@@ -106,9 +107,15 @@ export default function KidEditScreen(): React.ReactElement {
   const handleDelete = useCallback((): void => {
     if (existing === undefined) return;
     const kidName = existing.name;
+    // ADR-013: schedules shared with another kid stay (without this kid).
+    const shared = useSchedulesStore
+      .getState()
+      .schedules.some((s) => s.memberIds.includes(existing.id) && s.memberIds.length > 1);
     Alert.alert(
       `${kidName}을(를) 삭제할까요?`,
-      `${kidName}의 일정·준비물·할일이 모두 삭제돼요. 이 작업은 되돌릴 수 없어요.`,
+      shared
+        ? `${kidName}의 일정·준비물·할일이 삭제돼요. 다른 아이와 함께하는 일정은 남아요. 이 작업은 되돌릴 수 없어요.`
+        : `${kidName}의 일정·준비물·할일이 모두 삭제돼요. 이 작업은 되돌릴 수 없어요.`,
       [
         { text: '취소', style: 'cancel' },
         {

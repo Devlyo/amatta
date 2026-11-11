@@ -43,6 +43,7 @@ import { guardianClashes, pickupClashes } from '../../domain/pickup-conflict';
 import { fmtRange } from '../utils/date';
 import type {
   ChecklistItem,
+  Child,
   DaysOfWeekMask,
   ISODate,
   Minutes,
@@ -50,6 +51,7 @@ import type {
   ScheduleException,
 } from '../../domain/types';
 import { KidAvatar } from '../common/KidAvatar';
+import { MemberFaces } from '../common/MemberFaces';
 import { TypeIcon } from '../common/TypeIcon';
 import { DayCircle } from '../components/DayCircle';
 import { IconXMark } from '../icons';
@@ -70,6 +72,7 @@ import {
   formFromSchedule,
   repeatSummary,
   toggleDayMask,
+  togglePerson,
   validate,
   type EditFormState,
 } from './edit-sheet-form';
@@ -249,7 +252,9 @@ export function ScheduleEditContent({
       );
       originalChecklistRef.current = [];
       setChecklist([]);
-      setForGuardian(editSheetState.preFill?.guardian === true);
+      const guardianOnly = editSheetState.preFill?.guardian === true;
+      setForGuardian(guardianOnly);
+      if (guardianOnly) setForm((f) => ({ ...f, childId: null, memberIds: [], withGuardian: false }));
     } else if (sheetMode === 'editAll' && existingSchedule !== undefined) {
       setForGuardian(false);
       setForm(formFromSchedule(existingSchedule));
@@ -476,6 +481,8 @@ export function ScheduleEditContent({
       if (form.childId === null) return;
       const created = await addSchedule(db, {
         childId: form.childId,
+        memberIds: form.memberIds,
+        withGuardian: form.withGuardian,
         title: form.title.trim(),
         type: formType,
         location: form.location.trim().length > 0 ? form.location.trim() : null,
@@ -509,6 +516,9 @@ export function ScheduleEditContent({
       }
     } else if (sheetMode === 'editAll' && existingSchedule !== undefined) {
       await updateSchedule(db, existingSchedule.id, {
+        // ADR-013: members can change (≥ 1 kid); the main kid follows.
+        memberIds: form.memberIds,
+        withGuardian: form.withGuardian,
         title: form.title.trim(),
         type: formType,
         location: form.location.trim().length > 0 ? form.location.trim() : null,
@@ -687,6 +697,15 @@ export function ScheduleEditContent({
     setExpanded((cur) => (cur === key ? null : key));
   };
   const selectedKid = children.find((k) => k.id === form.childId);
+  const pickedKids = form.memberIds
+    .map((id) => children.find((k) => k.id === id))
+    .filter((k): k is Child => k !== undefined);
+  const peopleCount = pickedKids.length + (form.withGuardian ? 1 : 0);
+  const kidRowValue = forGuardian
+    ? '보호자'
+    : peopleCount > 1
+      ? `${peopleCount}명`
+      : (selectedKid?.name ?? '선택');
   const kidPalette = selectedKid !== undefined ? theme.kid(selectedKid.colorIndex) : null;
 
   return (
@@ -760,16 +779,18 @@ export function ScheduleEditContent({
         <View style={styles.block}>
           <FormGroup>
             <FormValueRow
-              label="자녀"
-              value={forGuardian ? '보호자' : (selectedKid?.name ?? '선택')}
+              label="참여"
+              value={kidRowValue}
               leading={
                 forGuardian ? (
                   <View style={[styles.kidDot, { backgroundColor: theme.t.guardian, borderColor: theme.t.guardianDeep }]} />
+                ) : pickedKids.length + (form.withGuardian ? 1 : 0) > 1 ? (
+                  <MemberFaces kids={pickedKids} withGuardian={form.withGuardian} size={20} testID="row-kid-faces" />
                 ) : kidPalette !== null ? (
                   <View style={[styles.kidDot, { backgroundColor: kidPalette.source, borderColor: kidPalette.deep }]} />
                 ) : null
               }
-              onPress={sheetMode === 'create' ? () => toggle('kid') : undefined}
+              onPress={sheetMode === 'create' || sheetMode === 'editAll' ? () => toggle('kid') : undefined}
               expanded={expanded === 'kid'}
               last={forGuardian && expanded !== 'kid'}
               testID="row-kid"
@@ -777,19 +798,24 @@ export function ScheduleEditContent({
               <FormOptionList<number | null>
                 options={[
                   ...children.map((k) => ({ key: k.id, label: k.name })),
-                  // 보호자 → the device calendar (ADR-008), new events only.
-                  ...(sheetMode === 'create' ? [{ key: GUARDIAN_OPTION, label: '보호자' }] : []),
+                  // 보호자 alone → the device calendar (ADR-008, new events only);
+                  // 보호자 with kids → saved here (ADR-013).
+                  ...(sheetMode === 'create' || sheetMode === 'editAll' ? [{ key: GUARDIAN_OPTION, label: '보호자' }] : []),
                 ]}
-                selected={forGuardian ? GUARDIAN_OPTION : form.childId}
-                labelPrefix="자녀: "
+                selected={null}
+                isSelected={(id) =>
+                  id === GUARDIAN_OPTION ? forGuardian || form.withGuardian : id !== null && form.memberIds.includes(id)
+                }
+                labelPrefix="참여: "
                 onSelect={(id) => {
-                  if (id === GUARDIAN_OPTION) {
-                    setForGuardian(true);
-                  } else {
-                    setForGuardian(false);
-                    setForm({ ...form, childId: id });
-                  }
-                  setExpanded(null);
+                  if (id === null || sheetMode === null) return;
+                  const next = togglePerson(
+                    { memberIds: form.memberIds, withGuardian: form.withGuardian, guardianOnly: forGuardian },
+                    id === GUARDIAN_OPTION ? 'guardian' : id,
+                    sheetMode === 'editAll' ? 'editAll' : 'create',
+                  );
+                  setForGuardian(next.guardianOnly);
+                  setForm({ ...form, memberIds: next.memberIds, childId: next.memberIds[0] ?? null, withGuardian: next.withGuardian });
                 }}
                 render={(id) => {
                   if (id === GUARDIAN_OPTION) return <View style={styles.guardianAvatar} />;
@@ -822,6 +848,12 @@ export function ScheduleEditContent({
           {forGuardian ? (
             <Text style={styles.guardianNote}>
               보호자 일정은 아이폰 캘린더에 저장돼요.
+            </Text>
+          ) : expanded === 'kid' ? (
+            <Text style={styles.guardianNote}>
+              {sheetMode === 'create'
+                ? '여러 명을 고를 수 있어요. 한 번 고치면 모두에게 바뀌어요.\n보호자만 고르면 아이폰 캘린더에 저장돼요.'
+                : '여러 명을 고를 수 있어요. 한 번 고치면 모두에게 바뀌어요.'}
             </Text>
           ) : null}
           <FormError text={showError('childId') ?? showError('type')} />
