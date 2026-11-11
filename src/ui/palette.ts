@@ -9,6 +9,10 @@ export interface KidPalette {
   // filter pill border, color dots. Must stay readable on white and on the
   // 60% source fill.
   deep: string;
+  /** Side bar ON the block fill (time blocks, week bars, 지금 cards). Light =
+   *  `deep`; dark = a darker tone — the dark fill is bright, and the lighter
+   *  dark `deep` (made for dark backgrounds) vanished on it (2026-11-11). */
+  bar: string;
 }
 
 // Pre-computed 6×2 table from docs/design/README.md §3.
@@ -17,24 +21,24 @@ export interface KidPalette {
 // `deep` for 0/4/5 is the value signed off on the ADR-007 design canvas; 1/2/3
 // are provisional (ADR-007 OQ4) — same rule, confirm on device.
 const KID_PALETTE: readonly KidPalette[] = [
-  { source: '#FFA9FF', bg: '#FFF2FF', deep: '#D957D9' }, // 0 Petunia Pink
-  { source: '#C0F0AA', bg: '#F6FDF2', deep: '#5E9E40' }, // 1 Vibrant Mint (provisional deep)
-  { source: '#D8E6FF', bg: '#F9FBFF', deep: '#6C8FD9' }, // 2 Glacier Blue (provisional deep)
-  { source: '#FFE8D2', bg: '#FFFCF8', deep: '#B87A40' }, // 3 Soft Peach (provisional deep)
-  { source: '#E0E446', bg: '#FAFBE3', deep: '#A8AD12' }, // 4 Citrus Green
-  { source: '#C7B0FF', bg: '#F7F3FF', deep: '#8E6BE8' }, // 5 French Lavender
+  { source: '#FFA9FF', bg: '#FFF2FF', deep: '#D957D9', bar: '#D957D9' }, // 0 Petunia Pink
+  { source: '#C0F0AA', bg: '#F6FDF2', deep: '#5E9E40', bar: '#5E9E40' }, // 1 Vibrant Mint (provisional deep)
+  { source: '#D8E6FF', bg: '#F9FBFF', deep: '#6C8FD9', bar: '#6C8FD9' }, // 2 Glacier Blue (provisional deep)
+  { source: '#FFE8D2', bg: '#FFFCF8', deep: '#B87A40', bar: '#B87A40' }, // 3 Soft Peach (provisional deep)
+  { source: '#E0E446', bg: '#FAFBE3', deep: '#A8AD12', bar: '#A8AD12' }, // 4 Citrus Green
+  { source: '#C7B0FF', bg: '#F7F3FF', deep: '#8E6BE8', bar: '#8E6BE8' }, // 5 French Lavender
 ] as const;
 
 // ADR-009 dark: same `source` (blocks stay vivid), `bg` = source 15% over
 // the dark surface, `deep` one step lighter so bars / borders read on dark.
 // Values from the design canvas board "D 다크 모드 색 목록".
 const KID_PALETTE_DARK: readonly KidPalette[] = [
-  { source: '#FFA9FF', bg: '#473944', deep: '#F08BF0' },
-  { source: '#C0F0AA', bg: '#3E4337', deep: '#8FD46F' },
-  { source: '#D8E6FF', bg: '#424244', deep: '#9DB8F2' },
-  { source: '#FFE8D2', bg: '#47423D', deep: '#E0A86E' },
-  { source: '#E0E446', bg: '#434228', deep: '#D3D84A' },
-  { source: '#C7B0FF', bg: '#3F3A44', deep: '#B39CFF' },
+  { source: '#FFA9FF', bg: '#473944', deep: '#F08BF0', bar: '#7E1F7E' },
+  { source: '#C0F0AA', bg: '#3E4337', deep: '#8FD46F', bar: '#2E5E18' },
+  { source: '#D8E6FF', bg: '#424244', deep: '#9DB8F2', bar: '#2B4A8F' },
+  { source: '#FFE8D2', bg: '#47423D', deep: '#E0A86E', bar: '#6E3F12' },
+  { source: '#E0E446', bg: '#434228', deep: '#D3D84A', bar: '#575B00' },
+  { source: '#C7B0FF', bg: '#3F3A44', deep: '#B39CFF', bar: '#4423A0' },
 ] as const;
 
 /** Kid palette for a colour scheme (ADR-009). */

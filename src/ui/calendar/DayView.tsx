@@ -157,7 +157,7 @@ function DayViewImpl({
         column,
         title: occ.title,
         color: p.source,
-        deep: p.deep,
+        deep: p.bar,
         focused: emphasis === 'solo',
         dimmed: emphasis === 'inactive',
         accessibilityLabel: `${kid.name} ${occ.title}, 하루 종일`,
@@ -226,7 +226,7 @@ function DayViewImpl({
           const kid = kids[column];
           if (kid === undefined) return { color: theme.t.guardian, deep: theme.t.guardianDeep };
           const p = theme.kid(kid.colorIndex);
-          return { color: p.source, deep: p.deep };
+          return { color: p.source, deep: p.bar };
         }}
         renderColumns={({ columnWidth, y }) =>
           placed.map(({ id, column, start, end, level, depth, item }) => {
@@ -309,7 +309,7 @@ function DayViewImpl({
                 startMinutes={occ.startMinutes}
                 endMinutes={occ.endMinutes}
                 color={palette.source}
-                deep={palette.deep}
+                deep={palette.bar}
                 focused={emphasis === 'solo'}
                 dimmed={emphasis === 'inactive'}
                 needsPickup={occ.needsPickup}

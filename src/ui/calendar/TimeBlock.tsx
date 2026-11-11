@@ -161,7 +161,8 @@ const useStyles = makeStyles((th) => ({
     left: 1.5,
     top: 1.5,
     bottom: 1.5,
-    width: BAR_W,
+    // Dark: 2.5px — 1.5px got lost on the bright dark-mode fill.
+    width: th.scheme === 'dark' ? 2.5 : BAR_W,
     borderRadius: 1,
   },
   titleRow: {

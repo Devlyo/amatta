@@ -78,7 +78,7 @@ function NowBlock({ kid, row, nowMinutes }: { kid: Child; row: KidNowNext; nowMi
       accessibilityLabel={`${kid.name}, ${occ.title} ${range}, ${status}${after !== null ? `, ${after}` : ''}`}
       testID={`now-block-${kid.id}`}
     >
-      <View style={[styles.bar, { backgroundColor: p.deep }]} />
+      <View style={[styles.bar, { backgroundColor: p.bar }]} />
       <View style={styles.top}>
         <KidAvatar child={kid} size={34} />
         <View style={styles.text}>
@@ -101,7 +101,7 @@ function NowBlock({ kid, row, nowMinutes }: { kid: Child; row: KidNowNext; nowMi
       </View>
       {live ? (
         <View style={styles.track}>
-          <View style={[styles.fill, { width: `${Math.round(progress * 100)}%`, backgroundColor: p.deep }]} />
+          <View style={[styles.fill, { width: `${Math.round(progress * 100)}%`, backgroundColor: p.bar }]} />
         </View>
       ) : null}
       {after !== null ? (

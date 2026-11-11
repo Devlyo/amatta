@@ -163,7 +163,7 @@ function WeekViewImpl({
       for (const person of bars ? shown : shown.slice(0, 1)) {
         const kid = person === 'guardian' ? undefined : kidById.get(person);
         if (person !== 'guardian' && kid === undefined) continue;
-        const p = kid !== undefined ? theme.kid(kid.colorIndex) : { source: theme.t.guardian, deep: theme.t.guardianDeep };
+        const p = kid !== undefined ? theme.kid(kid.colorIndex) : { source: theme.t.guardian, deep: theme.t.guardianDeep, bar: theme.t.guardianDeep };
         const base = `${occ.scheduleId}|${occ.date as unknown as string}`;
         out.push({
           id: shared ? `${base}|${person}` : base,
@@ -174,7 +174,7 @@ function WeekViewImpl({
           allDay: occ.allDay === true,
           title: occ.title,
           color: p.source,
-          deep: p.deep,
+          deep: p.bar,
           name: `${kid?.name ?? '보호자'} ${occ.title}`,
           kind: occ.type,
           faces:
@@ -593,7 +593,7 @@ const useStyles = makeStyles((th) => ({
     left: 1.5,
     top: 1.5,
     bottom: 1.5,
-    width: 1.5,
+    width: th.scheme === 'dark' ? 2.5 : 1.5,
     borderRadius: 1,
   },
 }));

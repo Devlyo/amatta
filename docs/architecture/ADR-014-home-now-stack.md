@@ -20,5 +20,7 @@
 7. **블러 독**: `expo-blur` BlurView(systemChromeMaterial) + `dockTint` 55%. 모듈이 없는 예전 빌드에서는 흰 알약 그대로(lazy).
 8. 새 토큰: `RADIUS.card`, `TYPE.title2`·`largeTitle34`, `surfaceOnFill`·`surfaceOnFillMuted`(색 위의 알약·막대, 두 모드 같음), `dockTint`; Theme `cardFill`.
 
+9. **다크 모드 왼쪽 막대**(2026-11-11): 다크에서는 블록 채움이 밝아서(70%) 다크용 밝은 `deep`이 묻혔다 → 채움 위 막대 전용 `KidPalette.bar`(라이트 = `deep`, 다크 = 진한 색, 채움 대비 약 3:1 이상). 일·주 블록·주간 막대·하루 종일·지금 카드 막대와 진행 막대에 사용. 다크 막대 두께 1.5 → 2.5pt.
+
 ## Consequences
 - `expo-blur` = 새 네이티브 모듈 → 개발 빌드 새로 필요(2026-11-11 빌드).
