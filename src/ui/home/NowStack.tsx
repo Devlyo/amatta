@@ -127,8 +127,6 @@ const GAP = 6;
 const FOLD_H = 32;
 const DURATION = 340;
 const EST_H = 92;
-/** Height at the bottom of the opened stack that starts the drag-up-to-fold. */
-const DRAG_ZONE = 140;
 
 /**
  * Where card `index` sits at progress p (0 = folded, 1 = open). Pure, so it
@@ -305,7 +303,6 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
     for (let i = 0; i < n; i++) openH += (hs[i] ?? EST_H) + GAP;
     return Math.max(1, openH + FOLD_H - foldedHeight(hs, n, live));
   };
-  const openHeight = measured.current.reduce((a, h) => a + h + GAP, 0) + FOLD_H;
   const dragUp = Gesture.Pan()
     .withTestId('now-stack-drag')
     .enabled(foldable)
@@ -313,9 +310,8 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
     .onTouchesDown((_e, manager) => {
       if (!openSV.value) manager.fail();
     })
-    // Only the bottom part of the stack (last card + 접기) starts the drag, and
-    // only upward — scrolling the page elsewhere keeps working.
-    .hitSlop({ top: -Math.max(0, openHeight - DRAG_ZONE) })
+    // Anywhere on the opened stack (in-progress cards too — owner 2026-11-11),
+    // upward only; a downward drag still scrolls the page.
     .activeOffsetY(-12)
     .failOffsetY(12)
     .failOffsetX([-24, 24])
