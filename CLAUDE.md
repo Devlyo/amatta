@@ -27,6 +27,7 @@
 - **모달/시트 (ADR-004)**: 모든 바텀시트·모달 = expo-router 네이티브 라우트. 짧은 시트 = `presentation:'formSheet'` + `sheetAllowedDetents`(분수/`'fitToContents'`); 큰 폼(새일정·수정·상세) = `presentation:'modal'`. **gorhom 미사용** (iOS "닫은 뒤 두 번 탭" 버그). ~~앱 라이트모드 런타임 고정~~ → **ADR-009: 화면 모드 = 시스템(기본)/라이트/다크**(설정 > 화면, `Appearance.setColorScheme`, 부팅 중 적용, `app_settings.appearance`). 키보드 = `ScrollView automaticallyAdjustKeyboardInsets`.
 - **앱 이름·온보딩 (ADR-011)**: 표시 이름 **WeMoa**(`APP_NAME`; 번들 ID `io.devlyo.amatta`·slug 유지). 온보딩 = 환영(3D 얼굴) → 아이 등록 → **마무리(알림·보호자 일정 opt-in, 시작하기 때만 권한 요청)**. 부팅 중 알림 권한 요청은 아이가 있고 알림이 켜졌을 때만.
 - **홈 지금 스택 (ADR-014)**: 홈 "지금" = 아이마다 **막대 없는 진한 아이 색 카드**(원색→deep 18%, 불투명, H5 D1.5), **진행 중 카드는 펼쳐 두고 나머지만 쌓음(나머지 ≤1장이면 전부 펼친 채 시작, 0.2초 누르기/접기로 전부 접힘)(가장 급한 것 위, 최대 2장 아래로 살짝) → 탭하면 펼침 / 접기**. 큰 제목 34 + 얼굴 겹침, 칸 제목 Title2 22, 홈 카드 `RADIUS.card` 22. 준비물·할 일 = iOS 목록. 픽업 카드 = 큰 제목 + **완료** 알약. 독 = `expo-blur`(lazy, 없으면 흰 알약). `NowNextList`는 더 이상 홈에서 안 씀.
+- **끌어서 옮기기 (ADR-015)**: 일간·주간(블록 모드) 타임 블록 0.3초 누르기 → 끌기, 15분/하루 단위. 한 번짜리는 바로, 반복은 "이 일정만 / 모든 일정"(다른 날 이 일정만 = 취소 + 한 번짜리 복사본). `src/state/move-occurrence.ts`.
 - **데이터 가져오기 (ADR-012)**: 백업 JSON으로 **전부 바꾸기**(합치기 없음). 설정 > 데이터 "파일에서 가져오기" + 환영 화면 "백업 파일로 시작하기". schemaVersion 3–6 수용(v3 = 1.0.0 출시본, v6 = 2.0 함께하는 일정), 7↑ 거절. 한 번의 배타 트랜잭션 + `PRAGMA foreign_key_check`, id 보존, 이 기기의 `guardian_*` 설정 유지, 바꾸기 전 `wemoa-before-restore.json` 안전 사본. 아바타 중복 허용. `expo-document-picker`(lazy). 내보내기 `EXPORT_SCHEMA_VERSION`을 올리면 `src/utils/db-import.ts` 정규화도 같이 고칠 것.
 - **디자인 시스템 (ADR 없음, 2026-06 신설)**: `src/ui` 토큰(`spacing`·`radius`·`typography`·`elevation` + `palette` TOKENS) + `src/ui/components` primitives(Text·Button·Card·Input·Fab·Pill·Badge·SelectChip·DayCircle·Toggle·DateField·DashedAddButton·Segmented). **임의 색·크기·shadow 리터럴 금지 — 토큰 사용**(ADR-009: 색은 `useTheme()` / `makeStyles()`(`src/ui/appearance.tsx`)로만, `TOKENS` 없음, LIGHT/DARK 표 직접 import = lint 에러, `rgba(` 리터럴 금지). ADR-007: 기본 박스 `RADIUS.box`(14), 시스템 바탕 `TOKENS.groupedBg`, 자녀 `deep` 톤. dev 갤러리: 설정→개발자→🎨 (`__DEV__`, `app/dev-gallery.tsx`).
 
@@ -38,7 +39,7 @@
 | Architect/Critic 리뷰 | `.omc/plans/ralplan-schedul-app-v2.{architect,critic}-review.md` |
 | 보류된 결정 | `.omc/plans/open-questions.md` |
 | 제품 PRD·페르소나 | `docs/product/` |
-| 아키텍처·ADR | `docs/architecture/` (ADR-001 stack lock, ADR-002 prep·todos·pickup, ADR-003 pickup carousel + NOW tick, **ADR-004 modal sheets — 네이티브 formSheet/modal, gorhom 미사용**, ADR-006 PREP-RECUR 회차별 완료, **ADR-006a 준비물 반복 ↻ pill — 반복 일정 종속 노출**, **ADR-007 캘린더 개편 — 홈·일주월·보호자 캘린더·UI 통일**, **ADR-008 보호자 일정 쓰기 — 새 일정 화면에서 보호자 → 기기 캘린더**, ADR-009 다크 모드, **ADR-011 앱 이름 WeMoa·온보딩 개편**, **ADR-012 데이터 가져오기 — 백업으로 전부 바꾸기**, **ADR-013 함께하는 일정 — 여러 자녀 + 보호자**, **ADR-014 홈 지금 스택**) |
+| 아키텍처·ADR | `docs/architecture/` (ADR-001 stack lock, ADR-002 prep·todos·pickup, ADR-003 pickup carousel + NOW tick, **ADR-004 modal sheets — 네이티브 formSheet/modal, gorhom 미사용**, ADR-006 PREP-RECUR 회차별 완료, **ADR-006a 준비물 반복 ↻ pill — 반복 일정 종속 노출**, **ADR-007 캘린더 개편 — 홈·일주월·보호자 캘린더·UI 통일**, **ADR-008 보호자 일정 쓰기 — 새 일정 화면에서 보호자 → 기기 캘린더**, ADR-009 다크 모드, **ADR-011 앱 이름 WeMoa·온보딩 개편**, **ADR-012 데이터 가져오기 — 백업으로 전부 바꾸기**, **ADR-013 함께하는 일정 — 여러 자녀 + 보호자**, **ADR-014 홈 지금 스택**, **ADR-015 끌어서 옮기기**) |
 | UI/UX 가이드 | `docs/design/` |
 | 회의록 | `docs/meetings/` |
 | 로드맵·백로그·스프린트 | `schedule/` |

@@ -15,7 +15,7 @@
 // the dock's "+".
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, type LayoutChangeEvent } from 'react-native';
+import { Alert, View, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -32,6 +32,9 @@ import { expandOccurrences } from '../../src/domain/occurrences';
 import type { Child, ISODate, Occurrence } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
+import { useChecklistStore } from '../../src/state/checklist-store';
+import { defaultMoveSteps } from '../../src/state/move-steps';
+import { moveOccurrence } from '../../src/state/move-occurrence';
 import { useUiStore, type CalendarView, type PersonKey } from '../../src/state/ui-store';
 import { CalendarTopBar } from '../../src/ui/calendar/CalendarTopBar';
 import {
@@ -394,6 +397,32 @@ export default function CalendarScreen(): React.ReactElement {
       params: { scheduleId: String(occ.scheduleId), occurrenceDate: occ.date },
     });
   };
+  // ADR-015: a block held and dragged to a new time / day.
+  const moveOcc = (occ: Occurrence, deltaMinutes: number, deltaDays = 0): Promise<boolean> => {
+    const st = useSchedulesStore.getState();
+    const schedule = st.schedules.find((x) => x.id === occ.scheduleId);
+    if (schedule === undefined) return Promise.resolve(false);
+    const exception = st.exceptions.find(
+      (x) => x.scheduleId === occ.scheduleId && (x.date as unknown as string) === (occ.date as unknown as string),
+    );
+    return moveOccurrence(
+      {
+        schedule,
+        date: occ.date,
+        startMinutes: occ.startMinutes,
+        endMinutes: occ.endMinutes,
+        deltaMinutes,
+        deltaDays,
+        exception,
+        checklist: useChecklistStore.getState().itemsByScheduleId.get(schedule.id) ?? [],
+      },
+      defaultMoveSteps(),
+    ).catch((e: unknown) => {
+      console.warn('[move] failed', e);
+      Alert.alert('옮기지 못했어요', '잠시 후 다시 시도해 주세요.');
+      return false;
+    });
+  };
   // Guardian event → the same detail screen as a kid's event (ADR-008).
   const openGuardian = (g: GuardianOccurrence): void => {
     router.push({
@@ -477,6 +506,7 @@ export default function CalendarScreen(): React.ReactElement {
                       scrollKey={`day-${dayJump}-${dayY?.n ?? 0}`}
                       onScrollEndY={(y) => setDayY((d) => ({ y, n: (d?.n ?? 0) + 1 }))}
                       onPressOccurrence={openDetail}
+                      onMoveOccurrence={(occ, d) => moveOcc(occ, d)}
                       onLongPressSlot={(person, minutes) => createAt(date, minutes, person)}
                     />
                   );
@@ -509,6 +539,7 @@ export default function CalendarScreen(): React.ReactElement {
                 }}
                 scrollKey={`week-${weekJump}`}
                 onPressOccurrence={openDetail}
+                onMoveOccurrence={(occ, d, dd) => moveOcc(occ, d, dd)}
                 onPressDay={openDay}
                 onLongPressSlot={(date, minutes) => createAt(date, minutes)}
               />
