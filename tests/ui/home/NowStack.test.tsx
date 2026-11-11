@@ -153,3 +153,14 @@ describe('NowStack hold to fold', () => {
     expect(screen.queryByTestId('now-stack-hold')).toBeNull();
   });
 });
+
+describe('NowStack folded bars', () => {
+  test('a card behind the stack top is a 40pt bar from the first frame (not its full height)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { StyleSheet } = require('react-native') as typeof import('react-native');
+    render(<NowStack kids={kids} rows={rows} nowMinutes={NOW} />);
+    const peek = screen.getByTestId('now-card-2', { includeHiddenElements: true });
+    const st = StyleSheet.flatten(peek.props.style) as { height?: number };
+    expect(st.height).toBe(40);
+  });
+});

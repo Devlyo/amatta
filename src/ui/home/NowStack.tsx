@@ -218,8 +218,10 @@ function StackCard({
     return {
       transform: [{ translateY: g.y }, { scaleX: g.scale }],
       opacity: g.opacity,
-      // Until measured, let the card size itself.
-      height: heights.value[index] === undefined ? undefined : g.height,
+      // A card behind the stack top always gets its (bar) height — even before
+      // it is measured, or it draws full size and covers the next section.
+      // Listed cards size themselves until measured.
+      height: index > live || heights.value[index] !== undefined ? g.height : undefined,
       zIndex: index <= live ? 10 : 10 - index,
       borderRadius: g.radius,
       shadowOpacity: lift.shadowOpacity * g.lift,
@@ -251,6 +253,7 @@ function StackCard({
 
 function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | null {
   const styles = useStyles();
+  const theme = useTheme();
   const [open, setOpen] = useState(false);
   const progress = useSharedValue(0);
   const heights = useSharedValue<number[]>([]);
@@ -302,6 +305,14 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
   });
   const foldBtn = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0.5, 1], [0, 1], 'clamp') }));
 
+  // The card's own colour sits on the outer layer too, so a folded bar (its
+  // content hidden) still shows the kid colour instead of the page grey.
+  const baseColor = (r: KidNowNext): string => {
+    const kid = kidOf(r.childId);
+    if (kid === undefined || (r.current ?? r.next) === null) return theme.t.surface;
+    return nowCardColor(theme, theme.kid(kid.colorIndex));
+  };
+
   const first = ordered[0];
   if (first === undefined) return null;
   const firstKid = kidOf(first.childId);
@@ -321,7 +332,7 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
             heights={heights}
             onHeight={onHeight}
             hidden={foldable && !open && i > live}
-            base={styles.cardBase}
+            base={{ backgroundColor: baseColor(r), borderRadius: RADIUS.card }}
             lift={styles.cardLift}
             live={live}
           >
@@ -405,7 +416,6 @@ const useStyles = makeStyles((th) => ({
   track: { height: 4, borderRadius: RADIUS.full, backgroundColor: th.t.surfaceOnFillMuted, overflow: 'hidden' },
   fill: { height: 4, borderRadius: RADIUS.full },
   after: { ...TYPE.footnote, color: withAlpha(th.t.onLight, 0.62) },
-  cardBase: { backgroundColor: th.t.surface, borderRadius: RADIUS.card },
   cardLift: { ...elevationFor(th).stack },
   fold: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.md },
   foldLabel: { ...TYPE.subhead, color: th.t.primaryDeep },
