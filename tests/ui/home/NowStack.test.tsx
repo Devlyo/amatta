@@ -138,31 +138,14 @@ describe('nowCardColor (board H5 D1.5)', () => {
   });
 });
 
-describe('NowStack drag up to fold', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { State } = require('react-native-gesture-handler') as typeof import('react-native-gesture-handler');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { fireGestureHandler, getByGestureTestId } = require('react-native-gesture-handler/jest-utils') as typeof import('react-native-gesture-handler/jest-utils');
-
-  test('a flick up on the opened stack folds it; a small drag springs back open', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { waitFor } = require('@testing-library/react-native') as typeof import('@testing-library/react-native');
+describe('NowStack hold to fold', () => {
+  test('opened: holding anywhere on the stack folds it', () => {
     render(<NowStack kids={kids} rows={rows} nowMinutes={NOW} />);
     fireEvent.press(screen.getByTestId('now-stack-toggle'));
     expect(screen.getByTestId('now-stack-open')).toBeTruthy();
-
-    fireGestureHandler(getByGestureTestId('now-stack-drag'), [
-      { state: State.BEGAN, translationY: 0, velocityY: 0 },
-      { state: State.ACTIVE, translationY: -10, velocityY: -50 },
-      { state: State.END, translationY: -10, velocityY: -50 },
-    ]);
-    expect(screen.getByTestId('now-stack-open')).toBeTruthy();
-
-    fireGestureHandler(getByGestureTestId('now-stack-drag'), [
-      { state: State.BEGAN, translationY: 0, velocityY: 0 },
-      { state: State.ACTIVE, translationY: -120, velocityY: -900 },
-      { state: State.END, translationY: -160, velocityY: -900 },
-    ]);
-    await waitFor(() => expect(screen.getByTestId('now-stack')).toBeTruthy());
+    expect(screen.getByTestId('now-stack-hold').props.delayLongPress ?? 200).toBe(200);
+    fireEvent(screen.getByTestId('now-stack-hold'), 'longPress');
+    expect(screen.getByTestId('now-stack')).toBeTruthy();
+    expect(screen.queryByTestId('now-stack-hold')).toBeNull();
   });
 });

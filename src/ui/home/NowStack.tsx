@@ -5,11 +5,9 @@
 
 import { memo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Reanimated, {
   Easing,
   interpolate,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -126,6 +124,8 @@ function NowBlock({ kid, row, nowMinutes }: { kid: Child; row: KidNowNext; nowMi
 const GAP = 6;
 const FOLD_H = 32;
 const DURATION = 340;
+/** Hold this long on the opened stack to fold it. */
+const FOLD_HOLD_MS = 200;
 const EST_H = 92;
 
 /**
@@ -254,10 +254,8 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
   const heights = useSharedValue<number[]>([]);
   const ordered = orderForStack(rows).filter((r) => kids.some((k) => k.id === r.childId));
   const kidOf = (id: number): Child | undefined => kids.find((k) => k.id === id);
-  const openSV = useSharedValue(false);
   const toggle = (): void => {
     const next = !open;
-    openSV.value = next;
     setOpen(next);
     progress.value = withTiming(next ? 1 : 0, { duration: DURATION, easing: Easing.out(Easing.cubic) });
   };
@@ -290,42 +288,6 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
   });
   const foldBtn = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0.5, 1], [0, 1], 'clamp') }));
 
-  // Drag the bottom of the opened stack up to fold it — the cards follow the
-  // finger; let go past a third (or flick up) and it folds, else springs back.
-  const closeFromGesture = (): void => {
-    openSV.value = false;
-    setOpen(false);
-  };
-  const travel = (): number => {
-    'worklet';
-    const hs = heights.value;
-    let openH = 0;
-    for (let i = 0; i < n; i++) openH += (hs[i] ?? EST_H) + GAP;
-    return Math.max(1, openH + FOLD_H - foldedHeight(hs, n, live));
-  };
-  const dragUp = Gesture.Pan()
-    .withTestId('now-stack-drag')
-    .enabled(foldable)
-    // Folded: give the touch straight back so the page scrolls as usual.
-    .onTouchesDown((_e, manager) => {
-      if (!openSV.value) manager.fail();
-    })
-    // Anywhere on the opened stack (in-progress cards too — owner 2026-11-11),
-    // upward only; a downward drag still scrolls the page.
-    .activeOffsetY(-12)
-    .failOffsetY(12)
-    .failOffsetX([-24, 24])
-    .onUpdate((e) => {
-      if (!openSV.value) return;
-      progress.value = Math.min(1, Math.max(0, 1 + e.translationY / travel()));
-    })
-    .onEnd((e) => {
-      if (!openSV.value) return;
-      const fold = e.translationY < -travel() * 0.3 || e.velocityY < -600;
-      progress.value = withTiming(fold ? 0 : 1, { duration: DURATION, easing: Easing.out(Easing.cubic) });
-      if (fold) runOnJS(closeFromGesture)();
-    });
-
   const first = ordered[0];
   if (first === undefined) return null;
   const firstKid = kidOf(first.childId);
@@ -333,7 +295,6 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
   if (n === 1) return <NowBlock kid={firstKid} row={first} nowMinutes={nowMinutes} />;
 
   return (
-    <GestureDetector gesture={dragUp}>
     <Reanimated.View style={[stackStyles.box, box]} testID={open ? 'now-stack-open' : 'now-stack'}>
       {ordered.map((r, i) => {
         const kid = kidOf(r.childId);
@@ -367,6 +328,18 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
           />
         </Reanimated.View>
       ) : null}
+      {/* Opened: hold anywhere on the stack for 0.2s to fold it (owner 2026-11-11). */}
+      {foldable && open ? (
+        <Pressable
+          onLongPress={toggle}
+          delayLongPress={FOLD_HOLD_MS}
+          accessibilityRole="button"
+          accessibilityLabel="지금 일정 접기"
+          accessibilityHint="길게 누르면 접혀요"
+          testID="now-stack-hold"
+          style={stackStyles.holdCover}
+        />
+      ) : null}
       {foldable ? (
         <Reanimated.View style={[stackStyles.foldRow, foldBtn]} pointerEvents={open ? 'auto' : 'none'}>
           <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel="접기" hitSlop={8} style={styles.fold}>
@@ -375,7 +348,6 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
         </Reanimated.View>
       ) : null}
     </Reanimated.View>
-    </GestureDetector>
   );
 }
 
@@ -385,6 +357,7 @@ const stackStyles = StyleSheet.create({
   clip: { flex: 1, overflow: 'hidden' },
   wash: { ...StyleSheet.absoluteFillObject },
   cover: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20 },
+  holdCover: { position: 'absolute', left: 0, right: 0, top: 0, bottom: FOLD_H, zIndex: 20 },
   foldRow: { position: 'absolute', left: 0, right: 0, bottom: 0, height: FOLD_H, alignItems: 'center', justifyContent: 'center' },
 });
 
