@@ -3,7 +3,7 @@
 // deep side bar). Collapsed: the most pressing block on top, the next ones
 // peeking out underneath like an iOS notification stack; tap to fan out.
 
-import { memo, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Reanimated, {
   Easing,
@@ -270,9 +270,21 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
   };
   const n = ordered.length;
   // In-progress kids are always listed; only the rest stack (owner, 2026-11-11).
-  const live = ordered.filter((r) => r.status === 'inProgress').length;
-  // A "stack" of one card is just a card — nothing to fold.
-  const foldable = n - live >= 2;
+  const liveCount = ordered.filter((r) => r.status === 'inProgress').length;
+  // In-progress cards stay listed above a stack of the rest — when the rest is
+  // 2+ cards. Otherwise (owner 2026-11-11) everything starts opened and folds
+  // into one stack, in-progress cards included.
+  const live = n - liveCount >= 2 ? liveCount : 0;
+  const foldable = n >= 2;
+  const startsOpen = n >= 2 && n - liveCount <= 1;
+  const mode = `${n}:${live}:${startsOpen ? 1 : 0}`;
+  const lastMode = useRef<string | null>(null);
+  useEffect(() => {
+    if (lastMode.current === mode) return;
+    lastMode.current = mode;
+    setOpen(startsOpen);
+    progress.value = startsOpen ? 1 : 0;
+  }, [mode, startsOpen, progress]);
   const box = useAnimatedStyle(() => {
     const hs = heights.value;
     let openH = 0;
@@ -309,7 +321,7 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
             hidden={foldable && !open && i > live}
             base={styles.cardBase}
             lift={styles.cardLift}
-            live={foldable ? live : n}
+            live={live}
           >
             <NowBlock kid={kid} row={r} nowMinutes={nowMinutes} />
           </StackCard>
@@ -321,7 +333,7 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
           <Pressable
             onPress={toggle}
             accessibilityRole="button"
-            accessibilityLabel={`다음 일정 ${n - live}명, 펼치기`}
+            accessibilityLabel={`${live > 0 ? '다음 일정' : '지금 일정'} ${n - live}명, 펼치기`}
             accessibilityHint="쌓인 일정을 펼쳐요"
             testID="now-stack-toggle"
             style={StyleSheet.absoluteFill}

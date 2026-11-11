@@ -60,16 +60,20 @@ describe('NowStack', () => {
     expect(screen.queryByText('오늘 일정 없음')).toBeNull();
   });
 
-  test('all in progress (or only one left to stack) → everything listed, nothing to fold', () => {
+  test('all in progress (or only one left to stack) → starts opened; can still fold everything into one stack', () => {
     const two = nowAndNextByKid(
       [occ(1, 1, 14 * 60, 15 * 60, '수학'), occ(3, 2, 14 * 60, 16 * 60, '피아노')],
       [1, 2],
       NOW,
     );
     render(<NowStack kids={kids.slice(0, 2)} rows={two} nowMinutes={NOW} />);
-    expect(screen.queryByTestId('now-stack-toggle')).toBeNull();
-    expect(screen.queryByLabelText('접기')).toBeNull();
+    expect(screen.getByTestId('now-stack-open')).toBeTruthy();
     expect(screen.getByLabelText(/^서연, 피아노/)).toBeTruthy();
+    fireEvent(screen.getByTestId('now-stack-hold'), 'longPress');
+    expect(screen.getByTestId('now-stack')).toBeTruthy();
+    expect(screen.queryByLabelText(/^서연, 피아노/)).toBeNull();
+    fireEvent.press(screen.getByTestId('now-stack-toggle'));
+    expect(screen.getByTestId('now-stack-open')).toBeTruthy();
   });
 
   test('one kid: a single block, no stack', () => {
