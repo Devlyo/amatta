@@ -82,30 +82,35 @@ describe('NowStack', () => {
 describe('cardGeometry', () => {
   const hs = [110, 62, 62, 62];
   test('open: each card right under the one above, 6pt apart, full size', () => {
-    expect(cardGeometry(hs, 0, 1)).toEqual({ y: 0, scale: 1, opacity: 1, height: 110 });
+    expect(cardGeometry(hs, 0, 1)).toMatchObject({ y: 0, scale: 1, opacity: 1, height: 110, wash: 0 });
     expect(cardGeometry(hs, 1, 1).height).toBe(62);
     expect(cardGeometry(hs, 1, 1).y).toBeCloseTo(116);
     expect(cardGeometry(hs, 2, 1).y).toBeCloseTo(184);
     expect(cardGeometry(hs, 3, 1).y).toBeCloseTo(252);
   });
-  test('folded: cards 1–2 peek 9 / 18pt under the top card, narrower; the rest hidden', () => {
+  test('folded: cards 1–2 peek 11 / 22pt under the top card, narrower and lighter (wash, not fade); the rest hidden', () => {
     const bottom = (i: number) => {
       const g = cardGeometry(hs, i, 0);
       return g.y + (g.height * (1 + g.scale)) / 2;
     };
-    expect(bottom(1)).toBeCloseTo(110 + 9);
-    expect(bottom(2)).toBeCloseTo(110 + 18);
+    expect(bottom(1)).toBeCloseTo(110 + 11);
+    expect(bottom(2)).toBeCloseTo(110 + 22);
+    expect(cardGeometry(hs, 1, 0).opacity).toBe(1);
+    expect(cardGeometry(hs, 1, 0).wash).toBeCloseTo(0.25);
+    expect(cardGeometry(hs, 2, 0).wash).toBeCloseTo(0.5);
+    expect(cardGeometry(hs, 0, 0).lift).toBe(1);
+    expect(cardGeometry(hs, 1, 0).radius).toBeLessThan(22);
     expect(cardGeometry(hs, 1, 0).scale).toBeCloseTo(0.95);
     expect(cardGeometry(hs, 2, 0).scale).toBeCloseTo(0.9);
     expect(cardGeometry(hs, 3, 0).opacity).toBe(0);
   });
   test('with live cards: they stay listed; the stack starts right under them', () => {
     const g0 = cardGeometry(hs, 0, 0, 1);
-    expect(g0).toEqual({ y: 0, scale: 1, opacity: 1, height: 110 });
+    expect(g0).toMatchObject({ y: 0, scale: 1, opacity: 1, height: 110, lift: 0 });
     expect(cardGeometry(hs, 1, 0, 1).y).toBeCloseTo(116); // stack top
     const g2 = cardGeometry(hs, 2, 0, 1);
-    expect(g2.y + (g2.height * (1 + g2.scale)) / 2).toBeCloseTo(116 + 62 + 9);
-    expect(foldedHeight(hs, 4, 1)).toBeCloseTo(116 + 62 + 18);
+    expect(g2.y + (g2.height * (1 + g2.scale)) / 2).toBeCloseTo(116 + 62 + 11);
+    expect(foldedHeight(hs, 4, 1)).toBeCloseTo(116 + 62 + 22);
     expect(cardGeometry(hs, 3, 1, 1).y).toBeCloseTo(252);
   });
   test('folded: a card taller than the top one never pokes out above it', () => {
@@ -114,6 +119,6 @@ describe('cardGeometry', () => {
     expect(g.height).toBe(62);
     const top = g.y + (g.height * (1 - g.scale)) / 2;
     expect(top).toBeGreaterThan(0);
-    expect(g.y + (g.height * (1 + g.scale)) / 2).toBeCloseTo(62 + 9);
+    expect(g.y + (g.height * (1 + g.scale)) / 2).toBeCloseTo(62 + 11);
   });
 });

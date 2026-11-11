@@ -17,6 +17,7 @@ import Reanimated, {
 import { formatUntil, type KidNowNext } from '../../domain/now-next';
 import type { Child } from '../../domain/types';
 import { KidAvatar } from '../common/KidAvatar';
+import { elevationFor } from '../elevation';
 import { IconClock } from '../icons';
 import { withAlpha } from '../palette';
 import { RADIUS } from '../radius';
@@ -33,7 +34,7 @@ interface Props {
 
 /** Peeking cards drawn under the top one when collapsed. */
 const MAX_PEEK = 2;
-const PEEK_STEP = 9;
+const PEEK_STEP = 11;
 
 /** In progress (ending soonest) → upcoming (starting soonest) → nothing left. */
 export function orderForStack(rows: readonly KidNowNext[]): KidNowNext[] {
@@ -135,13 +136,13 @@ export function cardGeometry(
   index: number,
   p: number,
   live = 0,
-): { y: number; scale: number; opacity: number; height: number } {
+): { y: number; scale: number; opacity: number; height: number; wash: number; radius: number; lift: number } {
   'worklet';
   const h = hs[index] ?? EST_H;
   let openY = 0;
   for (let i = 0; i < index; i++) openY += (hs[i] ?? EST_H) + GAP;
   // In-progress cards (the first `live`) are always listed, never stacked.
-  if (index < live) return { y: openY, scale: 1, opacity: 1, height: h };
+  if (index < live) return { y: openY, scale: 1, opacity: 1, height: h, wash: 0, radius: RADIUS.card, lift: 0 };
   let stackY = 0;
   for (let i = 0; i < live; i++) stackY += (hs[i] ?? EST_H) + GAP;
   const top = hs[live] ?? EST_H;
@@ -153,12 +154,21 @@ export function cardGeometry(
   const foldH = j === 0 ? h : top;
   // Scale is about the centre, so the scaled bottom sits at y + h·(1+s)/2.
   const foldY = j === 0 ? stackY : stackY + top + depth * PEEK_STEP - (foldH * (1 + foldScale)) / 2;
-  const foldOpacity = j === 0 ? 1 : j <= MAX_PEEK ? 1 - depth * 0.15 : 0;
+  // Cards behind keep full opacity (a second fade washed them into the page);
+  // they get lighter by a white wash instead, one step per level.
+  const foldOpacity = j <= MAX_PEEK ? 1 : 0;
+  const foldWash = j === 0 ? 0 : depth * 0.25;
+  // Smaller corners behind, so the thin peeking edge isn't all curve.
+  const foldRadius = j === 0 ? RADIUS.card : RADIUS.card - 4 - (depth - 1) * 2;
   return {
     y: foldY + (openY - foldY) * p,
     scale: foldScale + (1 - foldScale) * p,
     opacity: foldOpacity + (1 - foldOpacity) * p,
     height: foldH + (h - foldH) * p,
+    wash: foldWash * (1 - p),
+    radius: foldRadius + (RADIUS.card - foldRadius) * p,
+    // Soft shadow under the stack's top card while folded.
+    lift: j === 0 ? 1 - p : 0,
   };
 }
 
@@ -179,6 +189,7 @@ function StackCard({
   onHeight,
   hidden,
   base,
+  lift,
   live,
   children,
 }: {
@@ -192,6 +203,8 @@ function StackCard({
   hidden: boolean;
   /** Opaque base so a card behind never shows through the translucent fill. */
   base: { backgroundColor: string; borderRadius: number };
+  /** Shadow under the stack's top card (ELEVATION.stack). */
+  lift: { shadowColor: string; shadowOpacity: number; shadowRadius: number; shadowOffset: { width: number; height: number }; elevation: number };
   children: React.ReactNode;
 }): React.ReactElement {
   const style = useAnimatedStyle(() => {
@@ -202,21 +215,29 @@ function StackCard({
       // Until measured, let the card size itself.
       height: heights.value[index] === undefined ? undefined : g.height,
       zIndex: index <= live ? 10 : 10 - index,
+      borderRadius: g.radius,
+      shadowOpacity: lift.shadowOpacity * g.lift,
     };
   });
+  const clip = useAnimatedStyle(() => ({ borderRadius: cardGeometry(heights.value, index, progress.value, live).radius }));
+  const wash = useAnimatedStyle(() => ({ opacity: cardGeometry(heights.value, index, progress.value, live).wash }));
   // The text on cards under the top one fades in as they fan out.
   const content = useAnimatedStyle(() => ({
     opacity: index <= live ? 1 : interpolate(progress.value, [0, 0.6, 1], [0, 0.2, 1]),
   }));
   return (
     <Reanimated.View
-      style={[stackStyles.card, base, style]}
+      style={[stackStyles.card, lift, style]}
       testID={`now-card-${index}`}
       importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}
       accessibilityElementsHidden={hidden}
     >
-      <Reanimated.View style={content} onLayout={(e) => onHeight(index, e.nativeEvent.layout.height)} testID={`now-card-body-${index}`}>
-        {children}
+      <Reanimated.View style={[stackStyles.clip, base, clip]}>
+        <Reanimated.View style={content} onLayout={(e) => onHeight(index, e.nativeEvent.layout.height)} testID={`now-card-body-${index}`}>
+          {children}
+        </Reanimated.View>
+        {/* Lighter by one step per level while folded (no extra fade). */}
+        <Reanimated.View pointerEvents="none" style={[stackStyles.wash, { backgroundColor: base.backgroundColor }, wash]} />
       </Reanimated.View>
     </Reanimated.View>
   );
@@ -283,6 +304,7 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
             onHeight={onHeight}
             hidden={foldable && !open && i > live}
             base={styles.cardBase}
+            lift={styles.cardLift}
             live={foldable ? live : n}
           >
             <NowBlock kid={kid} row={r} nowMinutes={nowMinutes} />
@@ -315,7 +337,9 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
 
 const stackStyles = StyleSheet.create({
   box: { position: 'relative' },
-  card: { position: 'absolute', left: 0, right: 0, top: 0, overflow: 'hidden' },
+  card: { position: 'absolute', left: 0, right: 0, top: 0 },
+  clip: { flex: 1, overflow: 'hidden' },
+  wash: { ...StyleSheet.absoluteFillObject },
   cover: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20 },
   foldRow: { position: 'absolute', left: 0, right: 0, bottom: 0, height: FOLD_H, alignItems: 'center', justifyContent: 'center' },
 });
@@ -351,6 +375,7 @@ const useStyles = makeStyles((th) => ({
   fill: { height: 4, borderRadius: RADIUS.full },
   after: { ...TYPE.footnote, color: withAlpha(th.t.onLight, 0.75) },
   cardBase: { backgroundColor: th.t.surface, borderRadius: RADIUS.card },
+  cardLift: { ...elevationFor(th).stack },
   fold: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.md },
   foldLabel: { ...TYPE.subhead, color: th.t.primaryDeep },
 }));
