@@ -36,7 +36,7 @@ interface Props {
 const MAX_PEEK = 2;
 const PEEK_STEP = 11;
 /** Opacity step per card behind the stack top. */
-const PEEK_FADE = 0.06;
+const PEEK_FADE = 0.03;
 
 /** In progress (ending soonest) → upcoming (starting soonest) → nothing left. */
 export function orderForStack(rows: readonly KidNowNext[]): KidNowNext[] {
@@ -149,7 +149,7 @@ export function cardGeometry(
   const foldH = j === 0 ? h : top;
   // Scale is about the centre, so the scaled bottom sits at y + h·(1+s)/2.
   const foldY = j === 0 ? stackY : stackY + top + depth * PEEK_STEP - (foldH * (1 + foldScale)) / 2;
-  // Cards behind fade one step per level — kept light (94% / 88%) so they still
+  // Cards behind fade one step per level — kept light (97% / 94%) so they still
   // stand out from the page (owner, 2026-11-11; 85/70% blended into it).
   const foldOpacity = j === 0 ? 1 : j <= MAX_PEEK ? 1 - depth * PEEK_FADE : 0;
   const foldWash = 0;
