@@ -415,7 +415,7 @@ export function ScheduleEditContent({
         const hit = guardianClashes(form.endMinutes, guardianOccurrences(raw, date, date))[0];
         if (hit !== undefined) {
           // Same wording as the home pickup card line (design board "0 홈").
-          message = `픽업 시간(${fmt12hrShortSpaced(form.endMinutes)})이 보호자 일정 "${hit.title}"(${fmtRange(hit.startMinutes, hit.endMinutes)})와 겹쳐요.`;
+          message = `픽업 시간(${fmt12hrShortSpaced(form.endMinutes)})이 보호자 일정 ${hit.title}(${fmtRange(hit.startMinutes, hit.endMinutes)})와 겹쳐요.`;
         }
       } catch {
         return true; // can't read the calendar — don't block saving

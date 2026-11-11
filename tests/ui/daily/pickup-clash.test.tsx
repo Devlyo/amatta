@@ -47,7 +47,7 @@ test('home pickup card: one line when a 보호자 event clashes with the pickup'
   renderCarousel([dinner]);
   expect(screen.getByTestId('pickup-guardian-clash')).toBeTruthy();
   // Design board "0 홈" wording.
-  expect(screen.getByText('보호자 일정 "저녁 약속"(5:30–8PM)와 겹쳐요')).toBeTruthy();
+  expect(screen.getByText('보호자 일정 저녁 약속(5:30–8PM)와 겹쳐요')).toBeTruthy();
 });
 
 test('no clash → no line', () => {
@@ -69,6 +69,6 @@ test('two kids\u2019 pickups around the same time: both cards + a line on each',
     />,
   );
   // First card = 민준 피아노 6PM → names 서연's 수영; the guardian line too.
-  expect(screen.getByText('서연 "수영" 픽업(6:10PM)과 겹쳐요')).toBeTruthy();
+  expect(screen.getByText('서연 수영 픽업(6:10PM)과 겹쳐요')).toBeTruthy();
   expect(screen.getByTestId('pickup-guardian-clash')).toBeTruthy();
 });

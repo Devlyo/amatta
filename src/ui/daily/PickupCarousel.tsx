@@ -119,12 +119,12 @@ export function PickupCarousel({
         const kidLine =
           first === undefined
             ? null
-            : `${first.who} "${first.what}"${others.length > 1 ? ` 외 ${others.length - 1}명` : ''} 픽업(${fmt12hrShort(first.pickupMinutes)})과 겹쳐요`;
+            : `${first.who} ${first.what}${others.length > 1 ? ` 외 ${others.length - 1}명` : ''} 픽업(${fmt12hrShort(first.pickupMinutes)})과 겹쳐요`;
         const clash = guardianClashes(card.pickupMinutes, guardianEvents)[0];
         const guardianLine =
           clash === undefined
             ? null
-            : `보호자 일정 "${clash.title}"(${fmtRange(clash.startMinutes, clash.endMinutes)})와 겹쳐요`;
+            : `보호자 일정 ${clash.title}(${fmtRange(clash.startMinutes, clash.endMinutes)})와 겹쳐요`;
         const lines = [
           { key: 'kids', text: kidLine, testID: 'pickup-kids-clash' },
           { key: 'guardian', text: guardianLine, testID: 'pickup-guardian-clash' },
