@@ -73,16 +73,18 @@ function NowBlock({ kid, row, nowMinutes }: { kid: Child; row: KidNowNext; nowMi
   const after = live && row.next !== null ? `다음 ${fmt12hrShort(row.next.startMinutes)} ${row.next.title}` : null;
   return (
     <View
-      style={[styles.block, { backgroundColor: withAlpha(p.source, theme.cardFill) }]}
+      // Board H4-A (2026-11-11): white card, kid colour only as accents — light
+      // pastels at 45% sank into the grey page.
+      style={[styles.block, styles.blockWhite]}
       accessible
       accessibilityLabel={`${kid.name}, ${occ.title} ${range}, ${status}${after !== null ? `, ${after}` : ''}`}
       testID={`now-block-${kid.id}`}
     >
-      <View style={[styles.bar, { backgroundColor: p.bar }]} />
+      <View style={[styles.bar, { backgroundColor: p.deep }]} />
       <View style={styles.top}>
         <KidAvatar child={kid} size={34} />
         <View style={styles.text}>
-          <Text style={styles.nameOnFill} numberOfLines={1}>
+          <Text style={styles.name} numberOfLines={1}>
             {kid.name}
           </Text>
           <Text style={styles.title} numberOfLines={1}>
@@ -91,17 +93,17 @@ function NowBlock({ kid, row, nowMinutes }: { kid: Child; row: KidNowNext; nowMi
         </View>
         <View style={styles.right}>
           <View style={styles.timeRow}>
-            <IconClock size={12} color={theme.t.onLight} />
+            <IconClock size={12} color={theme.t.ink} />
             <Text style={styles.time}>{range}</Text>
           </View>
-          <View style={[styles.pill, live ? styles.pillLive : styles.pillMuted]}>
+          <View style={[styles.pill, live ? { backgroundColor: withAlpha(p.source, theme.cardFill) } : styles.pillMuted]}>
             <Text style={[styles.pillLabel, live ? null : styles.pillLabelMuted]}>{status}</Text>
           </View>
         </View>
       </View>
       {live ? (
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${Math.round(progress * 100)}%`, backgroundColor: p.bar }]} />
+        <View style={[styles.track, { backgroundColor: withAlpha(p.source, 0.3) }]}>
+          <View style={[styles.fill, { width: `${Math.round(progress * 100)}%`, backgroundColor: p.deep }]} />
         </View>
       ) : null}
       {after !== null ? (
@@ -351,24 +353,23 @@ const useStyles = makeStyles((th) => ({
     overflow: 'hidden',
   },
   blockEmpty: { backgroundColor: th.t.surface, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  bar: { position: 'absolute', left: 7, top: SPACING.md, bottom: SPACING.md, width: 3, borderRadius: 2 },
+  blockWhite: { backgroundColor: th.t.surface },
+  bar: { position: 'absolute', left: 7, top: SPACING.md, bottom: SPACING.md, width: 4, borderRadius: 2 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   text: { flex: 1, minWidth: 0, gap: 1 },
   name: { ...TYPE.footnote, color: th.t.inkSub },
-  nameOnFill: { ...TYPE.footnote, color: withAlpha(th.t.onLight, 0.75) },
-  title: { ...TYPE.headline, color: th.t.onLight },
+  title: { ...TYPE.headline, color: th.t.ink },
   empty: { ...TYPE.subhead, color: th.t.inkSub },
   right: { alignItems: 'flex-end', gap: 5 },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  time: { ...TYPE.footnote, color: th.t.onLight },
+  time: { ...TYPE.footnote, color: th.t.ink },
   pill: { height: 22, paddingHorizontal: 9, borderRadius: RADIUS.full, justifyContent: 'center' },
-  pillLive: { backgroundColor: th.t.surfaceOnFill },
-  pillMuted: { backgroundColor: th.t.surfaceOnFillMuted },
+  pillMuted: { backgroundColor: th.t.ink06 },
   pillLabel: { ...TYPE.caption, color: th.t.onLight },
-  pillLabelMuted: { color: withAlpha(th.t.onLight, 0.7) },
-  track: { height: 4, borderRadius: RADIUS.full, backgroundColor: th.t.surfaceOnFillMuted, overflow: 'hidden' },
+  pillLabelMuted: { color: th.t.inkSub },
+  track: { height: 4, borderRadius: RADIUS.full, overflow: 'hidden' },
   fill: { height: 4, borderRadius: RADIUS.full },
-  after: { ...TYPE.footnote, color: withAlpha(th.t.onLight, 0.75) },
+  after: { ...TYPE.footnote, color: th.t.inkSub },
   cardBase: { backgroundColor: th.t.surface, borderRadius: RADIUS.card },
   cardLift: { ...elevationFor(th).stack },
   fold: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.md },
