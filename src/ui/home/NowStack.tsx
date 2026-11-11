@@ -5,9 +5,11 @@
 
 import { memo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Reanimated, {
   Easing,
   interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -125,6 +127,8 @@ const GAP = 6;
 const FOLD_H = 32;
 const DURATION = 340;
 const EST_H = 92;
+/** Height at the bottom of the opened stack that starts the drag-up-to-fold. */
+const DRAG_ZONE = 140;
 
 /**
  * Where card `index` sits at progress p (0 = folded, 1 = open). Pure, so it
@@ -252,8 +256,10 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
   const heights = useSharedValue<number[]>([]);
   const ordered = orderForStack(rows).filter((r) => kids.some((k) => k.id === r.childId));
   const kidOf = (id: number): Child | undefined => kids.find((k) => k.id === id);
+  const openSV = useSharedValue(false);
   const toggle = (): void => {
     const next = !open;
+    openSV.value = next;
     setOpen(next);
     progress.value = withTiming(next ? 1 : 0, { duration: DURATION, easing: Easing.out(Easing.cubic) });
   };
@@ -286,6 +292,44 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
   });
   const foldBtn = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0.5, 1], [0, 1], 'clamp') }));
 
+  // Drag the bottom of the opened stack up to fold it — the cards follow the
+  // finger; let go past a third (or flick up) and it folds, else springs back.
+  const closeFromGesture = (): void => {
+    openSV.value = false;
+    setOpen(false);
+  };
+  const travel = (): number => {
+    'worklet';
+    const hs = heights.value;
+    let openH = 0;
+    for (let i = 0; i < n; i++) openH += (hs[i] ?? EST_H) + GAP;
+    return Math.max(1, openH + FOLD_H - foldedHeight(hs, n, live));
+  };
+  const openHeight = measured.current.reduce((a, h) => a + h + GAP, 0) + FOLD_H;
+  const dragUp = Gesture.Pan()
+    .withTestId('now-stack-drag')
+    .enabled(foldable)
+    // Folded: give the touch straight back so the page scrolls as usual.
+    .onTouchesDown((_e, manager) => {
+      if (!openSV.value) manager.fail();
+    })
+    // Only the bottom part of the stack (last card + 접기) starts the drag, and
+    // only upward — scrolling the page elsewhere keeps working.
+    .hitSlop({ top: -Math.max(0, openHeight - DRAG_ZONE) })
+    .activeOffsetY(-12)
+    .failOffsetY(12)
+    .failOffsetX([-24, 24])
+    .onUpdate((e) => {
+      if (!openSV.value) return;
+      progress.value = Math.min(1, Math.max(0, 1 + e.translationY / travel()));
+    })
+    .onEnd((e) => {
+      if (!openSV.value) return;
+      const fold = e.translationY < -travel() * 0.3 || e.velocityY < -600;
+      progress.value = withTiming(fold ? 0 : 1, { duration: DURATION, easing: Easing.out(Easing.cubic) });
+      if (fold) runOnJS(closeFromGesture)();
+    });
+
   const first = ordered[0];
   if (first === undefined) return null;
   const firstKid = kidOf(first.childId);
@@ -293,6 +337,7 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
   if (n === 1) return <NowBlock kid={firstKid} row={first} nowMinutes={nowMinutes} />;
 
   return (
+    <GestureDetector gesture={dragUp}>
     <Reanimated.View style={[stackStyles.box, box]} testID={open ? 'now-stack-open' : 'now-stack'}>
       {ordered.map((r, i) => {
         const kid = kidOf(r.childId);
@@ -334,6 +379,7 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
         </Reanimated.View>
       ) : null}
     </Reanimated.View>
+    </GestureDetector>
   );
 }
 
