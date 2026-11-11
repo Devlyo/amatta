@@ -40,12 +40,12 @@ describe('TimeBlock', () => {
     expect(screen.getByText('3–4PM')).toBeTruthy();
   });
 
-  test('fills with the owner colour at 40%, 60% when focused', () => {
+  test('fills with the owner colour at 45%, 65% when focused', () => {
     renderBlock();
-    expect(flatStyle('block').backgroundColor).toBe(withAlpha(lavender.source, 0.4));
+    expect(flatStyle('block').backgroundColor).toBe(withAlpha(lavender.source, 0.45));
     screen.unmount();
     renderBlock({ focused: true });
-    expect(flatStyle('block').backgroundColor).toBe(withAlpha(lavender.source, 0.6));
+    expect(flatStyle('block').backgroundColor).toBe(withAlpha(lavender.source, 0.65));
   });
 
   test('dimmed blocks fade to 20%', () => {
