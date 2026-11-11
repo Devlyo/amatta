@@ -88,16 +88,15 @@ describe('cardGeometry', () => {
     expect(cardGeometry(hs, 2, 1).y).toBeCloseTo(184);
     expect(cardGeometry(hs, 3, 1).y).toBeCloseTo(252);
   });
-  test('folded: cards 1–2 peek 11 / 22pt under the top card, narrower and lighter (wash, not fade); the rest hidden', () => {
+  test('folded: cards 1–2 peek 11 / 22pt under the top card, narrower, a light fade per level; the rest hidden', () => {
     const bottom = (i: number) => {
       const g = cardGeometry(hs, i, 0);
       return g.y + (g.height * (1 + g.scale)) / 2;
     };
     expect(bottom(1)).toBeCloseTo(110 + 11);
     expect(bottom(2)).toBeCloseTo(110 + 22);
-    expect(cardGeometry(hs, 1, 0).opacity).toBe(1);
-    expect(cardGeometry(hs, 1, 0).wash).toBeCloseTo(0.25);
-    expect(cardGeometry(hs, 2, 0).wash).toBeCloseTo(0.5);
+    expect(cardGeometry(hs, 1, 0).opacity).toBeCloseTo(0.94);
+    expect(cardGeometry(hs, 2, 0).opacity).toBeCloseTo(0.88);
     expect(cardGeometry(hs, 0, 0).lift).toBe(1);
     expect(cardGeometry(hs, 1, 0).radius).toBeLessThan(22);
     expect(cardGeometry(hs, 1, 0).scale).toBeCloseTo(0.95);
