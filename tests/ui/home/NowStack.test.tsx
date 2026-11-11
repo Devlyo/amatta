@@ -4,7 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { nowAndNextByKid } from '../../../src/domain/now-next';
 import type { Child, ColorIndex, ISODate, Occurrence } from '../../../src/domain/types';
-import { NowStack, cardGeometry, orderForStack } from '../../../src/ui/home/NowStack';
+import { NowStack, cardGeometry, foldedHeight, orderForStack } from '../../../src/ui/home/NowStack';
 
 const ISO = (s: string) => s as unknown as ISODate;
 const kid = (id: number, name: string): Child =>
@@ -41,24 +41,35 @@ describe('orderForStack', () => {
 });
 
 describe('NowStack', () => {
-  test('collapsed: only the most pressing block; tap fans out every kid; 접기 folds', () => {
+  test('folded: in-progress listed, the rest stacked (top one readable); tap fans out; 접기 folds', () => {
     render(<NowStack kids={kids} rows={rows} nowMinutes={NOW} />);
     expect(screen.getByTestId('now-stack')).toBeTruthy();
-    // Folded: only the top card is reachable (the rest are hidden from a11y).
-    expect(screen.getByText('수학')).toBeTruthy();
+    // 민준 is in progress → always listed.
     expect(screen.getByText('진행 중 · 40분 남음')).toBeTruthy();
     expect(screen.getByText('다음 4:30PM 수영')).toBeTruthy();
-    expect(screen.queryByLabelText(/^서연, 피아노/)).toBeNull();
+    // 서연 tops the stack; 도윤 is folded behind (hidden from a11y).
+    expect(screen.getByLabelText(/^서연, 피아노/)).toBeTruthy();
+    expect(screen.queryByText('오늘 일정 없음')).toBeNull();
 
     fireEvent.press(screen.getByTestId('now-stack-toggle'));
     expect(screen.getByTestId('now-stack-open')).toBeTruthy();
-    expect(screen.getByLabelText(/^서연, 피아노/)).toBeTruthy();
-    expect(screen.getByText('40분 후')).toBeTruthy();
     expect(screen.getByText('오늘 일정 없음')).toBeTruthy();
 
     fireEvent.press(screen.getByLabelText('접기'));
     expect(screen.getByTestId('now-stack')).toBeTruthy();
-    expect(screen.queryByLabelText(/^서연, 피아노/)).toBeNull();
+    expect(screen.queryByText('오늘 일정 없음')).toBeNull();
+  });
+
+  test('all in progress (or only one left to stack) → everything listed, nothing to fold', () => {
+    const two = nowAndNextByKid(
+      [occ(1, 1, 14 * 60, 15 * 60, '수학'), occ(3, 2, 14 * 60, 16 * 60, '피아노')],
+      [1, 2],
+      NOW,
+    );
+    render(<NowStack kids={kids.slice(0, 2)} rows={two} nowMinutes={NOW} />);
+    expect(screen.queryByTestId('now-stack-toggle')).toBeNull();
+    expect(screen.queryByLabelText('접기')).toBeNull();
+    expect(screen.getByLabelText(/^서연, 피아노/)).toBeTruthy();
   });
 
   test('one kid: a single block, no stack', () => {
@@ -87,6 +98,15 @@ describe('cardGeometry', () => {
     expect(cardGeometry(hs, 1, 0).scale).toBeCloseTo(0.95);
     expect(cardGeometry(hs, 2, 0).scale).toBeCloseTo(0.9);
     expect(cardGeometry(hs, 3, 0).opacity).toBe(0);
+  });
+  test('with live cards: they stay listed; the stack starts right under them', () => {
+    const g0 = cardGeometry(hs, 0, 0, 1);
+    expect(g0).toEqual({ y: 0, scale: 1, opacity: 1, height: 110 });
+    expect(cardGeometry(hs, 1, 0, 1).y).toBeCloseTo(116); // stack top
+    const g2 = cardGeometry(hs, 2, 0, 1);
+    expect(g2.y + (g2.height * (1 + g2.scale)) / 2).toBeCloseTo(116 + 62 + 9);
+    expect(foldedHeight(hs, 4, 1)).toBeCloseTo(116 + 62 + 18);
+    expect(cardGeometry(hs, 3, 1, 1).y).toBeCloseTo(252);
   });
   test('folded: a card taller than the top one never pokes out above it', () => {
     const tall = [62, 110, 62];
