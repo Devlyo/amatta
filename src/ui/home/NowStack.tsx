@@ -35,6 +35,8 @@ interface Props {
 /** Peeking cards drawn under the top one when collapsed. */
 const MAX_PEEK = 2;
 const PEEK_STEP = 11;
+/** Height of a folded card behind the stack top (board H1). */
+const PEEK_BAR = 40;
 /** Opacity step per card behind the stack top. */
 const PEEK_FADE = 0.03;
 
@@ -153,11 +155,11 @@ export function cardGeometry(
   const j = index - live;
   const depth = Math.min(j, MAX_PEEK);
   const foldScale = 1 - depth * 0.05;
-  // Folded, a card behind is drawn at the stack-top card's height (its content
-  // is hidden), so a taller one never pokes out above the stack.
-  const foldH = j === 0 ? h : top;
-  // Scale is about the centre, so the scaled bottom sits at y + h·(1+s)/2.
-  const foldY = j === 0 ? stackY : stackY + top + depth * PEEK_STEP - (foldH * (1 + foldScale)) / 2;
+  // Folded, a card behind is a thin bar (board H1: 40pt, content hidden) whose
+  // bottom shows PEEK_STEP·depth under the stack top — the same strip whatever
+  // the card's real height. Narrower via scaleX only, so every strip is equal.
+  const foldH = j === 0 ? h : PEEK_BAR;
+  const foldY = j === 0 ? stackY : stackY + top + depth * PEEK_STEP - foldH;
   // Cards behind fade one step per level — kept light (97% / 94%) so they still
   // stand out from the page (owner, 2026-11-11; 85/70% blended into it).
   const foldOpacity = j === 0 ? 1 : j <= MAX_PEEK ? 1 - depth * PEEK_FADE : 0;
@@ -214,7 +216,7 @@ function StackCard({
   const style = useAnimatedStyle(() => {
     const g = cardGeometry(heights.value, index, progress.value, live);
     return {
-      transform: [{ translateY: g.y }, { scale: g.scale }],
+      transform: [{ translateY: g.y }, { scaleX: g.scale }],
       opacity: g.opacity,
       // Until measured, let the card size itself.
       height: heights.value[index] === undefined ? undefined : g.height,
