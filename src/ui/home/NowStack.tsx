@@ -130,7 +130,11 @@ const EST_H = 92;
  *   folded: card 0 on top; cards 1–2 scaled 95% / 90% with their bottom edge
  *           PEEK_STEP·depth below the top card; the rest faded out.
  */
-export function cardGeometry(hs: readonly number[], index: number, p: number): { y: number; scale: number; opacity: number } {
+export function cardGeometry(
+  hs: readonly number[],
+  index: number,
+  p: number,
+): { y: number; scale: number; opacity: number; height: number } {
   'worklet';
   const h0 = hs[0] ?? EST_H;
   const h = hs[index] ?? EST_H;
@@ -138,13 +142,17 @@ export function cardGeometry(hs: readonly number[], index: number, p: number): {
   for (let i = 0; i < index; i++) openY += (hs[i] ?? EST_H) + GAP;
   const depth = Math.min(index, MAX_PEEK);
   const foldScale = 1 - depth * 0.05;
+  // Folded, a card behind is drawn at the top card's height (its content is
+  // hidden), so a taller one never pokes out above the stack.
+  const foldH = index === 0 ? h : h0;
   // Scale is about the centre, so the scaled bottom sits at y + h·(1+s)/2.
-  const foldY = index === 0 ? 0 : h0 + depth * PEEK_STEP - (h * (1 + foldScale)) / 2;
+  const foldY = index === 0 ? 0 : h0 + depth * PEEK_STEP - (foldH * (1 + foldScale)) / 2;
   const foldOpacity = index === 0 ? 1 : index <= MAX_PEEK ? 1 - depth * 0.15 : 0;
   return {
     y: foldY + (openY - foldY) * p,
     scale: foldScale + (1 - foldScale) * p,
     opacity: foldOpacity + (1 - foldOpacity) * p,
+    height: foldH + (h - foldH) * p,
   };
 }
 
@@ -173,6 +181,8 @@ function StackCard({
     return {
       transform: [{ translateY: g.y }, { scale: g.scale }],
       opacity: g.opacity,
+      // Until measured, let the card size itself.
+      height: heights.value[index] === undefined ? undefined : g.height,
       zIndex: index === 0 ? 10 : 10 - index,
     };
   });
@@ -183,12 +193,13 @@ function StackCard({
   return (
     <Reanimated.View
       style={[stackStyles.card, base, style]}
-      onLayout={(e) => onHeight(index, e.nativeEvent.layout.height)}
       testID={`now-card-${index}`}
       importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}
       accessibilityElementsHidden={hidden}
     >
-      <Reanimated.View style={content}>{children}</Reanimated.View>
+      <Reanimated.View style={content} onLayout={(e) => onHeight(index, e.nativeEvent.layout.height)} testID={`now-card-body-${index}`}>
+        {children}
+      </Reanimated.View>
     </Reanimated.View>
   );
 }
@@ -273,7 +284,7 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
 
 const stackStyles = StyleSheet.create({
   box: { position: 'relative' },
-  card: { position: 'absolute', left: 0, right: 0, top: 0 },
+  card: { position: 'absolute', left: 0, right: 0, top: 0, overflow: 'hidden' },
   cover: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
   foldRow: { position: 'absolute', left: 0, right: 0, bottom: 0, height: FOLD_H, alignItems: 'center', justifyContent: 'center' },
 });
