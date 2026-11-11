@@ -164,3 +164,16 @@ describe('NowStack folded bars', () => {
     expect(st.height).toBe(40);
   });
 });
+
+describe('heightsInOrder', () => {
+  test('heights follow the kid, not the position (a reorder keeps each card its own height)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { heightsInOrder } = require('../../../src/ui/home/NowStack') as typeof import('../../../src/ui/home/NowStack');
+    const byKid = new Map([[1, 120], [2, 80]]);
+    expect(heightsInOrder(byKid, [1, 2])).toEqual([120, 80]);
+    expect(heightsInOrder(byKid, [2, 1])).toEqual([80, 120]);
+    const sparse = heightsInOrder(byKid, [3, 1]);
+    expect(sparse[0]).toBeUndefined();
+    expect(sparse[1]).toBe(120);
+  });
+});
