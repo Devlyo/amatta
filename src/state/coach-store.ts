@@ -7,10 +7,16 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { appSettingsRepo } from '../db/repositories';
 
-export type CoachId = 'filter-solo' | 'week-pinch' | 'block-drag';
+// Owner's list (2026-11-12):
+//   view-switch  calendar, first time    → points at 일·주·월: "주간·월간 보기도 있어요"
+//   week-slide   week view               → slide across the pills for everyone
+//   week-pinch   week view               → pinch to zoom
+//   month-pinch  month view              → pinch to zoom
+//   share        last, once the rest are seen → points at the share button
+export type CoachId = 'view-switch' | 'week-slide' | 'week-pinch' | 'month-pinch' | 'share';
 export const COACH_KEY = 'coach_seen';
 /** Order the tips may appear in — at most one on screen at a time. */
-export const COACH_ORDER: readonly CoachId[] = ['filter-solo', 'week-pinch', 'block-drag'];
+export const COACH_ORDER: readonly CoachId[] = ['view-switch', 'week-slide', 'week-pinch', 'month-pinch', 'share'];
 
 interface CoachState {
   seen: CoachId[];

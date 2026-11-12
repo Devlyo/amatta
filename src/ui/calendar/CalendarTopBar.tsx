@@ -11,7 +11,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, type LayoutChangeEvent } from 'react-native';
 
 import type { CalendarView } from '../../state/ui-store';
 import {
@@ -40,7 +40,21 @@ interface Props {
   onPressSearch: () => void;
   /** ADR-016: share a read-only link. */
   onPressShare?: () => void;
+  /** Where the view switch / share button sit in the bar (first-use tips point at them). */
+  onAnchor?: (which: 'segment' | 'share', box: AnchorBox) => void;
 }
+
+export interface AnchorBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const boxOf = (e: LayoutChangeEvent): AnchorBox => {
+  const { x, y, width, height } = e.nativeEvent.layout;
+  return { x, y, w: width, h: height };
+};
 
 const VIEWS: { key: CalendarView; label: string; Icon: React.ComponentType<IconProps> }[] = [
   { key: 'day', label: '일간 보기', Icon: IconViewDay },
@@ -58,6 +72,7 @@ function CalendarTopBarImpl({
   onPressTitle,
   onPressSearch,
   onPressShare,
+  onAnchor,
 }: Props): React.ReactElement {
   const theme = useTheme();
   const styles = useStyles();
@@ -81,7 +96,7 @@ function CalendarTopBarImpl({
         </View>
       </Pressable>
 
-      <View style={styles.segment} accessibilityRole="tablist">
+      <View style={styles.segment} accessibilityRole="tablist" onLayout={(e) => onAnchor?.('segment', boxOf(e))}>
         {VIEWS.map(({ key, label, Icon }) => {
           const active = key === view;
           const enabled = enabledViews.includes(key);
@@ -116,6 +131,7 @@ function CalendarTopBarImpl({
           accessibilityRole="button"
           accessibilityLabel="캘린더 공유"
           style={styles.iconButton}
+          onLayout={(e) => onAnchor?.('share', boxOf(e))}
           testID="calendar-share"
         >
           <Ionicons name="share-outline" size={21} color={theme.t.ink} />

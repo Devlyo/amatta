@@ -1,16 +1,16 @@
-// First-use tips (board CM2): one at a time, in order, each once.
+// First-use tips (board CM2, owner's list 2026-11-12): one at a time, in order, each once.
 import { nextCoach } from '../../src/state/coach-store';
 
 describe('nextCoach', () => {
   test('nothing until loaded', () => {
-    expect(nextCoach([], false, ['filter-solo'])).toBeNull();
+    expect(nextCoach([], false, ['view-switch'])).toBeNull();
   });
   test('first unseen tip this screen can host, one at a time', () => {
-    expect(nextCoach([], true, ['filter-solo', 'week-pinch', 'block-drag'])).toBe('filter-solo');
-    expect(nextCoach(['filter-solo'], true, ['filter-solo', 'week-pinch'])).toBe('week-pinch');
-    // the week tip isn't on this screen → the drag tip doesn't wait for it
-    expect(nextCoach(['filter-solo'], true, ['filter-solo', 'block-drag'])).toBe('block-drag');
-    expect(nextCoach(['filter-solo', 'week-pinch'], true, ['block-drag'])).toBe('block-drag');
-    expect(nextCoach(['filter-solo', 'week-pinch', 'block-drag'], true, ['block-drag'])).toBeNull();
+    expect(nextCoach([], true, ['view-switch', 'week-slide', 'week-pinch'])).toBe('view-switch');
+    expect(nextCoach(['view-switch'], true, ['view-switch', 'week-slide', 'week-pinch'])).toBe('week-slide');
+    expect(nextCoach(['view-switch', 'week-slide'], true, ['view-switch', 'week-slide', 'week-pinch'])).toBe('week-pinch');
+    // month tip shows in the month view even if the week tips are still unseen
+    expect(nextCoach(['view-switch'], true, ['view-switch', 'month-pinch'])).toBe('month-pinch');
+    expect(nextCoach(['view-switch', 'week-slide', 'week-pinch', 'month-pinch', 'share'], true, ['share'])).toBeNull();
   });
 });
