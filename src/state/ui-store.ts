@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { soloActive, toggleActive, type PersonKey } from '../domain/people-filter';
+import { setActive, soloActive, tapPerson, toggleActive, type PersonKey } from '../domain/people-filter';
 import { WEEK_SPAN_DEFAULT, type WeekSpan } from '../ui/calendar/calendar-layout';
 import type { ISODate } from '../domain/types';
 import { todayIso } from '../ui/utils/date';
@@ -67,6 +67,21 @@ interface UiState {
   setMonthRowH: (h: number) => void;
   /** People switched off in the filter (faded). Empty = everyone active. */
   inactivePeople: PersonKey[];
+  /**
+   * The week view's own filter (owner 2026-11-12): it opens showing one person
+   * — the first kid — so each kid's week reads as titled blocks. `null` = not
+   * set yet this session (then: everyone but the first is off).
+   */
+  weekInactive: PersonKey[] | null;
+  toggleWeekPerson: (key: PersonKey, everyone: readonly PersonKey[]) => void;
+  soloWeekPerson: (key: PersonKey, everyone: readonly PersonKey[]) => void;
+  /** Tap on a pill: one person at a time (see tapPerson). */
+  tapPersonPill: (key: PersonKey, everyone: readonly PersonKey[]) => void;
+  tapWeekPersonPill: (key: PersonKey, everyone: readonly PersonKey[]) => void;
+  /** Slide-select: set one person on/off (day/month filter). */
+  setPersonActive: (key: PersonKey, on: boolean) => void;
+  /** Slide-select in the week's own filter. */
+  setWeekPersonActive: (key: PersonKey, on: boolean, everyone: readonly PersonKey[]) => void;
   /** Short tap on a filter pill. */
   togglePerson: (key: PersonKey) => void;
   /** Long press on a filter pill: only that person (again → everyone). */
@@ -92,6 +107,11 @@ interface UiState {
 
 }
 
+/** The week's opening filter: only the first person (first kid) is on. */
+export function weekDefault(everyone: readonly PersonKey[]): PersonKey[] {
+  return everyone.slice(1);
+}
+
 export const useUiStore = create<UiState>()((set) => ({
   currentDate: todayIso(),
   setCurrentDate: (date) => set({ currentDate: date }),
@@ -113,6 +133,17 @@ export const useUiStore = create<UiState>()((set) => ({
   monthRowH: 104,
   setMonthRowH: (h) => set({ monthRowH: h }),
   inactivePeople: [],
+  weekInactive: null,
+  toggleWeekPerson: (key, everyone) =>
+    set((s) => ({ weekInactive: toggleActive(s.weekInactive ?? weekDefault(everyone), key) })),
+  soloWeekPerson: (key, everyone) =>
+    set((s) => ({ weekInactive: soloActive(s.weekInactive ?? weekDefault(everyone), key, everyone) })),
+  tapPersonPill: (key, everyone) => set((s) => ({ inactivePeople: tapPerson(s.inactivePeople, key, everyone) })),
+  tapWeekPersonPill: (key, everyone) =>
+    set((s) => ({ weekInactive: tapPerson(s.weekInactive ?? weekDefault(everyone), key, everyone) })),
+  setPersonActive: (key, on) => set((s) => ({ inactivePeople: setActive(s.inactivePeople, key, on) })),
+  setWeekPersonActive: (key, on, everyone) =>
+    set((s) => ({ weekInactive: setActive(s.weekInactive ?? weekDefault(everyone), key, on) })),
   togglePerson: (key) => set((s) => ({ inactivePeople: toggleActive(s.inactivePeople, key) })),
   soloPerson: (key, everyone) =>
     set((s) => ({ inactivePeople: soloActive(s.inactivePeople, key, everyone) })),

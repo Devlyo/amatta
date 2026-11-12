@@ -21,6 +21,7 @@ import { useChecklistCompletionStore } from './checklist-completion-store';
 import { useChecklistStore } from './checklist-store';
 import { useChildrenStore } from './children-store';
 import { useDisplayStore } from './display-store';
+import { useCoachStore } from './coach-store';
 import { useGuardianStore } from './guardian-store';
 import { useNotifSettingsStore } from './notif-settings-store';
 import { usePickupLogStore } from './pickup-log-store';
@@ -117,8 +118,9 @@ async function reloadAll(db: SQLiteDatabase): Promise<void> {
   // rescheduleAll reads the notif store → settings first, data next, then reschedule.
   await useNotifSettingsStore.getState().load(db);
   await useDisplayStore.getState().load(db);
+  await useCoachStore.getState().load(db);
   // The restored kids decide the calendar's opening view afresh.
-  useUiStore.setState({ kidCountMode: null });
+  useUiStore.setState({ kidCountMode: null, weekInactive: null });
   await Promise.all([
     useChildrenStore.getState().load(db),
     useSchedulesStore.getState().load(db),

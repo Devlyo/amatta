@@ -19,6 +19,8 @@ import { useRouter } from 'expo-router';
 
 import { nextHourStart } from '../calendar/time-axis';
 import { useUiStore } from '../../state/ui-store';
+import { useCoachStore } from '../../state/coach-store';
+import { getDb } from '../../db/client';
 import { useDisplayStore } from '../../state/display-store';
 import { elevationFor } from '../elevation';
 import { IconGear, IconHome, IconPlus } from '../icons';
@@ -47,6 +49,10 @@ function FloatingDockImpl({ state, navigation }: BottomTabBarProps): React.React
   // 설정 > 화면: "+" on the left for left-handed use (ADR-009).
   const addLeft = useDisplayStore((s) => s.addButtonSide) === 'left';
   const onAdd = (): void => {
+    // First-use tip 0 ("새 일정을 등록해 보세요") is done once + is used.
+    if (!useCoachStore.getState().seen.includes('add-event')) {
+      void getDb().then((db) => useCoachStore.getState().markSeen(db, 'add-event'));
+    }
     const onCalendar = state.routes[state.index]?.name === 'calendar';
     const date = onCalendar ? useUiStore.getState().currentDate : todayIso();
     // Starts at the next full hour from now (7:06 → 8:00), one hour long.

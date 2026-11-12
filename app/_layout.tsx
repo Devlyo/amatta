@@ -24,6 +24,7 @@ import { useChecklistCompletionStore } from '../src/state/checklist-completion-s
 import { useNotifSettingsStore } from '../src/state/notif-settings-store';
 import { useGuardianStore } from '../src/state/guardian-store';
 import { useDisplayStore } from '../src/state/display-store';
+import { useCoachStore } from '../src/state/coach-store';
 import { AppThemeProvider, DARK_THEME, LIGHT_THEME, makeStyles, useTheme } from '../src/ui/appearance';
 import {
   DarkTheme as NavDarkTheme,
@@ -119,6 +120,7 @@ export default function RootLayout() {
           useChecklistCompletionStore.getState().load(db),
           useGuardianStore.getState().load(db),
           useDisplayStore.getState().load(db),
+          useCoachStore.getState().load(db),
         ]);
         for (const r of v2Results) {
           if (r.status === 'rejected') {

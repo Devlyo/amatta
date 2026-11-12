@@ -157,9 +157,11 @@ function WeekViewImpl({
   // width back). Everyone off → nothing is filtered.
   const noneOn = everyone.every((k) => inactive.includes(k));
   // More than 4 days on screen → bars + icons; otherwise titled blocks.
-  // One kid (owner, 2026-11-12): the day column is the kid's alone, so it
-  // keeps titled blocks even at 7 days.
-  const bars = span > WEEK_SPAN_BARS_FROM && kids.length !== 1;
+  // One person shown (owner, 2026-11-12 — one kid, or the week's default
+  // one-at-a-time filter): the day column is theirs alone, so it keeps titled
+  // blocks even at 7 days.
+  const shownPeople = noneOn ? everyone.length : everyone.filter((k) => !inactive.includes(k)).length;
+  const bars = span > WEEK_SPAN_BARS_FROM && shownPeople > 1 && kids.length !== 1;
   const items = useMemo<WeekItem[]>(() => {
     const out: WeekItem[] = [];
     for (const occ of occurrences) {

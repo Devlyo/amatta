@@ -36,27 +36,42 @@ function opacityOf(testID: string): unknown {
 }
 
 describe('KidFilterBar', () => {
-  test('everyone active by default; tap toggles, long press solos', () => {
+  test('everyone active by default; tap toggles (no long press)', () => {
     const onToggle = jest.fn();
-    const onSolo = jest.fn();
-    render(<KidFilterBar kids={kids} inactive={[]} onToggle={onToggle} onSolo={onSolo} />);
+    render(<KidFilterBar kids={kids} inactive={[]} onToggle={onToggle} onSet={() => {}} />);
     expect(opacityOf('kid-filter-1')).toBe(1);
     expect(opacityOf('kid-filter-guardian')).toBe(1);
     fireEvent.press(screen.getByTestId('kid-filter-2'));
-    fireEvent(screen.getByTestId('kid-filter-guardian'), 'longPress');
     expect(onToggle.mock.calls).toEqual([[2]]);
-    expect(onSolo.mock.calls).toEqual([['guardian']]);
+  });
+
+  test('slide across the pills: each one passed takes the opposite of the first pill', async () => {
+    const onSet = jest.fn();
+    const onSlideEnd = jest.fn();
+    render(<KidFilterBar kids={kids} inactive={[2]} onToggle={() => {}} onSet={onSet} onSlideEnd={onSlideEnd} />);
+    // 3 pills in 375pt: (375 − 24 − 8) / 3 ≈ 114 each → centres ≈ 69 / 187 / 305
+    fireEvent(screen.getByTestId('kid-filter-bar'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 375, height: 42 } } });
+    fireGestureHandler(getByGestureTestId('kid-filter-slide'), [
+      { state: State.BEGAN, x: 187, translationX: 0 },
+      { state: State.ACTIVE, x: 200, translationX: 13 },
+      { state: State.ACTIVE, x: 305, translationX: 118 },
+      { state: State.ACTIVE, x: 300, translationX: 113 },
+      { state: State.END, x: 300, translationX: 113 },
+    ]);
+    // started on 서연 (off) → switch on everyone passed, once each
+    await waitFor(() => expect(onSlideEnd).toHaveBeenCalledTimes(1));
+    expect(onSet.mock.calls).toEqual([[2, true], ['guardian', true]]);
   });
 
   test('fades the pills that are switched off', () => {
-    render(<KidFilterBar kids={kids} inactive={[1, 'guardian']} onToggle={() => {}} onSolo={() => {}} />);
+    render(<KidFilterBar kids={kids} inactive={[1, 'guardian']} onToggle={() => {}} onSet={() => {}} />);
     expect(opacityOf('kid-filter-2')).toBe(1);
     expect(opacityOf('kid-filter-1')).toBe(PILL_FADED_OPACITY);
     expect(opacityOf('kid-filter-guardian')).toBe(PILL_FADED_OPACITY);
   });
 
   test('no 보호자 pill while 보호자 일정 is off in 설정', () => {
-    render(<KidFilterBar kids={kids} inactive={[]} onToggle={() => {}} onSolo={() => {}} guardian={false} />);
+    render(<KidFilterBar kids={kids} inactive={[]} onToggle={() => {}} onSet={() => {}} guardian={false} />);
     expect(screen.getByTestId('kid-filter-1')).toBeTruthy();
     expect(screen.queryByTestId('kid-filter-guardian')).toBeNull();
   });
@@ -222,13 +237,13 @@ describe('KidFilterBar — up to 6 kids + 보호자', () => {
     }));
 
   test('4 kids + 보호자 (5 pills): names still shown (compact)', () => {
-    render(<KidFilterBar kids={many(4)} inactive={[]} onToggle={() => {}} onSolo={() => {}} />);
+    render(<KidFilterBar kids={many(4)} inactive={[]} onToggle={() => {}} onSet={() => {}} />);
     expect(screen.getByText('아이4')).toBeTruthy();
     expect(screen.getByText('보호자')).toBeTruthy();
   });
 
   test('6 kids + 보호자 (7 pills): avatar only, names kept as labels', () => {
-    render(<KidFilterBar kids={many(6)} inactive={[]} onToggle={() => {}} onSolo={() => {}} />);
+    render(<KidFilterBar kids={many(6)} inactive={[]} onToggle={() => {}} onSet={() => {}} />);
     expect(screen.queryByText('아이6')).toBeNull();
     // The pill (button) keeps the name as its label; the avatar image repeats it.
     expect(screen.getByRole('button', { name: '아이6' })).toBeTruthy();

@@ -1,7 +1,7 @@
 // State store tests for useUiStore.
 // Pure state — no DB involved.
 
-import { useUiStore } from '../../src/state/ui-store';
+import { useUiStore, weekDefault } from '../../src/state/ui-store';
 import { WEEK_SPAN_DEFAULT } from '../../src/ui/calendar/calendar-layout';
 import type { ISODate } from '../../src/domain/types';
 
@@ -153,5 +153,18 @@ describe('applyKidCountDefaults', () => {
   test('no kids yet → nothing changes', () => {
     useUiStore.getState().applyKidCountDefaults(0);
     expect(useUiStore.getState()).toMatchObject({ calendarView: 'day', kidCountMode: null });
+  });
+});
+
+describe('week filter (owner 2026-11-12)', () => {
+  beforeEach(() => useUiStore.setState({ weekInactive: null, inactivePeople: [] }));
+  test('opens on the first kid alone; the day filter is untouched', () => {
+    const everyone = [1, 2, 3, 'guardian'] as const;
+    expect(weekDefault([...everyone])).toEqual([2, 3, 'guardian']);
+    useUiStore.getState().toggleWeekPerson(2, [...everyone]);
+    expect(useUiStore.getState().weekInactive).toEqual([3, 'guardian']);
+    expect(useUiStore.getState().inactivePeople).toEqual([]);
+    useUiStore.getState().soloWeekPerson(3, [...everyone]);
+    expect(useUiStore.getState().weekInactive).toEqual([1, 2, 'guardian']);
   });
 });

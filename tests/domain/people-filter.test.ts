@@ -1,6 +1,7 @@
 import {
   emphasisOf,
   soloActive,
+  tapPerson,
   toggleActive,
   type PersonKey,
 } from '../../src/domain/people-filter';
@@ -40,5 +41,21 @@ describe('people filter', () => {
     let inactive: PersonKey[] = [];
     for (const k of [1, 2, 'guardian'] as PersonKey[]) inactive = toggleActive(inactive, k);
     expect(emphasisOf(inactive, everyone, 3)).toBe('solo');
+  });
+});
+
+describe('tapPerson (owner 2026-11-12: a tap picks one person)', () => {
+  const all = [1, 2, 3, 'guardian'] as const;
+  test('everyone on → only the tapped person', () => {
+    expect(tapPerson([], 2, [...all])).toEqual([1, 3, 'guardian']);
+  });
+  test('an off person → only them', () => {
+    expect(tapPerson([2, 3, 'guardian'], 3, [...all])).toEqual([1, 2, 'guardian']);
+  });
+  test('an on person (with others on) → switched off', () => {
+    expect(tapPerson([3, 'guardian'], 1, [...all])).toEqual([3, 'guardian', 1]);
+  });
+  test('the last one on, tapped → everyone again', () => {
+    expect(tapPerson([2, 3, 'guardian'], 1, [...all])).toEqual([]);
   });
 });
