@@ -60,7 +60,7 @@ export default function ShareScreen(): React.ReactElement {
     }
     const url = shareUrl(payload);
     try {
-      await Share.share({ message: `WeMoa 캘린더 (${m}월 ${d}일 기준, 보기 전용)\n${url}`, url });
+      await Share.share({ message: `WeMoa 캘린더 (${m}월 ${d}일 기준, 보기 전용)\n${url}` });
     } catch {
       // Dismissed or failed — nothing to undo.
     }
@@ -81,6 +81,7 @@ export default function ShareScreen(): React.ReactElement {
         <View style={styles.block}>
           <Text style={styles.header}>자녀</Text>
           <FormGroup>
+            <View style={styles.kidList}>
             <FormOptionList<number>
               options={kids.map((k) => ({ key: k.id, label: k.name }))}
               selected={-1}
@@ -92,6 +93,7 @@ export default function ShareScreen(): React.ReactElement {
                 return kid !== undefined ? <KidAvatar child={kid} size={26} /> : null;
               }}
             />
+            </View>
           </FormGroup>
         </View>
 
@@ -111,7 +113,7 @@ export default function ShareScreen(): React.ReactElement {
         </View>
 
         <View style={styles.warn}>
-          <IconAlertCircle size={18} color={theme.t.primaryDeep} />
+          <IconAlertCircle size={18} color={theme.t.danger} />
           <Text style={styles.warnText}>
             링크를 받은 사람은 누구나 아이 이름과 일정을 확인할 수 있어요. 믿을 수 있는 보호자에게만 전달해주세요.
           </Text>
@@ -140,7 +142,8 @@ const useStyles = makeStyles((th) => ({
   label: { ...TYPE.row, color: th.t.ink },
   seg: { flex: 1 },
   warn: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm, padding: SPACING.md, borderRadius: RADIUS.box, backgroundColor: th.t.primaryTint },
-  warnText: { ...TYPE.footnote, flex: 1, color: th.t.primaryDeep },
+  warnText: { ...TYPE.footnote, flex: 1, color: th.t.danger },
+  kidList: { paddingLeft: SPACING.lg },
   footer: { paddingHorizontal: 20, paddingTop: SPACING.md, paddingBottom: SPACING.sm },
   cta: { height: 54, borderRadius: RADIUS.full, backgroundColor: th.t.primary, alignItems: 'center', justifyContent: 'center' },
   ctaText: { ...TYPE.headline, color: th.t.onDark },

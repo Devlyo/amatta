@@ -63,11 +63,21 @@ function avatar(kidIdx: number, p: SharePayload, size: number): El {
   return wrap;
 }
 
+/** The orange WeMoa wordmark (the app's Fredoka logo, as an image). */
+function wordmark(width: number): El {
+  const img = document.createElement('img');
+  img.src = '/wordmark.png';
+  img.alt = 'WeMoa';
+  img.className = 'wordmark';
+  img.width = width;
+  return img;
+}
+
 function message(title: string, body: string): void {
   const root = document.getElementById('app') as El;
   root.replaceChildren();
   const box = el('div', 'msg');
-  box.append(el('div', 'brand', 'WeMoa'), el('h1', '', title), el('p', '', body));
+  box.append(wordmark(120), el('h1', '', title), el('p', '', body));
   root.append(box);
 }
 
@@ -87,7 +97,9 @@ function render(p: SharePayload): void {
     // Header
     const head = el('header');
     const left = el('div');
-    left.append(el('div', 'meta', `WeMoa · 보기 전용 · ${md(created)} 기준`));
+    const meta = el('div', 'meta');
+    meta.append(wordmark(64), el('span', '', `보기 전용 · ${md(created)} 기준`));
+    left.append(meta);
     const endDay = addDays(from, Math.min(p.d, start + span) - 1);
     left.append(el('h1', '', `${md(addDays(from, start))} – ${md(endDay)}`));
     const nav = el('div', 'nav');
@@ -214,7 +226,6 @@ function render(p: SharePayload): void {
     const first = occs.filter((o) => o[4] === 0).reduce((m, o) => Math.min(m, o[1]), 24 * 60);
     grid.scrollTop = first < 24 * 60 ? Math.max(0, (first / 60 - 0.5) * HOUR_H) : 8 * HOUR_H;
 
-    root.append(el('footer', '', '보기 전용이에요. 일정은 이 링크 안에만 담겨 있고 어디에도 저장되지 않아요.'));
     if (sheet !== null) root.append(sheet);
   };
 
@@ -267,7 +278,7 @@ function render(p: SharePayload): void {
     if (s[5] === 1) card.append(el('div', 'line', `픽업 필요 · ${fmt(o[2])}`));
     if (s[6] !== null && s[6] !== '') card.append(el('div', 'line', `장소 · ${s[6]}`));
     if (o[6].length > 0) {
-      card.append(el('div', 'label', '준비물'), el('div', 'line', o[6].map((i) => p.l[i] ?? '').join(' · ')));
+      card.append(el('div', 'label', '준비물'), el('div', 'line', o[6].map((i) => p.l[i] ?? '').join(', ')));
     }
     if (s[7] !== null && s[7] !== '') card.append(el('div', 'label', '메모'), el('div', 'line', s[7]));
     card.append(el('div', 'note', '보기 전용이에요. 바꾸려면 WeMoa 앱에서 해 주세요.'));
@@ -292,7 +303,10 @@ function start(): void {
     return;
   }
   if (r.kind !== 'ok') {
-    message('열 수 없는 링크예요', '링크가 잘렸거나 손상됐을 수 있어요. 보낸 분에게 다시 공유해 달라고 해 주세요.');
+    message(
+      '열 수 없는 링크예요',
+      '링크가 중간에 잘렸을 수 있어요. 카카오톡이라면 메시지의 ‘전체보기’를 연 뒤 링크를 눌러 주세요. 그래도 안 되면 보낸 분에게 다시 공유해 달라고 해 주세요.',
+    );
     return;
   }
   render(r.payload);
