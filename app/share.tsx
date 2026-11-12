@@ -12,7 +12,6 @@ import { useChecklistStore } from '../src/state/checklist-store';
 import { useChildrenStore } from '../src/state/children-store';
 import { useSchedulesStore } from '../src/state/schedules-store';
 import { KidAvatar } from '../src/ui/common/KidAvatar';
-import { Segmented } from '../src/ui/components/Segmented';
 import { FormGroup, FormOptionList, FormToggleRow } from '../src/ui/sheets/form-rows';
 import { RADIUS } from '../src/ui/radius';
 import { SPACING } from '../src/ui/spacing';
@@ -21,7 +20,6 @@ import { todayIso } from '../src/ui/utils/date';
 import { IconAlertCircle } from '../src/ui/icons';
 import { makeStyles, useTheme } from '../src/ui/appearance';
 
-const WEEKS = [2, 4, 8] as const;
 /** Above this the link gets unwieldy in chat apps — ask for a shorter range. */
 const MAX_LINK = 8000;
 
@@ -32,7 +30,6 @@ export default function ShareScreen(): React.ReactElement {
   const children = useChildrenStore((s) => s.children);
   const kids = useMemo(() => [...children].sort((a, b) => a.id - b.id).slice(0, MAX_CHILDREN), [children]);
   const [picked, setPicked] = useState<number[]>(() => kids.map((k) => k.id));
-  const [weeks, setWeeks] = useState<(typeof WEEKS)[number]>(4);
   const [supplies, setSupplies] = useState(true);
   const [placeNotes, setPlaceNotes] = useState(false);
   const today = todayIso();
@@ -52,10 +49,10 @@ export default function ShareScreen(): React.ReactElement {
         exceptions: st.exceptions,
         checklistByScheduleId: useChecklistStore.getState().itemsByScheduleId,
       },
-      { kidIds: picked, from: today, weeks, includeSupplies: supplies, includePlaceNotes: placeNotes, createdOn: today },
+      { kidIds: picked, from: today, includeSupplies: supplies, includePlaceNotes: placeNotes, createdOn: today },
     );
     if (encodeShare(payload).length > MAX_LINK) {
-      Alert.alert('링크가 너무 길어요', '기간을 줄이거나 준비물·장소를 빼고 다시 공유해 주세요.');
+      Alert.alert('링크가 너무 길어요', '준비물이나 장소·메모를 빼거나, 아이를 나눠서 공유해 주세요.');
       return;
     }
     const url = shareUrl(payload);
@@ -100,15 +97,11 @@ export default function ShareScreen(): React.ReactElement {
         <View style={styles.block}>
           <Text style={styles.header}>공유할 일정</Text>
           <FormGroup>
-            <View style={styles.periodRow}>
-              <Text style={styles.label}>기간</Text>
-              <Segmented options={WEEKS} value={weeks} onChange={setWeeks} renderLabel={(w) => `${w}주`} style={styles.seg} />
-            </View>
             <FormToggleRow label="준비물 포함" value={supplies} onChange={setSupplies} />
             <FormToggleRow label="장소·메모 포함" value={placeNotes} onChange={setPlaceNotes} last />
           </FormGroup>
           <Text style={styles.foot}>
-            오늘부터 {weeks}주 일정이 공유됩니다.
+            오늘부터 1주 일정이 공유됩니다.
           </Text>
         </View>
 
@@ -138,9 +131,6 @@ const useStyles = makeStyles((th) => ({
   block: { gap: 6 },
   header: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.lg },
   foot: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.lg },
-  periodRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: SPACING.md, paddingLeft: SPACING.lg, paddingRight: SPACING.lg, borderBottomWidth: 0.5, borderBottomColor: th.t.separator },
-  label: { ...TYPE.row, color: th.t.ink },
-  seg: { flex: 1 },
   warn: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm, padding: SPACING.md, borderRadius: RADIUS.box, backgroundColor: th.t.primaryTint },
   warnText: { ...TYPE.footnote, flex: 1, color: th.t.danger },
   kidList: { paddingLeft: SPACING.lg },
