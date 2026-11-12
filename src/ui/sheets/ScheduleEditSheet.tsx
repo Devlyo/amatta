@@ -51,7 +51,7 @@ import type {
   ScheduleException,
 } from '../../domain/types';
 import { KidAvatar } from '../common/KidAvatar';
-import { MemberFaces } from '../common/MemberFaces';
+import { GuardianAvatar, PersonChips } from '../common/PersonChips';
 import { TypeIcon } from '../common/TypeIcon';
 import { DayCircle } from '../components/DayCircle';
 import { IconXMark } from '../icons';
@@ -706,7 +706,6 @@ export function ScheduleEditContent({
     : peopleCount > 1
       ? `${peopleCount}명`
       : (selectedKid?.name ?? '선택');
-  const kidPalette = selectedKid !== undefined ? theme.kid(selectedKid.colorIndex) : null;
 
   return (
     <View style={styles.contentRoot}>
@@ -781,14 +780,14 @@ export function ScheduleEditContent({
             <FormValueRow
               label="참여"
               value={kidRowValue}
-              leading={
-                forGuardian ? (
-                  <View style={[styles.kidDot, { backgroundColor: theme.t.guardian, borderColor: theme.t.guardianDeep }]} />
-                ) : pickedKids.length + (form.withGuardian ? 1 : 0) > 1 ? (
-                  <MemberFaces kids={pickedKids} withGuardian={form.withGuardian} size={20} testID="row-kid-faces" />
-                ) : kidPalette !== null ? (
-                  <View style={[styles.kidDot, { backgroundColor: kidPalette.source, borderColor: kidPalette.deep }]} />
-                ) : null
+              valueNode={
+                forGuardian || pickedKids.length > 0 ? (
+                  <PersonChips
+                    kids={forGuardian ? [] : pickedKids}
+                    withGuardian={forGuardian || form.withGuardian}
+                    active={expanded === 'kid'}
+                  />
+                ) : undefined
               }
               onPress={sheetMode === 'create' || sheetMode === 'editAll' ? () => toggle('kid') : undefined}
               expanded={expanded === 'kid'}
@@ -818,7 +817,7 @@ export function ScheduleEditContent({
                   setForm({ ...form, memberIds: next.memberIds, childId: next.memberIds[0] ?? null, withGuardian: next.withGuardian });
                 }}
                 render={(id) => {
-                  if (id === GUARDIAN_OPTION) return <View style={styles.guardianAvatar} />;
+                  if (id === GUARDIAN_OPTION) return <GuardianAvatar size={26} />;
                   const kid = children.find((k) => k.id === id);
                   return kid !== undefined ? <KidAvatar child={kid} size={26} /> : null;
                 }}
@@ -1290,14 +1289,6 @@ async function persistChecklistDiff(
 
 
 const useStyles = makeStyles((th) => ({
-  guardianAvatar: {
-    width: 26,
-    height: 26,
-    borderRadius: RADIUS.full,
-    backgroundColor: th.t.guardian,
-    borderWidth: 1.5,
-    borderColor: th.t.guardianDeep,
-  },
   guardianNote: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs },
   contentRoot: { flex: 1, backgroundColor: th.t.groupedBg },
   headerBar: {
@@ -1315,7 +1306,6 @@ const useStyles = makeStyles((th) => ({
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, gap: 22 },
   block: { gap: 6 },
-  kidDot: { width: 12, height: 12, borderRadius: RADIUS.full, borderWidth: 1.5 },
   dayCircleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

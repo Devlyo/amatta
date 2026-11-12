@@ -5,7 +5,7 @@
 // Presented by the native modal route app/event/detail.tsx; the route shell
 // owns the ui-store eventDetail open/close. "수정" swaps to the edit form.
 
-import { MemberFaces } from '../common/MemberFaces';
+import { PersonChips } from '../common/PersonChips';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -280,7 +280,6 @@ export function DetailBody({
 }: DetailBodyProps): React.ReactElement {
   const theme = useTheme();
   const styles = useStyles();
-  const palette = theme.kid(child.colorIndex);
   const date =
     occurrenceDate !== undefined && occurrenceDate.length > 0
       ? occurrenceDate
@@ -303,13 +302,7 @@ export function DetailBody({
         <FormValueRow
           label="참여"
           value={[...members.map((k) => k.name), ...(schedule.withGuardian ? ['보호자'] : [])].join(', ')}
-          leading={
-            members.length + (schedule.withGuardian ? 1 : 0) > 1 ? (
-              <MemberFaces kids={members} withGuardian={schedule.withGuardian} size={20} />
-            ) : (
-              <View style={[styles.kidDot, { backgroundColor: palette.source, borderColor: palette.deep }]} />
-            )
-          }
+          valueNode={<PersonChips kids={members} withGuardian={schedule.withGuardian} />}
         />
         <FormValueRow
           label="종류"
@@ -402,7 +395,6 @@ const useStyles = makeStyles((th) => ({
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, gap: 22 },
   block: { gap: 6 },
-  kidDot: { width: 12, height: 12, borderRadius: RADIUS.full, borderWidth: 1.5 },
   pickupDot: { width: 7, height: 7, borderRadius: RADIUS.full, backgroundColor: th.t.primary },
   checkRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 },
   checkBox: {

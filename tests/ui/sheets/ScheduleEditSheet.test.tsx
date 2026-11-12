@@ -669,7 +669,7 @@ describe('EditSheet — 자녀 multi-select (ADR-013)', () => {
     fireEvent.press(getByLabelText('참여: 서연'));
     fireEvent.press(getByLabelText('참여: 민준'));
     fireEvent.press(getByLabelText('참여: 보호자'));
-    expect(getByText('3명')).toBeTruthy();
+    expect(getByLabelText('참여: 3명')).toBeTruthy(); // chips show the people; the row still speaks the count
     fireEvent.press(getByTestId('row-type'));
     fireEvent.press(getByLabelText('기타'));
     fireEvent.changeText(getByTestId('sheet-title-input'), '가족 모임');
