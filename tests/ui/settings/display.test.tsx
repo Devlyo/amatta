@@ -18,10 +18,10 @@ beforeEach(() => {
   useDisplayStore.setState({ addButtonSide: 'right', setAddButtonSide: setSide as never });
 });
 
-test('설정 > 화면: + 버튼 위치 오른쪽(기본) / 왼쪽', async () => {
+test('설정 > 화면: 새 일정 버튼 위치 오른쪽(기본) / 왼쪽', async () => {
   render(<DisplaySettingsScreen />);
-  expect(screen.getByLabelText('+ 버튼 위치: 오른쪽').props.accessibilityState).toMatchObject({ selected: true });
-  fireEvent.press(screen.getByLabelText('+ 버튼 위치: 왼쪽'));
+  expect(screen.getByLabelText('새 일정 버튼 위치: 오른쪽').props.accessibilityState).toMatchObject({ selected: true });
+  fireEvent.press(screen.getByLabelText('새 일정 버튼 위치: 왼쪽'));
   await waitFor(() => expect(setSide).toHaveBeenCalledWith(expect.anything(), 'left'), { timeout: 5000 });
 });
 

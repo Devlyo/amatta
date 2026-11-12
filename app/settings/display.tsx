@@ -1,6 +1,6 @@
 // 설정 > 화면 — ADR-009.
 //   화면 모드         시스템(기본) / 라이트 / 다크 — applied app-wide at once
-//   새 일정 + 버튼 위치  오른쪽(기본) / 왼쪽 — for left-handed use
+//   새 일정 버튼 위치    오른쪽(기본) / 왼쪽 — for left-handed use
 
 import { useCallback } from 'react';
 import { Text, View } from 'react-native';
@@ -53,12 +53,12 @@ export default function DisplaySettingsScreen(): React.ReactElement {
       </View>
 
       <View style={ss.block}>
-        <HomeSection title="새 일정 + 버튼 위치">
+        <HomeSection title="새 일정 버튼 위치">
           <View style={{ paddingLeft: 16 }}>
             <FormOptionList<AddButtonSide>
               options={SIDES}
               selected={side}
-              labelPrefix="+ 버튼 위치: "
+              labelPrefix="새 일정 버튼 위치: "
               onSelect={(k) => void onSelect(k)}
             />
           </View>

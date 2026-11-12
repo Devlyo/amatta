@@ -62,8 +62,7 @@ export default function CalendarSettingsScreen(): React.ReactElement {
           <FormToggleRow label="보호자 일정 보기" value={enabled} onChange={(v) => void onToggle(v)} last />
         </FormGroup>
         <Text style={styles.footnote}>
-          아이폰 캘린더의 일정을 보호자 일정으로 함께 보여 줘요. 새 일정 화면에서 보호자를 고르면 아이폰
-          캘린더에 저장돼요. 일정은 이 기기 밖으로 나가지 않아요.
+          아이폰 캘린더의 일정을 공유합니다.
         </Text>
         </View>
 
