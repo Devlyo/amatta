@@ -2,7 +2,8 @@
 // No dimming — the screen stays usable; the tip goes away when the gesture is
 // done or ✕ is tapped (the caller marks it seen).
 //
-//   <CoachFinger x y />   a finger that presses and holds on a point (+ ring)
+//   <CoachFinger x y />          a finger that presses and holds on a point (+ ring)
+//   <CoachFinger x y slideTo />  presses at x, slides to slideTo, lifts
 //   <CoachTip ... />      the bubble; `gesture` draws a tiny looping hint inside
 
 import { memo, useEffect } from 'react';
@@ -45,20 +46,31 @@ function Finger({ size }: { size: number }): React.ReactElement {
   );
 }
 
-/** A finger pressing and holding on (x, y) — the fingertip lands on the point. */
-export const CoachFinger = memo(function CoachFinger({ x, y }: { x: number; y: number }): React.ReactElement {
+/** A finger pressing (and, with `slideTo`, sliding) — the fingertip lands on (x, y). */
+export const CoachFinger = memo(function CoachFinger({ x, y, slideTo }: { x: number; y: number; slideTo?: number }): React.ReactElement {
   const styles = useStyles();
   const t = useLoop();
+  const dx = slideTo !== undefined ? slideTo - x : 0;
   const finger = useAnimatedStyle(() => ({
     transform: [
+      { translateX: interpolate(t.value, [0, 0.3, 0.75, 0.9, 1], [0, 0, dx, dx, 0]) },
       { translateY: interpolate(t.value, [0, 0.15, 0.3, 0.8, 0.95, 1], [14, 14, 0, 0, 14, 14]) },
       { scale: interpolate(t.value, [0, 0.15, 0.3, 0.8, 0.95, 1], [1, 1, 0.92, 0.92, 1, 1]) },
     ],
   }));
-  const ring = useAnimatedStyle(() => ({
-    opacity: interpolate(t.value, [0, 0.28, 0.32, 0.78, 0.9, 1], [0, 0, 0.9, 0.9, 0, 0]),
-    transform: [{ scale: interpolate(t.value, [0, 0.28, 0.78, 0.9, 1], [0.2, 0.2, 1, 1.15, 1.15]) }],
-  }));
+  // Press: a ring fills where the finger holds. Slide: a pill-shaped trail
+  // grows behind the finger.
+  const ring = useAnimatedStyle(() =>
+    dx === 0
+      ? {
+          opacity: interpolate(t.value, [0, 0.28, 0.32, 0.78, 0.9, 1], [0, 0, 0.9, 0.9, 0, 0]),
+          transform: [{ scale: interpolate(t.value, [0, 0.28, 0.78, 0.9, 1], [0.2, 0.2, 1, 1.15, 1.15]) }],
+        }
+      : {
+          opacity: interpolate(t.value, [0, 0.28, 0.32, 0.8, 0.92, 1], [0, 0, 0.9, 0.9, 0, 0]),
+          width: interpolate(t.value, [0, 0.3, 0.75, 1], [52, 52, 52 + dx, 52 + dx]),
+        },
+  );
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.layer]}>
       <Reanimated.View style={[styles.ring, { left: x - 26, top: y - 26 }, ring]} />

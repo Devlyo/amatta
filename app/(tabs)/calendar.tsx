@@ -105,7 +105,7 @@ function md(date: ISODate): { m: number; d: number } {
 
 /** CM2 tip copy: [before, highlighted, after] (owner 2026-11-12). */
 const COACH_TEXT: Record<CoachId, readonly [string, string, string]> = {
-  'filter-solo': ['', '길게 누르면', ' 한 아이만 보여요'],
+  'filter-solo': ['이름을 ', '옆으로 밀면', ' 여러 명을 한 번에 켜고 꺼요'],
   'week-pinch': ['', '두 손가락으로 벌리거나 모으면', ' 보이는 날짜 수가 바뀌어요'],
   'block-drag': ['일정을 ', '꾹 눌러 끌면', ' 시간과 날짜를 옮길 수 있어요'],
 };
@@ -126,10 +126,10 @@ export default function CalendarScreen(): React.ReactElement {
   const setMonthRowH = useUiStore((s) => s.setMonthRowH);
   const inactivePeople = useUiStore((s) => s.inactivePeople);
   const togglePerson = useUiStore((s) => s.togglePerson);
-  const soloPerson = useUiStore((s) => s.soloPerson);
+  const setPersonActive = useUiStore((s) => s.setPersonActive);
   const weekInactiveRaw = useUiStore((s) => s.weekInactive);
   const toggleWeekPerson = useUiStore((s) => s.toggleWeekPerson);
-  const soloWeekPerson = useUiStore((s) => s.soloWeekPerson);
+  const setWeekPersonActive = useUiStore((s) => s.setWeekPersonActive);
 
   const nowMinutes = useNowMinutes();
   const today = todayIso();
@@ -161,6 +161,12 @@ export default function CalendarScreen(): React.ReactElement {
     const n = Math.max(everyone.length, 1);
     const pillW = (w - SPACING.md * 2 - SPACING.xs * (n - 1)) / n;
     return SPACING.md + pillW / 2;
+  }, [barBox, everyone.length]);
+  const secondPillX = useMemo(() => {
+    const w = barBox?.w ?? 0;
+    const n = Math.max(everyone.length, 1);
+    const pillW = (w - SPACING.md * 2 - SPACING.xs * (n - 1)) / n;
+    return SPACING.md + pillW * Math.min(n, 3) + SPACING.xs * (Math.min(n, 3) - 1) - pillW / 2;
   }, [barBox, everyone.length]);
   const seeCoach = useCallback((id: CoachId) => {
     if (useCoachStore.getState().seen.includes(id)) return;
@@ -522,11 +528,8 @@ export default function CalendarScreen(): React.ReactElement {
         kids={kids}
         inactive={filterInactive}
         onToggle={(key) => (view === 'week' ? toggleWeekPerson(key, everyone) : togglePerson(key))}
-        onSolo={(key) => {
-          seeCoach('filter-solo');
-          if (view === 'week') soloWeekPerson(key, everyone);
-          else soloPerson(key, everyone);
-        }}
+        onSet={(key, on) => (view === 'week' ? setWeekPersonActive(key, on, everyone) : setPersonActive(key, on))}
+        onSlideEnd={() => seeCoach('filter-solo')}
       />
       </View>
       <GestureDetector gesture={pinch}>
@@ -617,7 +620,7 @@ export default function CalendarScreen(): React.ReactElement {
       </GestureDetector>
       {coach !== null && barBox !== null ? (
         <>
-          {coach === 'filter-solo' ? <CoachFinger x={firstPillX} y={barBox.h / 2} /> : null}
+          {coach === 'filter-solo' ? <CoachFinger x={firstPillX} y={barBox.h / 2} slideTo={secondPillX} /> : null}
           <CoachTip
             testID={`coach-${coach}`}
             parts={COACH_TEXT[coach]}

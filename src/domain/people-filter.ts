@@ -17,6 +17,12 @@ export function toggleActive(inactive: readonly PersonKey[], key: PersonKey): Pe
   return inactive.includes(key) ? inactive.filter((k) => k !== key) : [...inactive, key];
 }
 
+/** Switch one person on or off explicitly (slide-select across the pills). */
+export function setActive(inactive: readonly PersonKey[], key: PersonKey, on: boolean): PersonKey[] {
+  if (on) return inactive.filter((k) => k !== key);
+  return inactive.includes(key) ? [...inactive] : [...inactive, key];
+}
+
 export function soloActive(
   inactive: readonly PersonKey[],
   key: PersonKey,

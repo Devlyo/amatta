@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { soloActive, toggleActive, type PersonKey } from '../domain/people-filter';
+import { setActive, soloActive, toggleActive, type PersonKey } from '../domain/people-filter';
 import { WEEK_SPAN_DEFAULT, type WeekSpan } from '../ui/calendar/calendar-layout';
 import type { ISODate } from '../domain/types';
 import { todayIso } from '../ui/utils/date';
@@ -75,6 +75,10 @@ interface UiState {
   weekInactive: PersonKey[] | null;
   toggleWeekPerson: (key: PersonKey, everyone: readonly PersonKey[]) => void;
   soloWeekPerson: (key: PersonKey, everyone: readonly PersonKey[]) => void;
+  /** Slide-select: set one person on/off (day/month filter). */
+  setPersonActive: (key: PersonKey, on: boolean) => void;
+  /** Slide-select in the week's own filter. */
+  setWeekPersonActive: (key: PersonKey, on: boolean, everyone: readonly PersonKey[]) => void;
   /** Short tap on a filter pill. */
   togglePerson: (key: PersonKey) => void;
   /** Long press on a filter pill: only that person (again → everyone). */
@@ -131,6 +135,9 @@ export const useUiStore = create<UiState>()((set) => ({
     set((s) => ({ weekInactive: toggleActive(s.weekInactive ?? weekDefault(everyone), key) })),
   soloWeekPerson: (key, everyone) =>
     set((s) => ({ weekInactive: soloActive(s.weekInactive ?? weekDefault(everyone), key, everyone) })),
+  setPersonActive: (key, on) => set((s) => ({ inactivePeople: setActive(s.inactivePeople, key, on) })),
+  setWeekPersonActive: (key, on, everyone) =>
+    set((s) => ({ weekInactive: setActive(s.weekInactive ?? weekDefault(everyone), key, on) })),
   togglePerson: (key) => set((s) => ({ inactivePeople: toggleActive(s.inactivePeople, key) })),
   soloPerson: (key, everyone) =>
     set((s) => ({ inactivePeople: soloActive(s.inactivePeople, key, everyone) })),

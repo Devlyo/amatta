@@ -2,12 +2,15 @@
 //
 // One pill per kid plus 보호자 (guardian). Border = the owner's deep tone,
 // fill = owner colour at 25% (guardian 40%), avatar + name centred.
-// Everyone starts active. Short tap = switch that person off/on; long press =
-// that person only (long press again = everyone). Inactive pills fade to 45%,
-// their blocks to 20% (see domain/people-filter).
+// Short tap = switch that person off/on. Press and slide sideways = every pill
+// the finger passes takes the opposite of the first pill's state, like
+// selecting photos by sliding (owner 2026-11-12; long press "only this person"
+// removed). Inactive pills fade to 45%.
 
-import { memo } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { memo, useMemo, useRef } from 'react';
+import { Pressable, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 
 import type { Child } from '../../domain/types';
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
@@ -25,13 +28,14 @@ interface Props {
   kids: readonly Child[];
   inactive: readonly PersonKey[];
   onToggle: (key: PersonKey) => void;
-  onSolo: (key: PersonKey) => void;
+  /** Slide-select: set this person on/off. */
+  onSet: (key: PersonKey, on: boolean) => void;
+  /** A slide across the pills finished (the coach tip listens). */
+  onSlideEnd?: () => void;
   /** 보호자 as a person (pill / column). False while 보호자 일정 is off in 설정. */
   guardian?: boolean;
 }
 
-/** Hold time for "this person only". */
-const LONG_PRESS_MS = 350;
 /** From this many pills (kids + 보호자) on, pills switch to the compact size. */
 const COMPACT_FROM = 5;
 /** From this many pills on, names are dropped (avatar only; name stays the a11y label). */
@@ -44,7 +48,6 @@ function Pill({
   faded,
   selected,
   onPress,
-  onLongPress,
   compact,
   avatarOnly,
   testID,
@@ -56,7 +59,6 @@ function Pill({
   faded: boolean;
   selected: boolean;
   onPress: () => void;
-  onLongPress: () => void;
   compact: boolean;
   avatarOnly: boolean;
   testID: string;
@@ -66,11 +68,9 @@ function Pill({
   return (
     <Pressable
       onPress={onPress}
-      onLongPress={onLongPress}
-      delayLongPress={LONG_PRESS_MS}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint="누르면 켜고 끄기, 길게 누르면 이 사람만 보기"
+      accessibilityHint="누르면 켜고 끄기, 옆으로 밀면 여러 명을 한 번에"
       accessibilityState={{ selected }}
       testID={testID}
       style={[
@@ -89,7 +89,7 @@ function Pill({
   );
 }
 
-function KidFilterBarImpl({ kids, inactive, onToggle, onSolo, guardian = true }: Props): React.ReactElement {
+function KidFilterBarImpl({ kids, inactive, onToggle, onSet, onSlideEnd, guardian = true }: Props): React.ReactElement {
   const theme = useTheme();
   const styles = useStyles();
   const everyone: PersonKey[] = guardian ? [...kids.map((k) => k.id), 'guardian'] : kids.map((k) => k.id);
@@ -100,8 +100,58 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo, guardian = true }:
   // Kids and 보호자 are both circles now (board AV1-B) → same size.
   const guardianDot = avatarOnly ? 24 : compact ? 18 : 22;
   const avatar = guardianDot;
+
+  // Slide-select. Pills are equal flex boxes: side padding md, gap xs.
+  const width = useRef(0);
+  const latest = useRef({ everyone, faded, onSet, onSlideEnd });
+  latest.current = { everyone, faded, onSet, onSlideEnd };
+  const slide = useRef<{ target: boolean; touched: Set<PersonKey> } | null>(null);
+  const keyAt = (x: number): PersonKey | undefined => {
+    const all = latest.current.everyone;
+    const n = all.length;
+    const pillW = (width.current - SPACING.md * 2 - SPACING.xs * (n - 1)) / n;
+    if (pillW <= 0) return undefined;
+    const i = Math.floor((x - SPACING.md + SPACING.xs / 2) / (pillW + SPACING.xs));
+    return all[Math.min(Math.max(i, 0), n - 1)];
+  };
+  const touch = (x: number): void => {
+    const s = slide.current;
+    const key = keyAt(x);
+    if (s === null || key === undefined || s.touched.has(key)) return;
+    s.touched.add(key);
+    latest.current.onSet(key, s.target);
+  };
+  const begin = (x: number): void => {
+    const key = keyAt(x);
+    if (key === undefined) return;
+    // Start on a faded pill → switch everyone passed on; on an active one → off.
+    slide.current = { target: latest.current.faded(key), touched: new Set() };
+    touch(x);
+  };
+  const end = (): void => {
+    if (slide.current !== null) latest.current.onSlideEnd?.();
+    slide.current = null;
+  };
+  const pan = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-10, 10])
+        .failOffsetY([-14, 14])
+        .onStart((e) => runOnJS(begin)(e.x - e.translationX))
+        .onUpdate((e) => runOnJS(touch)(e.x))
+        .onFinalize(() => runOnJS(end)())
+        .withTestId('kid-filter-slide'),
+    // begin/touch/end read refs only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const onLayout = (e: LayoutChangeEvent): void => {
+    width.current = e.nativeEvent.layout.width;
+  };
+
   return (
-    <View style={styles.row}>
+    <GestureDetector gesture={pan}>
+    <View style={styles.row} onLayout={onLayout} testID="kid-filter-bar">
       {kids.map((kid) => {
         const p = theme.kid(kid.colorIndex); // dark deep tones in dark (ADR-009)
         return (
@@ -113,7 +163,6 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo, guardian = true }:
             faded={faded(kid.id)}
             selected={!faded(kid.id)}
             onPress={() => onToggle(kid.id)}
-            onLongPress={() => onSolo(kid.id)}
             compact={compact}
             avatarOnly={avatarOnly}
             testID={`kid-filter-${kid.id}`}
@@ -130,7 +179,6 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo, guardian = true }:
         faded={faded('guardian')}
         selected={!faded('guardian')}
         onPress={() => onToggle('guardian')}
-        onLongPress={() => onSolo('guardian')}
         compact={compact}
         avatarOnly={avatarOnly}
         testID="kid-filter-guardian"
@@ -141,6 +189,7 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo, guardian = true }:
       </Pill>
       ) : null}
     </View>
+    </GestureDetector>
   );
 }
 
