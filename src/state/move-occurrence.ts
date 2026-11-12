@@ -7,8 +7,12 @@
 //     · 이 일정만, other day  → cancel that day + a one-time copy on the new day
 //                              (members, guardian, alerts, pickup and the
 //                               supplies shown that day come along)
-//     · 모든 일정            → the schedule's times move; a day move shifts its
-//                              weekdays by the same number of days
+//     · 모든 일정            → every occurrence takes the time the block was
+//                              dropped at (absolute, not "+1h": a day that had
+//                              its own time no longer skews the rest — owner
+//                              report 2026-11-12); a day move swaps only the
+//                              dragged weekday (월~금, 금 → 토 = 월~목+토; the
+//                              whole mask used to rotate → 화~토, looked copied)
 
 import { isChecklistItemVisibleOn } from '../domain/checklist-membership';
 import type { ChecklistItem, ISODate, Schedule, ScheduleException } from '../domain/types';
@@ -35,6 +39,11 @@ export function weekdayBit(iso: ISODate): number {
   const s = iso as unknown as string;
   const d = new Date(Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8, 10)));
   return 1 << ((d.getDay() + 6) % 7);
+}
+
+/** The dragged weekday moves; the others stay (금 → 토 on 월~금 = 월~목 + 토). */
+export function moveWeekday(mask: number, from: ISODate, to: ISODate): number {
+  return (mask & ~weekdayBit(from)) | weekdayBit(to);
 }
 
 /** Shift every weekday in a mask by `days` (wrapping Sun→Mon). */
@@ -85,12 +94,24 @@ export async function moveOccurrence(
   if (scope === null) return false;
 
   if (scope === 'all') {
-    // Base times move by the same amount (an overridden day keeps its override).
+    // The new time is what the user sees where they let go — not base + delta,
+    // which went wrong when this day already had its own time (an exception):
+    // e.g. base 6–7, this day moved to 8–9 earlier, dragged to 9–10 → next
+    // week landed on 7–8.
     await steps.updateSchedule(schedule.id, {
-      startMinutes: schedule.startMinutes + deltaMinutes,
-      endMinutes: schedule.endMinutes + deltaMinutes,
-      ...(deltaDays !== 0 ? { daysOfWeek: rotateMask(schedule.daysOfWeek, deltaDays) } : {}),
+      startMinutes: newStart,
+      endMinutes: newEnd,
+      ...(deltaDays !== 0 ? { daysOfWeek: moveWeekday(schedule.daysOfWeek, date, newDate) } : {}),
     });
+    // This day's own time would otherwise keep showing the old slot.
+    if (exception?.kind === 'modify' && deltaDays === 0) {
+      await steps.applyException(schedule.id, date, {
+        kind: 'modify',
+        overrideStartMinutes: newStart,
+        overrideEndMinutes: newEnd,
+        overrideTitle: exception.overrideTitle,
+      });
+    }
     return true;
   }
 

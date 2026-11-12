@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import {
   BLOCK_DIMMED_OPACITY,
@@ -83,4 +83,31 @@ describe('TimeBlock', () => {
     fireEvent.press(screen.getByLabelText('서연 피아노, 3–4PM'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
+
+  // Owner 2026-11-12: shared-schedule faces showed only from ~2 hours.
+  describe('faces of a shared schedule', () => {
+    const faces = <Text testID="faces">faces</Text>;
+    test('1 hour (46pt): faces on the time row', () => {
+      renderBlock({ height: 46, footer: faces });
+      expect(screen.getByTestId('faces')).toBeTruthy();
+      expect(screen.getByText('3–4PM')).toBeTruthy();
+    });
+    test('time hidden (7-day week): faces take its place', () => {
+      renderBlock({ height: 46, footer: faces, showTime: false });
+      expect(screen.getByTestId('faces')).toBeTruthy();
+    });
+    test('week view (compact), 1 hour (44pt), 7 days (no time): faces shown', () => {
+      renderBlock({ height: 44, footer: faces, compact: true, showTime: false });
+      expect(screen.getByTestId('faces')).toBeTruthy();
+    });
+    test('too short (30 min): no faces', () => {
+      renderBlock({ height: 22, footer: faces });
+      expect(screen.queryByTestId('faces')).toBeNull();
+    });
+    test('tall: faces on their own row, once', () => {
+      renderBlock({ height: 92, footer: faces });
+      expect(screen.getAllByTestId('faces')).toHaveLength(1);
+    });
+  });
 });
+

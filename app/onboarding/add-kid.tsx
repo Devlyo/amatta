@@ -19,7 +19,7 @@ import { useRouter } from 'expo-router';
 
 import { getDb } from '../../src/db/client';
 import { MAX_CHILDREN } from '../../src/domain/constants';
-import { AVATAR_KEYS, colorIndexForAvatarKey, type AvatarKey } from '../../src/domain/avatar';
+import { AVATAR_KEYS, colorIndexForAvatarKey, type AvatarKey, nextAvailableAvatar } from '../../src/domain/avatar';
 import { useChildrenStore } from '../../src/state/children-store';
 import { AVATAR_IMAGE_BY_KEY } from '../../src/ui/assets';
 import { AVATAR_CIRCLE_ALPHA } from '../../src/ui/common/KidAvatar';
@@ -38,12 +38,7 @@ interface DraftKid {
   avatar: AvatarKey;
 }
 
-function nextAvailableAvatar(taken: readonly AvatarKey[]): AvatarKey {
-  for (const k of AVATAR_KEYS) {
-    if (!taken.includes(k)) return k;
-  }
-  return AVATAR_KEYS[0];
-}
+
 
 /** One dot per kid slot: done = faded orange, current = orange bar. */
 function StepDots({ current }: { current: number }): React.ReactElement {
