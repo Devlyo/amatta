@@ -40,3 +40,7 @@ export type MascotKey = keyof typeof MASCOTS;
 // 1200 × 263; keep that aspect when sizing.
 export const WORDMARK = require('../../assets/images/splash-icon.png');
 export const WORDMARK_ASPECT = 1200 / 263;
+
+// Onboarding welcome hero — the kids around a calendar (owner, 2026-11-12). Transparent PNG.
+export const WELCOME_HERO = require('../../assets/images/welcome-hero.png');
+export const WELCOME_HERO_ASPECT = 1080 / 720;
