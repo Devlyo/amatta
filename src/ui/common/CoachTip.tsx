@@ -6,7 +6,7 @@
 //   <CoachFinger x y slideTo />  presses at x, slides to slideTo, lifts
 //   <CoachTip ... />      the bubble; `gesture` draws a tiny looping hint inside
 
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import Reanimated, {
   Easing,
@@ -26,6 +26,7 @@ import { TYPE } from '../typography';
 import { makeStyles, useTheme } from '../appearance';
 
 const CYCLE = 2400;
+const ARROW = 14;
 const FINGER_PATH =
   'M20 6c0-3 2.2-5 5-5s5 2 5 5v20l3-1c3-1 6 1 6 4v1l3-1c3-1 6 1 6 4v2l2-.5c3-.5 5 1.5 5 4.5v10c0 9-7 15-16 15h-6c-6 0-10-3-13-8L5 39c-1.6-2.6-.6-5.8 2-7 2.2-1 4.6-.2 6 1.6L20 41V6z';
 
@@ -139,9 +140,20 @@ interface CoachTipProps {
 export const CoachTip = memo(function CoachTip({ parts, onClose, arrowX, gesture, style, testID }: CoachTipProps): React.ReactElement {
   const styles = useStyles();
   const theme = useTheme();
+  // Keep the arrow on the bubble's straight top edge — past the rounded corner
+  // it pokes out as a diamond (share button at the far right).
+  const [width, setWidth] = useState(0);
+  const edge = RADIUS.box + ARROW / 2 + 2;
+  const ax = arrowX === undefined || width === 0 ? arrowX : Math.min(Math.max(arrowX, edge), width - edge);
   return (
-    <View style={[styles.bubble, style]} testID={testID} accessibilityRole="text" accessibilityLabel={parts.join('')}>
-      {arrowX !== undefined ? <View style={[styles.arrow, { left: arrowX - 7 }]} /> : null}
+    <View
+      style={[styles.bubble, style]}
+      testID={testID}
+      accessibilityRole="text"
+      accessibilityLabel={parts.join('')}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+    >
+      {ax !== undefined ? <View style={[styles.arrow, { left: ax - ARROW / 2 }]} /> : null}
       {gesture !== undefined ? <Hint gesture={gesture} /> : null}
       <Text style={styles.text}>
         {parts[0]}
@@ -181,8 +193,9 @@ const useStyles = makeStyles((th) => ({
   arrow: {
     position: 'absolute',
     top: -6,
-    width: 14,
-    height: 14,
+    width: ARROW,
+    height: ARROW,
+    borderRadius: 2,
     backgroundColor: th.t.onLight,
     transform: [{ rotate: '45deg' }],
   },
