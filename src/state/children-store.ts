@@ -5,6 +5,7 @@ import type { Child } from '../domain/types';
 import { childrenRepo, type NewChild } from '../db/repositories';
 import { requestReschedule } from '../notifications/scheduler';
 import { useSchedulesStore } from './schedules-store';
+import { useUiStore } from './ui-store';
 
 interface ChildrenState {
   children: Child[];
@@ -22,12 +23,14 @@ export const useChildrenStore = create<ChildrenState>()((set) => ({
   load: async (db) => {
     const children = await childrenRepo.list(db);
     set({ children, isLoaded: true });
+    useUiStore.getState().applyKidCountDefaults(children.length);
   },
 
   add: async (db, input) => {
     const child = await childrenRepo.create(db, input);
     const children = await childrenRepo.list(db);
     set({ children });
+    useUiStore.getState().applyKidCountDefaults(children.length);
     return child;
   },
 
@@ -41,6 +44,7 @@ export const useChildrenStore = create<ChildrenState>()((set) => ({
     await childrenRepo.remove(db, id);
     const children = await childrenRepo.list(db);
     set({ children });
+    useUiStore.getState().applyKidCountDefaults(children.length);
     // Schedules changed too (deleted, or a shared one got a new main kid).
     await useSchedulesStore.getState().load(db);
     requestReschedule(db, 'children-store');

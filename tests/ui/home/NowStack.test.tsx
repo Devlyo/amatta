@@ -55,7 +55,7 @@ describe('NowStack', () => {
     expect(screen.getByTestId('now-stack-open')).toBeTruthy();
     expect(screen.getByText('오늘 일정 없음')).toBeTruthy();
 
-    fireEvent.press(screen.getByLabelText('접기'));
+    fireEvent.press(screen.getByTestId('now-stack-fold'));
     expect(screen.getByTestId('now-stack')).toBeTruthy();
     expect(screen.queryByText('오늘 일정 없음')).toBeNull();
   });
@@ -69,7 +69,7 @@ describe('NowStack', () => {
     render(<NowStack kids={kids.slice(0, 2)} rows={two} nowMinutes={NOW} />);
     expect(screen.getByTestId('now-stack-open')).toBeTruthy();
     expect(screen.getByLabelText(/^서연, 피아노/)).toBeTruthy();
-    fireEvent(screen.getByTestId('now-stack-hold'), 'longPress');
+    fireEvent.press(screen.getByTestId('now-stack-fold'));
     expect(screen.getByTestId('now-stack')).toBeTruthy();
     expect(screen.queryByLabelText(/^서연, 피아노/)).toBeNull();
     fireEvent.press(screen.getByTestId('now-stack-toggle'));
@@ -142,15 +142,15 @@ describe('nowCardColor (board H5 D1.5)', () => {
   });
 });
 
-describe('NowStack hold to fold', () => {
-  test('opened: holding anywhere on the stack folds it', () => {
+describe('NowStack tap to fold', () => {
+  test('opened: a tap anywhere on the stack folds it; no 접기 button', () => {
     render(<NowStack kids={kids} rows={rows} nowMinutes={NOW} />);
     fireEvent.press(screen.getByTestId('now-stack-toggle'));
     expect(screen.getByTestId('now-stack-open')).toBeTruthy();
-    expect(screen.getByTestId('now-stack-hold').props.delayLongPress ?? 200).toBe(200);
-    fireEvent(screen.getByTestId('now-stack-hold'), 'longPress');
+    expect(screen.queryByText('접기')).toBeNull();
+    fireEvent.press(screen.getByTestId('now-stack-fold'));
     expect(screen.getByTestId('now-stack')).toBeTruthy();
-    expect(screen.queryByTestId('now-stack-hold')).toBeNull();
+    expect(screen.queryByTestId('now-stack-fold')).toBeNull();
   });
 });
 

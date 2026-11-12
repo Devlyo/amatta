@@ -52,7 +52,8 @@ const PATH = {
   book: 'M21 4H7C5.89543 4 5 4.89543 5 6C5 7.10457 5.89543 8 7 8H21V21C21 21.5523 20.5523 22 20 22H7C4.79086 22 3 20.2091 3 18V6C3 3.79086 4.79086 2 7 2H20C20.5523 2 21 2.44772 21 3V4ZM20 7H7C6.44772 7 6 6.55228 6 6C6 5.44772 6.44772 5 7 5H20V7Z',
   starSmile:
     'M11.9996 0.5L16.2256 6.68342L23.4123 8.7918L18.8374 14.7217L19.053 22.2082L11.9996 19.6897L4.94617 22.2082L5.16179 14.7217L0.586914 8.7918L7.7736 6.68342L11.9996 0.5ZM9.99959 12H7.99959C7.99959 14.2091 9.79045 16 11.9996 16C14.1418 16 15.8907 14.316 15.9947 12.1996L15.9996 12H13.9996C13.9996 13.1046 13.1042 14 11.9996 14C10.9452 14 10.0814 13.1841 10.0051 12.1493L9.99959 12Z',
-  more: 'M5 10C3.9 10 3 10.9 3 12C3 13.1 3.9 14 5 14C6.1 14 7 13.1 7 12C7 10.9 6.1 10 5 10ZM19 10C17.9 10 17 10.9 17 12C17 13.1 17.9 14 19 14C20.1 14 21 13.1 21 12C21 10.9 20.1 10 19 10ZM12 10C10.9 10 10 10.9 10 12C10 13.1 10.9 14 12 14C13.1 14 14 13.1 14 12C14 10.9 13.1 10 12 10Z',
+  // 기타 (owner 2026-11-12, board ET1 E1): circle · square · triangle · plus.
+  shapes: 'M7 2.5a4.5 4.5 0 110 9 4.5 4.5 0 010-9zM13.5 3h8v8h-8zM7 13l4.8 8.5H2.2zM16.5 13h2v3h3v2h-3v3h-2v-3h-3v-2h3z',
   homeSmile:
     'M20 20C20 20.5523 19.5523 21 19 21H5C4.44772 21 4 20.5523 4 20V11L1 11L11.3273 1.6115C11.7087 1.26475 12.2913 1.26475 12.6727 1.6115L23 11L20 11V20ZM7.5 13C7.5 15.4853 9.51472 17.5 12 17.5C14.4853 17.5 16.5 15.4853 16.5 13H14.5C14.5 14.3807 13.3807 15.5 12 15.5C10.6193 15.5 9.5 14.3807 9.5 13H7.5Z',
   settings:
@@ -213,12 +214,12 @@ export const IconHome: IconComponent = makeAmattaIcon(PATH.homeSmile, 22);
 export const IconGear: IconComponent = makeAmattaIcon(PATH.settings, 22);
 
 // ── Category icons (학교/학원/활동/기타) — amatta set ─────────────────────────
-// Mapping: 학교=school, 학원=book, 활동=star-smile, 기타=more.
+// Mapping: 학교=school, 학원=book, 활동=star-smile, 기타=shapes.
 
 export const IconSchool: IconComponent = makeAmattaIcon(PATH.school, 14);
 export const IconAcademy: IconComponent = makeAmattaIcon(PATH.book, 14);
 export const IconActivity: IconComponent = makeAmattaIcon(PATH.starSmile, 14);
-export const IconEtc: IconComponent = makeAmattaIcon(PATH.more, 14);
+export const IconEtc: IconComponent = makeAmattaIcon(PATH.shapes, 14);
 
 // ── Domain mapping ────────────────────────────────────────────────────────
 // amatta-v1 names the "other" kind as `etc`; our domain types use `other`.

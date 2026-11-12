@@ -70,6 +70,27 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
   const inputRef = useRef<TextInput>(null);
+  // Tap a todo's words → its title becomes a text field, like iOS 미리 알림.
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+
+  const beginEdit = (todo: Todo): void => {
+    setAdding(false);
+    setEditDraft(todo.title);
+    setEditingId(todo.id);
+  };
+
+  // An emptied field keeps the old title (deleting is the swipe's job).
+  const commitEdit = async (): Promise<void> => {
+    const id = editingId;
+    const title = editDraft.trim();
+    setEditingId(null);
+    if (id === null) return;
+    const before = sorted.find((t) => t.id === id);
+    if (title.length === 0 || before === undefined || before.title === title) return;
+    const db = await getDb();
+    await useTodosStore.getState().updateOne(db, id, { title });
+  };
 
   const onToggle = async (id: number): Promise<void> => {
     const db = await getDb();
@@ -117,6 +138,7 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
       <View style={styles.card}>
         {sorted.map((todo, i) => {
           const isDone = todo.isDone;
+          const editing = editingId === todo.id;
           return (
             <SwipeToDelete
               key={todo.id}
@@ -126,14 +148,15 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
             >
             {/* Line between todos, inset to the labels (same as 준비물). */}
             {i > 0 ? <View style={styles.itemSeparator} /> : null}
-              <Pressable
-                onPress={() => {
-                  void onToggle(todo.id);
-                }}
-                style={styles.itemRow}
-                testID={`todo-item-${todo.id}`}
-              >
-                <View
+              <View style={styles.itemRow} testID={`todo-item-${todo.id}`}>
+                {/* The circle marks it done; the words open it for editing. */}
+                <Pressable
+                  onPress={() => void onToggle(todo.id)}
+                  hitSlop={{ top: 12, bottom: 12, left: SPACING.lg, right: SPACING.sm }}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: isDone }}
+                  accessibilityLabel={todo.title}
+                  testID={`todo-check-${todo.id}`}
                   style={[
                     styles.checkbox,
                     isDone ? styles.itemRowDone : null,
@@ -143,19 +166,41 @@ function TodoSectionImpl({ date }: TodoSectionProps = {}): React.ReactElement {
                   ]}
                 >
                   {isDone ? <IconCheck size={12} color={theme.t.surface} /> : null}
-                </View>
-                <View style={[styles.itemText, isDone ? styles.itemRowDone : null]}>
-                  <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null]} numberOfLines={2}>
-                    {todo.title}
-                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    if (!editing) beginEdit(todo);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityHint="눌러서 수정"
+                  testID={`todo-text-${todo.id}`}
+                  style={[styles.itemText, isDone ? styles.itemRowDone : null]}
+                >
+                  {editing ? (
+                    <TextInput
+                      value={editDraft}
+                      onChangeText={setEditDraft}
+                      onSubmitEditing={() => void commitEdit()}
+                      onBlur={() => void commitEdit()}
+                      returnKeyType="done"
+                      blurOnSubmit
+                      autoFocus
+                      style={styles.editInput}
+                      testID={`todo-edit-input-${todo.id}`}
+                    />
+                  ) : (
+                    <Text style={[styles.itemLabel, isDone ? styles.itemLabelDone : null]} numberOfLines={2}>
+                      {todo.title}
+                    </Text>
+                  )}
                   {/* Board H1: whose todo, when it has a kid. */}
                   {todo.childId !== null && kidName(todo.childId) !== null ? (
                     <Text style={styles.itemSub} numberOfLines={1}>
                       {kidName(todo.childId)}
                     </Text>
                   ) : null}
-                </View>
-              </Pressable>
+                </Pressable>
+              </View>
             </SwipeToDelete>
           );
         })}
@@ -256,6 +301,7 @@ const useStyles = makeStyles((th) => ({
   itemText: { flex: 1, minWidth: 0, gap: 1 },
   itemLabel: { ...TYPE.row, color: th.t.ink },
   itemSub: { ...TYPE.footnote, color: th.t.inkSub },
+  editInput: { ...TYPE.row, color: th.t.ink, paddingVertical: 0 },
   itemLabelDone: {
     textDecorationLine: 'line-through',
   },

@@ -358,16 +358,15 @@ function AppStack(): React.ReactElement {
           contentStyle: { backgroundColor: theme.t.groupedBg },
         }}
       />
-      {/* Search — native formSheet route (see app/search/index.tsx). */}
+      {/* Search — full native modal (see app/search/index.tsx). */}
       <Stack.Screen
         name="search/index"
         options={{
           headerShown: false,
-          presentation: 'formSheet',
-          sheetAllowedDetents: [0.5, 0.92],
-          sheetGrabberVisible: true,
-          sheetCornerRadius: 20,
-          contentStyle: { backgroundColor: theme.t.surface },
+          // Full native modal (owner 2026-11-12): the half-height formSheet
+          // mis-laid out the search field over its results.
+          presentation: 'modal',
+          contentStyle: { backgroundColor: theme.t.groupedBg },
         }}
       />
     </Stack>

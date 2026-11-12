@@ -9,7 +9,7 @@
 //
 // While a block is lifted the grid stops scrolling (TimeGridDragContext).
 
-import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Reanimated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 
@@ -90,60 +90,73 @@ export function DraggableBlock({
     pending.current = false;
   }, [placeKey, tx, ty]);
 
-  const begin = (): void => {
+  // Latest props for the JS-side handlers, so the gesture itself can stay the
+  // same object across renders (rebuilding it per render was costly with
+  // hundreds of blocks in the week strip).
+  const latest = useRef({ onDrop, onPreview, grid });
+  latest.current = { onDrop, onPreview, grid };
+  const begin = useCallback((): void => {
     setActive(true);
-    grid?.begin();
-  };
-  const preview = (d: number | null): void => onPreview?.(d);
-  const finish = (dMin: number, dCol: number): void => {
-    grid?.end();
-    setActive(false);
-    onPreview?.(null);
-    if (dMin === 0 && dCol === 0) {
-      tx.value = withSpring(0);
-      ty.value = withSpring(0);
-      return;
-    }
-    pending.current = true;
-    void onDrop(dMin, dCol).then((moved) => {
-      if (!moved && pending.current) {
-        pending.current = false;
+    latest.current.grid?.begin();
+  }, []);
+  const preview = useCallback((d: number | null): void => latest.current.onPreview?.(d), []);
+  const finish = useCallback(
+    (dMin: number, dCol: number): void => {
+      latest.current.grid?.end();
+      setActive(false);
+      latest.current.onPreview?.(null);
+      if (dMin === 0 && dCol === 0) {
         tx.value = withSpring(0);
         ty.value = withSpring(0);
+        return;
       }
-    });
-  };
+      pending.current = true;
+      void latest.current.onDrop(dMin, dCol).then((moved) => {
+        if (!moved && pending.current) {
+          pending.current = false;
+          tx.value = withSpring(0);
+          ty.value = withSpring(0);
+        }
+      });
+    },
+    [tx, ty],
+  );
 
-  const pan = Gesture.Pan()
-    .enabled(enabled)
-    .activateAfterLongPress(DRAG_HOLD_MS)
-    .withTestId(testID !== undefined ? `${testID}-drag` : 'block-drag')
-    .onStart(() => {
-      lifted.value = withTiming(1, { duration: 120 });
-      lastStep.value = 0;
-      runOnJS(begin)();
-    })
-    .onUpdate((e) => {
-      const dMin = snapMinutes(e.translationY, pxPerMin, startMinutes, endMinutes);
-      const dCol = snapColumns(e.translationX, columnWidth, minColumnDelta, maxColumnDelta);
-      ty.value = dMin * pxPerMin;
-      tx.value = dCol * columnWidth;
-      if (dMin !== lastStep.value) {
-        lastStep.value = dMin;
-        runOnJS(preview)(dMin);
-      }
-    })
-    .onEnd((e) => {
-      lifted.value = withTiming(0, { duration: 160 });
-      const dMin = snapMinutes(e.translationY, pxPerMin, startMinutes, endMinutes);
-      const dCol = snapColumns(e.translationX, columnWidth, minColumnDelta, maxColumnDelta);
-      runOnJS(finish)(dMin, dCol);
-    })
-    .onFinalize((_e, success) => {
-      if (!success) {
-        lifted.value = withTiming(0, { duration: 160 });
-      }
-    });
+  const gestureId = testID !== undefined ? `${testID}-drag` : 'block-drag';
+  const pan = useMemo(
+    () =>
+      Gesture.Pan()
+        .enabled(enabled)
+        .activateAfterLongPress(DRAG_HOLD_MS)
+        .withTestId(gestureId)
+        .onStart(() => {
+          lifted.value = withTiming(1, { duration: 120 });
+          lastStep.value = 0;
+          runOnJS(begin)();
+        })
+        .onUpdate((e) => {
+          const dMin = snapMinutes(e.translationY, pxPerMin, startMinutes, endMinutes);
+          const dCol = snapColumns(e.translationX, columnWidth, minColumnDelta, maxColumnDelta);
+          ty.value = dMin * pxPerMin;
+          tx.value = dCol * columnWidth;
+          if (dMin !== lastStep.value) {
+            lastStep.value = dMin;
+            runOnJS(preview)(dMin);
+          }
+        })
+        .onEnd((e) => {
+          lifted.value = withTiming(0, { duration: 160 });
+          const dMin = snapMinutes(e.translationY, pxPerMin, startMinutes, endMinutes);
+          const dCol = snapColumns(e.translationX, columnWidth, minColumnDelta, maxColumnDelta);
+          runOnJS(finish)(dMin, dCol);
+        })
+        .onFinalize((_e, success) => {
+          if (!success) {
+            lifted.value = withTiming(0, { duration: 160 });
+          }
+        }),
+    [enabled, gestureId, pxPerMin, startMinutes, endMinutes, columnWidth, minColumnDelta, maxColumnDelta, begin, preview, finish, lifted, lastStep, tx, ty],
+  );
 
   const anim = useAnimatedStyle(() => ({
     transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: 1 + lifted.value * 0.04 }],

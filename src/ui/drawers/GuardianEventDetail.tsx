@@ -9,6 +9,7 @@
 // changed in the app (expo-calendar can't target one instance reliably) —
 // they open the Calendar app on that day instead.
 
+import { PersonChips } from '../common/PersonChips';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -145,7 +146,7 @@ export function GuardianEventDetailContent({
           </FormGroup>
 
           <FormGroup>
-            <FormValueRow label="참여" value="보호자" leading={<View style={styles.guardianDot} />} />
+            <FormValueRow label="참여" value="보호자" valueNode={<PersonChips kids={[]} withGuardian />} />
             <FormValueRow
               label="캘린더"
               value={calendar?.title ?? '아이폰 캘린더'}
@@ -216,14 +217,6 @@ const useStyles = makeStyles((th) => ({
   editLabelDisabled: { color: th.t.ink30 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, gap: 22 },
-  guardianDot: {
-    width: 12,
-    height: 12,
-    borderRadius: RADIUS.full,
-    borderWidth: 1.5,
-    backgroundColor: th.t.guardian,
-    borderColor: th.t.guardianDeep,
-  },
   calDot: { width: 12, height: 12, borderRadius: RADIUS.full },
   note: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.lg, marginTop: -14 },
   tail: { height: SPACING.xxxl },

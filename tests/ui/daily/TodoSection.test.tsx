@@ -145,3 +145,50 @@ describe('TodoSection — swipe left to delete', () => {
     await waitFor(() => expect(removeOne).toHaveBeenCalledWith(expect.anything(), 1));
   });
 });
+
+describe('TodoSection — tap the words to edit', () => {
+  const due = new Date(2026, 5, 2, 12, 0).getTime();
+  function setup(): jest.Mock {
+    const updateOne = jest.fn().mockResolvedValue(undefined);
+    useTodosStore.setState({ todos: [mkTodo(1, '준비물 사기', due)], isLoaded: true, toggleDone: toggleDoneMock, add: addMock, updateOne });
+    return updateOne;
+  }
+
+  test('tap the words → title field → submit saves the new title (no toggle)', async () => {
+    const updateOne = setup();
+    const { getByTestId, queryByTestId } = render(<TodoSection />);
+    fireEvent.press(getByTestId('todo-text-1'));
+    const input = getByTestId('todo-edit-input-1');
+    expect(input.props.value).toBe('준비물 사기');
+    fireEvent.changeText(input, '  준비물 사러 가기 ');
+    fireEvent(input, 'submitEditing');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { waitFor } = require('@testing-library/react-native') as typeof import('@testing-library/react-native');
+    await waitFor(() => expect(updateOne).toHaveBeenCalledWith(expect.anything(), 1, { title: '준비물 사러 가기' }));
+    expect(queryByTestId('todo-edit-input-1')).toBeNull();
+    expect(toggleDoneMock).not.toHaveBeenCalled();
+  });
+
+  test('an emptied or unchanged title is not saved', async () => {
+    const updateOne = setup();
+    const { getByTestId } = render(<TodoSection />);
+    fireEvent.press(getByTestId('todo-text-1'));
+    fireEvent.changeText(getByTestId('todo-edit-input-1'), '   ');
+    fireEvent(getByTestId('todo-edit-input-1'), 'submitEditing');
+    fireEvent.press(getByTestId('todo-text-1'));
+    fireEvent(getByTestId('todo-edit-input-1'), 'submitEditing');
+    await Promise.resolve();
+    expect(updateOne).not.toHaveBeenCalled();
+  });
+});
+
+test('tapping the circle marks it done', async () => {
+  useTodosStore.setState({ todos: [mkTodo(1, '준비물 사기', new Date(2026, 5, 2, 12, 0).getTime())], isLoaded: true, toggleDone: toggleDoneMock, add: addMock });
+  toggleDoneMock.mockResolvedValue(undefined);
+  const { getByTestId, queryByTestId } = render(<TodoSection />);
+  fireEvent.press(getByTestId('todo-check-1'));
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { waitFor } = require('@testing-library/react-native') as typeof import('@testing-library/react-native');
+  await waitFor(() => expect(toggleDoneMock).toHaveBeenCalledWith(expect.anything(), 1));
+  expect(queryByTestId('todo-edit-input-1')).toBeNull();
+});

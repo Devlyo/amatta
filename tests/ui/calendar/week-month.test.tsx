@@ -106,6 +106,14 @@ describe('WeekView', () => {
     expect(style('week-bar-2|2026-11-10').width).toBeCloseTo((50 - 2 - 1) / 2); // 민준 + 서연
   });
 
+  test('one kid: titled blocks even at 7 days (no bars)', () => {
+    const one = kids.slice(0, 1);
+    renderWeek(false, { kids: one, occurrences: week.filter((o) => o.childId === 1) });
+    expect(screen.getByTestId('week-block-1|2026-11-10')).toBeTruthy();
+    expect(screen.queryByTestId('week-bar-1|2026-11-10')).toBeNull();
+    expect(screen.getByText('영어')).toBeTruthy();
+  });
+
   test('≤ 4 days: titled blocks with times, school included, overlaps stack', () => {
     renderWeek(true);
     expect(screen.getByTestId('week-day-2026-11-13')).toBeTruthy();

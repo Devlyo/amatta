@@ -102,6 +102,7 @@ export function FormValueRow({
   label,
   value,
   leading,
+  valueNode,
   onPress,
   expanded = false,
   last = false,
@@ -112,6 +113,8 @@ export function FormValueRow({
   value: string;
   /** Small element before the value (e.g. a kid colour dot). */
   leading?: ReactNode;
+  /** Replaces the value text (e.g. avatar + name chips); `value` stays the spoken label. */
+  valueNode?: ReactNode;
   onPress?: () => void;
   expanded?: boolean;
   last?: boolean;
@@ -134,9 +137,11 @@ export function FormValueRow({
         <Text style={styles.label}>{label}</Text>
         <View style={styles.valueWrap}>
           {leading}
-          <Text style={[styles.value, expanded ? styles.valueActive : null]} numberOfLines={1}>
-            {value}
-          </Text>
+          {valueNode ?? (
+            <Text style={[styles.value, expanded ? styles.valueActive : null]} numberOfLines={1}>
+              {value}
+            </Text>
+          )}
           {onPress !== undefined ? (
             <View style={expanded ? styles.chevronOpen : null}>
               <IconChevronRight size={14} color={theme.t.ink30} />

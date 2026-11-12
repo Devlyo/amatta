@@ -8,6 +8,7 @@ import { rescheduleAll } from '../notifications/scheduler';
 import { useChecklistCompletionStore } from './checklist-completion-store';
 import { useChecklistStore } from './checklist-store';
 import { useChildrenStore } from './children-store';
+import { useUiStore } from './ui-store';
 import { useDisplayStore } from './display-store';
 import { useGuardianStore } from './guardian-store';
 import { useNotifSettingsStore } from './notif-settings-store';
@@ -24,6 +25,8 @@ export async function resetAllData(): Promise<void> {
   useNotifSettingsStore.getState().resetToDefaults();
   useGuardianStore.getState().resetToDefaults();
   useDisplayStore.getState().resetToDefaults();
+  // A fresh start: the next kids decide the calendar's opening view.
+  useUiStore.setState({ kidCountMode: null });
   await Promise.all([
     useChildrenStore.getState().load(db),
     useSchedulesStore.getState().load(db),
