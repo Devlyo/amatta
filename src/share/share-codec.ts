@@ -203,8 +203,20 @@ export function decodeShare(fragment: string): DecodeResult {
     if (v !== SHARE_VERSION) return { kind: 'invalid' };
     const json = LZString.decompressFromEncodedURIComponent(raw.slice(dot + 1));
     if (json === null || json === '' || json.length > MAX_FRAGMENT * 20) return { kind: 'invalid' };
+    return decodeWireJson(json);
+  } catch {
+    return { kind: 'invalid' };
+  }
+}
+
+/** Decrypted short-link body (or the old in-fragment JSON) → view. */
+export function decodeWireJson(json: string): DecodeResult {
+  try {
+    if (json.length > MAX_FRAGMENT * 20) return { kind: 'invalid' };
     const w = JSON.parse(json) as ShareWire;
-    if (typeof w !== 'object' || w === null || w.v !== v || !validWire(w)) return { kind: 'invalid' };
+    if (typeof w !== 'object' || w === null || !Number.isInteger(w.v)) return { kind: 'invalid' };
+    if (w.v > SHARE_VERSION) return { kind: 'newer' };
+    if (w.v !== SHARE_VERSION || !validWire(w)) return { kind: 'invalid' };
     return { kind: 'ok', payload: expandWire(w) };
   } catch {
     return { kind: 'invalid' };

@@ -2,7 +2,7 @@
 // The data comes only from location.hash (never sent to any server). All
 // text goes through textContent; nothing from the link is ever parsed as HTML.
 
-import { decodeShare, type SharePayload } from '../../../src/share/share-codec';
+import { decodeShare, decodeWireJson, type DecodeResult, type SharePayload } from '../../../src/share/share-codec';
 
 const KID = [
   { source: '#FFA9FF', deep: '#D957D9' },
@@ -296,21 +296,66 @@ function render(p: SharePayload): void {
   draw();
 }
 
-function start(): void {
-  const r = decodeShare(window.location.hash);
+function b64urlBytes(s: string): Uint8Array<ArrayBuffer> {
+  const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4);
+  const bin = atob(b64);
+  const out = new Uint8Array(new ArrayBuffer(bin.length));
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/** Short link: /s/<id>#<key> — fetch the ciphertext, decrypt here (AES-GCM). */
+async function loadShort(id: string, key: string): Promise<DecodeResult | 'expired' | 'network'> {
+  let res: Response;
+  try {
+    res = await fetch(`/api/share/${id}`, { cache: 'no-store', credentials: 'omit' });
+  } catch {
+    return 'network';
+  }
+  if (res.status === 404) return 'expired';
+  if (!res.ok) return 'network';
+  try {
+    const { c } = (await res.json()) as { c: string };
+    const all = b64urlBytes(c);
+    const k = await crypto.subtle.importKey('raw', b64urlBytes(key), 'AES-GCM', false, ['decrypt']);
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: all.slice(0, 12) }, k, all.slice(12));
+    return decodeWireJson(new TextDecoder().decode(pt));
+  } catch {
+    return { kind: 'invalid' };
+  }
+}
+
+async function start(): Promise<void> {
+  const m = /^\/s\/([A-Za-z0-9]{10})\/?$/.exec(window.location.pathname);
+  const hash = window.location.hash.replace(/^#/, '');
+  let r: DecodeResult | 'expired' | 'network';
+  if (m !== null) {
+    if (!/^[A-Za-z0-9_-]{20,64}$/.test(hash)) {
+      message('열 수 없는 링크예요', '링크 끝부분이 잘렸어요. 보낸 분에게 다시 공유해 달라고 해 주세요.');
+      return;
+    }
+    r = await loadShort(m[1] as string, hash);
+  } else {
+    r = decodeShare(window.location.hash);
+  }
+  if (r === 'expired') {
+    message('기간이 끝난 링크예요', '공유 링크는 14일 동안만 열려요. 보낸 분에게 다시 공유해 달라고 해 주세요.');
+    return;
+  }
+  if (r === 'network') {
+    message('불러오지 못했어요', '인터넷 연결을 확인한 뒤 다시 열어 주세요.');
+    return;
+  }
   if (r.kind === 'newer') {
     message('새 버전 링크예요', '이 링크는 더 새 WeMoa에서 만들었어요. 잠시 후 다시 열어 주세요.');
     return;
   }
   if (r.kind !== 'ok') {
-    message(
-      '열 수 없는 링크예요',
-      '링크가 중간에 잘렸을 수 있어요. 카카오톡이라면 메시지의 ‘전체보기’를 연 뒤 링크를 눌러 주세요. 그래도 안 되면 보낸 분에게 다시 공유해 달라고 해 주세요.',
-    );
+    message('열 수 없는 링크예요', '링크가 잘렸거나 손상됐을 수 있어요. 보낸 분에게 다시 공유해 달라고 해 주세요.');
     return;
   }
   render(r.payload);
 }
 
-window.addEventListener('hashchange', start);
-start();
+window.addEventListener('hashchange', () => void start());
+void start();

@@ -7,7 +7,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { MAX_CHILDREN } from '../src/domain/constants';
-import { buildSharePayload, encodeShare, shareUrl } from '../src/share/share-payload';
+import { buildSharePayload } from '../src/share/share-payload';
+import { SHARE_TTL_DAYS, uploadShare } from '../src/share/share-crypto';
+import { secureRandom } from '../src/share/secure-random';
 import { useChecklistStore } from '../src/state/checklist-store';
 import { useChildrenStore } from '../src/state/children-store';
 import { useSchedulesStore } from '../src/state/schedules-store';
@@ -20,8 +22,6 @@ import { todayIso } from '../src/ui/utils/date';
 import { IconAlertCircle } from '../src/ui/icons';
 import { makeStyles, useTheme } from '../src/ui/appearance';
 
-/** Above this the link gets unwieldy in chat apps — ask for a shorter range. */
-const MAX_LINK = 8000;
 
 export default function ShareScreen(): React.ReactElement {
   const styles = useStyles();
@@ -32,6 +32,7 @@ export default function ShareScreen(): React.ReactElement {
   const [picked, setPicked] = useState<number[]>(() => kids.map((k) => k.id));
   const [supplies, setSupplies] = useState(true);
   const [placeNotes, setPlaceNotes] = useState(false);
+  const [busy, setBusy] = useState(false);
   const today = todayIso();
   const m = Number((today as unknown as string).slice(5, 7));
   const d = Number((today as unknown as string).slice(8, 10));
@@ -51,15 +52,26 @@ export default function ShareScreen(): React.ReactElement {
       },
       { kidIds: picked, from: today, includeSupplies: supplies, includePlaceNotes: placeNotes, createdOn: today },
     );
-    if (encodeShare(payload).length > MAX_LINK) {
-      Alert.alert('링크가 너무 길어요', '준비물이나 장소·메모를 빼거나, 아이를 나눠서 공유해 주세요.');
+    const random = secureRandom();
+    if (random === null) {
+      Alert.alert('업데이트가 필요해요', '지금 설치된 앱에는 공유 링크 기능이 없어요. 앱을 최신 버전으로 업데이트해 주세요.');
       return;
     }
-    const url = shareUrl(payload);
+    if (busy) return;
+    setBusy(true);
     try {
-      await Share.share({ message: `WeMoa 캘린더 (${m}월 ${d}일 기준, 보기 전용)\n${url}` });
-    } catch {
-      // Dismissed or failed — nothing to undo.
+      const r = await uploadShare(JSON.stringify(payload), { random, fetch });
+      if (r.kind === 'offline') {
+        Alert.alert('인터넷 연결이 필요해요', '연결을 확인한 뒤 다시 시도해 주세요.');
+        return;
+      }
+      if (r.kind !== 'ok') {
+        Alert.alert('링크를 만들지 못했어요', '잠시 후 다시 시도해 주세요.');
+        return;
+      }
+      await Share.share({ message: `WeMoa 캘린더 (${m}월 ${d}일 기준, 보기 전용)\n${r.url}` }).catch(() => undefined);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -101,7 +113,7 @@ export default function ShareScreen(): React.ReactElement {
             <FormToggleRow label="장소·메모 포함" value={placeNotes} onChange={setPlaceNotes} last />
           </FormGroup>
           <Text style={styles.foot}>
-            오늘부터 1주 일정이 공유됩니다.
+            오늘부터 1주 일정이 공유됩니다. 링크는 {SHARE_TTL_DAYS}일 동안 열려요.
           </Text>
         </View>
 
@@ -113,8 +125,15 @@ export default function ShareScreen(): React.ReactElement {
         </View>
       </ScrollView>
       <View style={styles.footer}>
-        <Pressable onPress={() => void onShare()} accessibilityRole="button" style={styles.cta} testID="share-link">
-          <Text style={styles.ctaText}>링크 공유하기</Text>
+        <Pressable
+          onPress={() => void onShare()}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityState={{ busy }}
+          style={[styles.cta, busy ? styles.ctaBusy : null]}
+          testID="share-link"
+        >
+          <Text style={styles.ctaText}>{busy ? '링크 만드는 중…' : '링크 공유하기'}</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -136,5 +155,6 @@ const useStyles = makeStyles((th) => ({
   kidList: { paddingLeft: SPACING.lg },
   footer: { paddingHorizontal: 20, paddingTop: SPACING.md, paddingBottom: SPACING.sm },
   cta: { height: 54, borderRadius: RADIUS.full, backgroundColor: th.t.primary, alignItems: 'center', justifyContent: 'center' },
+  ctaBusy: { opacity: 0.6 },
   ctaText: { ...TYPE.headline, color: th.t.onDark },
 }));

@@ -1,0 +1,8 @@
+{
+  "name": "wemoa-share",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@upstash/redis": "1.39.0"
+  }
+}
