@@ -60,7 +60,6 @@ export default function SettingsScreen(): React.ReactElement {
   const setSystemEnabled = useNotifSettingsStore((s) => s.setSystemEnabled);
   const leadTime = useNotifSettingsStore((s) => s.defaultMinutesBefore);
   const setDefaultMinutesBefore = useNotifSettingsStore((s) => s.setDefaultMinutesBefore);
-  const lastScheduleTruncated = useNotifSettingsStore((s) => s.lastScheduleTruncated);
   const guardianEnabled = useGuardianStore((s) => s.enabled);
   const appearanceMode = useDisplayStore((s) => s.appearance);
   const [leadOpen, setLeadOpen] = useState(false);
@@ -143,11 +142,6 @@ export default function SettingsScreen(): React.ReactElement {
           {systemNotif ? null : (
             <Text style={styles.footnote}>일정 시작 전 알림을 받으려면 켜 주세요.</Text>
           )}
-          {systemNotif && lastScheduleTruncated ? (
-            <Text style={styles.footnote} testID="settings-notif-truncated">
-              임박한 60개 알림만 예약됐어요
-            </Text>
-          ) : null}
         </View>
 
         <HomeSection title="화면">

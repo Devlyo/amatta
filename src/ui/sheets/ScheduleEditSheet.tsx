@@ -848,12 +848,8 @@ export function ScheduleEditContent({
             <Text style={styles.guardianNote}>
               보호자 일정은 아이폰 캘린더에 저장돼요.
             </Text>
-          ) : expanded === 'kid' ? (
-            <Text style={styles.guardianNote}>
-              {sheetMode === 'create'
-                ? '여러 명을 고를 수 있어요. 한 번 고치면 모두에게 바뀌어요.\n보호자만 고르면 아이폰 캘린더에 저장돼요.'
-                : '여러 명을 고를 수 있어요. 한 번 고치면 모두에게 바뀌어요.'}
-            </Text>
+          ) : expanded === 'kid' && sheetMode === 'create' ? (
+            <Text style={styles.guardianNote}>보호자만 고르면 아이폰 캘린더에 저장돼요.</Text>
           ) : null}
           <FormError text={showError('childId') ?? showError('type')} />
         </View>

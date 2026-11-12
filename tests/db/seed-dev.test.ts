@@ -190,4 +190,24 @@ describe('seedDevData', () => {
     expect(real.prepare('SELECT COUNT(*) AS c FROM children').get()).toEqual({ c: 1 });
     expect(real.prepare('SELECT COUNT(*) AS c FROM schedules').get()).toEqual({ c: 0 });
   });
+  // Boot crash 2026-11-12 ("FOREIGN KEY constraint failed", err 19): with no kids
+  // but AUTOINCREMENT already past 3/6/8, hardcoded schedule ids pointed nowhere.
+  it('links supplies to the schedules it just made, even when ids do not start at 1', async () => {
+    real.exec('PRAGMA foreign_keys = ON');
+    real.exec("INSERT INTO sqlite_sequence (name, seq) VALUES ('schedules', 40)");
+    await seedDevData(db as never);
+    expect(real.prepare('SELECT COUNT(*) AS c FROM checklist_items').get()).toEqual({ c: 9 });
+    expect(real.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
+    const swim = real.prepare(
+      "SELECT s.title AS title FROM checklist_items c JOIN schedules s ON s.id = c.schedule_id WHERE c.label = '수영가방'",
+    ).get();
+    expect(swim).toEqual({ title: '수영' });
+  });
+
+  it('kids added then all removed on this install → stays empty (onboarding shows)', async () => {
+    real.exec("INSERT INTO children (name, color_index, avatar, created_at) VALUES ('a', 0, 'face-wink', '2026-11-01')");
+    real.exec('DELETE FROM children');
+    await seedDevData(db as never);
+    expect(real.prepare('SELECT COUNT(*) AS c FROM children').get()).toEqual({ c: 0 });
+  });
 });
