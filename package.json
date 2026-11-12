@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
     "postinstall": "node scripts/fix-react-native-svg-manifest.js",
-    "share:build": "esbuild web/share/src/main.ts --bundle --minify --target=es2019,safari14 --outfile=web/share/public/app.js"
+    "share:build": "esbuild web/share/src/main.ts --bundle --minify --target=es2019,safari14 --outfile=web/share/public/app.js",
+    "legal:build": "node scripts/build-legal.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/geist-mono": "^0.4.2",
