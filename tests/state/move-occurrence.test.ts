@@ -71,6 +71,19 @@ describe('moveOccurrence', () => {
     expect(calls[1]?.args).toEqual([7, { startMinutes: 13 * 60, endMinutes: 14 * 60, daysOfWeek: 0b0010100 }]);
   });
 
+  // Owner's report 2026-11-12: dragged 8→9 with 모든 일정, next week started at 7.
+  test('모든 일정 on a day that had its own time → everyone takes the dropped time', async () => {
+    const { s, calls } = steps('all');
+    const exception = { id: 3, scheduleId: 7, date: ISO('2026-11-10'), kind: 'modify', overrideStartMinutes: 8 * 60, overrideEndMinutes: 9 * 60, overrideTitle: null } as const;
+    await moveOccurrence(
+      { ...base, schedule: sched({ startMinutes: 6 * 60, endMinutes: 7 * 60 }), startMinutes: 8 * 60, endMinutes: 9 * 60, exception, deltaMinutes: 60, deltaDays: 0 },
+      s,
+    );
+    expect(calls.map((c) => c.fn)).toEqual(['ask', 'update', 'exception']);
+    expect(calls[1]?.args).toEqual([7, { startMinutes: 9 * 60, endMinutes: 10 * 60 }]);
+    expect(calls[2]?.args).toEqual([7, ISO('2026-11-10'), { kind: 'modify', overrideStartMinutes: 9 * 60, overrideEndMinutes: 10 * 60, overrideTitle: null }]);
+  });
+
   test('cancel / no move / off the day → nothing saved', async () => {
     const c1 = steps(null);
     await expect(moveOccurrence({ ...base, schedule: sched(), deltaMinutes: 15, deltaDays: 0 }, c1.s)).resolves.toBe(false);
