@@ -5,7 +5,7 @@
 // "2-6", 2026-11-10):
 //   · ≤ 4 days (default 3.2): every event is a block with title + time range;
 //     overlaps within a day stack via layoutCascade.
-//   · > 4 days (5–7): every event is a bar in its person's lane — the day
+//   · > 4 days (5–7), 2+ kids: every event is a bar in its person's lane — the day
 //     column split evenly by the people shown (kids, then 보호자 when on),
 //     owner colour + side bar + a black type icon, no title. A person's own
 //     overlapping events stack in their lane, the later one on top.
@@ -157,7 +157,9 @@ function WeekViewImpl({
   // width back). Everyone off → nothing is filtered.
   const noneOn = everyone.every((k) => inactive.includes(k));
   // More than 4 days on screen → bars + icons; otherwise titled blocks.
-  const bars = span > WEEK_SPAN_BARS_FROM;
+  // One kid (owner, 2026-11-12): the day column is the kid's alone, so it
+  // keeps titled blocks even at 7 days.
+  const bars = span > WEEK_SPAN_BARS_FROM && kids.length !== 1;
   const items = useMemo<WeekItem[]>(() => {
     const out: WeekItem[] = [];
     for (const occ of occurrences) {
