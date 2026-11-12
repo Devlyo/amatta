@@ -1,23 +1,13 @@
 // Shared bits for the share-link API (ADR-016). The server only ever sees
 // ciphertext — the key stays in the link's # part on the clients.
-import { Redis } from '@upstash/redis';
+// Storage: a PRIVATE Vercel Blob store; each link expires via ttlDays, and
+// reads also refuse anything older than TTL_DAYS (deletion runs daily).
 
-export const TTL_SECONDS = 14 * 24 * 60 * 60;
+export const TTL_DAYS = 14;
 /** base64url( nonce || ciphertext+tag ); a week of schedules is a few KB. */
 export const MAX_BLOB = 32_000;
 export const ID_RE = /^[A-Za-z0-9]{10}$/;
-
-let redis: Redis | null = null;
-export function db(): Redis {
-  if (redis === null) {
-    // Marketplace env names (KV_REST_API_*) or Upstash's own.
-    const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
-    if (!url || !token) throw new Error('storage not configured');
-    redis = new Redis({ url, token, automaticDeserialization: false });
-  }
-  return redis;
-}
+export const pathOf = (id: string): string => `s/${id}.txt`;
 
 export function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -28,8 +18,26 @@ export function json(body: unknown, status = 200): Response {
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 export function newId(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(10));
+  // 62 is not a power of two — draw from 0..247 and reject the rest (no bias).
   let id = '';
-  for (const b of bytes) id += ALPHABET[b % ALPHABET.length];
+  while (id.length < 10) {
+    for (const b of crypto.getRandomValues(new Uint8Array(16))) {
+      if (b < 248 && id.length < 10) id += ALPHABET[b % 62];
+    }
+  }
   return id;
+}
+
+// Best-effort per-instance rate limit (no shared store on the free plan).
+const hits = new Map<string, { n: number; t: number }>();
+export function limited(ip: string, perMinute: number): boolean {
+  const now = Date.now();
+  const h = hits.get(ip);
+  if (h === undefined || now - h.t > 60_000) {
+    hits.set(ip, { n: 1, t: now });
+    if (hits.size > 5000) hits.clear();
+    return false;
+  }
+  h.n += 1;
+  return h.n > perMinute;
 }

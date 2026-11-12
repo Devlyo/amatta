@@ -1,10 +1,12 @@
 // POST /api/share  { c: "<base64url ciphertext>" } → { id, expiresInDays }
-// Stores ciphertext only, for 14 days. Small rate limit per client IP.
-import { db, json, MAX_BLOB, newId, TTL_SECONDS } from './_lib.js';
+// Stores ciphertext only, private, deleted after 14 days.
+import { put } from '@vercel/blob';
 
-const PER_MINUTE = 20;
+import { json, limited, MAX_BLOB, newId, pathOf, TTL_DAYS } from './_lib.js';
 
 export async function POST(request: Request): Promise<Response> {
+  const ip = (request.headers.get('x-forwarded-for') ?? 'unknown').split(',')[0]?.trim() ?? 'unknown';
+  if (limited(ip, 20)) return json({ error: 'rate_limited' }, 429);
   let body: unknown;
   try {
     const text = await request.text();
@@ -17,20 +19,24 @@ export async function POST(request: Request): Promise<Response> {
   if (typeof c !== 'string' || c.length < 40 || c.length > MAX_BLOB || !/^[A-Za-z0-9_-]+$/.test(c)) {
     return json({ error: 'bad_request' }, 400);
   }
-  try {
-    const redis = db();
-    const ip = (request.headers.get('x-forwarded-for') ?? 'unknown').split(',')[0]?.trim() ?? 'unknown';
-    const bucket = `rl:${ip}:${Math.floor(Date.now() / 60000)}`;
-    const n = await redis.incr(bucket);
-    if (n === 1) await redis.expire(bucket, 70);
-    if (n > PER_MINUTE) return json({ error: 'rate_limited' }, 429);
-    for (let i = 0; i < 3; i++) {
-      const id = newId();
-      const ok = await redis.set(`s:${id}`, c, { ex: TTL_SECONDS, nx: true });
-      if (ok === 'OK') return json({ id, expiresInDays: TTL_SECONDS / 86400 }, 201);
+  for (let i = 0; i < 3; i++) {
+    const id = newId();
+    try {
+      await put(pathOf(id), c, {
+        access: 'private',
+        addRandomSuffix: false,
+        allowOverwrite: false,
+        contentType: 'text/plain',
+        ttlDays: TTL_DAYS,
+      });
+      return json({ id, expiresInDays: TTL_DAYS }, 201);
+    } catch (e) {
+      // An id collision throws (allowOverwrite: false) — try another id.
+      if (i === 2) {
+        console.error('[share] put failed', e instanceof Error ? e.message : e);
+        return json({ error: 'unavailable' }, 503);
+      }
     }
-    return json({ error: 'busy' }, 503);
-  } catch {
-    return json({ error: 'unavailable' }, 503);
   }
+  return json({ error: 'unavailable' }, 503);
 }
