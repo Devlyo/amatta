@@ -2,7 +2,7 @@
 // and the public pages (docs/legal/*.html, built by `npm run legal:build`).
 // Change the text here, then rebuild the pages and re-host them.
 
-export const EFFECTIVE_DATE = '2026년 6월 30일';
+export const EFFECTIVE_DATE = '2026년 11월 12일';
 
 export interface Section {
   title: string;
