@@ -14,7 +14,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useChildrenStore } from '../../state/children-store';
 import { useChecklistStore } from '../../state/checklist-store';
@@ -26,12 +26,14 @@ import type {
   Schedule,
   Todo,
 } from '../../domain/types';
-import { ColorDot } from '../common/ColorDot';
-import { FONT_FAMILIES } from '../fonts';
-import { IconCheck, IconSearch, IconXMark, KIND_ICON } from '../icons';
+import { memberNames } from '../../domain/occurrences';
+import { KidAvatar } from '../common/KidAvatar';
+import { IconCheck, IconChevronRight, IconSearch, IconXMark } from '../icons';
+import { repeatSummary, TYPE_LABELS_KO } from '../sheets/edit-sheet-form';
+import { TYPE } from '../typography';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
-import { todayIso } from '../utils/date';
+import { fmtRange, todayIso } from '../utils/date';
 import { makeStyles, useTheme } from '../appearance';
 
 type Result =
@@ -166,304 +168,226 @@ export function SearchContent({ onClose }: SearchContentProps): React.ReactEleme
 
   const trimmed = query.trim();
   const showEmpty = trimmed === '';
+  const groups: { title: string; items: Result[] }[] = [
+    { title: '일정', items: results.filter((r) => r.kind === 'schedule') },
+    { title: '준비물', items: results.filter((r) => r.kind === 'checklist') },
+    { title: '할 일', items: results.filter((r) => r.kind === 'todo') },
+  ].filter((g) => g.items.length > 0);
 
+  // Board SR1/SR2 (2026-11-12): grouped iOS lists on the system background.
   return (
     <View style={styles.contentRoot}>
-        <ScrollView
-          style={styles.sheetScroll}
-          contentContainerStyle={styles.sheetContent}
-          keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets
-          testID="search-drawer-content"
-        >
-          {/* Search input */}
-          <View style={styles.inputWrap}>
-            <View style={styles.inputBox}>
-              <IconSearch size={16} color={theme.t.inkSub} />
-              <TextInput
-                value={query}
-                onChangeText={setQuery}
-                placeholder="일정·장소·자녀 검색"
-                placeholderTextColor={theme.t.inkSub}
-                style={styles.input}
-                autoCorrect={false}
-                autoCapitalize="none"
-                testID="search-drawer-input"
-                accessibilityLabel="검색어 입력"
-              />
-              {trimmed.length > 0 ? (
-                <Pressable
-                  onPress={() => setQuery('')}
-                  accessibilityRole="button"
-                  accessibilityLabel="검색어 지우기"
-                  hitSlop={6}
-                  style={styles.clearBtn}
-                >
-                  <IconXMark size={14} color={theme.t.inkSub} />
-                </Pressable>
-              ) : null}
-            </View>
-          </View>
-
-          {/* Results / empty state */}
-          <View style={styles.resultsWrap}>
-            {showEmpty ? (
-              <Text style={styles.placeholder}>검색어를 입력하세요</Text>
-            ) : (
-              <>
-                <Text style={styles.resultsCount}>결과 {results.length}건</Text>
-                {results.length === 0 ? (
-                  <Text style={styles.noResults}>검색 결과가 없습니다</Text>
-                ) : (
-                  <View style={styles.resultList}>
-                    {results.map((r) => (
-                      <ResultRow
-                        key={r.key}
-                        result={r}
-                        onSelectSchedule={handleSelectSchedule}
-                        onSelectTodo={handleSelectTodo}
-                        onSelectChecklist={handleSelectChecklist}
-                      />
-                    ))}
-                  </View>
-                )}
-              </>
-            )}
-          </View>
-        </ScrollView>
+      <View style={styles.searchRow}>
+        <View style={styles.inputBox}>
+          <IconSearch size={16} color={theme.t.inkSub} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="일정·준비물·할 일·자녀 검색"
+            placeholderTextColor={theme.t.ink50}
+            style={styles.input}
+            autoCorrect={false}
+            autoCapitalize="none"
+            autoFocus
+            returnKeyType="search"
+            testID="search-drawer-input"
+            accessibilityLabel="검색어 입력"
+          />
+          {trimmed.length > 0 ? (
+            <Pressable
+              onPress={() => setQuery('')}
+              accessibilityRole="button"
+              accessibilityLabel="검색어 지우기"
+              hitSlop={8}
+              style={styles.clearBtn}
+            >
+              <IconXMark size={10} color={theme.t.surface} />
+            </Pressable>
+          ) : null}
+        </View>
+        <Pressable onPress={onClose} accessibilityRole="button" hitSlop={8} testID="search-cancel">
+          <Text style={styles.cancel}>취소</Text>
+        </Pressable>
+      </View>
+      <ScrollView
+        style={styles.sheetScroll}
+        contentContainerStyle={styles.sheetContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+        testID="search-drawer-content"
+      >
+        {showEmpty ? (
+          <Text style={styles.placeholder}>검색어를 입력하세요</Text>
+        ) : results.length === 0 ? (
+          <Text style={styles.placeholder}>검색 결과가 없어요</Text>
+        ) : (
+          <>
+            <Text style={styles.resultsCount} accessibilityLiveRegion="polite">
+              결과 {results.length}건
+            </Text>
+            {groups.map((g) => (
+              <View key={g.title} style={styles.group}>
+                <Text style={styles.groupTitle}>
+                  {g.title} {g.items.length}
+                </Text>
+                <View style={styles.groupBox}>
+                  {g.items.map((r, i) => (
+                    <ResultRow
+                      key={r.key}
+                      result={r}
+                      last={i === g.items.length - 1}
+                      childById={childById}
+                      onSelectSchedule={handleSelectSchedule}
+                      onSelectTodo={handleSelectTodo}
+                      onSelectChecklist={handleSelectChecklist}
+                    />
+                  ))}
+                </View>
+              </View>
+            ))}
+          </>
+        )}
+      </ScrollView>
     </View>
   );
 }
 
 interface ResultRowProps {
   result: Result;
+  last: boolean;
+  childById: Map<number, Child>;
   onSelectSchedule: (schedule: Schedule) => void;
   onSelectTodo: () => void;
-  onSelectChecklist: (
-    result: Extract<Result, { kind: 'checklist' }>,
-  ) => void;
+  onSelectChecklist: (result: Extract<Result, { kind: 'checklist' }>) => void;
 }
 
-function ResultRow({
-  result,
-  onSelectSchedule,
-  onSelectTodo,
-  onSelectChecklist,
-}: ResultRowProps): React.ReactElement {
+function dueLabel(epochMs: number): string {
+  const d = new Date(epochMs);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+
+function ResultRow({ result, last, childById, onSelectSchedule, onSelectTodo, onSelectChecklist }: ResultRowProps): React.ReactElement {
   const theme = useTheme();
   const styles = useStyles();
+  let title: string;
+  let caption: string;
+  let onPress: () => void;
+  let label: string;
+  let testID: string;
   if (result.kind === 'schedule') {
-    const KindIcon = KIND_ICON[result.schedule.type];
-    return (
-      <Pressable
-        onPress={() => onSelectSchedule(result.schedule)}
-        accessibilityRole="button"
-        accessibilityLabel={`일정: ${result.schedule.title}`}
-        style={styles.row}
-        testID={`search-result-schedule-${result.schedule.id}`}
-      >
-        <View style={styles.iconWrap}>
-          <KindIcon size={14} color={theme.t.ink} />
-        </View>
-        <View style={styles.rowBody}>
-          <Text style={styles.rowTitle} numberOfLines={1}>
-            {result.schedule.title}
-          </Text>
-          <View style={styles.rowCaption}>
-            {result.child !== undefined ? (
-              <>
-                <ColorDot colorIndex={result.child.colorIndex} size={8} />
-                <Text style={styles.rowCaptionText} numberOfLines={1}>
-                  {result.child.name}
-                  {result.schedule.location !== null
-                    ? ` · ${result.schedule.location}`
-                    : ''}
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.rowCaptionText} numberOfLines={1}>
-                {result.schedule.location ?? ''}
-              </Text>
-            )}
-          </View>
-        </View>
-      </Pressable>
-    );
+    const s = result.schedule;
+    const who = memberNames(s.memberIds ?? [s.childId], childById, s.withGuardian === true) || result.child?.name || '';
+    const oneOff = s.validUntil !== null && s.validUntil === s.validFrom;
+    const when = s.allDay ? '하루 종일' : fmtRange(s.startMinutes, s.endMinutes);
+    const repeat = oneOff ? `${Number((s.validFrom as unknown as string).slice(5, 7))}월 ${Number((s.validFrom as unknown as string).slice(8, 10))}일` : repeatSummary(s.daysOfWeek);
+    title = s.title;
+    caption = [who, TYPE_LABELS_KO[s.type], `${repeat} ${when}`].filter((x) => x !== '').join(' · ');
+    onPress = () => onSelectSchedule(s);
+    label = `일정: ${s.title}`;
+    testID = `search-result-schedule-${s.id}`;
+  } else if (result.kind === 'todo') {
+    title = result.todo.title;
+    caption = [result.child?.name ?? '', `${dueLabel(result.todo.dueAt)}까지`].filter((x) => x !== '').join(' · ');
+    onPress = onSelectTodo;
+    label = `할 일: ${result.todo.title}`;
+    testID = `search-result-todo-${result.todo.id}`;
+  } else {
+    title = result.item.label;
+    caption = [result.child?.name ?? '', result.schedule?.title ?? '', result.item.recurring ? '매번' : '이번만']
+      .filter((x) => x !== '')
+      .join(' · ');
+    onPress = () => onSelectChecklist(result);
+    label = `준비물: ${result.item.label}`;
+    testID = `search-result-checklist-${result.item.id}`;
   }
-
-  if (result.kind === 'todo') {
-    return (
-      <Pressable
-        onPress={onSelectTodo}
-        accessibilityRole="button"
-        accessibilityLabel={`할 일: ${result.todo.title}`}
-        style={styles.row}
-        testID={`search-result-todo-${result.todo.id}`}
-      >
-        <View style={styles.iconWrap}>
-          <IconCheck size={14} color={theme.t.ink} />
-        </View>
-        <View style={styles.rowBody}>
-          <Text style={styles.rowTitle} numberOfLines={1}>
-            {result.todo.title}
-          </Text>
-          <View style={styles.rowCaption}>
-            {result.child !== undefined ? (
-              <>
-                <ColorDot colorIndex={result.child.colorIndex} size={8} />
-                <Text style={styles.rowCaptionText} numberOfLines={1}>
-                  {result.child.name} · 할 일
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.rowCaptionText} numberOfLines={1}>
-                할 일
-              </Text>
-            )}
-          </View>
-        </View>
-      </Pressable>
-    );
-  }
-
-  // checklist
   return (
-    <Pressable
-      onPress={() => onSelectChecklist(result)}
-      accessibilityRole="button"
-      accessibilityLabel={`준비물: ${result.item.label}`}
-      style={styles.row}
-      testID={`search-result-checklist-${result.item.id}`}
-    >
-      <View style={styles.iconWrap}>
-        <IconCheck size={14} color={theme.t.ink} />
-      </View>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={styles.row} testID={testID}>
+      {result.child !== undefined ? (
+        <KidAvatar child={result.child} size={30} />
+      ) : (
+        <View style={styles.noKid}>
+          <IconCheck size={14} color={theme.t.inkSub} />
+        </View>
+      )}
       <View style={styles.rowBody}>
         <Text style={styles.rowTitle} numberOfLines={1}>
-          {result.item.label}
+          {title}
         </Text>
-        <View style={styles.rowCaption}>
-          {result.child !== undefined ? (
-            <>
-              <ColorDot colorIndex={result.child.colorIndex} size={8} />
-              <Text style={styles.rowCaptionText} numberOfLines={1}>
-                {result.child.name}
-                {result.schedule !== undefined
-                  ? ` · ${result.schedule.title}`
-                  : ''}
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.rowCaptionText} numberOfLines={1}>
-              준비물
-            </Text>
-          )}
-        </View>
+        {caption !== '' ? (
+          <Text style={styles.rowCaption} numberOfLines={1}>
+            {caption}
+          </Text>
+        ) : null}
       </View>
+      <IconChevronRight size={14} color={theme.t.inkSub} />
+      {last ? null : <View style={styles.separator} />}
     </Pressable>
   );
 }
 
 const useStyles = makeStyles((th) => ({
-  // De-chromed: the native route sheet owns scrim/shape/grabber.
-  contentRoot: { flex: 1, backgroundColor: th.t.surface },
-  sheetScroll: { flex: 1 },
-  sheetContent: {
+  // The native route sheet owns scrim/shape/grabber; system grey underneath.
+  contentRoot: { flex: 1, backgroundColor: th.t.groupedBg },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.lg,
-    paddingBottom: SPACING.xl,
-  },
-
-  inputWrap: {
-    paddingTop: 6,
-    paddingBottom: 10,
+    paddingBottom: SPACING.sm,
   },
   inputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    backgroundColor: th.t.ink04,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
-  },
-  input: {
     flex: 1,
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: th.t.ink,
-    letterSpacing: -0.2,
-    padding: 0,
-  },
-  clearBtn: {
-    padding: SPACING.xxs,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  resultsWrap: {
-    flex: 1,
-    paddingTop: SPACING.xs,
-  },
-  placeholder: {
-    fontSize: 16,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: th.t.inkSub,
-    textAlign: 'center',
-    paddingVertical: SPACING.xxl,
-  },
-  resultsCount: {
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendardMedium,
-    color: th.t.inkSub,
-    paddingHorizontal: SPACING.xs,
-    paddingVertical: SPACING.sm,
-  },
-  noResults: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: th.t.inkSub,
-    textAlign: 'center',
-    paddingVertical: SPACING.xl,
-  },
-  resultList: {
-    gap: SPACING.xs,
-  },
-
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  iconWrap: {
-    width: 22,
-    height: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowBody: {
-    flex: 1,
-    minWidth: 0,
-  },
-  rowTitle: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: th.t.ink,
-    letterSpacing: -0.2,
-  },
-  rowCaption: {
+    height: 38,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: SPACING.xxs,
+    backgroundColor: th.t.ink06,
+    borderRadius: 10,
+    paddingHorizontal: 10,
   },
-  rowCaptionText: {
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: th.t.inkSub,
-    flexShrink: 1,
+  input: { ...TYPE.row, flex: 1, color: th.t.ink, padding: 0 },
+  clearBtn: {
+    width: 18,
+    height: 18,
+    borderRadius: RADIUS.full,
+    backgroundColor: th.t.inkSub,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancel: { ...TYPE.row, color: th.t.primaryDeep },
+  sheetScroll: { flex: 1 },
+  sheetContent: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, paddingBottom: SPACING.xxl, gap: 18 },
+  placeholder: { ...TYPE.subhead, color: th.t.inkSub, textAlign: 'center', paddingVertical: SPACING.xxl },
+  resultsCount: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.lg, marginBottom: -10 },
+  group: { gap: 6 },
+  groupTitle: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.lg },
+  groupBox: { backgroundColor: th.t.surface, borderRadius: RADIUS.box, overflow: 'hidden' },
+  row: {
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: 14,
+  },
+  noKid: {
+    width: 30,
+    height: 30,
+    borderRadius: RADIUS.full,
+    backgroundColor: th.t.ink06,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowBody: { flex: 1, minWidth: 0, gap: 1 },
+  rowTitle: { ...TYPE.row, color: th.t.ink },
+  rowCaption: { ...TYPE.footnote, color: th.t.inkSub },
+  separator: {
+    position: 'absolute',
+    left: 56,
+    right: 0,
+    bottom: 0,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: th.t.separator,
   },
 }));

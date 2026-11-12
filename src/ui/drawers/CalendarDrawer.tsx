@@ -29,6 +29,7 @@ import { FONT_FAMILIES } from '../fonts';
 import { IconChevronLeft, IconChevronRight } from '../icons';
 import { RADIUS } from '../radius';
 import { SPACING } from '../spacing';
+import { TYPE } from '../typography';
 import { todayIso } from '../utils/date';
 import { makeStyles, useTheme } from '../appearance';
 
@@ -161,29 +162,31 @@ export function CalendarBody({ onClose }: CalendarBodyProps): React.ReactElement
 
   return (
     <View style={styles.sheetBody} testID="calendar-drawer-content">
-        {/* Month nav */}
+        {/* Month nav — board DP1/DP2: big title left, round ‹ › right. */}
         <View style={styles.monthNav}>
-          <Pressable
-            onPress={prevMonth}
-            accessibilityRole="button"
-            accessibilityLabel="이전 달"
-            hitSlop={8}
-            style={styles.navBtn}
-          >
-            <IconChevronLeft size={18} color={theme.t.inkSub} />
-          </Pressable>
-          <Text style={styles.monthLabel}>
+          <Text style={styles.monthLabel} accessibilityRole="header">
             {year}년 {month}월
           </Text>
-          <Pressable
-            onPress={nextMonth}
-            accessibilityRole="button"
-            accessibilityLabel="다음 달"
-            hitSlop={8}
-            style={styles.navBtn}
-          >
-            <IconChevronRight size={18} color={theme.t.inkSub} />
-          </Pressable>
+          <View style={styles.navGroup}>
+            <Pressable
+              onPress={prevMonth}
+              accessibilityRole="button"
+              accessibilityLabel="이전 달"
+              hitSlop={6}
+              style={styles.navBtn}
+            >
+              <IconChevronLeft size={18} color={theme.t.primaryDeep} />
+            </Pressable>
+            <Pressable
+              onPress={nextMonth}
+              accessibilityRole="button"
+              accessibilityLabel="다음 달"
+              hitSlop={6}
+              style={styles.navBtn}
+            >
+              <IconChevronRight size={18} color={theme.t.primaryDeep} />
+            </Pressable>
+          </View>
         </View>
 
         {/* DOW header — weekend colored, weekday inkSub */}
@@ -269,7 +272,7 @@ export function CalendarBody({ onClose }: CalendarBodyProps): React.ReactElement
                       return (
                         <View
                           key={kidId}
-                          style={[styles.dot, { backgroundColor: pal.source }]}
+                          style={[styles.dot, { backgroundColor: pal.deep }]}
                         />
                       );
                     })}
@@ -298,21 +301,20 @@ const useStyles = makeStyles((th) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.xs,
-    paddingTop: 6,
+    paddingHorizontal: SPACING.xxs,
+    paddingTop: SPACING.xs,
     paddingBottom: SPACING.md,
   },
+  navGroup: { flexDirection: 'row', gap: SPACING.sm },
   navBtn: {
-    padding: 6,
+    width: 34,
+    height: 34,
+    borderRadius: RADIUS.full,
+    backgroundColor: th.t.ink06,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  monthLabel: {
-    fontSize: 18,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
-    color: th.t.ink,
-    letterSpacing: -0.3,
-  },
+  monthLabel: { ...TYPE.title2, color: th.t.ink },
 
   dowRow: {
     flexDirection: 'row',
@@ -323,10 +325,7 @@ const useStyles = makeStyles((th) => ({
     alignItems: 'center',
     paddingVertical: SPACING.xs,
   },
-  dowText: {
-    fontSize: 12,
-    fontFamily: FONT_FAMILIES.pretendardMedium,
-  },
+  dowText: { ...TYPE.footnote, fontFamily: FONT_FAMILIES.pretendardSemiBold },
 
   gridWrap: {
     flexDirection: 'row',
@@ -334,37 +333,33 @@ const useStyles = makeStyles((th) => ({
   },
   cell: {
     width: `${100 / 7}%`,
-    height: 48,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: SPACING.xs,
   },
   pill: {
-    width: 30,
-    height: 30,
+    width: 36,
+    height: 36,
     borderRadius: RADIUS.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Today: the orange dot with dark digits (contrast pass); the day being
+  // viewed: a soft orange tint with deep-orange digits.
   pillToday: {
     backgroundColor: th.t.primary,
   },
   pillSelected: {
-    backgroundColor: th.t.ink06,
-    borderWidth: 1.5,
-    borderColor: th.t.primary,
+    backgroundColor: th.t.primaryTint,
   },
-  pillText: {
-    fontSize: 14,
-    fontFamily: FONT_FAMILIES.pretendard,
-    color: th.t.ink,
-  },
+  pillText: { ...TYPE.row, color: th.t.ink },
   pillTextToday: {
-    color: th.t.surface,
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    color: th.t.onLight,
+    fontFamily: FONT_FAMILIES.pretendardBold,
   },
   pillTextSelected: {
-    fontFamily: FONT_FAMILIES.pretendardSemiBold,
+    color: th.t.primaryDeep,
+    fontFamily: FONT_FAMILIES.pretendardBold,
   },
   pillTextRed: {
     // Sunday + 한국 공휴일 — both adopt the DOW header's Sunday tint
@@ -381,8 +376,8 @@ const useStyles = makeStyles((th) => ({
     minHeight: 4,
   },
   dot: {
-    width: 4,
-    height: 4,
+    width: 5,
+    height: 5,
     borderRadius: RADIUS.full,
   },
 }));

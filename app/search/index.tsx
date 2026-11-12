@@ -22,5 +22,5 @@ export default function SearchRoute(): React.ReactElement {
 
 const useStyles = makeStyles((th) => ({
   // Top padding clears the native sheet grabber so content isn't flush under it.
-  root: { flex: 1, paddingTop: SPACING.xl, backgroundColor: th.t.surface },
+  root: { flex: 1, paddingTop: SPACING.xl, backgroundColor: th.t.groupedBg },
 }));

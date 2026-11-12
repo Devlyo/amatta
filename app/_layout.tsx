@@ -367,7 +367,7 @@ function AppStack(): React.ReactElement {
           sheetAllowedDetents: [0.5, 0.92],
           sheetGrabberVisible: true,
           sheetCornerRadius: 20,
-          contentStyle: { backgroundColor: theme.t.surface },
+          contentStyle: { backgroundColor: theme.t.groupedBg },
         }}
       />
     </Stack>
