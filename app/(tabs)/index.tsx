@@ -80,8 +80,11 @@ export default function HomeScreen(): React.ReactElement {
     [completionMap],
   );
 
+  // 지금 › 캘린더 always opens today's DAY view (owner 2026-11-12) — 지금 is
+  // about who is where right now, which the day columns show.
   const handleOpenCalendar = (): void => {
     setCurrentDate(today);
+    useUiStore.getState().setCalendarView('day');
     router.navigate('/(tabs)/calendar');
   };
 
