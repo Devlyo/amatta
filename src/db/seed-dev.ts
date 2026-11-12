@@ -16,6 +16,13 @@ export async function seedDevData(db: SQLiteDatabase): Promise<void> {
     'SELECT COUNT(*) AS c FROM children',
   );
   if ((existing?.c ?? 0) > 0) return;
+  // Kids were added on this install and then all removed (e.g. to see the
+  // onboarding again) — leave it empty. A wipe clears sqlite_sequence, so a
+  // full reset still re-seeds.
+  const used = await db
+    .getFirstAsync<{ seq: number }>("SELECT seq FROM sqlite_sequence WHERE name = 'children'")
+    .catch(() => null);
+  if ((used?.seq ?? 0) > 0) return;
 
   await db.withTransactionAsync(async () => {
     const minjun = await insertChild(db, '민준', 0);
@@ -24,7 +31,7 @@ export async function seedDevData(db: SQLiteDatabase): Promise<void> {
 
     await insertSchedule(db, minjun, '학교', 'school', MON_FRI, 540, 870, null);
     await insertSchedule(db, minjun, '영어학원', 'academy', MWF, 960, 1050, 30);
-    await insertSchedule(db, minjun, '수영', 'activity', SAT, 600, 660, 30);
+    const minjunSwim = await insertSchedule(db, minjun, '수영', 'activity', SAT, 600, 660, 30);
 
     await insertSchedule(db, seoyeon, '학교', 'school', MON_FRI, 540, 780, null);
     const seoyeonPiano = await insertSchedule(
@@ -37,14 +44,14 @@ export async function seedDevData(db: SQLiteDatabase): Promise<void> {
       1080,
       30,
     );
-    await insertSchedule(db, seoyeon, '미술학원', 'academy', SAT, 840, 930, 30);
+    const seoyeonArt = await insertSchedule(db, seoyeon, '미술학원', 'academy', SAT, 840, 930, 30);
 
     await insertSchedule(db, doyoon, '어린이집', 'school', MON_FRI, 540, 960, null);
-    await insertSchedule(db, doyoon, '발레', 'activity', WED, 1020, 1080, 30);
+    const doyoonBallet = await insertSchedule(db, doyoon, '발레', 'activity', WED, 1020, 1080, 30);
 
-    // 4th child — inserted AFTER the others so the hardcoded schedule ids
-    // (3/6/8) used below for needs_pickup stay valid. 하준's pickup schedule
-    // id is captured directly rather than hardcoded.
+    // 4th child. Every schedule id below is captured, never hardcoded: after
+    // kids are removed, AUTOINCREMENT keeps counting, so "3/6/8" would point
+    // at nothing and the FK check fails the whole boot.
     const hajun = await insertChild(db, '하준', 5);
     await insertSchedule(db, hajun, '학교', 'school', MON_FRI, 540, 960, null);
     const hajunTkd = await insertSchedule(db, hajun, '태권도', 'academy', MWF, 1000, 1080, 30);
@@ -63,41 +70,40 @@ export async function seedDevData(db: SQLiteDatabase): Promise<void> {
       );
     }
 
-    // v2: pickup flags. Schedule ids 3 (민준 수영), 6 (서연 미술학원), 8 (도윤 발레),
-    // + 하준 태권도 (captured id).
+    // v2: pickup flags — 민준 수영, 서연 미술학원, 도윤 발레, 하준 태권도.
     await db.runAsync(
       'UPDATE schedules SET needs_pickup = 1 WHERE id IN (?, ?, ?, ?)',
-      [3, 6, 8, hajunTkd],
+      [minjunSwim, seoyeonArt, doyoonBallet, hajunTkd],
     );
 
     // v2: ChecklistItems — preparation items per pickup-marked schedule.
     await db.runAsync(
       `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
-      [3, '수영가방', 0],
+      [minjunSwim, '수영가방', 0],
     );
     await db.runAsync(
       `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
-      [3, '수건', 1],
+      [minjunSwim, '수건', 1],
     );
     await db.runAsync(
       `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
-      [3, '간식', 2],
+      [minjunSwim, '간식', 2],
     );
     await db.runAsync(
       `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
-      [6, '미술도구', 0],
+      [seoyeonArt, '미술도구', 0],
     );
     await db.runAsync(
       `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
-      [6, '앞치마', 1],
+      [seoyeonArt, '앞치마', 1],
     );
     await db.runAsync(
       `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
-      [8, '발레복', 0],
+      [doyoonBallet, '발레복', 0],
     );
     await db.runAsync(
       `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
-      [8, '발레슈즈', 1],
+      [doyoonBallet, '발레슈즈', 1],
     );
     await db.runAsync(
       `INSERT INTO checklist_items (schedule_id, label, sort_order) VALUES (?, ?, ?)`,
