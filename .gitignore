@@ -60,3 +60,6 @@ GoogleService-Info.plist
 .omc/project-memory.json
 .omc/research/
 .omc/plans/readme-portfolio-plan.md
+
+# Vercel project link (web/share)
+.vercel

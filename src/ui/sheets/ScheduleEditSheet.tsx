@@ -1045,7 +1045,7 @@ export function ScheduleEditContent({
                         setChecklist((cs) => cs.map((c, i) => (i === idx ? { ...c, label: v } : c)))
                       }
                       placeholder="준비물 이름"
-                      placeholderTextColor={theme.t.ink30}
+                      placeholderTextColor={theme.t.ink50}
                       style={styles.checklistInput}
                       maxLength={60}
                       accessibilityLabel={`준비물 ${idx + 1}`}
@@ -1127,7 +1127,7 @@ export function ScheduleEditContent({
             value={form.notes}
             onChangeText={(v: string) => setForm({ ...form, notes: v })}
             placeholder="메모"
-            placeholderTextColor={theme.t.ink30}
+            placeholderTextColor={theme.t.ink50}
             style={styles.notesInput}
             multiline
             maxLength={500}

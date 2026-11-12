@@ -188,7 +188,7 @@ export default function OnbAddKidScreen(): React.ReactElement {
           value={name}
           onChangeText={setName}
           placeholder="이름"
-          placeholderTextColor={theme.t.ink30}
+          placeholderTextColor={theme.t.ink50}
           selectionColor={theme.t.primary}
           maxLength={NAME_MAX}
           style={styles.nameInput}

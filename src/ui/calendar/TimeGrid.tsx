@@ -572,7 +572,8 @@ const useStyles = makeStyles((th) => ({
   },
   nowPillLabel: {
     ...TYPE.mono,
-    color: th.t.surface,
+    // Contrast pass: dark digits on the orange pill (white was 2.7:1).
+    color: th.t.onLight,
   },
   nowDot: {
     width: NOW_DOT,

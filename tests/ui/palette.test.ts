@@ -39,7 +39,7 @@ describe('getKidPalette', () => {
 describe('TOKENS', () => {
   test('exposes Sunset Orange as primary', () => {
     expect(TOKENS.primary).toBe('#FF7144');
-    expect(TOKENS.primaryDeep).toBe('#D8501F');
+    expect(TOKENS.primaryDeep).toBe('#B8431A');
   });
 
   test('ink scale opacity tokens are well-formed rgba', () => {

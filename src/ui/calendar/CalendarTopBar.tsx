@@ -9,6 +9,7 @@
 // No "today" button (ADR-007): getting back to today is the date strip /
 // title picker.
 
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -37,6 +38,8 @@ interface Props {
   onChangeView: (view: CalendarView) => void;
   onPressTitle: () => void;
   onPressSearch: () => void;
+  /** ADR-016: share a read-only link. */
+  onPressShare?: () => void;
 }
 
 const VIEWS: { key: CalendarView; label: string; Icon: React.ComponentType<IconProps> }[] = [
@@ -54,6 +57,7 @@ function CalendarTopBarImpl({
   onChangeView,
   onPressTitle,
   onPressSearch,
+  onPressShare,
 }: Props): React.ReactElement {
   const theme = useTheme();
   const styles = useStyles();
@@ -106,6 +110,17 @@ function CalendarTopBarImpl({
       >
         <IconSearch size={20} color={theme.t.ink} />
       </Pressable>
+      {onPressShare !== undefined ? (
+        <Pressable
+          onPress={onPressShare}
+          accessibilityRole="button"
+          accessibilityLabel="캘린더 공유"
+          style={styles.iconButton}
+          testID="calendar-share"
+        >
+          <Ionicons name="share-outline" size={21} color={theme.t.ink} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }

@@ -313,6 +313,15 @@ function AppStack(): React.ReactElement {
       <Stack.Screen name="settings/calendars" options={{ headerShown: false }} />
       <Stack.Screen name="settings/display" options={{ headerShown: false }} />
       <Stack.Screen name="settings/legal" options={{ headerShown: false }} />
+      {/* Calendar share link (ADR-016) — full modal like the event screens. */}
+      <Stack.Screen
+        name="share"
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          contentStyle: { backgroundColor: theme.t.groupedBg },
+        }}
+      />
       {/* Dev-only design-system gallery. Entry point in Settings is __DEV__-gated. */}
       <Stack.Screen name="dev-gallery" options={{ title: 'DS Gallery', presentation: 'modal' }} />
       {/* Calendar — native SHORT sheet (formSheet + detents). NO gorhom

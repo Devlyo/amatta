@@ -64,7 +64,7 @@ export const FormInputRow = memo(function FormInputRow({
   const styles = useStyles();
   return (
     <RowFrame last={last}>
-      <TextInput placeholderTextColor={theme.t.ink30} style={styles.input} {...input} />
+      <TextInput placeholderTextColor={theme.t.ink50} style={styles.input} {...input} />
     </RowFrame>
   );
 });
@@ -336,7 +336,7 @@ const useStyles = makeStyles((th) => ({
   switchBox: { height: ROW_H, justifyContent: 'center' },
   input: { ...TYPE.row, color: th.t.ink, flex: 1, paddingVertical: 11 },
   inputEmphasis: { ...TYPE.headline },
-  inputPlaceholder: { color: th.t.ink30 },
+  inputPlaceholder: { color: th.t.ink50 },
   valueWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
   value: { ...TYPE.row, color: th.t.inkSub, flexShrink: 1 },
   valueActive: { color: th.t.danger },
@@ -371,7 +371,7 @@ const useStyles = makeStyles((th) => ({
     height: 22,
     borderRadius: RADIUS.full,
     borderWidth: 1.5,
-    borderColor: th.t.ink30,
+    borderColor: th.t.ink50,
     alignItems: 'center',
     justifyContent: 'center',
   },

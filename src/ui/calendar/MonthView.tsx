@@ -309,6 +309,6 @@ const useStyles = makeStyles((th) => ({
   },
   // Text on a kid fill — dark in both schemes (ADR-009); guardian chips override.
   chipTitle: { ...TYPE.caption2, color: th.t.onLight, letterSpacing: -0.4 },
-  chipTime: { ...TYPE.caption2, fontFamily: TYPE.mono.fontFamily, color: withAlpha(th.t.onLight, 0.7) },
+  chipTime: { ...TYPE.caption2, fontFamily: TYPE.mono.fontFamily, color: withAlpha(th.t.onLight, th.scheme === 'dark' ? 0.95 : 0.7) },
   more: { ...TYPE.caption2, color: th.t.inkSub, paddingHorizontal: 3 },
 }));

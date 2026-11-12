@@ -251,7 +251,7 @@ const useStyles = makeStyles((th) => ({
   },
   checkboxIdle: {
     backgroundColor: th.t.surface,
-    borderColor: th.t.ink30,
+    borderColor: th.t.ink50,
   },
   itemText: { flex: 1, minWidth: 0, gap: 1 },
   itemLabel: { ...TYPE.row, color: th.t.ink },
