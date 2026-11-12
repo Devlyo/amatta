@@ -8,15 +8,16 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { appSettingsRepo } from '../db/repositories';
 
 // Owner's list (2026-11-12):
+//   add-event    calendar, very first    → points at the dock's +: "새 일정을 등록해 보세요"
 //   view-switch  calendar, first time    → points at 일·주·월: "주간·월간 보기도 있어요"
 //   week-slide   week view               → slide across the pills for everyone
 //   week-pinch   week view               → pinch to zoom
 //   month-pinch  month view              → pinch to zoom
 //   share        last, once the rest are seen → points at the share button
-export type CoachId = 'view-switch' | 'week-slide' | 'week-pinch' | 'month-pinch' | 'share';
+export type CoachId = 'add-event' | 'view-switch' | 'week-slide' | 'week-pinch' | 'month-pinch' | 'share';
 export const COACH_KEY = 'coach_seen';
 /** Order the tips may appear in — at most one on screen at a time. */
-export const COACH_ORDER: readonly CoachId[] = ['view-switch', 'week-slide', 'week-pinch', 'month-pinch', 'share'];
+export const COACH_ORDER: readonly CoachId[] = ['add-event', 'view-switch', 'week-slide', 'week-pinch', 'month-pinch', 'share'];
 
 interface CoachState {
   seen: CoachId[];

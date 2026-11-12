@@ -64,6 +64,7 @@ import { MonthStrip } from '../../src/ui/calendar/MonthStrip';
 import { useNowMinutes } from '../../src/ui/calendar/useNowMinutes';
 import { useGuardianEvents } from '../../src/ui/calendar/useGuardianEvents';
 import { useGuardianStore } from '../../src/state/guardian-store';
+import { useDisplayStore } from '../../src/state/display-store';
 import type { GuardianOccurrence } from '../../src/domain/guardian';
 import { WeekView } from '../../src/ui/calendar/WeekView';
 import {
@@ -103,8 +104,14 @@ function md(date: ISODate): { m: number; d: number } {
   return { m: Number(s.slice(5, 7)), d: Number(s.slice(8, 10)) };
 }
 
+/** FloatingDock geometry (the + button the first tip points at). */
+const DOCK_SIDE = 24;
+const DOCK_BOTTOM = 22;
+const DOCK_ADD = 56;
+
 /** CM2 tip copy: [before, highlighted, after] (owner 2026-11-12). */
 const COACH_TEXT: Record<CoachId, readonly [string, string, string]> = {
+  'add-event': ['', '새 일정', '을 등록해 보세요'],
   'view-switch': ['', '주간 · 월간', ' 보기도 있어요'],
   'week-slide': ['이름을 ', '옆으로 밀면', ' 모든 아이 일정을 한눈에 볼 수 있어요'],
   'week-pinch': ['', '두 손가락으로 벌리면', ' 날짜를 크게 볼 수 있어요'],
@@ -159,6 +166,8 @@ export default function CalendarScreen(): React.ReactElement {
   const [barBox, setBarBox] = useState<{ y: number; h: number; w: number } | null>(null);
   const [segBox, setSegBox] = useState<AnchorBox | null>(null);
   const [shareBox, setShareBox] = useState<AnchorBox | null>(null);
+  const [host, setHost] = useState({ w: 0, h: 0 });
+  const addLeft = useDisplayStore((s) => s.addButtonSide) === 'left';
   // Pill layout mirrors KidFilterBar: side padding md, gap xs, equal flex pills.
   const firstPillX = useMemo(() => {
     const w = barBox?.w ?? 0;
@@ -303,11 +312,11 @@ export default function CalendarScreen(): React.ReactElement {
     [schedules, exceptions, range, childrenById],
   );
   const coachAvailable = useMemo<CoachId[]>(() => {
-    const ids: CoachId[] = ['view-switch'];
+    const ids: CoachId[] = ['add-event', 'view-switch'];
     if (view === 'week') ids.push('week-slide', 'week-pinch');
     if (view === 'month') ids.push('month-pinch');
     // Share comes last: once every other tip has been seen.
-    if ((['view-switch', 'week-slide', 'week-pinch', 'month-pinch'] as const).every((id) => coachSeen.includes(id))) ids.push('share');
+    if ((['add-event', 'view-switch', 'week-slide', 'week-pinch', 'month-pinch'] as const).every((id) => coachSeen.includes(id))) ids.push('share');
     return ids;
   }, [view, coachSeen]);
   const coach = nextCoach(coachSeen, coachLoaded, coachAvailable);
@@ -316,12 +325,18 @@ export default function CalendarScreen(): React.ReactElement {
   const pointsAtBar = coach === 'view-switch' || coach === 'share';
   const anchor = coach === 'view-switch' ? segBox : coach === 'share' ? shareBox : null;
   const coachTop = pointsAtBar && anchor !== null ? anchor.y + anchor.h + SPACING.sm : (barBox?.y ?? 0) + (barBox?.h ?? 0) + SPACING.sm;
+  // Tip 0 points down at the dock's + (FloatingDock: 56pt button, 24 from the
+  // side, 22 from the bottom; left side when 설정 > 화면 says so).
+  const addX = addLeft ? DOCK_SIDE + DOCK_ADD / 2 : host.w - DOCK_SIDE - DOCK_ADD / 2;
+  const addY = host.h - DOCK_BOTTOM - DOCK_ADD / 2;
   const coachArrowX =
-    anchor !== null
-      ? anchor.x + anchor.w / 2 - SPACING.lg
-      : coach === 'week-slide'
-        ? firstPillX - SPACING.lg
-        : undefined;
+    coach === 'add-event'
+      ? addX - SPACING.lg
+      : anchor !== null
+        ? anchor.x + anchor.w / 2 - SPACING.lg
+        : coach === 'week-slide'
+          ? firstPillX - SPACING.lg
+          : undefined;
   // Guardian events (device calendar, ADR-008) for the same range.
   const guardianEvents = useGuardianEvents(range.from, range.to);
   const guardianOn = (date: ISODate): readonly GuardianOccurrence[] =>
@@ -525,7 +540,7 @@ export default function CalendarScreen(): React.ReactElement {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* The coach-tip layer: tips are placed from this box's top-left. */}
-      <View style={styles.coachHost}>
+      <View style={styles.coachHost} onLayout={(e) => setHost({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
       <CalendarTopBar
         title={title}
         caption={caption}
@@ -650,6 +665,7 @@ export default function CalendarScreen(): React.ReactElement {
       </GestureDetector>
       {coach !== null && barBox !== null ? (
         <>
+          {coach === 'add-event' && host.h > 0 ? <CoachFinger x={addX} y={addY} /> : null}
           {coach === 'view-switch' && segBox !== null ? (
             <CoachFinger x={segBox.x + segBox.w / 2} y={segBox.y + segBox.h / 2} />
           ) : null}
@@ -661,8 +677,9 @@ export default function CalendarScreen(): React.ReactElement {
             parts={COACH_TEXT[coach]}
             gesture={coach === 'week-pinch' || coach === 'month-pinch' ? 'pinch' : undefined}
             arrowX={coachArrowX}
+            arrowSide={coach === 'add-event' ? 'bottom' : 'top'}
             onClose={() => seeCoach(coach)}
-            style={[styles.coachTip, { top: coachTop }]}
+            style={[styles.coachTip, coach === 'add-event' ? { bottom: DOCK_BOTTOM + DOCK_ADD + SPACING.md } : { top: coachTop }]}
           />
         </>
       ) : null}

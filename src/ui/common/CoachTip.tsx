@@ -130,14 +130,16 @@ interface CoachTipProps {
   /** Text before / after the highlighted words, e.g. ['', '길게 누르면', ' 한 아이만 보여요']. */
   parts: readonly [string, string, string];
   onClose: () => void;
-  /** Little arrow on the bubble's top edge, `x` px from its left. */
+  /** Little arrow on the bubble's edge, `x` px from its left. */
   arrowX?: number;
+  /** Which edge the arrow sits on (default top: pointing up at the target). */
+  arrowSide?: 'top' | 'bottom';
   gesture?: 'pinch' | 'drag';
   style?: StyleProp<ViewStyle>;
   testID?: string;
 }
 
-export const CoachTip = memo(function CoachTip({ parts, onClose, arrowX, gesture, style, testID }: CoachTipProps): React.ReactElement {
+export const CoachTip = memo(function CoachTip({ parts, onClose, arrowX, arrowSide = 'top', gesture, style, testID }: CoachTipProps): React.ReactElement {
   const styles = useStyles();
   const theme = useTheme();
   // Keep the arrow on the bubble's straight top edge — past the rounded corner
@@ -153,7 +155,9 @@ export const CoachTip = memo(function CoachTip({ parts, onClose, arrowX, gesture
       accessibilityLabel={parts.join('')}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
     >
-      {ax !== undefined ? <View style={[styles.arrow, { left: ax - ARROW / 2 }]} /> : null}
+      {ax !== undefined ? (
+        <View style={[styles.arrow, arrowSide === 'bottom' ? styles.arrowBottom : null, { left: ax - ARROW / 2 }]} />
+      ) : null}
       {gesture !== undefined ? <Hint gesture={gesture} /> : null}
       <Text style={styles.text}>
         {parts[0]}
@@ -199,6 +203,7 @@ const useStyles = makeStyles((th) => ({
     backgroundColor: th.t.onLight,
     transform: [{ rotate: '45deg' }],
   },
+  arrowBottom: { top: undefined, bottom: -6 },
   text: { ...TYPE.subhead, color: th.t.onDark, flexShrink: 1 },
   strong: { color: th.t.primary, fontFamily: TYPE.headline.fontFamily },
   hint: { width: 40, height: 40, borderRadius: RADIUS.sm, overflow: 'hidden' },
