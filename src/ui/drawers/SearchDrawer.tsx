@@ -177,38 +177,6 @@ export function SearchContent({ onClose }: SearchContentProps): React.ReactEleme
   // Board SR1/SR2 (2026-11-12): grouped iOS lists on the system background.
   return (
     <View style={styles.contentRoot}>
-      <View style={styles.searchRow}>
-        <View style={styles.inputBox}>
-          <IconSearch size={16} color={theme.t.inkSub} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="일정·준비물·할 일·자녀 검색"
-            placeholderTextColor={theme.t.ink50}
-            style={styles.input}
-            autoCorrect={false}
-            autoCapitalize="none"
-            autoFocus
-            returnKeyType="search"
-            testID="search-drawer-input"
-            accessibilityLabel="검색어 입력"
-          />
-          {trimmed.length > 0 ? (
-            <Pressable
-              onPress={() => setQuery('')}
-              accessibilityRole="button"
-              accessibilityLabel="검색어 지우기"
-              hitSlop={8}
-              style={styles.clearBtn}
-            >
-              <IconXMark size={10} color={theme.t.surface} />
-            </Pressable>
-          ) : null}
-        </View>
-        <Pressable onPress={onClose} accessibilityRole="button" hitSlop={8} testID="search-cancel">
-          <Text style={styles.cancel}>취소</Text>
-        </Pressable>
-      </View>
       <ScrollView
         style={styles.sheetScroll}
         contentContainerStyle={styles.sheetContent}
@@ -216,7 +184,42 @@ export function SearchContent({ onClose }: SearchContentProps): React.ReactEleme
         keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets
         testID="search-drawer-content"
+        // The native formSheet lays its scroll view out from the sheet's top —
+        // the search field must live inside it (sticky), or results draw over it.
+        stickyHeaderIndices={[0]}
       >
+        <View style={styles.searchRow}>
+          <View style={styles.inputBox}>
+            <IconSearch size={16} color={theme.t.inkSub} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="일정·준비물·할 일·자녀 검색"
+              placeholderTextColor={theme.t.ink50}
+              style={styles.input}
+              autoCorrect={false}
+              autoCapitalize="none"
+              autoFocus
+              returnKeyType="search"
+              testID="search-drawer-input"
+              accessibilityLabel="검색어 입력"
+            />
+            {trimmed.length > 0 ? (
+              <Pressable
+                onPress={() => setQuery('')}
+                accessibilityRole="button"
+                accessibilityLabel="검색어 지우기"
+                hitSlop={8}
+                style={styles.clearBtn}
+              >
+                <IconXMark size={10} color={theme.t.surface} />
+              </Pressable>
+            ) : null}
+          </View>
+          <Pressable onPress={onClose} accessibilityRole="button" hitSlop={8} testID="search-cancel">
+            <Text style={styles.cancel}>취소</Text>
+          </Pressable>
+        </View>
         {showEmpty ? (
           <Text style={styles.placeholder}>검색어를 입력하세요</Text>
         ) : results.length === 0 ? (
@@ -333,8 +336,10 @@ const useStyles = makeStyles((th) => ({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xs,
     paddingBottom: SPACING.sm,
+    // Sticky: covers results scrolling underneath.
+    backgroundColor: th.t.groupedBg,
   },
   inputBox: {
     flex: 1,
@@ -357,7 +362,7 @@ const useStyles = makeStyles((th) => ({
   },
   cancel: { ...TYPE.row, color: th.t.primaryDeep },
   sheetScroll: { flex: 1 },
-  sheetContent: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, paddingBottom: SPACING.xxl, gap: 18 },
+  sheetContent: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xxl, gap: 18 },
   placeholder: { ...TYPE.subhead, color: th.t.inkSub, textAlign: 'center', paddingVertical: SPACING.xxl },
   resultsCount: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.lg, marginBottom: -10 },
   group: { gap: 6 },
