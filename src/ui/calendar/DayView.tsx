@@ -12,7 +12,6 @@ import type { Child, Occurrence } from '../../domain/types';
 import { emphasisOf, type PersonKey } from '../../domain/people-filter';
 import { fanOutByMember } from '../../domain/occurrences';
 import { fmtRange } from '../utils/date';
-import { MemberFaces } from '../common/MemberFaces';
 import { AllDayRow, type AllDayItem } from './AllDayRow';
 import { DraggableBlock } from './DraggableBlock';
 import { TimeBlock } from './TimeBlock';
@@ -111,12 +110,6 @@ function DayViewImpl({
     () => (showGuardian && !noneOn ? occurrences.filter((o) => o.withGuardian === true) : []),
     [occurrences, showGuardian, noneOn],
   );
-  const facesOf = (occ: Occurrence): React.ReactNode => {
-    const ids = occ.memberIds ?? [occ.childId];
-    if (ids.length + (occ.withGuardian ? 1 : 0) < 2) return null;
-    const members = ids.map((id) => kidsById.get(id)).filter((k): k is Child => k !== undefined);
-    return <MemberFaces kids={members} withGuardian={occ.withGuardian === true} size={16} />;
-  };
   const placed = useMemo(() => {
     const byId = new Map<string, Placed>();
     const inputs = [];
@@ -286,7 +279,6 @@ function DayViewImpl({
                   needsPickup={occ.needsPickup}
                   compact={compact}
                   showTime={showTime}
-                  footer={facesOf(occ)}
                   accessibilityLabel={`보호자 ${occ.title}, ${fmtRange(occ.startMinutes, occ.endMinutes)}`}
                   onPress={() => onPressOccurrence(occ)}
                   holdToDrag={onMoveOccurrence !== undefined}
@@ -345,7 +337,6 @@ function DayViewImpl({
                 needsPickup={occ.needsPickup}
                 compact={compact}
                 showTime={showTime}
-                footer={facesOf(occ)}
                 accessibilityLabel={`${kid.name} ${occ.title}, ${fmtRange(occ.startMinutes, occ.endMinutes)}${level > 0 ? ', 다른 일정과 시간이 겹침' : ''}`}
                 onPress={() => onPressOccurrence(occ)}
                 holdToDrag={onMoveOccurrence !== undefined}

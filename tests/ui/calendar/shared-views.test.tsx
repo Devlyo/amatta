@@ -51,13 +51,13 @@ function renderDay(inactive: (number | 'guardian')[] = [], guardian = true) {
 }
 
 describe('DayView — shared schedule', () => {
-  test('a copy in each member column + the guardian column, with stacked faces', () => {
+  test('a copy in each member column + the guardian column; no faces (owner 2026-11-12: the columns already say who)', () => {
     renderDay();
     expect(screen.getByTestId('day-block-7-1')).toBeTruthy();
     expect(screen.getByTestId('day-block-7-3')).toBeTruthy();
     expect(screen.getByTestId('day-block-7-g')).toBeTruthy();
     expect(screen.queryByTestId('day-block-7-2')).toBeNull();
-    expect(screen.getAllByLabelText('함께: 민준, 도윤, 보호자').length).toBe(3);
+    expect(screen.queryByLabelText('함께: 민준, 도윤, 보호자')).toBeNull();
   });
 
   test('switching a member off hides only their copy', () => {
