@@ -2,6 +2,7 @@
 // Pure state — no DB involved.
 
 import { useUiStore } from '../../src/state/ui-store';
+import { WEEK_SPAN_DEFAULT } from '../../src/ui/calendar/calendar-layout';
 import type { ISODate } from '../../src/domain/types';
 
 describe('useUiStore', () => {
@@ -119,5 +120,38 @@ describe('useUiStore', () => {
 
     useUiStore.getState().closeEditSheet();
     expect(useUiStore.getState().editSheetState.mode).toBe('closed');
+  });
+});
+
+// Calendar opening view follows the kid count (owner, 2026-11-12).
+describe('applyKidCountDefaults', () => {
+  beforeEach(() => {
+    useUiStore.setState({ kidCountMode: null, calendarView: 'day', weekSpan: WEEK_SPAN_DEFAULT });
+  });
+  test('one kid → week view, all 7 days', () => {
+    useUiStore.getState().applyKidCountDefaults(1);
+    expect(useUiStore.getState()).toMatchObject({ calendarView: 'week', weekSpan: 7, kidCountMode: 'one' });
+  });
+
+  test('two or more → day view, week opens at the default span', () => {
+    useUiStore.getState().applyKidCountDefaults(3);
+    expect(useUiStore.getState()).toMatchObject({ calendarView: 'day', weekSpan: WEEK_SPAN_DEFAULT, kidCountMode: 'many' });
+  });
+
+  test("the user's own choice stands until the count crosses 1 ↔ 2+", () => {
+    const s = useUiStore.getState();
+    s.applyKidCountDefaults(1);
+    s.setCalendarView('month');
+    s.applyKidCountDefaults(1); // same category (reload) → untouched
+    expect(useUiStore.getState().calendarView).toBe('month');
+    s.applyKidCountDefaults(2); // a second kid added → day view
+    expect(useUiStore.getState()).toMatchObject({ calendarView: 'day', weekSpan: WEEK_SPAN_DEFAULT });
+    s.applyKidCountDefaults(1); // back to one → week, 7 days
+    expect(useUiStore.getState()).toMatchObject({ calendarView: 'week', weekSpan: 7 });
+  });
+
+  test('no kids yet → nothing changes', () => {
+    useUiStore.getState().applyKidCountDefaults(0);
+    expect(useUiStore.getState()).toMatchObject({ calendarView: 'day', kidCountMode: null });
   });
 });

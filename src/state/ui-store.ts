@@ -53,6 +53,14 @@ interface UiState {
   /** Week view days on screen (pinch): 7 / 4 / 3 / 2. Session only. */
   weekSpan: WeekSpan;
   setWeekSpan: (span: WeekSpan) => void;
+  /**
+   * Owner 2026-11-12: the calendar's opening view follows the number of kids —
+   * one kid → week, all 7 days; two or more → day view (week opens at 3.2 days).
+   * Applied when the count first loads and whenever it crosses 1 ↔ 2+; in
+   * between, the user's own view / pinch choices stand.
+   */
+  applyKidCountDefaults: (kidCount: number) => void;
+  kidCountMode: 'one' | 'many' | null;
   /** Month view pinch zoom (2-line chips). Session only. */
   /** Month view week-row height (pinch zoom, MONTH_ROW_MIN…MAX). */
   monthRowH: number;
@@ -92,6 +100,16 @@ export const useUiStore = create<UiState>()((set) => ({
   setCalendarView: (view) => set({ calendarView: view }),
   weekSpan: WEEK_SPAN_DEFAULT,
   setWeekSpan: (span) => set({ weekSpan: span }),
+  kidCountMode: null,
+  applyKidCountDefaults: (kidCount) =>
+    set((s) => {
+      if (kidCount === 0) return {};
+      const mode = kidCount === 1 ? 'one' : 'many';
+      if (s.kidCountMode === mode) return {};
+      return mode === 'one'
+        ? { kidCountMode: mode, calendarView: 'week', weekSpan: 7 }
+        : { kidCountMode: mode, calendarView: 'day', weekSpan: WEEK_SPAN_DEFAULT };
+    }),
   monthRowH: 104,
   setMonthRowH: (h) => set({ monthRowH: h }),
   inactivePeople: [],
