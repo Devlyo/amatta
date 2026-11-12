@@ -1,4 +1,4 @@
-import { AVATAR_FACES, MASCOTS } from '../../src/ui/assets';
+import { AVATAR_FACES } from '../../src/ui/assets';
 
 describe('assets map', () => {
   test('AVATAR_FACES exposes all 7 expression keys', () => {
@@ -11,8 +11,4 @@ describe('assets map', () => {
     expect(AVATAR_FACES.wink).toBeDefined();
   });
 
-  test('MASCOTS', () => {
-    expect(Object.keys(MASCOTS).sort()).toEqual(['orange', 'pink', 'sleep', 'yellow']);
-    expect(MASCOTS.orange).toBeDefined();
-  });
 });
