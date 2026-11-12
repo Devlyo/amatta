@@ -10,9 +10,10 @@ import { shiftIsoDate, weekDatesIso, weekStartIso } from '../utils/date';
 export const WEEK_SPAN_MAX = 7;
 export const WEEK_SPAN_MIN = 2;
 export type WeekSpan = number;
-/** Opening zoom (2026-11-10): 3 days and a sliver of the 4th, which hints
- *  that the strip scrolls. Pinches are remembered while the app runs. */
-export const WEEK_SPAN_DEFAULT = 3.2;
+/** Opening zoom: the whole week (owner 2026-11-12 — the week opens on one
+ *  kid, so 7 days still read as titled blocks; was 3.2). Pinches are
+ *  remembered while the app runs. */
+export const WEEK_SPAN_DEFAULT = 7;
 /** More days than this → every event is a lane bar + type icon (no titles). */
 export const WEEK_SPAN_BARS_FROM = 4;
 /** Blocks (≤ 4 days) always have room for their time range. */
