@@ -1,16 +1,16 @@
-// Static asset map for amatta-v1 PNG sources.
+// Static asset map. Faces + welcome hero are WebP (288 px faces, 2026-11-12) — PNG was 5–8× bigger.
 // Metro statically resolves these require() expressions at build time —
 // they must be literal string paths (no template strings) so the bundler
 // can inline the module IDs. See assets/amatta/ for the raw files.
 
 export const AVATAR_FACES = {
-  calm: require('../../assets/amatta/avatar-face-calm.png'),
-  cool: require('../../assets/amatta/avatar-face-cool.png'),
-  dizzy: require('../../assets/amatta/avatar-face-dizzy.png'),
-  happy: require('../../assets/amatta/avatar-face-happy.png'),
-  sleep: require('../../assets/amatta/avatar-face-sleep.png'),
-  surprise: require('../../assets/amatta/avatar-face-surprise.png'),
-  wink: require('../../assets/amatta/avatar-face-wink.png'),
+  calm: require('../../assets/amatta/avatar-face-calm.webp'),
+  cool: require('../../assets/amatta/avatar-face-cool.webp'),
+  dizzy: require('../../assets/amatta/avatar-face-dizzy.webp'),
+  happy: require('../../assets/amatta/avatar-face-happy.webp'),
+  sleep: require('../../assets/amatta/avatar-face-sleep.webp'),
+  surprise: require('../../assets/amatta/avatar-face-surprise.webp'),
+  wink: require('../../assets/amatta/avatar-face-wink.webp'),
 } as const;
 export type AvatarFaceKey = keyof typeof AVATAR_FACES;
 
@@ -41,6 +41,6 @@ export type MascotKey = keyof typeof MASCOTS;
 export const WORDMARK = require('../../assets/images/splash-icon.png');
 export const WORDMARK_ASPECT = 1200 / 263;
 
-// Onboarding welcome hero — the kids around a calendar (owner, 2026-11-12). Transparent PNG.
-export const WELCOME_HERO = require('../../assets/images/welcome-hero.png');
+// Onboarding welcome hero — the kids around a calendar (owner, 2026-11-12). Transparent WebP (~90 KB; was a 490 KB PNG).
+export const WELCOME_HERO = require('../../assets/images/welcome-hero.webp');
 export const WELCOME_HERO_ASPECT = 1080 / 720;
