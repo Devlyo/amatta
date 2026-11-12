@@ -96,3 +96,68 @@ WeMoa로 새로워졌어요.
 4. TestFlight로 한 번 설치해 확인
 5. 메타데이터·스크린샷 입력
 6. 심사 제출
+
+## 영어(미국) 등록 문구 (2026-11-12)
+> 앱 화면은 아직 한국어만(영어 = 2.1, ADR-017). 그래서 설명 끝에 "Currently available in Korean" 한 줄을 둔다 — 설명과 실제가 달라 보이지 않게.
+
+**이름**: `WeMoa: Kids Calendar`
+**부제**: `Kids' schedules, side by side`
+
+**프로모션 텍스트**
+```
+All your kids' schedules on one screen. See who's where right now, the next pickup and today's supplies at a glance — plus your own iPhone calendar, side by side.
+```
+
+**설명**
+```
+WeMoa keeps every child's school, classes and activities on one screen, so you always know who's where and when.
+No sign-up, no login, no cloud. Everything you enter stays on your phone.
+
+■ Today at a glance
+The home screen shows what's happening right now for each child, the next pickup, the supplies to pack and today's to-dos.
+
+■ Day, week and month
+See each child's day side by side in columns, browse the week, or check the whole month. Pinch to zoom. Press and drag an event to move it to another time or day.
+
+■ Never miss a pickup
+Mark events that need a pickup and WeMoa shows the next one on the home screen — and warns you when two pickups, or a pickup and your own appointment, overlap.
+
+■ Supplies and to-dos
+Add a packing list to any event. The reminder tells you what to bring, like "Sketchbook, apron". Keep simple to-dos for each day, too.
+
+■ Shared events and your own calendar
+Add one event for several kids at once — and include yourself. WeMoa also shows the events from your iPhone calendar next to the kids', and saves the ones you add there.
+
+■ Share with other caregivers
+Send grandparents or a sitter a view-only link to the week ahead. The link is encrypted on your phone and expires after 14 days.
+
+■ Private by design
+- No account, no ads, no analytics
+- All data stays on your device (only a link you choose to share is stored, encrypted, for 14 days)
+- Back up to a file anytime, and restore from it
+
+Up to 4 children. Local reminders before an event starts or ends.
+
+Currently available in Korean. English is coming soon.
+
+Contact: amatta.help@gmail.com
+```
+
+**키워드**: `kids,family,calendar,schedule,planner,pickup,school,activities,parents,organizer,reminder,weekly`
+
+**이 버전에서 업그레이드된 사항**
+```
+Amatta is now WeMoa.
+• Home: what's happening now, the next pickup, today's supplies and to-dos at a glance
+• Calendar: day, week and month views — pinch to zoom, press and drag to move an event
+• Shared events: one event for several kids (and you) at once
+• Your own calendar: see your iPhone calendar events alongside the kids', and add them from the app
+• Share: send other caregivers a view-only link to the week ahead
+• Dark mode, and start from a backup file
+Feedback: amatta.help@gmail.com
+```
+
+**그 밖**: 지원·개인정보 URL은 한국어와 같음, 저작권 `© 2026 WeMoa`, 마케팅 URL 비움.
+
+## 연령 등급 (2025 새 질문지)
+콘텐츠 항목 전부 "없음", 웹 접근 제한 없음·사용자 생성 콘텐츠·메시지·광고·연령 확인·경품 전부 "아니요" → 4+.
