@@ -61,7 +61,7 @@ const useStyles = makeStyles((th) => ({
   row: { flexShrink: 1, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center', columnGap: 10, rowGap: 6 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   name: { ...TYPE.row, color: th.t.inkSub },
-  nameActive: { color: th.t.danger },
+  nameActive: { color: th.t.primaryDeep },
   guardian: {
     borderRadius: RADIUS.full,
     backgroundColor: th.t.guardian,

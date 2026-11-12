@@ -2,9 +2,10 @@
 //
 // White groups (RADIUS.box) on the grouped background, 44pt rows with hairline
 // separators inset from the left, value rows with a chevron that expand an
-// inline panel below them, native switches, grey time/date chips (red while
-// being edited), red text actions. One red everywhere: the danger token (the
-// 이 회차만 삭제 red) — accents, active values, checks, actions.
+// inline panel below them, native switches, grey time/date chips, red text
+// actions. Selected / being-edited text and checks use the brand's deep orange
+// (primaryDeep), not red — a name written in red reads badly in Korea (owner,
+// 2026-11-12). Red (danger) stays for actions and 삭제.
 
 import { memo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View, type TextInputProps } from 'react-native';
@@ -280,7 +281,7 @@ export function FormOptionList<T extends string | number | null>({
                 {on ? <IconCheck size={13} color={theme.t.surface} /> : null}
               </View>
             ) : on ? (
-              <IconCheck size={18} color={theme.t.danger} />
+              <IconCheck size={18} color={theme.t.primaryDeep} />
             ) : null}
           </Pressable>
         );
@@ -337,14 +338,15 @@ const useStyles = makeStyles((th) => ({
     height: StyleSheet.hairlineWidth,
     backgroundColor: th.t.separator,
   },
-  label: { ...TYPE.row, color: th.t.ink, flex: 1 },
+  // Grows, never shrinks: a wide value (several 참여 chips) wraps instead of squeezing the label.
+  label: { ...TYPE.row, color: th.t.ink, flexGrow: 1, flexShrink: 0 },
   switchBox: { height: ROW_H, justifyContent: 'center' },
   input: { ...TYPE.row, color: th.t.ink, flex: 1, paddingVertical: 11 },
   inputEmphasis: { ...TYPE.headline },
   inputPlaceholder: { color: th.t.ink50 },
   valueWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
   value: { ...TYPE.row, color: th.t.inkSub, flexShrink: 1 },
-  valueActive: { color: th.t.danger },
+  valueActive: { color: th.t.primaryDeep },
   chevronOpen: { transform: [{ rotate: '90deg' }] },
   panel: {
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -360,7 +362,7 @@ const useStyles = makeStyles((th) => ({
     justifyContent: 'center',
   },
   chipText: { ...TYPE.row, color: th.t.ink },
-  chipTextActive: { color: th.t.danger },
+  chipTextActive: { color: th.t.primaryDeep },
   chipTextDisabled: { color: th.t.inkSub },
   option: {
     minHeight: ROW_H,
