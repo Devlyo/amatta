@@ -36,6 +36,10 @@ import { useChecklistStore } from '../../src/state/checklist-store';
 import { defaultMoveSteps } from '../../src/state/move-steps';
 import { moveOccurrence } from '../../src/state/move-occurrence';
 import { useUiStore, weekDefault, type CalendarView, type PersonKey } from '../../src/state/ui-store';
+import { nextCoach, useCoachStore, type CoachId } from '../../src/state/coach-store';
+import { getDb } from '../../src/db/client';
+import { CoachFinger, CoachTip } from '../../src/ui/common/CoachTip';
+import { SPACING } from '../../src/ui/spacing';
 import { CalendarTopBar } from '../../src/ui/calendar/CalendarTopBar';
 import {
   clampMonthRow,
@@ -99,6 +103,13 @@ function md(date: ISODate): { m: number; d: number } {
   return { m: Number(s.slice(5, 7)), d: Number(s.slice(8, 10)) };
 }
 
+/** CM2 tip copy: [before, highlighted, after] (owner 2026-11-12). */
+const COACH_TEXT: Record<CoachId, readonly [string, string, string]> = {
+  'filter-solo': ['', '길게 누르면', ' 한 아이만 보여요'],
+  'week-pinch': ['', '두 손가락으로 벌리거나 모으면', ' 보이는 날짜 수가 바뀌어요'],
+  'block-drag': ['일정을 ', '꾹 눌러 끌면', ' 시간과 날짜를 옮길 수 있어요'],
+};
+
 export default function CalendarScreen(): React.ReactElement {
   const styles = useStyles();
   const router = useRouter();
@@ -139,6 +150,22 @@ export default function CalendarScreen(): React.ReactElement {
   // The week has its own filter, opening on the first kid alone (owner 2026-11-12).
   const weekInactive = useMemo(() => weekInactiveRaw ?? weekDefault(everyone), [weekInactiveRaw, everyone]);
   const filterInactive = view === 'week' ? weekInactive : inactivePeople;
+
+  // First-use tips (board CM2): one at a time, in order, each shown once.
+  const coachSeen = useCoachStore((s) => s.seen);
+  const coachLoaded = useCoachStore((s) => s.loaded);
+  const [barBox, setBarBox] = useState<{ y: number; h: number; w: number } | null>(null);
+  // Pill layout mirrors KidFilterBar: side padding md, gap xs, equal flex pills.
+  const firstPillX = useMemo(() => {
+    const w = barBox?.w ?? 0;
+    const n = Math.max(everyone.length, 1);
+    const pillW = (w - SPACING.md * 2 - SPACING.xs * (n - 1)) / n;
+    return SPACING.md + pillW / 2;
+  }, [barBox, everyone.length]);
+  const seeCoach = useCallback((id: CoachId) => {
+    if (useCoachStore.getState().seen.includes(id)) return;
+    void getDb().then((db) => useCoachStore.getState().markSeen(db, id));
+  }, []);
 
   // Title week (Sun..Sat of the current date).
   const weekDays = useMemo(() => visibleWeekDays(currentDate, 7), [currentDate]);
@@ -258,6 +285,13 @@ export default function CalendarScreen(): React.ReactElement {
     () => expandOccurrences(schedules, exceptions, range, childrenById),
     [schedules, exceptions, range, childrenById],
   );
+  const coachAvailable = useMemo<CoachId[]>(() => {
+    const ids: CoachId[] = ['filter-solo'];
+    if (view === 'week') ids.push('week-pinch');
+    if (view !== 'month' && occurrences.length > 0) ids.push('block-drag');
+    return ids;
+  }, [view, occurrences.length]);
+  const coach = nextCoach(coachSeen, coachLoaded, coachAvailable);
   // Guardian events (device calendar, ADR-008) for the same range.
   const guardianEvents = useGuardianEvents(range.from, range.to);
   const guardianOn = (date: ISODate): readonly GuardianOccurrence[] =>
@@ -405,6 +439,7 @@ export default function CalendarScreen(): React.ReactElement {
   };
   // ADR-015: a block held and dragged to a new time / day.
   const moveOcc = (occ: Occurrence, deltaMinutes: number, deltaDays = 0): Promise<boolean> => {
+    seeCoach('block-drag');
     const st = useSchedulesStore.getState();
     const schedule = st.schedules.find((x) => x.id === occ.scheduleId);
     if (schedule === undefined) return Promise.resolve(false);
@@ -478,14 +513,22 @@ export default function CalendarScreen(): React.ReactElement {
           onSelect={(d: ISODate) => setCurrentDate(d)}
         />
       ) : null}
-      {/* Day view: names sit under the dates, right above their columns. */}
+      {/* Day view: names sit under the dates, right above their columns. The
+          wrapper starts the coach-tip layer (tips are placed from its top). */}
+      <View style={styles.coachHost}>
+      <View onLayout={(e) => setBarBox({ y: 0, h: e.nativeEvent.layout.height, w: e.nativeEvent.layout.width })}>
       <KidFilterBar
         guardian={guardianEnabled}
         kids={kids}
         inactive={filterInactive}
         onToggle={(key) => (view === 'week' ? toggleWeekPerson(key, everyone) : togglePerson(key))}
-        onSolo={(key) => (view === 'week' ? soloWeekPerson(key, everyone) : soloPerson(key, everyone))}
+        onSolo={(key) => {
+          seeCoach('filter-solo');
+          if (view === 'week') soloWeekPerson(key, everyone);
+          else soloPerson(key, everyone);
+        }}
       />
+      </View>
       <GestureDetector gesture={pinch}>
         <View style={styles.body} onLayout={onBodyLayout}>
           <View style={styles.stage}>
@@ -572,6 +615,20 @@ export default function CalendarScreen(): React.ReactElement {
           </View>
         </View>
       </GestureDetector>
+      {coach !== null && barBox !== null ? (
+        <>
+          {coach === 'filter-solo' ? <CoachFinger x={firstPillX} y={barBox.h / 2} /> : null}
+          <CoachTip
+            testID={`coach-${coach}`}
+            parts={COACH_TEXT[coach]}
+            gesture={coach === 'week-pinch' ? 'pinch' : coach === 'block-drag' ? 'drag' : undefined}
+            arrowX={coach === 'filter-solo' ? firstPillX - SPACING.lg : undefined}
+            onClose={() => seeCoach(coach)}
+            style={coach === 'block-drag' ? styles.coachBottom : [styles.coachTop, { top: barBox.h + SPACING.sm }]}
+          />
+        </>
+      ) : null}
+      </View>
     </SafeAreaView>
   );
 }
@@ -580,6 +637,9 @@ const useStyles = makeStyles((th) => ({
   safe: { flex: 1, backgroundColor: th.t.surface },
   // The viewport clips the stretched / sliding stage.
   body: { flex: 1, overflow: 'hidden' },
+  coachHost: { flex: 1 },
+  coachTop: { left: SPACING.lg, right: SPACING.lg },
+  coachBottom: { left: SPACING.lg, right: SPACING.lg, bottom: 112 },
   // Left/top origin so the pinch stretch (translate + scale) pivots on the fingers.
   stage: { flex: 1, transformOrigin: 'left top' },
 }));
