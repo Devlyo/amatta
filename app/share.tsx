@@ -18,7 +18,8 @@ import { RADIUS } from '../src/ui/radius';
 import { SPACING } from '../src/ui/spacing';
 import { TYPE } from '../src/ui/typography';
 import { todayIso } from '../src/ui/utils/date';
-import { makeStyles } from '../src/ui/appearance';
+import { IconAlertCircle } from '../src/ui/icons';
+import { makeStyles, useTheme } from '../src/ui/appearance';
 
 const WEEKS = [2, 4, 8] as const;
 /** Above this the link gets unwieldy in chat apps — ask for a shorter range. */
@@ -26,6 +27,7 @@ const MAX_LINK = 8000;
 
 export default function ShareScreen(): React.ReactElement {
   const styles = useStyles();
+  const theme = useTheme();
   const router = useRouter();
   const children = useChildrenStore((s) => s.children);
   const kids = useMemo(() => [...children].sort((a, b) => a.id - b.id).slice(0, MAX_CHILDREN), [children]);
@@ -77,7 +79,7 @@ export default function ShareScreen(): React.ReactElement {
       </View>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.block}>
-          <Text style={styles.header}>보여 줄 아이</Text>
+          <Text style={styles.header}>자녀</Text>
           <FormGroup>
             <FormOptionList<number>
               options={kids.map((k) => ({ key: k.id, label: k.name }))}
@@ -94,7 +96,7 @@ export default function ShareScreen(): React.ReactElement {
         </View>
 
         <View style={styles.block}>
-          <Text style={styles.header}>담을 내용</Text>
+          <Text style={styles.header}>공유할 일정</Text>
           <FormGroup>
             <View style={styles.periodRow}>
               <Text style={styles.label}>기간</Text>
@@ -104,13 +106,14 @@ export default function ShareScreen(): React.ReactElement {
             <FormToggleRow label="장소·메모 포함" value={placeNotes} onChange={setPlaceNotes} last />
           </FormGroup>
           <Text style={styles.foot}>
-            오늘({m}월 {d}일)부터 {weeks}주 일정이 링크에 담겨요. 이후에 바뀐 일정은 다시 공유해야 보여요. 아이폰 캘린더의 보호자 일정과 할 일은 담기지 않아요.
+            오늘부터 {weeks}주 일정이 공유됩니다.
           </Text>
         </View>
 
         <View style={styles.warn}>
+          <IconAlertCircle size={18} color={theme.t.primaryDeep} />
           <Text style={styles.warnText}>
-            링크를 받은 사람은 누구나 아이 이름과 일정을 볼 수 있어요. 믿을 수 있는 보호자에게만 보내 주세요. 일정은 링크 안에만 담기고 WeMoa 서버에는 저장되지 않지만, 보낸 메시지·브라우저 기록에는 남을 수 있어요.
+            링크를 받은 사람은 누구나 아이 이름과 일정을 확인할 수 있어요. 믿을 수 있는 보호자에게만 전달해주세요.
           </Text>
         </View>
       </ScrollView>
@@ -136,8 +139,8 @@ const useStyles = makeStyles((th) => ({
   periodRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: SPACING.md, paddingLeft: SPACING.lg, paddingRight: SPACING.lg, borderBottomWidth: 0.5, borderBottomColor: th.t.separator },
   label: { ...TYPE.row, color: th.t.ink },
   seg: { flex: 1 },
-  warn: { padding: SPACING.md, borderRadius: RADIUS.box, backgroundColor: th.t.primaryTint },
-  warnText: { ...TYPE.footnote, color: th.t.primaryDeep },
+  warn: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm, padding: SPACING.md, borderRadius: RADIUS.box, backgroundColor: th.t.primaryTint },
+  warnText: { ...TYPE.footnote, flex: 1, color: th.t.primaryDeep },
   footer: { paddingHorizontal: 20, paddingTop: SPACING.md, paddingBottom: SPACING.sm },
   cta: { height: 54, borderRadius: RADIUS.full, backgroundColor: th.t.primary, alignItems: 'center', justifyContent: 'center' },
   ctaText: { ...TYPE.headline, color: th.t.onDark },
