@@ -463,6 +463,7 @@ export default function CalendarScreen(): React.ReactElement {
         onChangeView={setCalendarView}
         onPressTitle={() => router.push('/date-picker')}
         onPressSearch={() => router.push('/search')}
+        onPressShare={() => router.push('/share')}
       />
       {view === 'day' ? (
         <DateStrip
