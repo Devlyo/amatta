@@ -1,6 +1,6 @@
 // 설정 > 화면 — ADR-009.
 //   화면 모드         시스템(기본) / 라이트 / 다크 — applied app-wide at once
-//   새 일정 + 버튼 위치  오른쪽(기본) / 왼쪽 — for left-handed use
+//   새 일정 버튼 위치    오른쪽(기본) / 왼쪽 — for left-handed use
 
 import { useCallback } from 'react';
 import { Text, View } from 'react-native';
@@ -49,23 +49,20 @@ export default function DisplaySettingsScreen(): React.ReactElement {
             />
           </View>
         </HomeSection>
-        <Text style={ss.footnote}>
-          {mode === 'system' ? '아이폰의 라이트/다크 설정을 따라 바뀌어요.' : '아이폰 설정과 관계없이 이 모드로 보여요.'}
-        </Text>
+        {mode === 'system' ? <Text style={ss.footnote}>아이폰의 라이트/다크 설정을 따라 바뀌어요.</Text> : null}
       </View>
 
       <View style={ss.block}>
-        <HomeSection title="새 일정 + 버튼 위치">
+        <HomeSection title="새 일정 버튼 위치">
           <View style={{ paddingLeft: 16 }}>
             <FormOptionList<AddButtonSide>
               options={SIDES}
               selected={side}
-              labelPrefix="+ 버튼 위치: "
+              labelPrefix="새 일정 버튼 위치: "
               onSelect={(k) => void onSelect(k)}
             />
           </View>
         </HomeSection>
-        <Text style={ss.footnote}>왼손으로 쓰신다면 왼쪽을 고르면 엄지로 누르기 편해요.</Text>
       </View>
 
     </SettingsDetailScreen>
