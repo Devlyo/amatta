@@ -124,7 +124,7 @@ function MonthViewImpl({
       });
     }
     for (const g of shown('guardian') ? guardianEvents : []) {
-      add(g.date, { id: `g:${g.eventId}`, person: 'guardian', title: g.title, color: theme.t.guardian, start: g.startMinutes, allDay: g.allDay });
+      add(g.date, { id: `g:${g.key}`, person: 'guardian', title: g.title, color: theme.t.guardian, start: g.startMinutes, allDay: g.allDay });
     }
     // All-day first, then by start time.
     for (const list of m.values()) list.sort((a, b) => (a.allDay === b.allDay ? a.start - b.start : a.allDay ? -1 : 1));

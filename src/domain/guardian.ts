@@ -64,7 +64,14 @@ export function guardianOccurrences(
   const fromS = from as unknown as string;
   const toS = to as unknown as string;
   const out: GuardianOccurrence[] = [];
+  // iOS gives every instance of a repeating event the same id, and the same
+  // event can come back twice (e.g. listed under two calendars) — drop exact
+  // repeats, and key pieces by instance start too, so React keys stay unique.
+  const seen = new Set<string>();
   for (const e of events) {
+    const inst = `${e.id}@${e.startDate.getTime()}-${e.endDate.getTime()}`;
+    if (seen.has(inst)) continue;
+    seen.add(inst);
     const start = e.startDate;
     let end = e.endDate;
     if (!(end.getTime() > start.getTime())) {
@@ -84,7 +91,7 @@ export function guardianOccurrences(
       const en = e.allDay ? DAY_MIN : Math.min(DAY_MIN, Math.round((end.getTime() - dayStart) / 60000));
       if (!e.allDay && en <= s) continue;
       out.push({
-        key: `${e.id}|${ds}`,
+        key: `${e.id}@${start.getTime()}|${ds}`,
         eventId: e.id,
         calendarId: e.calendarId,
         title,
