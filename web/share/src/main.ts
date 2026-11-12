@@ -16,6 +16,8 @@ const AVATARS = ['face-wink', 'face-dizzy', 'face-cool', 'face-sleep', 'face-sur
 const TYPE_KO: Record<string, string> = { school: '학교', academy: '학원', activity: '활동', other: '기타' };
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const HOUR_H = 44;
+/** Block fill: 45% light, 70% dark — the app's values (45% on dark went muddy, 3.1:1). */
+const fillAlpha = (): number => (window.matchMedia('(prefers-color-scheme: dark)').matches ? 0.7 : 0.45);
 
 type El = HTMLElement;
 function el(tag: string, cls?: string, text?: string): El {
@@ -240,7 +242,7 @@ function render(p: SharePayload): void {
   function chip(o: SharePayload['o'][number]): El {
     const c = colorOf(o);
     const b = el('button', 'chip', titleOf(o));
-    b.style.background = rgba(c.source, 0.45);
+    b.style.background = rgba(c.source, fillAlpha());
     b.style.borderLeftColor = c.deep;
     b.onclick = () => open(o);
     return b;
@@ -248,7 +250,7 @@ function render(p: SharePayload): void {
   function block(o: SharePayload['o'][number]): El {
     const c = colorOf(o);
     const b = el('button', 'block');
-    b.style.background = rgba(c.source, 0.45);
+    b.style.background = rgba(c.source, fillAlpha());
     b.style.setProperty('--bar', c.deep);
     b.append(el('span', 't', titleOf(o)), el('span', 'r', fmtRange(o[1], o[2])));
     b.setAttribute('aria-label', `${titleOf(o)} ${fmtRange(o[1], o[2])}`);

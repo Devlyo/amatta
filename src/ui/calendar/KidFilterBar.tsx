@@ -108,7 +108,7 @@ function KidFilterBarImpl({ kids, inactive, onToggle, onSolo, guardian = true }:
           <Pill
             key={kid.id}
             label={kid.name}
-            border={p.deep}
+            border={theme.scheme === 'dark' ? p.deep : p.bar}
             fill={withAlpha(p.source, 0.25)}
             faded={faded(kid.id)}
             selected={!faded(kid.id)}

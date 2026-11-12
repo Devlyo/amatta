@@ -122,8 +122,9 @@ const useStyles = makeStyles((th) => ({
     borderRadius: RADIUS.full,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: th.t.ink04,
+    // Contrast pass: dark needs a real edge — the dark dock melted into the page.
+    borderWidth: th.scheme === 'dark' ? 1 : StyleSheet.hairlineWidth,
+    borderColor: th.scheme === 'dark' ? th.t.ink12 : th.t.ink04,
     ...elevationFor(th).dock,
   },
   add: {

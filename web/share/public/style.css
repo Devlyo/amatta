@@ -1,10 +1,10 @@
 :root {
-  --bg: #F2F1EF; --surface: #FFFFFF; --ink: #1D1D1B; --sub: #7A756E; --line: #DCD9D2;
+  --bg: #F2F1EF; --surface: #FFFFFF; --ink: #1D1D1B; --sub: #6B665F; --sun: #C8302B; --sat: #3F66D8; --line: #DCD9D2;
   --accent: #FF7144; --warn-bg: #FFF4EC; --warn: #8A3B1A; --today: rgba(255,113,68,0.06);
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #1A1917; --surface: #272523; --ink: #F2F1EF; --sub: #A39D94; --line: #4A4743;
-    --warn-bg: #3A2A22; --warn: #FFB899; --today: rgba(255,113,68,0.10); }
+    --warn-bg: #3A2A22; --warn: #FFB899; --today: rgba(255,113,68,0.10); --sun: #FF6B5E; --sat: #7C9BFF; }
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
@@ -30,7 +30,7 @@ header h1 { margin: 2px 0 0; font-size: 22px; letter-spacing: -0.5px; }
 .dh { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 4px 0 6px; }
 .dh b { font-size: 16px; } .dh small { font-size: 11px; color: var(--sub); }
 .dh.today b { color: #fff; background: var(--accent); border-radius: 99px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
-.dh.sun small { color: #D93636; } .dh.sat small { color: #3B6FD9; }
+.dh.sun small { color: var(--sun); } .dh.sat small { color: var(--sat); }
 .allday { padding-bottom: 4px; align-items: flex-start; }
 .adcol { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 1px; min-width: 0; }
 .chip { border: 0; border-left: 3px solid; border-radius: 5px; padding: 3px 5px; font-size: 11px; font-weight: 600; text-align: left; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #1D1D1B; }

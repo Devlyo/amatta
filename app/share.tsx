@@ -118,7 +118,7 @@ export default function ShareScreen(): React.ReactElement {
         </View>
 
         <View style={styles.warn}>
-          <IconAlertCircle size={18} color={theme.t.danger} />
+          <IconAlertCircle size={18} color={theme.t.warnText} />
           <Text style={styles.warnText}>
             링크를 받은 사람은 누구나 아이 이름과 일정을 확인할 수 있어요. 믿을 수 있는 보호자에게만 전달해주세요.
           </Text>
@@ -151,7 +151,7 @@ const useStyles = makeStyles((th) => ({
   header: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.lg },
   foot: { ...TYPE.footnote, color: th.t.inkSub, paddingHorizontal: SPACING.lg },
   warn: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm, padding: SPACING.md, borderRadius: RADIUS.box, backgroundColor: th.t.primaryTint },
-  warnText: { ...TYPE.footnote, flex: 1, color: th.t.danger },
+  warnText: { ...TYPE.footnote, flex: 1, color: th.t.warnText },
   kidList: { paddingLeft: SPACING.lg },
   footer: { paddingHorizontal: 20, paddingTop: SPACING.md, paddingBottom: SPACING.sm },
   cta: { height: 54, borderRadius: RADIUS.full, backgroundColor: th.t.primary, alignItems: 'center', justifyContent: 'center' },

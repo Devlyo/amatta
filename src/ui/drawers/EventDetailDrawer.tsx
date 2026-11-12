@@ -410,7 +410,7 @@ const useStyles = makeStyles((th) => ({
     height: 18,
     borderRadius: RADIUS.full,
     borderWidth: 1.5,
-    borderColor: th.t.ink30,
+    borderColor: th.t.ink50,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: th.t.surface,

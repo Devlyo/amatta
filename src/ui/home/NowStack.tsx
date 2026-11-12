@@ -425,7 +425,8 @@ const useStyles = makeStyles((th) => ({
   top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   text: { flex: 1, minWidth: 0, gap: 1 },
   name: { ...TYPE.footnote, color: th.t.inkSub },
-  nameOnCard: { ...TYPE.footnote, color: withAlpha(th.t.onLight, 0.62) },
+  // Contrast pass: 62% was 2.8–4.1:1 → 75% light / 90% dark.
+  nameOnCard: { ...TYPE.footnote, color: withAlpha(th.t.onLight, th.scheme === 'dark' ? 0.9 : 0.75) },
   title: { ...TYPE.headline, color: th.t.onLight },
   empty: { ...TYPE.subhead, color: th.t.inkSub },
   right: { alignItems: 'flex-end', gap: 5 },
@@ -438,7 +439,7 @@ const useStyles = makeStyles((th) => ({
   pillLabelMuted: { color: withAlpha(th.t.onLight, 0.7) },
   track: { height: 4, borderRadius: RADIUS.full, backgroundColor: th.t.surfaceOnFillMuted, overflow: 'hidden' },
   fill: { height: 4, borderRadius: RADIUS.full },
-  after: { ...TYPE.footnote, color: withAlpha(th.t.onLight, 0.62) },
+  after: { ...TYPE.footnote, color: withAlpha(th.t.onLight, th.scheme === 'dark' ? 0.9 : 0.75) },
   cardLift: { ...elevationFor(th).stack },
   fold: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.md },
   foldLabel: { ...TYPE.subhead, color: th.t.primaryDeep },
