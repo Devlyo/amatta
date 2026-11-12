@@ -134,7 +134,7 @@ export function PickupCarousel({
           <View style={styles.clashes}>
             {lines.map((l) => (
               <View key={l.key} style={styles.clash} testID={l.testID} accessibilityRole="alert">
-                <IconAlertCircle size={14} color={theme.t.pickupWarn} />
+                <IconAlertCircle size={14} color={theme.t.warnText} />
                 <Text style={styles.clashText}>{l.text}</Text>
               </View>
             ))}
@@ -156,7 +156,8 @@ const useStyles = makeStyles((th) => ({
     gap: 6,
     paddingHorizontal: SPACING.xs,
   },
-  clashText: { ...TYPE.footnote, color: th.t.pickupWarn, flex: 1 },
+  // Red, like the share warning (owner 2026-11-12): an overlap needs attention.
+  clashText: { ...TYPE.footnote, color: th.t.warnText, flex: 1 },
   clashes: { gap: SPACING.xs },
   viewport: {
     overflow: 'hidden',
