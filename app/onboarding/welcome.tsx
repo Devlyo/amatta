@@ -79,7 +79,7 @@ function OnbWelcomeImpl(): React.ReactElement {
             accessibilityLabel={APP_NAME}
           />
           <Text style={styles.title} accessibilityRole="header">
-            {'여러 자녀들 일정을\n위모아와 함께 관리하세요'}
+            {'자녀 일정을\n위모아와 함께 관리하세요'}
           </Text>
         </View>
       </View>
