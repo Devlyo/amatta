@@ -89,11 +89,9 @@ export default function KidsScreen(): React.ReactElement {
           <Text style={[ss.footnote, styles.capMessage]} testID="cap-message">
             최대 {MAX_CHILDREN}명까지 등록할 수 있습니다.
           </Text>
-        ) : (
-          <Text style={ss.footnote}>
-            {atCap ? `최대 ${MAX_CHILDREN}명까지 등록할 수 있어요.` : '아이를 눌러 이름과 아바타를 바꿀 수 있어요.'}
-          </Text>
-        )}
+        ) : atCap ? (
+          <Text style={ss.footnote}>최대 {MAX_CHILDREN}명까지 등록할 수 있어요.</Text>
+        ) : null}
       </View>
     </SettingsDetailScreen>
   );
