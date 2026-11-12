@@ -15,12 +15,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { getDb } from '../../src/db/client';
 import { MAX_CHILDREN } from '../../src/domain/constants';
-import {
-  AVATAR_KEYS,
-  avatarKeyForColorIndex,
-  colorIndexForAvatarKey,
-  type AvatarKey,
-} from '../../src/domain/avatar';
+import { AVATAR_KEYS, colorIndexForAvatarKey, nextAvailableAvatar, type AvatarKey } from '../../src/domain/avatar';
 import type { Child } from '../../src/domain/types';
 import { useChildrenStore } from '../../src/state/children-store';
 import { useSchedulesStore } from '../../src/state/schedules-store';
@@ -71,8 +66,10 @@ export default function KidEditScreen(): React.ReactElement {
   const [name, setName] = useState<string>(existing?.name ?? '');
   // Avatar is the source of truth; colorIndex is derived via the 1:1
   // AVATAR_KEYS map at save-time (and for the palette ring rendering).
+  // A new kid starts on the first avatar nobody uses (owner 2026-11-12: it was
+  // always the pink one, already taken → the duplicate could be saved).
   const [avatar, setAvatar] = useState<AvatarKey>(
-    existing?.avatar ?? avatarKeyForColorIndex(0),
+    () => existing?.avatar ?? nextAvailableAvatar(children.map((c) => c.avatar)),
   );
 
   // Sync local state once existing child becomes available (store may load
@@ -84,7 +81,8 @@ export default function KidEditScreen(): React.ReactElement {
   }, [existing]);
 
   const trimmedName = name.trim();
-  const canSave = trimmedName.length > 0 && trimmedName.length <= NAME_MAX;
+  const avatarTaken = children.some((c) => c.avatar === avatar && (existing === undefined || c.id !== existing.id));
+  const canSave = trimmedName.length > 0 && trimmedName.length <= NAME_MAX && !avatarTaken;
 
   const handleSave = useCallback(async (): Promise<void> => {
     if (!canSave) return;

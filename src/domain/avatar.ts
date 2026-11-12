@@ -53,3 +53,8 @@ export function colorIndexForAvatarKey(k: AvatarKey): ColorIndex {
   }
   return ci as ColorIndex;
 }
+
+/** First avatar no one uses yet (falls back to the first one when all 6 are taken). */
+export function nextAvailableAvatar(taken: readonly AvatarKey[]): AvatarKey {
+  return AVATAR_KEYS.find((k) => !taken.includes(k)) ?? AVATAR_KEYS[0];
+}
