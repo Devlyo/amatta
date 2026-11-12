@@ -184,8 +184,7 @@ export function SearchContent({ onClose }: SearchContentProps): React.ReactEleme
         keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets
         testID="search-drawer-content"
-        // The native formSheet lays its scroll view out from the sheet's top —
-        // the search field must live inside it (sticky), or results draw over it.
+        // The search field rides at the top while results scroll under it.
         stickyHeaderIndices={[0]}
       >
         <View style={styles.searchRow}>
