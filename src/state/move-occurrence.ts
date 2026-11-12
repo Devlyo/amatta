@@ -10,8 +10,9 @@
 //     · 모든 일정            → every occurrence takes the time the block was
 //                              dropped at (absolute, not "+1h": a day that had
 //                              its own time no longer skews the rest — owner
-//                              report 2026-11-12); a day move shifts the
-//                              weekdays by the same number of days
+//                              report 2026-11-12); a day move swaps only the
+//                              dragged weekday (월~금, 금 → 토 = 월~목+토; the
+//                              whole mask used to rotate → 화~토, looked copied)
 
 import { isChecklistItemVisibleOn } from '../domain/checklist-membership';
 import type { ChecklistItem, ISODate, Schedule, ScheduleException } from '../domain/types';
@@ -38,6 +39,11 @@ export function weekdayBit(iso: ISODate): number {
   const s = iso as unknown as string;
   const d = new Date(Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8, 10)));
   return 1 << ((d.getDay() + 6) % 7);
+}
+
+/** The dragged weekday moves; the others stay (금 → 토 on 월~금 = 월~목 + 토). */
+export function moveWeekday(mask: number, from: ISODate, to: ISODate): number {
+  return (mask & ~weekdayBit(from)) | weekdayBit(to);
 }
 
 /** Shift every weekday in a mask by `days` (wrapping Sun→Mon). */
@@ -95,7 +101,7 @@ export async function moveOccurrence(
     await steps.updateSchedule(schedule.id, {
       startMinutes: newStart,
       endMinutes: newEnd,
-      ...(deltaDays !== 0 ? { daysOfWeek: rotateMask(schedule.daysOfWeek, deltaDays) } : {}),
+      ...(deltaDays !== 0 ? { daysOfWeek: moveWeekday(schedule.daysOfWeek, date, newDate) } : {}),
     });
     // This day's own time would otherwise keep showing the old slot.
     if (exception?.kind === 'modify' && deltaDays === 0) {

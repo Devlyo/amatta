@@ -65,10 +65,20 @@ describe('moveOccurrence', () => {
     expect(calls[3]?.args[0]).toMatchObject({ scheduleId: 99, label: '교재' });
   });
 
-  test('repeating, 모든 일정 → base times move; a day move shifts the weekdays', async () => {
+  test('repeating, 모든 일정 → times move; only the dragged weekday moves (화 → 수 on 화·목 = 수·목)', async () => {
     const { s, calls } = steps('all');
     await moveOccurrence({ ...base, schedule: sched(), deltaMinutes: -60, deltaDays: 1 }, s);
-    expect(calls[1]?.args).toEqual([7, { startMinutes: 13 * 60, endMinutes: 14 * 60, daysOfWeek: 0b0010100 }]);
+    expect(calls[1]?.args).toEqual([7, { startMinutes: 13 * 60, endMinutes: 14 * 60, daysOfWeek: 0b0001100 }]);
+  });
+
+  // Owner's report 2026-11-12: 어린이집 월~금, 금 → 토 with 모든 일정 kept 금 and added 토.
+  test('월~금, 금 → 토 (모든 일정) → 월~목 + 토', async () => {
+    const { s, calls } = steps('all');
+    await moveOccurrence(
+      { ...base, schedule: sched({ daysOfWeek: 0b0011111 }), date: ISO('2026-11-13'), deltaMinutes: 0, deltaDays: 1 },
+      s,
+    );
+    expect(calls[1]?.args).toEqual([7, { startMinutes: 14 * 60, endMinutes: 15 * 60, daysOfWeek: 0b0101111 }]);
   });
 
   // Owner's report 2026-11-12: dragged 8→9 with 모든 일정, next week started at 7.
