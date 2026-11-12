@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
 import { ScrollView, View, StyleSheet, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 
 import { IconPlus } from '../src/ui/icons';
 
@@ -92,7 +92,14 @@ const BRAND_SWATCHES: { name: string; hex: string }[] = [
   { name: 'switchOff', hex: TOKENS.switchOff },
 ];
 
-export default function DevGallery(): React.ReactElement {
+// Production builds: the route still exists (file-based routing), so a deep
+// link could open it — send it home instead (2.0 security review, LOW).
+export default function DevGalleryRoute(): React.ReactElement {
+  if (!__DEV__) return <Redirect href="/" />;
+  return <DevGallery />;
+}
+
+function DevGallery(): React.ReactElement {
   const [chip, setChip] = useState<'school' | 'academy' | 'activity' | 'etc'>('academy');
   const [days, setDays] = useState<number[]>([1, 3, 5]);
   const [tgSm, setTgSm] = useState(true);
