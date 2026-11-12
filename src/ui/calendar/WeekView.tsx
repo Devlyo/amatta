@@ -221,6 +221,25 @@ function WeekViewImpl({
     [items, inactive, noneOn],
   );
 
+  // First frame: only the days on screen (+1 each side) get blocks — the 3-week
+  // strip's hundreds of draggable blocks mount a frame later, so opening the
+  // week view isn't held up by off-screen days.
+  const [warm, setWarm] = useState(strip === undefined);
+  useEffect(() => {
+    if (warm) return;
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const raf = requestAnimationFrame(() => {
+      t = setTimeout(() => setWarm(true), 0);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      if (t !== null) clearTimeout(t);
+    };
+  }, [warm]);
+  const firstVisible = strip?.initialColumn ?? firstColumn;
+  const onScreen = (column: number): boolean =>
+    warm || (column >= firstVisible - 1 && column <= firstVisible + Math.ceil(span) + 1);
+
   const placed = useMemo(() => {
     const byId = new Map<string, WeekItem>();
     const inputs = [];
@@ -228,14 +247,15 @@ function WeekViewImpl({
       if (item.allDay) continue; // drawn in the all-day row
       if (bars) continue; // bar mode: drawn in the person's lane instead
       const column = columnOfDate.get(item.date as unknown as string);
-      if (column === undefined) continue;
+      if (column === undefined || !onScreen(column)) continue;
       const range = clipToDay(item.start, item.end);
       if (range === null) continue;
       byId.set(item.id, item);
       inputs.push({ id: item.id, column, start: range.start, end: range.end });
     }
     return layoutCascade(inputs).map((p) => ({ ...p, item: byId.get(p.id) as WeekItem }));
-  }, [visible, columnOfDate, bars]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, columnOfDate, bars, warm]);
 
   // Bar mode: one lane per person shown (kids in order, then 보호자).
   const lanes = useMemo(() => {
@@ -251,7 +271,7 @@ function WeekViewImpl({
     for (const item of sorted) {
       const column = columnOfDate.get(item.date as unknown as string);
       const lane = lanes.get(item.person);
-      if (column === undefined || lane === undefined) continue;
+      if (column === undefined || lane === undefined || !onScreen(column)) continue;
       const range = clipToDay(item.start, item.end);
       if (range === null) continue;
       // Same person, same day, overlapping an earlier bar → drawn on top of it.
@@ -261,7 +281,8 @@ function WeekViewImpl({
       out.push({ item, column, lane, start: range.start, end: range.end, stacked });
     }
     return out;
-  }, [bars, visible, columnOfDate, lanes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bars, visible, columnOfDate, lanes, warm]);
 
   const allDayItems = useMemo<AllDayItem[]>(() => {
     const out: AllDayItem[] = [];

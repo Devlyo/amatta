@@ -501,7 +501,7 @@ function LiveColumn({
   );
 }
 
-const NOW_PILL_H = 19;
+const NOW_PILL_H = 20;
 const NOW_DOT = 11;
 
 const useStyles = makeStyles((th) => ({
@@ -563,7 +563,8 @@ const useStyles = makeStyles((th) => ({
     zIndex: 50,
   },
   nowPill: {
-    width: TIME_GUTTER - 6,
+    // "12:07" (5 mono glyphs) needs the full gutter — 34pt clipped the ends.
+    width: TIME_GUTTER - 2,
     height: NOW_PILL_H,
     borderRadius: RADIUS.full,
     backgroundColor: th.t.primary,
@@ -572,6 +573,15 @@ const useStyles = makeStyles((th) => ({
   },
   nowPillLabel: {
     ...TYPE.mono,
+    // A text box exactly the pill's height, centred both ways (the 12pt line
+    // box sat high in the 19pt pill and the glyphs looked cut).
+    fontSize: 11,
+    lineHeight: NOW_PILL_H,
+    height: NOW_PILL_H,
+    letterSpacing: -0.3,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
     // Contrast pass: dark digits on the orange pill (white was 2.7:1).
     color: th.t.onLight,
   },
