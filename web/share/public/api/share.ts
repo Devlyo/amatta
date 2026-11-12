@@ -7,6 +7,14 @@ import { json, limited, MAX_BLOB, newId, pathOf, TTL_DAYS } from './_lib.js';
 export async function POST(request: Request): Promise<Response> {
   const ip = (request.headers.get('x-forwarded-for') ?? 'unknown').split(',')[0]?.trim() ?? 'unknown';
   if (limited(ip, 20)) return json({ error: 'rate_limited' }, 429);
+  // JSON only (2.0 security review): the app always sends application/json, and
+  // with no CORS headers here, another site's page can't send JSON cross-origin
+  // (preflight fails) — so the endpoint can't be used as free file hosting via
+  // visitors' browsers.
+  const ct = (request.headers.get('content-type') ?? '').toLowerCase();
+  if (!ct.startsWith('application/json')) return json({ error: 'unsupported_media_type' }, 415);
+  const declared = Number(request.headers.get('content-length') ?? '0');
+  if (declared > MAX_BLOB + 64) return json({ error: 'too_large' }, 413);
   let body: unknown;
   try {
     const text = await request.text();
