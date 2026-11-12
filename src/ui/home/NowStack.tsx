@@ -124,10 +124,7 @@ function NowBlock({ kid, row, nowMinutes }: { kid: Child; row: KidNowNext; nowMi
 
 
 const GAP = 6;
-const FOLD_H = 32;
 const DURATION = 340;
-/** Hold this long on the opened stack to fold it. */
-const FOLD_HOLD_MS = 200;
 const EST_H = 92;
 
 /**
@@ -317,7 +314,7 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
     const hs = heights.value;
     let openH = 0;
     for (let i = 0; i < n; i++) openH += (hs[i] ?? EST_H) + GAP;
-    openH += foldable ? FOLD_H : -GAP;
+    openH -= GAP;
     const foldH = foldable ? foldedHeight(hs, n, live) : openH;
     return { height: interpolate(progress.value, [0, 1], [foldH, openH]) };
   });
@@ -326,7 +323,6 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
     for (let i = 0; i < live; i++) y += (heights.value[i] ?? EST_H) + GAP;
     return { top: y };
   });
-  const foldBtn = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0.5, 1], [0, 1], 'clamp') }));
 
   // The card's own colour sits on the outer layer too, so a folded bar (its
   // content hidden) still shows the kid colour instead of the page grey.
@@ -376,24 +372,17 @@ function NowStackImpl({ kids, rows, nowMinutes }: Props): React.ReactElement | n
           />
         </Reanimated.View>
       ) : null}
-      {/* Opened: hold anywhere on the stack for 0.2s to fold it (owner 2026-11-11). */}
+      {/* Opened: a tap anywhere on the stack folds it (owner 2026-11-12; was
+          a 0.2s hold + a 접기 button). */}
       {foldable && open ? (
         <Pressable
-          onLongPress={toggle}
-          delayLongPress={FOLD_HOLD_MS}
+          onPress={toggle}
           accessibilityRole="button"
           accessibilityLabel="지금 일정 접기"
-          accessibilityHint="길게 누르면 접혀요"
-          testID="now-stack-hold"
-          style={stackStyles.holdCover}
+          accessibilityHint="누르면 접혀요"
+          testID="now-stack-fold"
+          style={stackStyles.foldCover}
         />
-      ) : null}
-      {foldable ? (
-        <Reanimated.View style={[stackStyles.foldRow, foldBtn]} pointerEvents={open ? 'auto' : 'none'}>
-          <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel="접기" hitSlop={8} style={styles.fold}>
-            <Text style={styles.foldLabel}>접기</Text>
-          </Pressable>
-        </Reanimated.View>
       ) : null}
     </Reanimated.View>
   );
@@ -405,8 +394,7 @@ const stackStyles = StyleSheet.create({
   clip: { flex: 1, overflow: 'hidden' },
   wash: { ...StyleSheet.absoluteFillObject },
   cover: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20 },
-  holdCover: { position: 'absolute', left: 0, right: 0, top: 0, bottom: FOLD_H, zIndex: 20 },
-  foldRow: { position: 'absolute', left: 0, right: 0, bottom: 0, height: FOLD_H, alignItems: 'center', justifyContent: 'center' },
+  foldCover: { ...StyleSheet.absoluteFillObject, zIndex: 20 },
 });
 
 export const NowStack = memo(NowStackImpl);
@@ -441,6 +429,4 @@ const useStyles = makeStyles((th) => ({
   fill: { height: 4, borderRadius: RADIUS.full },
   after: { ...TYPE.footnote, color: withAlpha(th.t.onLight, th.scheme === 'dark' ? 0.9 : 0.75) },
   cardLift: { ...elevationFor(th).stack },
-  fold: { paddingVertical: SPACING.xs, paddingHorizontal: SPACING.md },
-  foldLabel: { ...TYPE.subhead, color: th.t.primaryDeep },
 }));
