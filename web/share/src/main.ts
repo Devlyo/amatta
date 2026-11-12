@@ -13,7 +13,7 @@ const KID = [
   { source: '#C7B0FF', deep: '#8E6BE8' },
 ];
 const AVATARS = ['face-wink', 'face-dizzy', 'face-cool', 'face-sleep', 'face-surprise', 'face-calm'];
-const TYPE_KO: Record<string, string> = { school: '학교', academy: '학원', activity: '활동', other: '기타' };
+const TYPE_KO: Record<string, string> = { school: '학교·유치원', academy: '학원', activity: '활동', other: '기타' };
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const HOUR_H = 44;
 /** Block fill: 45% light, 70% dark — the app's values (45% on dark went muddy, 3.1:1). */

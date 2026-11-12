@@ -39,7 +39,7 @@ export interface EditFormState {
 // Korean labels for the type pill row in the amatta-v1 edit form. Order
 // matches `TYPE_OPTIONS` so the visual sequence in the sheet is stable.
 export const TYPE_LABELS_KO: Readonly<Record<ScheduleType, string>> = {
-  school: '학교',
+  school: '학교·유치원',
   academy: '학원',
   activity: '활동',
   other: '기타',
