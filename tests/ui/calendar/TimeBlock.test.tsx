@@ -96,7 +96,11 @@ describe('TimeBlock', () => {
       renderBlock({ height: 46, footer: faces, showTime: false });
       expect(screen.getByTestId('faces')).toBeTruthy();
     });
-    test('too short (30 min) or compact: no faces', () => {
+    test('week view (compact), 1 hour (44pt), 7 days (no time): faces shown', () => {
+      renderBlock({ height: 44, footer: faces, compact: true, showTime: false });
+      expect(screen.getByTestId('faces')).toBeTruthy();
+    });
+    test('too short (30 min): no faces', () => {
       renderBlock({ height: 22, footer: faces });
       expect(screen.queryByTestId('faces')).toBeNull();
     });

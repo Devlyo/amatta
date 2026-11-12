@@ -86,12 +86,13 @@ function TimeBlockImpl({
   // is scheme-independent — dark on kid colours, light on the dark guardian grey.
   const fill = withAlpha(color, focused ? theme.blockFillFocused : theme.blockFill);
   const onFill = guardian ? theme.onGuardianBlock : theme.t.onLight;
-  // ADR-013 faces: their own row from FACES_OWN_ROW up (≈ 1h10m); a shorter
-  // block (a 1-hour class) puts them at the end of the time row, or in its
-  // place when the time is hidden (owner 2026-11-12). Not on compact blocks
-  // (5+ columns) — no room next to the time there.
+  // ADR-013 faces (week view only — the day view's columns already say who):
+  // their own row from FACES_OWN_ROW up; a shorter block (a 1-hour class) puts
+  // them at the end of the time row, or in its place when the time is hidden
+  // (7-day week). Owner 2026-11-12. In a narrow column the time shrinks
+  // ("3–4…") and the faces stay.
   const hasFaces = footer !== undefined && footer !== null;
-  const facesInline = hasFaces && !compact && height < FACES_OWN_ROW && height >= FACES_INLINE_MIN;
+  const facesInline = hasFaces && height < FACES_OWN_ROW && height >= FACES_INLINE_MIN;
   return (
     <Pressable
       onPress={onPress}
@@ -221,6 +222,7 @@ const useStyles = makeStyles((th) => ({
     flexShrink: 1,
   },
   timeCompact: {
+    flexShrink: 1,
     ...TYPE.caption2,
     color: th.t.ink70,
   },
