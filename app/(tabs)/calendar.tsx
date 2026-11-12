@@ -35,7 +35,7 @@ import { useSchedulesStore } from '../../src/state/schedules-store';
 import { useChecklistStore } from '../../src/state/checklist-store';
 import { defaultMoveSteps } from '../../src/state/move-steps';
 import { moveOccurrence } from '../../src/state/move-occurrence';
-import { useUiStore, type CalendarView, type PersonKey } from '../../src/state/ui-store';
+import { useUiStore, weekDefault, type CalendarView, type PersonKey } from '../../src/state/ui-store';
 import { CalendarTopBar } from '../../src/ui/calendar/CalendarTopBar';
 import {
   clampMonthRow,
@@ -116,6 +116,9 @@ export default function CalendarScreen(): React.ReactElement {
   const inactivePeople = useUiStore((s) => s.inactivePeople);
   const togglePerson = useUiStore((s) => s.togglePerson);
   const soloPerson = useUiStore((s) => s.soloPerson);
+  const weekInactiveRaw = useUiStore((s) => s.weekInactive);
+  const toggleWeekPerson = useUiStore((s) => s.toggleWeekPerson);
+  const soloWeekPerson = useUiStore((s) => s.soloWeekPerson);
 
   const nowMinutes = useNowMinutes();
   const today = todayIso();
@@ -133,6 +136,9 @@ export default function CalendarScreen(): React.ReactElement {
     () => (guardianEnabled ? [...kids.map((k) => k.id), 'guardian'] : kids.map((k) => k.id)),
     [kids, guardianEnabled],
   );
+  // The week has its own filter, opening on the first kid alone (owner 2026-11-12).
+  const weekInactive = useMemo(() => weekInactiveRaw ?? weekDefault(everyone), [weekInactiveRaw, everyone]);
+  const filterInactive = view === 'week' ? weekInactive : inactivePeople;
 
   // Title week (Sun..Sat of the current date).
   const weekDays = useMemo(() => visibleWeekDays(currentDate, 7), [currentDate]);
@@ -476,9 +482,9 @@ export default function CalendarScreen(): React.ReactElement {
       <KidFilterBar
         guardian={guardianEnabled}
         kids={kids}
-        inactive={inactivePeople}
-        onToggle={togglePerson}
-        onSolo={(key) => soloPerson(key, everyone)}
+        inactive={filterInactive}
+        onToggle={(key) => (view === 'week' ? toggleWeekPerson(key, everyone) : togglePerson(key))}
+        onSolo={(key) => (view === 'week' ? soloWeekPerson(key, everyone) : soloPerson(key, everyone))}
       />
       <GestureDetector gesture={pinch}>
         <View style={styles.body} onLayout={onBodyLayout}>
@@ -525,7 +531,7 @@ export default function CalendarScreen(): React.ReactElement {
                 kids={kids}
                 occurrences={occurrences}
                 nowMinutes={nowMinutes}
-                inactive={inactivePeople}
+                inactive={weekInactive}
                 zoomed={weekSpan <= WEEK_SPAN_SHOW_TIME}
                 span={weekSpan}
                 strip={{

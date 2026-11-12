@@ -26,7 +26,7 @@ export async function resetAllData(): Promise<void> {
   useGuardianStore.getState().resetToDefaults();
   useDisplayStore.getState().resetToDefaults();
   // A fresh start: the next kids decide the calendar's opening view.
-  useUiStore.setState({ kidCountMode: null });
+  useUiStore.setState({ kidCountMode: null, weekInactive: null });
   await Promise.all([
     useChildrenStore.getState().load(db),
     useSchedulesStore.getState().load(db),

@@ -118,7 +118,7 @@ async function reloadAll(db: SQLiteDatabase): Promise<void> {
   await useNotifSettingsStore.getState().load(db);
   await useDisplayStore.getState().load(db);
   // The restored kids decide the calendar's opening view afresh.
-  useUiStore.setState({ kidCountMode: null });
+  useUiStore.setState({ kidCountMode: null, weekInactive: null });
   await Promise.all([
     useChildrenStore.getState().load(db),
     useSchedulesStore.getState().load(db),

@@ -114,6 +114,13 @@ describe('WeekView', () => {
     expect(screen.getByText('영어')).toBeTruthy();
   });
 
+  test('7 days, one person shown (week opens on the first kid): titled blocks, no bars', () => {
+    renderWeek(false, { inactive: [2, 'guardian'] });
+    expect(screen.getByTestId('week-block-1|2026-11-10')).toBeTruthy();
+    expect(screen.queryByTestId('week-bar-1|2026-11-10')).toBeNull();
+    expect(screen.queryByTestId('week-block-2|2026-11-10')).toBeNull();
+  });
+
   test('≤ 4 days: titled blocks with times, school included, overlaps stack', () => {
     renderWeek(true);
     expect(screen.getByTestId('week-day-2026-11-13')).toBeTruthy();

@@ -67,6 +67,14 @@ interface UiState {
   setMonthRowH: (h: number) => void;
   /** People switched off in the filter (faded). Empty = everyone active. */
   inactivePeople: PersonKey[];
+  /**
+   * The week view's own filter (owner 2026-11-12): it opens showing one person
+   * — the first kid — so each kid's week reads as titled blocks. `null` = not
+   * set yet this session (then: everyone but the first is off).
+   */
+  weekInactive: PersonKey[] | null;
+  toggleWeekPerson: (key: PersonKey, everyone: readonly PersonKey[]) => void;
+  soloWeekPerson: (key: PersonKey, everyone: readonly PersonKey[]) => void;
   /** Short tap on a filter pill. */
   togglePerson: (key: PersonKey) => void;
   /** Long press on a filter pill: only that person (again → everyone). */
@@ -92,6 +100,11 @@ interface UiState {
 
 }
 
+/** The week's opening filter: only the first person (first kid) is on. */
+export function weekDefault(everyone: readonly PersonKey[]): PersonKey[] {
+  return everyone.slice(1);
+}
+
 export const useUiStore = create<UiState>()((set) => ({
   currentDate: todayIso(),
   setCurrentDate: (date) => set({ currentDate: date }),
@@ -113,6 +126,11 @@ export const useUiStore = create<UiState>()((set) => ({
   monthRowH: 104,
   setMonthRowH: (h) => set({ monthRowH: h }),
   inactivePeople: [],
+  weekInactive: null,
+  toggleWeekPerson: (key, everyone) =>
+    set((s) => ({ weekInactive: toggleActive(s.weekInactive ?? weekDefault(everyone), key) })),
+  soloWeekPerson: (key, everyone) =>
+    set((s) => ({ weekInactive: soloActive(s.weekInactive ?? weekDefault(everyone), key, everyone) })),
   togglePerson: (key) => set((s) => ({ inactivePeople: toggleActive(s.inactivePeople, key) })),
   soloPerson: (key, everyone) =>
     set((s) => ({ inactivePeople: soloActive(s.inactivePeople, key, everyone) })),
