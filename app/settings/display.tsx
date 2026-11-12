@@ -49,9 +49,7 @@ export default function DisplaySettingsScreen(): React.ReactElement {
             />
           </View>
         </HomeSection>
-        <Text style={ss.footnote}>
-          {mode === 'system' ? '아이폰의 라이트/다크 설정을 따라 바뀌어요.' : '아이폰 설정과 관계없이 이 모드로 보여요.'}
-        </Text>
+        {mode === 'system' ? <Text style={ss.footnote}>아이폰의 라이트/다크 설정을 따라 바뀌어요.</Text> : null}
       </View>
 
       <View style={ss.block}>
@@ -65,7 +63,6 @@ export default function DisplaySettingsScreen(): React.ReactElement {
             />
           </View>
         </HomeSection>
-        <Text style={ss.footnote}>왼손으로 쓰신다면 왼쪽을 고르면 엄지로 누르기 편해요.</Text>
       </View>
 
     </SettingsDetailScreen>

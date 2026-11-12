@@ -160,15 +160,18 @@ export default function SettingsScreen(): React.ReactElement {
           />
         </HomeSection>
 
-        <HomeSection title="캘린더">
-          <FormValueRow
-            label="캘린더 연동"
-            value={guardianEnabled ? '켜짐' : '꺼짐'}
-            onPress={() => router.push('/settings/calendars')}
-            last
-            testID="settings-row-calendars"
-          />
-        </HomeSection>
+        <View style={styles.block}>
+          <HomeSection title="캘린더">
+            <FormValueRow
+              label="캘린더 연동"
+              value={guardianEnabled ? '켜짐' : '꺼짐'}
+              onPress={() => router.push('/settings/calendars')}
+              last
+              testID="settings-row-calendars"
+            />
+          </HomeSection>
+          <Text style={styles.footnote}>아이폰 캘린더의 일정을 공유합니다.</Text>
+        </View>
 
         <HomeSection title="데이터">
           <FormValueRow
