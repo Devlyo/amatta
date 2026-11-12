@@ -1,6 +1,6 @@
 # ADR-016 — 캘린더 링크 공유 (보기 전용, 서버 저장 없음)
 
-- **Status**: **Accepted / 구현 완료, 배포 전** (2026-11-12) — Architect·Critic 리뷰 반영(아래 *Review*) — 오너 "다른 보호자에게 캘린더 화면을 링크로, 수정 불가·일정 정보·주간 뷰까지" → 방식 **A**(데이터는 링크 안에만), 호스팅 **Vercel**, 기본값 = 4주 · 준비물 포함 · 장소·메모 빼기
+- **Status**: **Accepted / 구현 완료, 배포 완료 — https://wemoa-share.vercel.app/s** (2026-11-12) — Architect·Critic 리뷰 반영(아래 *Review*) — 오너 "다른 보호자에게 캘린더 화면을 링크로, 수정 불가·일정 정보·주간 뷰까지" → 방식 **A**(데이터는 링크 안에만), 호스팅 **Vercel**, 기본값 = 4주 · 준비물 포함 · 장소·메모 빼기
 - **Source**: 디자인 캔버스(비공개) https://claude.ai/artifact/7378YLCUUr4pMf7SgDfybx — 보드 `SH1`–`SH4`. 계획: `.omc/plans/ralplan-share-link.md`
 - **Relates**: ADR-001 "온라인 기능 없음"을 **부분 완화** — 앱은 여전히 서버·계정·동기화가 없다. 새로 생기는 건 *정적* 웹 보기 페이지 하나뿐이며, 일정 데이터는 그 서버에 전송·저장되지 않는다.
 
