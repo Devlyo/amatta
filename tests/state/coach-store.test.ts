@@ -5,11 +5,11 @@ describe('nextCoach', () => {
   test('nothing until loaded', () => {
     expect(nextCoach([], false, ['filter-solo'])).toBeNull();
   });
-  test('in order; a later tip waits for the earlier one even if its screen is up', () => {
+  test('first unseen tip this screen can host, one at a time', () => {
     expect(nextCoach([], true, ['filter-solo', 'week-pinch', 'block-drag'])).toBe('filter-solo');
     expect(nextCoach(['filter-solo'], true, ['filter-solo', 'week-pinch'])).toBe('week-pinch');
-    // week tip not seen yet and not on screen → block tip waits
-    expect(nextCoach(['filter-solo'], true, ['filter-solo', 'block-drag'])).toBeNull();
+    // the week tip isn't on this screen → the drag tip doesn't wait for it
+    expect(nextCoach(['filter-solo'], true, ['filter-solo', 'block-drag'])).toBe('block-drag');
     expect(nextCoach(['filter-solo', 'week-pinch'], true, ['block-drag'])).toBe('block-drag');
     expect(nextCoach(['filter-solo', 'week-pinch', 'block-drag'], true, ['block-drag'])).toBeNull();
   });

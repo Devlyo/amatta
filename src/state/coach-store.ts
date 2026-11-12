@@ -38,14 +38,11 @@ export const useCoachStore = create<CoachState>()((set, get) => ({
 }));
 
 /**
- * The tip to show now, given which ones the current screen can host: the first
- * unseen one in COACH_ORDER that is available. Nothing until loaded (no flash).
+ * The tip to show now: the first unseen one (in COACH_ORDER) that the current
+ * screen can host — one at a time; a tip for a screen you never open doesn't
+ * hold the others back. Nothing until loaded (no flash).
  */
 export function nextCoach(seen: readonly CoachId[], loaded: boolean, available: readonly CoachId[]): CoachId | null {
   if (!loaded) return null;
-  for (const id of COACH_ORDER) {
-    if (seen.includes(id)) continue;
-    return available.includes(id) ? id : null;
-  }
-  return null;
+  return COACH_ORDER.find((id) => !seen.includes(id) && available.includes(id)) ?? null;
 }
