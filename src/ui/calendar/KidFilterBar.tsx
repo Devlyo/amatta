@@ -2,9 +2,10 @@
 //
 // One pill per kid plus 보호자 (guardian). Border = the owner's deep tone,
 // fill = owner colour at 25% (guardian 40%), avatar + name centred.
-// Short tap = switch that person off/on. Press and slide sideways = every pill
-// the finger passes takes the opposite of the first pill's state, like
-// selecting photos by sliding (owner 2026-11-12; long press "only this person"
+// Tap = one person at a time (off pill → only them; on pill → switch off; see
+// domain/people-filter tapPerson). Press and slide sideways = every pill the
+// finger passes takes the opposite of the first pill's state, like selecting
+// photos by sliding — that's how you pick several (owner 2026-11-12; long press
 // removed). Inactive pills fade to 45%.
 
 import { memo, useMemo, useRef } from 'react';
@@ -70,7 +71,7 @@ function Pill({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint="누르면 켜고 끄기, 옆으로 밀면 여러 명을 한 번에"
+      accessibilityHint="누르면 이 사람만, 다시 누르면 끄기, 옆으로 밀면 여러 명"
       accessibilityState={{ selected }}
       testID={testID}
       style={[

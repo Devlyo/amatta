@@ -17,6 +17,20 @@ export function toggleActive(inactive: readonly PersonKey[], key: PersonKey): Pe
   return inactive.includes(key) ? inactive.filter((k) => k !== key) : [...inactive, key];
 }
 
+/**
+ * A tap on a pill (owner 2026-11-12): taps pick ONE person; sliding picks many.
+ *   everyone on (no filter) → only this person
+ *   this person off         → only this person
+ *   this person on          → switch them off (the last one off → everyone again)
+ */
+export function tapPerson(inactive: readonly PersonKey[], key: PersonKey, everyone: readonly PersonKey[]): PersonKey[] {
+  const allOn = everyone.every((k) => !inactive.includes(k));
+  const isOn = !inactive.includes(key);
+  if (allOn || !isOn) return everyone.filter((k) => k !== key);
+  const next = [...inactive, key];
+  return everyone.every((k) => next.includes(k)) ? [] : next;
+}
+
 /** Switch one person on or off explicitly (slide-select across the pills). */
 export function setActive(inactive: readonly PersonKey[], key: PersonKey, on: boolean): PersonKey[] {
   if (on) return inactive.filter((k) => k !== key);

@@ -105,7 +105,7 @@ function md(date: ISODate): { m: number; d: number } {
 
 /** CM2 tip copy: [before, highlighted, after] (owner 2026-11-12). */
 const COACH_TEXT: Record<CoachId, readonly [string, string, string]> = {
-  'filter-solo': ['이름을 ', '옆으로 밀면', ' 여러 명을 한 번에 켜고 꺼요'],
+  'filter-solo': ['누르면 한 명만, ', '옆으로 밀면', ' 여러 명을 볼 수 있어요'],
   'week-pinch': ['', '두 손가락으로 벌리거나 모으면', ' 보이는 날짜 수가 바뀌어요'],
   'block-drag': ['일정을 ', '꾹 눌러 끌면', ' 시간과 날짜를 옮길 수 있어요'],
 };
@@ -125,10 +125,10 @@ export default function CalendarScreen(): React.ReactElement {
   const monthRowH = useUiStore((s) => s.monthRowH);
   const setMonthRowH = useUiStore((s) => s.setMonthRowH);
   const inactivePeople = useUiStore((s) => s.inactivePeople);
-  const togglePerson = useUiStore((s) => s.togglePerson);
+  const tapPersonPill = useUiStore((s) => s.tapPersonPill);
   const setPersonActive = useUiStore((s) => s.setPersonActive);
   const weekInactiveRaw = useUiStore((s) => s.weekInactive);
-  const toggleWeekPerson = useUiStore((s) => s.toggleWeekPerson);
+  const tapWeekPersonPill = useUiStore((s) => s.tapWeekPersonPill);
   const setWeekPersonActive = useUiStore((s) => s.setWeekPersonActive);
 
   const nowMinutes = useNowMinutes();
@@ -527,7 +527,7 @@ export default function CalendarScreen(): React.ReactElement {
         guardian={guardianEnabled}
         kids={kids}
         inactive={filterInactive}
-        onToggle={(key) => (view === 'week' ? toggleWeekPerson(key, everyone) : togglePerson(key))}
+        onToggle={(key) => (view === 'week' ? tapWeekPersonPill(key, everyone) : tapPersonPill(key, everyone))}
         onSet={(key, on) => (view === 'week' ? setWeekPersonActive(key, on, everyone) : setPersonActive(key, on))}
         onSlideEnd={() => seeCoach('filter-solo')}
       />
