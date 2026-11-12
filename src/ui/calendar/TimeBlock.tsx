@@ -86,6 +86,12 @@ function TimeBlockImpl({
   // is scheme-independent — dark on kid colours, light on the dark guardian grey.
   const fill = withAlpha(color, focused ? theme.blockFillFocused : theme.blockFill);
   const onFill = guardian ? theme.onGuardianBlock : theme.t.onLight;
+  // ADR-013 faces: their own row from FACES_OWN_ROW up (≈ 1h10m); a shorter
+  // block (a 1-hour class) puts them at the end of the time row, or in its
+  // place when the time is hidden (owner 2026-11-12). Not on compact blocks
+  // (5+ columns) — no room next to the time there.
+  const hasFaces = footer !== undefined && footer !== null;
+  const facesInline = hasFaces && !compact && height < FACES_OWN_ROW && height >= FACES_INLINE_MIN;
   return (
     <Pressable
       onPress={onPress}
@@ -131,9 +137,12 @@ function TimeBlockImpl({
           >
             {fmtRange(startMinutes, endMinutes)}
           </Text>
+          {facesInline ? <View style={styles.facesInline}>{footer}</View> : null}
         </View>
+      ) : facesInline ? (
+        <View style={styles.timeRow}>{footer}</View>
       ) : null}
-      {footer !== undefined && footer !== null && height >= 52 ? <View style={styles.footer}>{footer}</View> : null}
+      {hasFaces && height >= FACES_OWN_ROW ? <View style={styles.footer}>{footer}</View> : null}
     </Pressable>
   );
 }
@@ -141,6 +150,10 @@ function TimeBlockImpl({
 export const TimeBlock = memo(TimeBlockImpl);
 
 const BAR_W = 1.5;
+/** Faces get their own row from this block height (title + time + faces). */
+const FACES_OWN_ROW = 52;
+/** Below FACES_OWN_ROW, faces join the time row from this height (title + one row). */
+const FACES_INLINE_MIN = 34;
 const RING_W = 1.5;
 
 const useStyles = makeStyles((th) => ({
@@ -196,6 +209,7 @@ const useStyles = makeStyles((th) => ({
   },
   pickupDotCompact: { width: 7, height: 7, borderWidth: 1 },
   footer: { marginTop: 'auto', paddingBottom: 1 },
+  facesInline: { marginLeft: 'auto', paddingLeft: 2, flexShrink: 0 },
   timeRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -204,6 +218,7 @@ const useStyles = makeStyles((th) => ({
   time: {
     ...TYPE.caption,
     color: th.t.ink,
+    flexShrink: 1,
   },
   timeCompact: {
     ...TYPE.caption2,
