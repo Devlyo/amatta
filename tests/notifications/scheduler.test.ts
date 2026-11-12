@@ -529,7 +529,7 @@ describe('end alerts + all-day (v8)', () => {
     const today = firesToday();
     expect(today.map((n) => n.at)).toEqual([todayAt(14, 30), todayAt(15, 50)]);
     expect(today[0]?.body).toContain('악보');
-    expect(today[1]?.title).toContain('끝나요');
+    expect(today[1]?.title).toContain('종료');
     expect(today[1]?.body).not.toContain('악보');
   });
 
@@ -705,7 +705,7 @@ describe('shared schedules (ADR-013)', () => {
     await rescheduleAll(fakeDb, { now });
     expect(mockState.scheduled.length).toBe(solo);
     const title = (mockState.scheduled[0]?.content as { title: string }).title;
-    expect(title).toContain('민준·서연');
+    expect(title).toContain('민준, 서연');
 
     mockState.scheduled.length = 0;
     mockState.fakeSchedules = [makeSchedule({ memberIds: [1, 2, 3] })];

@@ -170,9 +170,9 @@ export function occurrenceKey(o: Pick<Occurrence, 'scheduleId' | 'date' | 'child
 }
 
 /** "민준·서연" for 2, "민준 외 2명" for 3+ (ADR-013). */
-export function memberNames(ids: readonly number[], childrenById: Map<number, Child>, withGuardian = false): string {
+export function memberNames(ids: readonly number[], childrenById: Map<number, Child>, withGuardian = false, sep = '·'): string {
   const names = ids.map((id) => childrenById.get(id)?.name).filter((n): n is string => n !== undefined);
   if (withGuardian) names.push('보호자');
-  if (names.length <= 2) return names.join('·');
+  if (names.length <= 2) return names.join(sep);
   return `${names[0]} 외 ${names.length - 1}명`;
 }

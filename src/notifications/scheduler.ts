@@ -150,7 +150,8 @@ function candidatesForSchedule(input: {
   const child = childrenById.get(schedule.childId);
   if (child === undefined) return []; // orphan row — defer to cleanup.
   // ADR-013: one alert per occurrence for everyone on it — "민준·서연" / "민준 외 2명".
-  const kidName = memberNames(schedule.memberIds ?? [schedule.childId], childrenById) || child.name;
+  // Banners use no middle dot (owner 2026-11-12): "민준, 서연 수영 10시 시작".
+  const kidName = memberNames(schedule.memberIds ?? [schedule.childId], childrenById, false, ', ') || child.name;
 
   const from = todayIso();
   const to = shiftIsoDate(from, horizonDays);

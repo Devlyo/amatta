@@ -32,9 +32,9 @@ function hasBatchim(word: string): boolean {
 export function withSubject(word: string): string {
   return `${word}${hasBatchim(word) ? '이' : '가'}`;
 }
-/** 연습장이에요 / 악보예요 */
-function withCopula(word: string): string {
-  return `${word}${hasBatchim(word) ? '이에요' : '예요'}`;
+/** 연습장을 / 악보를 */
+function withObject(word: string): string {
+  return `${word}${hasBatchim(word) ? '을' : '를'}`;
 }
 /** 1시 / 4시 30분 (12-hour, no 오전/오후 — owner 2026-11-11). */
 export function fmtKoClock(minutes: Minutes): string {
@@ -45,9 +45,10 @@ export function fmtKoClock(minutes: Minutes): string {
 }
 
 /**
- * Schedule "before start" push (owner wording, 2026-11-11):
- *   title = "민준 · 수학학원이 1시에 시작합니다."
- *   body  = "준비물은 연습장, 필통이에요." (pending supplies for this occurrence) or empty.
+ * Schedule "before start" push (owner wording, 2026-11-12 — no dots, no
+ * middle dot, no full stop, like other apps' banners):
+ *   title = "서연 미술 3시 시작"
+ *   body  = "스케치북, 앞치마를 챙겨주세요🎒" (pending supplies for this occurrence) or empty.
  *
  * v6 / PREP-RECUR: this function NO LONGER reads `is_done` (FROZEN as of v6).
  * Per-occurrence membership + completion is resolved by the caller
@@ -63,24 +64,24 @@ export function formatScheduleNotification(input: {
   pendingLabels: readonly string[];
 }): { title: string; body: string } {
   const { schedule, startMinutes, kidName, pendingLabels } = input;
-  const what = withSubject(schedule.title);
   const title =
     schedule.allDay === true
-      ? `${kidName} · ${what} 오늘 하루 종일 있어요.`
-      : `${kidName} · ${what} ${fmtKoClock(startMinutes)}에 시작합니다.`;
+      ? `${kidName} ${schedule.title} 오늘 하루 종일`
+      : `${kidName} ${schedule.title} ${fmtKoClock(startMinutes)} 시작`;
   if (pendingLabels.length === 0) return { title, body: '' };
 
-  // Prep line ≤ 80 chars (ADR-002): "준비물은 {a}, {b}이에요."
+  // Prep line ≤ 80 chars (ADR-002): "{a}, {b}를 챙겨주세요🎒"
+  const TAIL = '를 챙겨주세요🎒';
   let items = pendingLabels.join(ITEM_SEP);
-  const room = BODY_MAX - '준비물은 '.length - '이에요.'.length;
+  const room = BODY_MAX - TAIL.length;
   if (items.length > room) items = `${items.slice(0, room - ELLIPSIS.length)}${ELLIPSIS}`;
-  return { title, body: `준비물은 ${withCopula(items)}.` };
+  return { title, body: `${withObject(items)} 챙겨주세요🎒` };
 }
 
 /**
- * "Before end" push (ADR-007 §8; owner wording 2026-11-11):
- *   title = "민준 · 수학학원이 3시에 끝나요."
- *   body  = "픽업해주세요." when the schedule needs a pickup, else empty.
+ * "Before end" push (ADR-007 §8; owner wording 2026-11-12):
+ *   title = "서연 미술 4시 종료"
+ *   body  = "픽업해주세요🚙" when the schedule needs a pickup, else empty.
  */
 export function formatScheduleEndNotification(input: {
   schedule: Schedule;
@@ -89,8 +90,8 @@ export function formatScheduleEndNotification(input: {
 }): { title: string; body: string } {
   const { schedule, endMinutes, kidName } = input;
   return {
-    title: `${kidName} · ${withSubject(schedule.title)} ${fmtKoClock(endMinutes)}에 끝나요.`,
-    body: schedule.needsPickup ? '픽업해주세요.' : '',
+    title: `${kidName} ${schedule.title} ${fmtKoClock(endMinutes)} 종료`,
+    body: schedule.needsPickup ? '픽업해주세요🚙' : '',
   };
 }
 
@@ -104,7 +105,7 @@ export function formatTodoNotification(input: {
 }): { title: string; body: string } {
   const { todo, kidName } = input;
   const title =
-    kidName !== null ? `${kidName} · 할 일` : '할 일';
+    kidName !== null ? `${kidName} 할 일` : '할 일';
   const body = todo.title;
   return { title, body };
 }
